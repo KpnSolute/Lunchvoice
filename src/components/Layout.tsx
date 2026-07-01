@@ -17,6 +17,7 @@ export function Layout() {
             <>
               <NavLink to="/admin" end>Dashboard</NavLink>
               <NavLink to="/admin/sessions">Sessions</NavLink>
+              <NavLink to="/admin/roster">Roster</NavLink>
               <NavLink to="/admin/store">Store</NavLink>
               <NavLink to="/admin/orders">Orders</NavLink>
             </>

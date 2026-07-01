@@ -34,6 +34,8 @@ export type Database = {
           points: number;
           role: string;
           streak: number;
+          is_staff: boolean;
+          mjcc_username: string | null;
         };
         Insert: { id: string };
         Update: { display_name?: string | null };
@@ -126,6 +128,19 @@ export type Database = {
     Views: {
       dish_stats: {
         Row: { avg_rating: number | null; dish_name: string | null; slot: string | null; votes: number | null };
+        Relationships: [];
+      };
+      student_roster: {
+        Row: {
+          id: string;
+          display_name: string | null;
+          email: string | null;
+          points: number;
+          streak: number;
+          created_at: string;
+          responses: number;
+          orders: number;
+        };
         Relationships: [];
       };
     };

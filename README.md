@@ -25,12 +25,26 @@ npm run dev               # http://localhost:5173
 ```
 The anon/publishable key is safe to expose — Row Level Security is the real guard.
 
-## Making yourself an admin
-New users default to `role = 'student'`. To promote yourself after first login, run in the
-Supabase SQL editor:
-```sql
-update public.profiles set role = 'admin' where email = 'you@school.edu';
-```
+## Authentication
+- **Students** sign up with their **name + personal email** and verify a **6-digit code**
+  emailed to them (Supabase email OTP). Each gets a stable user ID; survey responses are
+  anonymous in stats but internally linked to that ID so they're verifiable and orders track.
+- **Staff** (MJCCv1 `sudo` users — currently Othniel & Jeremiah) use the **Staff** tab and
+  sign in with their **MJCCv1 cafeteria credentials**. The `staff-login` edge function
+  verifies them against the MJCCv1 project with a service role, confirms `role = 'sudo'`
+  live, then grants a MJCCv2 admin session. Revoke sudo in MJCCv1 → their site admin dies.
+  Only `sudo` users get admin powers here.
+
+### Required manual setup (one-time, Supabase dashboard)
+1. **Edge function secret** — the `staff-login` function needs MJCCv1's service_role key:
+   ```bash
+   supabase secrets set MJCCV1_SERVICE_ROLE_KEY=<mjccv1 service_role key> \
+     --project-ref qprfonxvthmaoxfixigk
+   ```
+   (`MJCCV1_URL` and `MJCCV1_ANON_KEY` are already set.)
+2. **Email OTP as a code, not a link** — in MJCCv2 → Authentication → Email Templates →
+   **Magic Link**, make sure the body contains `{{ .Token }}` so students receive the
+   6-digit code. (`verifyOtp` works either way, but the email must show the code.)
 
 ## Database
 Schema lives in the Supabase project `qprfonxvthmaoxfixigk`. Key objects:

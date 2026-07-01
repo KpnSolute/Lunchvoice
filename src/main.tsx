@@ -13,6 +13,7 @@ import { Dashboard } from "./routes/admin/Dashboard";
 import { Sessions } from "./routes/admin/Sessions";
 import { StoreAdmin } from "./routes/admin/StoreAdmin";
 import { OrdersAdmin } from "./routes/admin/OrdersAdmin";
+import { Roster } from "./routes/admin/Roster";
 import "./index.css";
 
 function Gate({ children, adminOnly }: { children: ReactNode; adminOnly?: boolean }) {
@@ -41,6 +42,7 @@ function App() {
       <Route path="/admin" element={<Gate adminOnly><Layout /></Gate>}>
         <Route index element={<Dashboard />} />
         <Route path="sessions" element={<Sessions />} />
+        <Route path="roster" element={<Roster />} />
         <Route path="store" element={<StoreAdmin />} />
         <Route path="orders" element={<OrdersAdmin />} />
       </Route>
