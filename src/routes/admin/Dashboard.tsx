@@ -1,0 +1,78 @@
+import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
+import type { DishStat } from "../../types/db";
+
+export function Dashboard() {
+  const [stats, setStats] = useState<DishStat[]>([]);
+  const [ideas, setIdeas] = useState<{ idea: string; submitted_at: string }[]>([]);
+  const [counts, setCounts] = useState({ responses: 0, orders: 0, pendingOrders: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const [{ data: ds }, { data: id }, respCount, orderRows] = await Promise.all([
+        supabase.from("dish_stats").select("*"),
+        supabase.from("responses").select("idea, submitted_at").not("idea", "is", null).order("submitted_at", { ascending: false }).limit(30),
+        supabase.from("responses").select("id", { count: "exact", head: true }),
+        supabase.from("orders").select("status"),
+      ]);
+      setStats(ds ?? []);
+      setIdeas((id ?? []) as { idea: string; submitted_at: string }[]);
+      const orders = orderRows.data ?? [];
+      setCounts({
+        responses: respCount.count ?? 0,
+        orders: orders.length,
+        pendingOrders: orders.filter((o) => o.status === "pending").length,
+      });
+      setLoading(false);
+    })();
+  }, []);
+
+  if (loading) return <div className="card muted">Loading dashboard…</div>;
+
+  return (
+    <>
+      <div className="row2" style={{ gridTemplateColumns: "repeat(3, 1fr)", marginBottom: 16 }}>
+        {[
+          ["Responses", counts.responses],
+          ["Orders", counts.orders],
+          ["Pending pickups", counts.pendingOrders],
+        ].map(([label, n]) => (
+          <div key={label} className="card center" style={{ margin: 0 }}>
+            <div style={{ fontFamily: "'Fraunces',serif", fontSize: 34, color: "var(--sage)" }}>{n}</div>
+            <div className="muted mono" style={{ fontSize: 11 }}>{String(label).toUpperCase()}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <h2>Dish ratings</h2>
+        <p className="hint">Average forks per dish across all responses.</p>
+        {stats.length === 0 ? (
+          <p className="muted">No ratings yet.</p>
+        ) : (
+          stats.map((s) => (
+            <div key={`${s.dish_name}-${s.slot}`} className="stat-row">
+              <span>{s.dish_name} <span className="muted mono" style={{ fontSize: 11 }}>{s.slot}</span></span>
+              <span className="avg">{Number(s.avg_rating).toFixed(1)} 🍴 · {s.votes} votes</span>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="card">
+        <h2>Latest dish ideas</h2>
+        {ideas.length === 0 ? (
+          <p className="muted">No ideas submitted yet.</p>
+        ) : (
+          ideas.map((i, idx) => (
+            <div key={idx} className="item-row">
+              <div className="item-name" style={{ fontWeight: 400 }}>💡 {i.idea}</div>
+              <span className="muted mono" style={{ fontSize: 11 }}>{new Date(i.submitted_at).toLocaleDateString()}</span>
+            </div>
+          ))
+        )}
+      </div>
+    </>
+  );
+}
