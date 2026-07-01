@@ -35,7 +35,7 @@ export function Login() {
     e.preventDefault();
     setErr("");
     setBusy(true);
-    // No emailRedirectTo => Supabase emails a 6-digit code instead of a magic link.
+    // No emailRedirectTo => Supabase emails a numeric code instead of a magic link.
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: { shouldCreateUser: true, data: { display_name: name.trim() } },
@@ -49,13 +49,21 @@ export function Login() {
     e.preventDefault();
     setErr("");
     setBusy(true);
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       email: email.trim(),
       token: code.trim(),
       type: "email",
     });
+    if (error) {
+      setBusy(false);
+      setErr(error.message);
+      return;
+    }
+    // Save the name they typed (OTP signup doesn't carry send-time metadata reliably).
+    if (name.trim() && data.user) {
+      await supabase.from("profiles").update({ display_name: name.trim() }).eq("id", data.user.id);
+    }
     setBusy(false);
-    if (error) setErr(error.message);
     // success => AuthProvider picks up the session and Gate redirects
   }
 
@@ -100,14 +108,14 @@ export function Login() {
         {mode === "student" ? (
           step === "enter" ? (
             <form onSubmit={sendCode} className="stack">
-              <p className="hint" style={{ margin: 0 }}>Sign up with your name and personal email. We'll email you a 6-digit code. Your survey answers stay anonymous.</p>
+              <p className="hint" style={{ margin: 0 }}>Sign up with your name and personal email. We'll email you a verification code. Your survey answers stay anonymous.</p>
               <input type="text" required placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />
               <input type="email" required placeholder="you@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
               <button className="btn-primary btn-block" disabled={busy}>{busy ? "Sending…" : "Email me a code"}</button>
             </form>
           ) : (
             <form onSubmit={verify} className="stack">
-              <p className="hint" style={{ margin: 0 }}>Enter the 6-digit code we sent to <b>{email}</b>.</p>
+              <p className="hint" style={{ margin: 0 }}>Enter the code we sent to <b>{email}</b>.</p>
               <input
                 type="text" inputMode="numeric" required placeholder="123456" value={code}
                 onChange={(e) => setCode(e.target.value)} className="mono"
