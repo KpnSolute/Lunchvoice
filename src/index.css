@@ -48,6 +48,21 @@ a { color: var(--tomato); }
 }
 .streak { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; }
 
+/* sign-out button that stays visible on the dark top bar */
+.btn-signout {
+  font-size: 13px; font-weight: 600; padding: 7px 13px; border-radius: 8px;
+  background: rgba(255,255,255,.10); color: var(--cream);
+  border: 1px solid rgba(255,255,255,.28);
+}
+.btn-signout:hover:not(:disabled) { background: var(--tomato); border-color: var(--tomato); color: var(--paper); }
+
+/* inline text-link button (login "use a different email") */
+.link-btn {
+  background: none; border: none; color: var(--muted);
+  text-decoration: underline; font-size: 13px; font-weight: 500; padding: 4px;
+}
+.link-btn:hover { color: var(--charcoal); }
+
 .card {
   background: var(--paper); border: 1px solid var(--line);
   border-radius: 14px; padding: 20px 22px; margin-bottom: 16px;

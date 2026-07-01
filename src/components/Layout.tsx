@@ -34,9 +34,7 @@ export function Layout() {
               {profile.streak > 0 && <span className="streak">🔥{profile.streak}</span>}
             </span>
           )}
-          <button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 13 }} onClick={signOut}>
-            Sign out
-          </button>
+          <button className="btn-signout" onClick={signOut}>Log out</button>
         </div>
       </div>
       <Outlet />

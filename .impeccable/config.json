@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "ignoreValues": {
+    "overused-font": ["Fraunces", "Space Grotesk", "Space Mono", "Arial"]
+  },
+  "reason": "Fraunces/Space Grotesk/Space Mono are the project's intentional receipt-ticket type system, carried over from the provided template and confirmed by the user. Arial is a web-safe fallback required for HTML email."
+}
