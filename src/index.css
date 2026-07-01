@@ -61,12 +61,29 @@ a { color: var(--tomato); }
 
 /* forms */
 label.field { display: block; font-family: 'Space Mono', monospace; font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
-input[type=text], input[type=email], input[type=number], textarea, select {
+input[type=text], input[type=email], input[type=password], input[type=number], textarea, select {
   width: 100%; font-family: 'Space Grotesk'; font-size: 14.5px;
-  border: 1px solid var(--line); background: var(--cream); border-radius: 10px;
-  padding: 11px 13px; color: var(--charcoal); resize: vertical;
+  border: 1.5px solid var(--line); background: var(--paper); border-radius: 10px;
+  padding: 12px 14px; color: var(--charcoal); resize: vertical;
+  appearance: none; -webkit-appearance: none; -moz-appearance: textfield;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
 }
-input:focus, textarea:focus, select:focus { outline: 2px solid var(--mustard); outline-offset: 1px; }
+input::placeholder, textarea::placeholder { color: #B3A995; }
+input:hover:not(:focus), textarea:hover:not(:focus), select:hover:not(:focus) { border-color: #d3c6ac; }
+input:focus, textarea:focus, select:focus {
+  outline: none; border-color: var(--mustard);
+  background: var(--paper);
+  box-shadow: 0 0 0 3px rgba(232,163,61,.22);
+}
+/* remove native number spinners */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+/* custom select chevron (kills native OS dropdown look) */
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%238B8272' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 13px center;
+  padding-right: 34px; cursor: pointer;
+}
 .field-block { margin-bottom: 14px; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } }
