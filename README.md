@@ -26,9 +26,11 @@ npm run dev               # http://localhost:5173
 The anon/publishable key is safe to expose — Row Level Security is the real guard.
 
 ## Authentication
-- **Students** sign up with their **name + personal email** and verify a **6-digit code**
-  emailed to them (Supabase email OTP). Each gets a stable user ID; survey responses are
-  anonymous in stats but internally linked to that ID so they're verifiable and orders track.
+- **Students** sign up with their **name + personal email** and verify a **6-digit code**.
+  Supabase Auth still owns the token (so `verifyOtp` + RLS are unchanged); the code is
+  *delivered* by the `send-email` edge function via **MailerSend** (Supabase's Send Email
+  hook). Each student gets a stable user ID; survey responses are anonymous in stats but
+  internally linked to that ID so they're verifiable and orders track.
 - **Staff** (MJCCv1 `sudo` users — currently Othniel & Jeremiah) use the **Staff** tab and
   sign in with their **MJCCv1 cafeteria credentials**. The `staff-login` edge function
   verifies them against the MJCCv1 project with a service role, confirms `role = 'sudo'`
@@ -42,9 +44,23 @@ The anon/publishable key is safe to expose — Row Level Security is the real gu
      --project-ref qprfonxvthmaoxfixigk
    ```
    (`MJCCV1_URL` and `MJCCV1_ANON_KEY` are already set.)
-2. **Email OTP as a code, not a link** — in MJCCv2 → Authentication → Email Templates →
-   **Magic Link**, make sure the body contains `{{ .Token }}` so students receive the
-   6-digit code. (`verifyOtp` works either way, but the email must show the code.)
+2. **MailerSend delivery for student codes** — the `send-email` edge function delivers OTP
+   codes via MailerSend, verified by Supabase's Send Email hook signature.
+   - Create a free [MailerSend](https://www.mailersend.com) account, verify a sending domain,
+     and create an API token.
+   - In MJCCv2 → **Authentication → Hooks** → enable **Send Email Hook**, point it at the
+     `send-email` function, and copy the generated secret (`v1,whsec_...`).
+   - Set the secrets:
+     ```bash
+     supabase secrets set \
+       SEND_EMAIL_HOOK_SECRET='v1,whsec_...' \
+       MAILERSEND_API_KEY='mlsn_...' \
+       MAIL_FROM='no-reply@yourdomain.com' \
+       MAIL_FROM_NAME='The Lunch Line' \
+       --project-ref qprfonxvthmaoxfixigk
+     ```
+   Until the hook is enabled + secrets set, student sign-in emails won't send. (The token is
+   still generated correctly by Supabase — only delivery is pending.)
 
 ## Database
 Schema lives in the Supabase project `qprfonxvthmaoxfixigk`. Key objects:
