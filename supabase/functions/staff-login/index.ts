@@ -82,84 +82,97 @@ Deno.serve(async (req) => {
     const V2_URL = Deno.env.get("MJCCV2_URL") ?? required("SUPABASE_URL");
     const V2_SERVICE = Deno.env.get("MJCCV2_SERVICE_ROLE_KEY") ?? required("SUPABASE_SERVICE_ROLE_KEY");
 
-  const v1admin = createClient(V1_URL, V1_SERVICE, { auth: { persistSession: false } });
+    const v1admin = createClient(V1_URL, V1_SERVICE, { auth: { persistSession: false } });
 
-  let loginEmail = email.trim();
-  if (!loginEmail.includes("@")) {
-    const username = cleanUsername(loginEmail);
-    if (!username) return json(req, { error: "Invalid staff credentials" }, 401);
-    const { data: byName } = await v1admin
-      .from("user_profiles")
-      .select("id")
-      .ilike("username", username)
-      .single();
-    if (!byName) return json(req, { error: "Invalid staff credentials" }, 401);
-    const { data: authUser } = await v1admin.auth.admin.getUserById(byName.id);
-    if (!authUser.user?.email) return json(req, { error: "Invalid staff credentials" }, 401);
-    loginEmail = authUser.user.email;
-  }
-
-  const v1 = createClient(V1_URL, V1_ANON, { auth: { persistSession: false } });
-  const { data: signIn, error: signErr } = await v1.auth.signInWithPassword({ email: loginEmail, password });
-  if (signErr || !signIn.user) return json(req, { error: "Invalid staff credentials" }, 401);
-
-  const { data: profile } = await v1admin
-    .from("user_profiles")
-    .select("role, username, display_name, last_name, active")
-    .eq("id", signIn.user.id)
-    .single();
-
-  if (!profile || profile.active === false || profile.role !== "sudo") {
-    return json(req, { error: "This account does not have sudo access." }, 403);
-  }
-
-  const v2 = createClient(V2_URL, V2_SERVICE, { auth: { persistSession: false } });
-
-  let userId: string | undefined;
-  const created = await v2.auth.admin.createUser({
-    email: loginEmail,
-    email_confirm: true,
-    user_metadata: { staff: true, username: profile.username },
-  });
-  if (created.data.user) {
-    userId = created.data.user.id;
-  } else {
-    const existingId = /already|registered|exists/i.test(created.error?.message ?? "") ? undefined : null;
-    if (existingId === null) return json(req, { error: "Could not provision staff account" }, 500);
-    for (let page = 1; page <= 20 && !userId; page++) {
-      const { data: list } = await v2.auth.admin.listUsers({ page, perPage: 100 });
-      userId = list.users.find((u) => u.email?.toLowerCase() === loginEmail.toLowerCase())?.id;
-      if (list.users.length < 100) break;
+    let loginEmail = email.trim();
+    if (!loginEmail.includes("@")) {
+      const username = cleanUsername(loginEmail);
+      if (!username) return json(req, { error: "Invalid staff credentials" }, 401);
+      const { data: byName, error: byNameErr } = await v1admin
+        .from("user_profiles")
+        .select("id")
+        .ilike("username", username)
+        .maybeSingle();
+      if (byNameErr) {
+        console.error("staff_v1_username_lookup_failed", byNameErr.message);
+        return json(req, { error: "Could not reach MJCCv1 profile lookup." }, 502);
+      }
+      if (!byName) return json(req, { error: "Invalid staff credentials" }, 401);
+      const { data: authUser, error: authUserErr } = await v1admin.auth.admin.getUserById(byName.id);
+      if (authUserErr) {
+        console.error("staff_v1_auth_user_lookup_failed", authUserErr.message);
+        return json(req, { error: "Could not fetch MJCCv1 auth user." }, 502);
+      }
+      if (!authUser.user?.email) return json(req, { error: "Invalid staff credentials" }, 401);
+      loginEmail = authUser.user.email;
     }
-  }
-  if (!userId) return json(req, { error: "Could not provision staff account" }, 500);
 
-  const fullName = [profile.display_name, profile.last_name].filter(Boolean).join(" ").trim() || profile.username;
-  await v2.from("profiles").upsert({
-    id: userId,
-    email: loginEmail,
-    display_name: fullName,
-    role: "admin",
-    is_staff: true,
-    mjcc_username: profile.username,
-  });
+    const v1 = createClient(V1_URL, V1_ANON, { auth: { persistSession: false } });
+    const { data: signIn, error: signErr } = await v1.auth.signInWithPassword({ email: loginEmail, password });
+    if (signErr || !signIn.user) return json(req, { error: "Invalid staff credentials" }, 401);
 
-  const { data: link, error: linkErr } = await v2.auth.admin.generateLink({ type: "magiclink", email: loginEmail });
-  if (linkErr || !link.properties) return json(req, { error: "Could not create session" }, 500);
+    const { data: profile, error: profileErr } = await v1admin
+      .from("user_profiles")
+      .select("role, username, display_name, last_name, active")
+      .eq("id", signIn.user.id)
+      .maybeSingle();
+    if (profileErr) {
+      console.error("staff_v1_profile_confirm_failed", profileErr.message);
+      return json(req, { error: "Could not confirm MJCCv1 sudo profile." }, 502);
+    }
 
-  const { data: session, error: verifyErr } = await v2.auth.verifyOtp({
-    type: "magiclink",
-    email: loginEmail,
-    token_hash: link.properties.hashed_token,
-  });
-  if (verifyErr || !session.session) return json(req, { error: "Could not create session" }, 500);
+    if (!profile || profile.active === false || profile.role !== "sudo") {
+      return json(req, { error: "This account does not have sudo access." }, 403);
+    }
 
-  return json(req, {
-    access_token: session.session.access_token,
-    refresh_token: session.session.refresh_token,
-    name: fullName,
-  });
-  } catch (_e) {
+    const v2 = createClient(V2_URL, V2_SERVICE, { auth: { persistSession: false } });
+
+    let userId: string | undefined;
+    const created = await v2.auth.admin.createUser({
+      email: loginEmail,
+      email_confirm: true,
+      user_metadata: { staff: true, username: profile.username },
+    });
+    if (created.data.user) {
+      userId = created.data.user.id;
+    } else {
+      const existingId = /already|registered|exists/i.test(created.error?.message ?? "") ? undefined : null;
+      if (existingId === null) return json(req, { error: "Could not provision staff account" }, 500);
+      for (let page = 1; page <= 20 && !userId; page++) {
+        const { data: list } = await v2.auth.admin.listUsers({ page, perPage: 100 });
+        userId = list.users.find((u) => u.email?.toLowerCase() === loginEmail.toLowerCase())?.id;
+        if (list.users.length < 100) break;
+      }
+    }
+    if (!userId) return json(req, { error: "Could not provision staff account" }, 500);
+
+    const fullName = [profile.display_name, profile.last_name].filter(Boolean).join(" ").trim() || profile.username;
+    await v2.from("profiles").upsert({
+      id: userId,
+      email: loginEmail,
+      display_name: fullName,
+      role: "admin",
+      is_staff: true,
+      mjcc_username: profile.username,
+    });
+
+    const { data: link, error: linkErr } = await v2.auth.admin.generateLink({ type: "magiclink", email: loginEmail });
+    if (linkErr || !link.properties) return json(req, { error: "Could not create session" }, 500);
+
+    const { data: session, error: verifyErr } = await v2.auth.verifyOtp({
+      type: "magiclink",
+      email: loginEmail,
+      token_hash: link.properties.hashed_token,
+    });
+    if (verifyErr || !session.session) return json(req, { error: "Could not create session" }, 500);
+
+    return json(req, {
+      access_token: session.session.access_token,
+      refresh_token: session.session.refresh_token,
+      name: fullName,
+    });
+  } catch (e) {
+    console.error("staff_login_unhandled", e instanceof Error ? e.message : e);
     return json(req, { error: "Staff login is temporarily unavailable." }, 500);
   }
 });

@@ -1,29 +1,26 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { supabase, staffLogin } from "../lib/supabase";
+import { beginLogin, staffLogin, supabase } from "../lib/supabase";
 import { useAuth } from "../auth/AuthProvider";
 
-type Step = "email" | "password" | "code";
+type Step = "identifier" | "password" | "code";
+type StudentMode = "returning" | "new";
 
-// Staff sign in with a MJCC cafeteria email OR their bare username (no "@").
-// Students always use a full personal email.
-const STAFF_DOMAIN = "@mjc-cafeteria.com";
-const isEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
-const isUsername = (e: string) => e.trim().length > 0 && !e.includes("@");
-const isStaffId = (e: string) => e.trim().toLowerCase().endsWith(STAFF_DOMAIN) || isUsername(e);
-const canContinue = (e: string) => isEmail(e) || isUsername(e);
+const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+const isUsername = (value: string) => value.trim().length > 0 && !value.includes("@");
+const canContinue = (value: string) => isEmail(value) || isUsername(value);
 
 export function Login() {
   const { session, loading } = useAuth();
-  const [step, setStep] = useState<Step>("email");
-  const [email, setEmail] = useState("");
+  const [step, setStep] = useState<Step>("identifier");
+  const [studentMode, setStudentMode] = useState<StudentMode>("returning");
+  const [identifier, setIdentifier] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
-  // Preserve a ?code= (from a shared QR/link) across login.
   const [joinCode] = useState(() => new URLSearchParams(window.location.search).get("code"));
   useEffect(() => {
     if (joinCode) sessionStorage.setItem("pendingJoinCode", joinCode);
@@ -31,32 +28,35 @@ export function Login() {
 
   if (!loading && session) return <Navigate to="/" replace />;
 
-  const staff = isStaffId(email);
+  const loginId = identifier.trim();
+  const isStudentEmailFlow = step === "code";
 
-  // Step 1: email/username entered → route to staff password or student OTP.
-  async function continueEmail(e: React.FormEvent) {
+  async function continueLogin(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
-    if (staff) {
-      setStep("password");
-      return;
-    }
     setBusy(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: { shouldCreateUser: true },
-    });
-    setBusy(false);
-    if (error) setErr(error.message);
-    else setStep("code");
+    try {
+      const kind = await beginLogin(loginId);
+      if (kind === "staff") {
+        setStep("password");
+        return;
+      }
+      setStudentMode(kind === "student_new" ? "new" : "returning");
+      setStep("code");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Login failed");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function verifyStudent(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
     setBusy(true);
+    const email = loginId.toLowerCase();
     const { data, error } = await supabase.auth.verifyOtp({
-      email: email.trim(),
+      email,
       token: code.trim(),
       type: "email",
     });
@@ -65,12 +65,25 @@ export function Login() {
       setErr(error.message);
       return;
     }
-    // Save the name they typed (OTP signup doesn't carry send-time metadata reliably).
-    if (name.trim() && data.user) {
-      await supabase.from("profiles").update({ display_name: name.trim() }).eq("id", data.user.id);
+
+    if (data.user) {
+      const updates = {
+        email,
+        ...(studentMode === "new" && name.trim() ? { display_name: name.trim() } : {}),
+      };
+      const { error: profileErr } = await supabase.from("profiles").update(updates).eq("id", data.user.id);
+      if (profileErr) {
+        console.error("student_profile_update_failed", profileErr.message);
+      }
+      if (studentMode === "new" && profileErr) {
+        await supabase.auth.signOut();
+        setBusy(false);
+        setErr("We verified your email, but could not finish your student profile. Try again.");
+        return;
+      }
     }
+
     setBusy(false);
-    // success => AuthProvider picks up the session and Gate redirects
   }
 
   async function verifyStaff(e: React.FormEvent) {
@@ -78,7 +91,7 @@ export function Login() {
     setErr("");
     setBusy(true);
     try {
-      await staffLogin(email.trim(), password);
+      await staffLogin(loginId, password);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Login failed");
     } finally {
@@ -87,7 +100,8 @@ export function Login() {
   }
 
   function reset() {
-    setStep("email");
+    setStep("identifier");
+    setStudentMode("returning");
     setPassword("");
     setCode("");
     setName("");
@@ -102,53 +116,80 @@ export function Login() {
 
         {err && <div className="notice err" style={{ marginTop: 12 }}>{err}</div>}
 
-        {step === "email" && (
-          <form onSubmit={continueEmail} className="stack" style={{ marginTop: 12 }}>
+        {step === "identifier" && (
+          <form onSubmit={continueLogin} className="stack" style={{ marginTop: 12 }}>
             <p className="hint" style={{ margin: 0 }}>
-              One login for everyone. Students use email and stay signed in on this device
-              after verification; staff use their MJCC sudo username or cafeteria email.
+              Students use their email every time. Staff use their MJCC sudo username.
             </p>
             <input
-              type="text" inputMode="email" autoFocus required autoCapitalize="none"
-              spellCheck={false} placeholder="Email or staff username" value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              inputMode="email"
+              autoFocus
+              required
+              autoCapitalize="none"
+              spellCheck={false}
+              placeholder="Student email or staff username"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
             />
-            <button className="btn btn-primary btn-block" disabled={busy || !canContinue(email)}>
-              {busy ? "Checking…" : "Continue"}
+            <button className="btn btn-primary btn-block" disabled={busy || !canContinue(identifier)}>
+              {busy ? "Checking..." : "Continue"}
             </button>
           </form>
         )}
 
         {step === "password" && (
           <form onSubmit={verifyStaff} className="stack" style={{ marginTop: 12 }}>
-            <p className="hint" style={{ margin: 0 }}>Sudo sign-in for <b>{email}</b>. Enter your MJCC cafeteria password.</p>
+            <p className="hint" style={{ margin: 0 }}>
+              Sudo sign-in for <b>{loginId}</b>. Enter your MJCC password.
+            </p>
             <input
-              type="password" autoFocus required placeholder="Password" value={password}
+              type="password"
+              autoFocus
+              required
+              placeholder="Password"
+              value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
             <button className="btn btn-primary btn-block" disabled={busy || !password}>
-              {busy ? "Signing in…" : "Sign in"}
+              {busy ? "Signing in..." : "Sign in"}
             </button>
-            <button type="button" className="link-btn" onClick={reset}>Use a different email</button>
+            <button type="button" className="link-btn" onClick={reset}>Use a different login</button>
           </form>
         )}
 
-        {step === "code" && (
+        {isStudentEmailFlow && (
           <form onSubmit={verifyStudent} className="stack" style={{ marginTop: 12 }}>
-            <p className="hint" style={{ margin: 0 }}>Enter the code we emailed to <b>{email}</b>. New students, add your name once so we can greet you.</p>
+            <p className="hint" style={{ margin: 0 }}>
+              {studentMode === "new" ? (
+                <>Enter the code we emailed to <b>{loginId}</b>, then add your name once.</>
+              ) : (
+                <>Enter the code we emailed to <b>{loginId}</b>.</>
+              )}
+            </p>
             <input
-              type="text" inputMode="numeric" autoFocus required placeholder="Verification code" value={code}
-              onChange={(e) => setCode(e.target.value)} className="mono"
+              type="text"
+              inputMode="numeric"
+              autoFocus
+              required
+              placeholder="Verification code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              className="mono"
               style={{ textAlign: "center", fontSize: 22, letterSpacing: ".3em" }}
             />
-            <input
-              type="text" placeholder="Your name (new students)" value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+            {studentMode === "new" && (
+              <input
+                type="text"
+                placeholder="Your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            )}
             <button className="btn btn-primary btn-block" disabled={busy || !code.trim()}>
-              {busy ? "Verifying…" : "Verify & sign in"}
+              {busy ? "Verifying..." : "Verify & sign in"}
             </button>
-            <button type="button" className="link-btn" onClick={reset}>Use a different email</button>
+            <button type="button" className="link-btn" onClick={reset}>Use a different login</button>
           </form>
         )}
       </div>
