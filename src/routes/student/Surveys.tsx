@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
+import { Icon } from "../../components/Icon";
 import type { Session } from "../../types/db";
 
 type JoinedSession = Session & { completed: boolean };
@@ -45,7 +46,7 @@ export function Surveys() {
     <>
       <div className="page-head">
         <h2>Surveys</h2>
-        <p className="hint">Complete a survey to earn 🍴 points, then spend them in the store.</p>
+        <p className="hint">Complete a survey to earn points, then spend them in the store.</p>
       </div>
 
       <div className="card">
@@ -59,7 +60,7 @@ export function Surveys() {
             className="mono"
             style={{ flex: 1, textTransform: "uppercase", letterSpacing: ".1em" }}
           />
-          <button className="btn-mustard">Join</button>
+          <button className="btn btn-solid">Join</button>
         </form>
         {err && <div className="notice err" style={{ marginTop: 10 }}>{err}</div>}
       </div>
@@ -77,7 +78,7 @@ export function Surveys() {
                 {s.title}
                 <small>{s.points_reward} pts{s.menu_day ? ` · Day ${s.menu_day}` : ""}</small>
               </div>
-              <button className="btn-primary" onClick={() => navigate(`/survey/${s.id}`)}>Start →</button>
+              <button className="btn btn-primary" onClick={() => navigate(`/survey/${s.id}`)}>Start <Icon name="arrow" size={16} /></button>
             </div>
           ))
         )}

@@ -5,10 +5,13 @@ import { useAuth } from "../auth/AuthProvider";
 
 type Step = "email" | "password" | "code";
 
-// Staff use MJCC cafeteria addresses; everyone else is a student.
+// Staff sign in with a MJCC cafeteria email OR their bare username (no "@").
+// Students always use a full personal email.
 const STAFF_DOMAIN = "@mjc-cafeteria.com";
-const isStaffEmail = (e: string) => e.trim().toLowerCase().endsWith(STAFF_DOMAIN);
-const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+const isEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+const isUsername = (e: string) => e.trim().length > 0 && !e.includes("@");
+const isStaffId = (e: string) => e.trim().toLowerCase().endsWith(STAFF_DOMAIN) || isUsername(e);
+const canContinue = (e: string) => isEmail(e) || isUsername(e);
 
 export function Login() {
   const { session, loading } = useAuth();
@@ -28,9 +31,9 @@ export function Login() {
 
   if (!loading && session) return <Navigate to="/" replace />;
 
-  const staff = isStaffEmail(email);
+  const staff = isStaffId(email);
 
-  // Step 1: email entered → route to staff password or student OTP.
+  // Step 1: email/username entered → route to staff password or student OTP.
   async function continueEmail(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
@@ -102,14 +105,15 @@ export function Login() {
         {step === "email" && (
           <form onSubmit={continueEmail} className="stack" style={{ marginTop: 12 }}>
             <p className="hint" style={{ margin: 0 }}>
-              Enter your email to sign in. Students use their personal email; staff use their
-              cafeteria address. New here? We'll set you up automatically.
+              One login for everyone. Students use email and stay signed in on this device
+              after verification; staff use their MJCC sudo username or cafeteria email.
             </p>
             <input
-              type="email" autoFocus required placeholder="you@email.com" value={email}
+              type="text" inputMode="email" autoFocus required autoCapitalize="none"
+              spellCheck={false} placeholder="Email or staff username" value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-            <button className="btn-primary btn-block" disabled={busy || !isValidEmail(email)}>
+            <button className="btn btn-primary btn-block" disabled={busy || !canContinue(email)}>
               {busy ? "Checking…" : "Continue"}
             </button>
           </form>
@@ -117,12 +121,12 @@ export function Login() {
 
         {step === "password" && (
           <form onSubmit={verifyStaff} className="stack" style={{ marginTop: 12 }}>
-            <p className="hint" style={{ margin: 0 }}>Staff sign-in for <b>{email}</b>. Enter your cafeteria password.</p>
+            <p className="hint" style={{ margin: 0 }}>Sudo sign-in for <b>{email}</b>. Enter your MJCC cafeteria password.</p>
             <input
               type="password" autoFocus required placeholder="Password" value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            <button className="btn-primary btn-block" disabled={busy || !password}>
+            <button className="btn btn-primary btn-block" disabled={busy || !password}>
               {busy ? "Signing in…" : "Sign in"}
             </button>
             <button type="button" className="link-btn" onClick={reset}>Use a different email</button>
@@ -131,7 +135,7 @@ export function Login() {
 
         {step === "code" && (
           <form onSubmit={verifyStudent} className="stack" style={{ marginTop: 12 }}>
-            <p className="hint" style={{ margin: 0 }}>Enter the code we emailed to <b>{email}</b>. New students, add your name so we can greet you.</p>
+            <p className="hint" style={{ margin: 0 }}>Enter the code we emailed to <b>{email}</b>. New students, add your name once so we can greet you.</p>
             <input
               type="text" inputMode="numeric" autoFocus required placeholder="Verification code" value={code}
               onChange={(e) => setCode(e.target.value)} className="mono"
@@ -141,7 +145,7 @@ export function Login() {
               type="text" placeholder="Your name (new students)" value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            <button className="btn-primary btn-block" disabled={busy || !code.trim()}>
+            <button className="btn btn-primary btn-block" disabled={busy || !code.trim()}>
               {busy ? "Verifying…" : "Verify & sign in"}
             </button>
             <button type="button" className="link-btn" onClick={reset}>Use a different email</button>

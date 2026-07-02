@@ -1,21 +1,22 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { Icon } from "../../components/Icon";
 import { RATE_CATEGORIES, RATED_DISHES, type RatedDish } from "../../lib/menu";
 
 type Stat = { avg: number; votes: number };
 
 function StarRow({ value, onPick }: { value: number; onPick: (n: number) => void }) {
   return (
-    <div className="stars">
+    <div className="rating">
       {[1, 2, 3, 4, 5].map((n) => (
         <button
           key={n}
           type="button"
-          className={`star-btn${n <= value ? " active" : ""}`}
+          className={n <= value ? "on" : ""}
           onClick={() => onPick(n)}
           aria-label={`${n} stars`}
         >
-          ★
+          <Icon name={n <= value ? "star-fill" : "star"} size={22} />
         </button>
       ))}
     </div>
@@ -95,7 +96,7 @@ export function Rate() {
                 <div className="dish-info">
                   <div className="dish-name">{d.name}</div>
                   <div className="dish-meta">
-                    {my ? `You rated ${my}★` : null}
+                    {my ? `You rated ${my}/5` : null}
                     {my && st ? " · " : null}
                     {st ? `${st.avg} avg${my ? "" : ` · ${st.votes} rating${st.votes === 1 ? "" : "s"}`}` : null}
                     {!my && !st ? "Not rated yet" : null}

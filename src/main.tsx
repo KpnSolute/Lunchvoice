@@ -14,6 +14,7 @@ import { Store } from "./routes/student/Store";
 import { Orders } from "./routes/student/Orders";
 import { Join } from "./routes/student/Join";
 import { Dashboard } from "./routes/admin/Dashboard";
+import { ContentCentral } from "./routes/admin/ContentCentral";
 import { Sessions } from "./routes/admin/Sessions";
 import { StoreAdmin } from "./routes/admin/StoreAdmin";
 import { OrdersAdmin } from "./routes/admin/OrdersAdmin";
@@ -49,6 +50,7 @@ function App() {
 
       <Route path="/admin" element={<Gate adminOnly><Layout /></Gate>}>
         <Route index element={<Dashboard />} />
+        <Route path="content" element={<ContentCentral />} />
         <Route path="sessions" element={<Sessions />} />
         <Route path="roster" element={<Roster />} />
         <Route path="store" element={<StoreAdmin />} />

@@ -72,7 +72,7 @@ export function StoreAdmin() {
             </div>
           </div>
           {err && <div className="notice err">{err}</div>}
-          <button className="btn-primary btn-block">Add item</button>
+          <button className="btn btn-primary btn-block">Add item</button>
         </form>
       </div>
 
@@ -85,11 +85,11 @@ export function StoreAdmin() {
             <div key={item.id} className="item-row">
               <div className="item-name">
                 {item.name}
-                <small>🍴 {item.token_cost} · {item.stock === null ? "∞ stock" : `${item.stock} left`}</small>
+                <small>{item.token_cost} pts · {item.stock === null ? "∞ stock" : `${item.stock} left`}</small>
               </div>
               <div className="stack" style={{ alignItems: "flex-end" }}>
                 <span className={`pill ${item.is_active ? "ready" : "collected"}`}>{item.is_active ? "live" : "hidden"}</span>
-                <button className="btn-ghost" style={{ fontSize: 12, padding: "5px 10px" }} onClick={() => toggle(item)}>
+                <button className="btn btn-ghost" style={{ fontSize: 12, padding: "5px 10px" }} onClick={() => toggle(item)}>
                   {item.is_active ? "Hide" : "Show"}
                 </button>
               </div>

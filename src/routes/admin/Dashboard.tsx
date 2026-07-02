@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { Icon } from "../../components/Icon";
 import type { DishStat } from "../../types/db";
 
 export function Dashboard() {
@@ -54,7 +55,7 @@ export function Dashboard() {
           stats.map((s) => (
             <div key={`${s.dish_name}-${s.slot}`} className="stat-row">
               <span>{s.dish_name} <span className="muted mono" style={{ fontSize: 11 }}>{s.slot}</span></span>
-              <span className="avg">{Number(s.avg_rating).toFixed(1)} 🍴 · {s.votes} votes</span>
+              <span className="avg"><Icon name="star-fill" size={13} /> {Number(s.avg_rating).toFixed(1)} · {s.votes} votes</span>
             </div>
           ))
         )}
@@ -67,7 +68,7 @@ export function Dashboard() {
         ) : (
           ideas.map((i, idx) => (
             <div key={idx} className="item-row">
-              <div className="item-name" style={{ fontWeight: 400 }}>💡 {i.idea}</div>
+              <div className="item-name row" style={{ fontWeight: 400, alignItems: "flex-start", gap: 8 }}><Icon name="bulb" size={16} className="muted" /> {i.idea}</div>
               <span className="muted mono" style={{ fontSize: 11 }}>{new Date(i.submitted_at).toLocaleDateString()}</span>
             </div>
           ))

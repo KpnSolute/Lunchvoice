@@ -96,7 +96,7 @@ export function Sessions() {
             </div>
           </div>
           {err && <div className="notice err">{err}</div>}
-          <button className="btn-primary btn-block">Create session</button>
+          <button className="btn btn-primary btn-block">Create session</button>
         </form>
       </div>
 
@@ -111,11 +111,11 @@ export function Sessions() {
               </p>
             </div>
             <div className="stack" style={{ alignItems: "flex-end" }}>
-              <button className="btn-mustard" style={{ fontSize: 13, padding: "7px 12px" }}
+              <button className="btn btn-solid" style={{ fontSize: 13, padding: "7px 12px" }}
                 onClick={() => setShowQr(showQr === s.id ? null : s.id)}>
                 {showQr === s.id ? "Hide QR" : "Show QR"}
               </button>
-              <button className="btn-ghost" style={{ fontSize: 13, padding: "7px 12px" }} onClick={() => toggleActive(s)}>
+              <button className="btn btn-ghost" style={{ fontSize: 13, padding: "7px 12px" }} onClick={() => toggleActive(s)}>
                 {s.is_active ? "Close" : "Reopen"}
               </button>
             </div>
