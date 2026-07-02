@@ -47,6 +47,41 @@ export const STAPLES = [
 
 export type Slot = "lunchEntree" | "lunchAlt" | "dinnerEntree" | "dinnerAlt" | "staple";
 
+/* ---- standing "Rate the dishes" catalog, derived from the cycle + staples ---- */
+
+export type RatedDish = { key: string; name: string; category: string };
+
+export const RATE_CATEGORIES = [
+  "Breakfast & brunch",
+  "Lunch favorites",
+  "Dinner",
+  "Sandwiches & handhelds",
+  "Sides & sweets",
+];
+
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+export const RATED_DISHES: RatedDish[] = (() => {
+  const skip = /chef'?s? (choice|special)/i;
+  const seen = new Set<string>();
+  const out: RatedDish[] = [];
+  const add = (name: string, category: string) => {
+    const key = slug(name);
+    if (skip.test(name) || seen.has(key)) return;
+    seen.add(key);
+    out.push({ key, name, category });
+  };
+  const breakfastIds = new Set(["bacon", "eggs", "grits", "toast"]);
+  for (const s of STAPLES) add(s.name, breakfastIds.has(s.id) ? "Breakfast & brunch" : "Sides & sweets");
+  for (const [lunch, lunchAlt, dinner, dinnerAlt] of CYCLE) {
+    add(lunch, "Lunch favorites");
+    add(lunchAlt, "Sandwiches & handhelds");
+    add(dinner, "Dinner");
+    add(dinnerAlt, "Dinner");
+  }
+  return out;
+})();
+
 export function weekdayFor(dayIndex: number): string {
   return WEEKDAYS[dayIndex % 7];
 }

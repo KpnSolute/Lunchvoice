@@ -5,6 +5,10 @@ import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { Layout } from "./components/Layout";
 import { Login } from "./routes/Login";
 import { Home } from "./routes/student/Home";
+import { Rate } from "./routes/student/Rate";
+import { MenuPage } from "./routes/student/MenuPage";
+import { Surveys } from "./routes/student/Surveys";
+import { Voice } from "./routes/student/Voice";
 import { Survey } from "./routes/student/Survey";
 import { Store } from "./routes/student/Store";
 import { Orders } from "./routes/student/Orders";
@@ -34,6 +38,10 @@ function App() {
 
       <Route element={<Gate><Layout /></Gate>}>
         <Route index element={<Home />} />
+        <Route path="rate" element={<Rate />} />
+        <Route path="menu" element={<MenuPage />} />
+        <Route path="surveys" element={<Surveys />} />
+        <Route path="voice" element={<Voice />} />
         <Route path="survey/:sessionId" element={<Survey />} />
         <Route path="store" element={<Store />} />
         <Route path="orders" element={<Orders />} />

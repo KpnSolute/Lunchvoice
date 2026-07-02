@@ -41,6 +41,31 @@ export type Database = {
         Update: { display_name?: string | null };
         Relationships: [];
       };
+      dish_ratings: {
+        Row: {
+          student_id: string;
+          dish_key: string;
+          dish_name: string;
+          category: string;
+          rating: number;
+          updated_at: string;
+        };
+        Insert: {
+          dish_key: string;
+          dish_name: string;
+          category: string;
+          rating: number;
+          updated_at?: string;
+        };
+        Update: { rating?: number; updated_at?: string };
+        Relationships: [];
+      };
+      voice_notes: {
+        Row: { id: string; student_id: string; kind: string; body: string; created_at: string };
+        Insert: { kind: string; body: string };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
       response_ratings: {
         Row: { dish_name: string; id: string; rating: number; response_id: string; slot: string };
         Insert: Record<string, never>;
@@ -126,6 +151,16 @@ export type Database = {
       };
     };
     Views: {
+      dish_rating_stats: {
+        Row: {
+          dish_key: string | null;
+          dish_name: string | null;
+          category: string | null;
+          avg_rating: number | null;
+          votes: number | null;
+        };
+        Relationships: [];
+      };
       dish_stats: {
         Row: { avg_rating: number | null; dish_name: string | null; slot: string | null; votes: number | null };
         Relationships: [];

@@ -10,7 +10,11 @@ if (!url || !key) {
   );
 }
 
-export const supabase = createClient<Database>(url, key);
+// Sessions persist in localStorage and auto-refresh, so a student verifies an
+// OTP code once per device — they are only asked again after logging out.
+export const supabase = createClient<Database>(url, key, {
+  auth: { persistSession: true, autoRefreshToken: true },
+});
 
 // Staff (MJCCv1 sudo) sign in via an edge function that verifies their MJCCv1 credentials
 // server-side, then returns a MJCCv2 admin session which we install on this client.
