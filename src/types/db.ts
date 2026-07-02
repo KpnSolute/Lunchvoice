@@ -87,6 +87,146 @@ export type Database = {
         Update: Record<string, never>;
         Relationships: [];
       };
+      menu_cycles: {
+        Row: {
+          id: string;
+          title: string;
+          version_label: string | null;
+          starts_on: string | null;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          title: string;
+          version_label?: string | null;
+          starts_on?: string | null;
+          is_active?: boolean;
+          created_by?: string | null;
+        };
+        Update: {
+          title?: string;
+          version_label?: string | null;
+          starts_on?: string | null;
+          is_active?: boolean;
+        };
+        Relationships: [];
+      };
+      menu_cycle_days: {
+        Row: {
+          id: string;
+          cycle_id: string;
+          day_number: number;
+          weekday: string | null;
+          breakfast: Json;
+          lunch: Json;
+          dinner: Json;
+          notes: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          cycle_id: string;
+          day_number: number;
+          weekday?: string | null;
+          breakfast?: Json;
+          lunch?: Json;
+          dinner?: Json;
+          notes?: string | null;
+        };
+        Update: {
+          weekday?: string | null;
+          breakfast?: Json;
+          lunch?: Json;
+          dinner?: Json;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+      survey_templates: {
+        Row: {
+          id: string;
+          title: string;
+          description: string | null;
+          audience: string;
+          status: string;
+          points_reward: number;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          title: string;
+          description?: string | null;
+          audience?: string;
+          status?: string;
+          points_reward?: number;
+          created_by?: string | null;
+        };
+        Update: {
+          title?: string;
+          description?: string | null;
+          audience?: string;
+          status?: string;
+          points_reward?: number;
+        };
+        Relationships: [];
+      };
+      survey_questions: {
+        Row: {
+          id: string;
+          template_id: string;
+          position: number;
+          type: string;
+          prompt: string;
+          help_text: string | null;
+          required: boolean;
+          options: Json;
+          scale_min: number;
+          scale_max: number;
+          category: string | null;
+          created_at: string;
+        };
+        Insert: {
+          template_id: string;
+          position?: number;
+          type: string;
+          prompt: string;
+          help_text?: string | null;
+          required?: boolean;
+          options?: Json;
+          scale_min?: number;
+          scale_max?: number;
+          category?: string | null;
+        };
+        Update: {
+          position?: number;
+          type?: string;
+          prompt?: string;
+          help_text?: string | null;
+          required?: boolean;
+          options?: Json;
+          scale_min?: number;
+          scale_max?: number;
+          category?: string | null;
+        };
+        Relationships: [];
+      };
+      survey_answers: {
+        Row: {
+          id: string;
+          response_id: string;
+          question_id: string;
+          value: Json;
+          text_value: string | null;
+          numeric_value: number | null;
+          option_values: string[] | null;
+          created_at: string;
+        };
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
+        Relationships: [];
+      };
       session_members: {
         Row: { joined_at: string; session_id: string; student_id: string };
         Insert: Record<string, never>;
@@ -102,9 +242,11 @@ export type Database = {
           id: string;
           is_active: boolean;
           join_code: string;
+          menu_cycle_id: string | null;
           menu_day: number | null;
           opens_at: string | null;
           points_reward: number;
+          template_id: string | null;
           title: string;
         };
         Insert: {
@@ -117,8 +259,16 @@ export type Database = {
           opens_at?: string | null;
           closes_at?: string | null;
           created_by?: string | null;
+          template_id?: string | null;
+          menu_cycle_id?: string | null;
         };
-        Update: { is_active?: boolean; title?: string; description?: string | null };
+        Update: {
+          is_active?: boolean;
+          title?: string;
+          description?: string | null;
+          template_id?: string | null;
+          menu_cycle_id?: string | null;
+        };
         Relationships: [];
       };
       store_items: {
@@ -184,7 +334,7 @@ export type Database = {
       join_session: { Args: { p_code: string }; Returns: string };
       redeem_item: { Args: { p_item_id: string }; Returns: string };
       submit_response: {
-        Args: { p_session_id: string; p_ratings: Json; p_feedback?: string; p_idea?: string };
+        Args: { p_session_id: string; p_ratings: Json; p_feedback?: string; p_idea?: string; p_answers?: Json };
         Returns: number;
       };
     };
@@ -198,3 +348,7 @@ export type Session = Database["public"]["Tables"]["sessions"]["Row"];
 export type StoreItem = Database["public"]["Tables"]["store_items"]["Row"];
 export type Order = Database["public"]["Tables"]["orders"]["Row"];
 export type DishStat = Database["public"]["Views"]["dish_stats"]["Row"];
+export type MenuCycle = Database["public"]["Tables"]["menu_cycles"]["Row"];
+export type MenuCycleDay = Database["public"]["Tables"]["menu_cycle_days"]["Row"];
+export type SurveyTemplate = Database["public"]["Tables"]["survey_templates"]["Row"];
+export type SurveyQuestion = Database["public"]["Tables"]["survey_questions"]["Row"];

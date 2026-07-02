@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 
-const COLORS = ["#E8A33D", "#C1432E", "#5C7A5C", "#2B2622"];
+// Themed accent/pop sparks — no emoji, no library. ponytail: CSS-animated divs.
+const COLORS = ["var(--accent)", "var(--pop)", "var(--ink)"];
 
-// ponytail: CSS-animated divs, no confetti library.
 export function Confetti({ fire }: { fire: number }) {
   const [pieces, setPieces] = useState<number[]>([]);
   useEffect(() => {
     if (!fire) return;
-    setPieces(Array.from({ length: 60 }, (_, i) => i));
-    const t = setTimeout(() => setPieces([]), 2600);
+    setPieces(Array.from({ length: 48 }, (_, i) => i));
+    const t = setTimeout(() => setPieces([]), 2400);
     return () => clearTimeout(t);
   }, [fire]);
 
@@ -17,12 +17,13 @@ export function Confetti({ fire }: { fire: number }) {
       {pieces.map((i) => (
         <span
           key={`${fire}-${i}`}
-          className="confetti-piece"
+          className="spark"
           style={{
             left: `${Math.random() * 100}vw`,
+            top: `${-5 - Math.random() * 15}px`,
             background: COLORS[i % COLORS.length],
-            animationDuration: `${1.6 + Math.random() * 1}s`,
-            animationDelay: `${Math.random() * 0.4}s`,
+            animationDuration: `${1.5 + Math.random() * 1}s`,
+            animationDelay: `${Math.random() * 0.35}s`,
           }}
         />
       ))}

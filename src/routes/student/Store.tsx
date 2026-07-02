@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../auth/AuthProvider";
 import { Confetti } from "../../components/Confetti";
+import { Icon } from "../../components/Icon";
 import type { StoreItem } from "../../types/db";
 
 export function Store() {
@@ -44,9 +45,9 @@ export function Store() {
       <div className="card spread">
         <div>
           <h2>Reward Store</h2>
-          <p className="hint" style={{ margin: 0 }}>Spend your 🍴 points. Redeemed items show up under My Orders.</p>
+          <p className="hint" style={{ margin: 0 }}>Spend your points. Redeemed items show up under My Orders.</p>
         </div>
-        <span className="points-badge">🍴 {points}</span>
+        <span className="points-badge"><Icon name="coin" size={15} /> {points}</span>
       </div>
 
       {msg && <div className={`notice ${msg.kind}`}>{msg.text}</div>}
@@ -63,14 +64,14 @@ export function Store() {
               <div key={item.id} className={`store-card${locked ? " locked" : ""}`}>
                 <div className="spread">
                   <span className="name">{item.name}</span>
-                  <span className="cost">🍴 {item.token_cost}</span>
+                  <span className="cost"><Icon name="coin" size={14} /> {item.token_cost}</span>
                 </div>
                 <div className="desc">{item.description}</div>
                 {item.stock !== null && (
                   <div className="muted mono" style={{ fontSize: 11 }}>{soldOut ? "SOLD OUT" : `${item.stock} left`}</div>
                 )}
                 <button
-                  className="btn-primary"
+                  className="btn btn-primary"
                   disabled={locked || busyId === item.id}
                   onClick={() => redeem(item)}
                 >

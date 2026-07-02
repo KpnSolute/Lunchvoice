@@ -5,3 +5,7 @@ dist
 *.log
 .DS_Store
 .vite
+tsconfig.tsbuildinfo
+.impeccable/hook.cache.json
+supabase/.temp/
+graphify-out/cache/

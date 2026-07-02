@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import type { Session as AuthSession } from "@supabase/supabase-js";
-import { supabase } from "../lib/supabase";
+import { supabase, verifyStaffAccess } from "../lib/supabase";
 import type { Profile } from "../types/db";
 
 type Ctx = {
@@ -21,6 +21,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfile = useCallback(async (userId: string) => {
     const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
+    if (data?.is_staff) {
+      const stillStaff = await verifyStaffAccess();
+      if (!stillStaff) {
+        await supabase.auth.signOut();
+        setProfile(null);
+        return;
+      }
+    }
     setProfile(data ?? null);
   }, []);
 

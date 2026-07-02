@@ -4,9 +4,19 @@ import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../auth/AuthProvider";
 import { slotsForDay, STAPLES, weekdayFor, type Slot } from "../../lib/menu";
 import { Confetti } from "../../components/Confetti";
-import type { Session } from "../../types/db";
+import { Icon } from "../../components/Icon";
+import type { Json, MenuCycleDay, Session, SurveyQuestion, SurveyTemplate } from "../../types/db";
 
 type RatingRow = { dish_name: string; slot: Slot; rating: number };
+type SurveySession = Session & {
+  survey_templates?: (SurveyTemplate & { survey_questions?: SurveyQuestion[] }) | null;
+};
+
+function toJson(value: unknown): Json {
+  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") return value;
+  if (Array.isArray(value)) return value.map((v) => toJson(v));
+  return null;
+}
 
 function ForkRow({
   name,
@@ -25,19 +35,101 @@ function ForkRow({
         {name}
         {label && <small>{label}</small>}
       </div>
-      <div className="forks">
+      <div className="rating">
         {[1, 2, 3, 4, 5].map((n) => (
           <button
             key={n}
             type="button"
-            className={`fork-btn${n <= value ? " active" : ""}`}
+            className={n <= value ? "on" : ""}
             onClick={() => onPick(n)}
             aria-label={`${n} forks`}
           >
-            🍴
+            <Icon name="fork" size={22} />
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function DynamicQuestion({
+  question,
+  value,
+  onChange,
+  onToggle,
+}: {
+  question: SurveyQuestion;
+  value: unknown;
+  onChange: (value: unknown) => void;
+  onToggle: (option: string) => void;
+}) {
+  const options = Array.isArray(question.options) ? question.options.map(String) : [];
+
+  return (
+    <div className="dynamic-question">
+      <div className="item-name">
+        {question.prompt} {question.required && <span className="tag">Required</span>}
+        {question.help_text && <small>{question.help_text}</small>}
+      </div>
+
+      {question.type === "rating" && (
+        <div className="rating rating-large">
+          {Array.from({ length: question.scale_max - question.scale_min + 1 }, (_, i) => question.scale_min + i).map((n) => (
+            <button
+              key={n}
+              type="button"
+              className={Number(value ?? 0) >= n ? "on" : ""}
+              onClick={() => onChange(n)}
+              aria-label={`${n} out of ${question.scale_max}`}
+            >
+              <Icon name={Number(value ?? 0) >= n ? "star-fill" : "star"} size={24} />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {question.type === "text" && (
+        <textarea
+          rows={3}
+          maxLength={4000}
+          value={typeof value === "string" ? value : ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Type your answer"
+        />
+      )}
+
+      {question.type === "yes_no" && (
+        <div className="choice-grid">
+          {["Yes", "No"].map((option) => (
+            <button key={option} type="button" className={`choice-btn${value === option ? " active" : ""}`} onClick={() => onChange(option)}>
+              {option}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {question.type === "single_choice" && (
+        <div className="choice-grid">
+          {options.map((option) => (
+            <button key={option} type="button" className={`choice-btn${value === option ? " active" : ""}`} onClick={() => onChange(option)}>
+              {option}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {question.type === "multi_choice" && (
+        <div className="choice-grid">
+          {options.map((option) => {
+            const active = Array.isArray(value) && value.includes(option);
+            return (
+              <button key={option} type="button" className={`choice-btn${active ? " active" : ""}`} onClick={() => onToggle(option)}>
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -47,9 +139,11 @@ export function Survey() {
   const navigate = useNavigate();
   const { refreshProfile } = useAuth();
 
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<SurveySession | null>(null);
+  const [cycleDay, setCycleDay] = useState<MenuCycleDay | null>(null);
   const [loading, setLoading] = useState(true);
   const [ratings, setRatings] = useState<Record<string, RatingRow>>({});
+  const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [feedback, setFeedback] = useState("");
   const [idea, setIdea] = useState("");
   const [err, setErr] = useState("");
@@ -60,10 +154,28 @@ export function Survey() {
   useEffect(() => {
     if (!sessionId) return;
     (async () => {
-      const { data, error } = await supabase.from("sessions").select("*").eq("id", sessionId).single();
-      if (error) setErr(error.message);
-      else setSession(data);
-      // already completed? bounce back home
+      const { data, error } = await supabase
+        .from("sessions")
+        .select("*, survey_templates(*, survey_questions(*))")
+        .eq("id", sessionId)
+        .single();
+      if (error) {
+        setErr(error.message);
+        setLoading(false);
+        return;
+      }
+      setSession(data as unknown as SurveySession);
+      const loaded = data as unknown as SurveySession;
+      if (loaded.menu_cycle_id && loaded.menu_day) {
+        const { data: day } = await supabase
+          .from("menu_cycle_days")
+          .select("*")
+          .eq("cycle_id", loaded.menu_cycle_id)
+          .eq("day_number", loaded.menu_day)
+          .maybeSingle();
+        setCycleDay((day ?? null) as MenuCycleDay | null);
+      }
+
       const { data: existing } = await supabase.from("responses").select("id").eq("session_id", sessionId).maybeSingle();
       if (existing) {
         navigate("/", { replace: true });
@@ -73,13 +185,39 @@ export function Survey() {
     })();
   }, [sessionId, navigate]);
 
-  const daySlots = useMemo(() => (session?.menu_day ? slotsForDay(session.menu_day) : []), [session]);
+  const daySlots = useMemo(() => {
+    if (cycleDay) {
+      const lunch = Array.isArray(cycleDay.lunch) ? cycleDay.lunch.map(String).filter(Boolean) : [];
+      const dinner = Array.isArray(cycleDay.dinner) ? cycleDay.dinner.map(String).filter(Boolean) : [];
+      return [
+        { slot: "lunchEntree" as Slot, label: "Lunch", name: lunch[0] },
+        { slot: "lunchAlt" as Slot, label: "Lunch - Alt", name: lunch[1] },
+        { slot: "dinnerEntree" as Slot, label: "Dinner", name: dinner[0] },
+        { slot: "dinnerAlt" as Slot, label: "Dinner - Alt", name: dinner[1] },
+      ].filter((s) => s.name);
+    }
+    return session?.menu_day ? slotsForDay(session.menu_day) : [];
+  }, [session, cycleDay]);
+  const questions = useMemo(
+    () => [...(session?.survey_templates?.survey_questions ?? [])].sort((a, b) => a.position - b.position),
+    [session]
+  );
 
   function pick(key: string, dish_name: string, slot: Slot, rating: number) {
     setRatings((r) => ({ ...r, [key]: { dish_name, slot, rating } }));
   }
 
-  // count-up animation for the celebration screen
+  function setAnswer(questionId: string, value: unknown) {
+    setAnswers((a) => ({ ...a, [questionId]: value }));
+  }
+
+  function toggleMulti(questionId: string, option: string) {
+    setAnswers((a) => {
+      const cur = Array.isArray(a[questionId]) ? (a[questionId] as string[]) : [];
+      return { ...a, [questionId]: cur.includes(option) ? cur.filter((x) => x !== option) : [...cur, option] };
+    });
+  }
+
   useEffect(() => {
     if (awarded === null) return;
     let n = 0;
@@ -95,16 +233,26 @@ export function Survey() {
   async function submit() {
     setErr("");
     const rows = Object.values(ratings);
-    if (rows.length === 0 && !feedback.trim() && !idea.trim()) {
-      setErr("Rate at least one dish or leave a note first.");
+    const answerRows = Object.entries(answers)
+      .filter(([, value]) => value !== undefined && value !== null && value !== "" && !(Array.isArray(value) && value.length === 0))
+      .map(([question_id, value]) => ({ question_id, value: toJson(value) }));
+    const missing = questions.find((q) => q.required && !answerRows.some((a) => a.question_id === q.id));
+    if (missing) {
+      setErr(`Answer this required question: ${missing.prompt}`);
       return;
     }
+    if (rows.length === 0 && answerRows.length === 0 && !feedback.trim() && !idea.trim()) {
+      setErr("Answer at least one question or leave a note first.");
+      return;
+    }
+
     setBusy(true);
     const { data, error } = await supabase.rpc("submit_response", {
       p_session_id: sessionId!,
       p_ratings: rows,
       p_feedback: feedback,
       p_idea: idea,
+      p_answers: answerRows,
     });
     setBusy(false);
     if (error) {
@@ -115,19 +263,22 @@ export function Survey() {
     setAwarded(data ?? session?.points_reward ?? 0);
   }
 
-  if (loading) return <div className="card muted">Loading survey…</div>;
+  if (loading) return <div className="card muted">Loading survey...</div>;
 
   if (awarded !== null) {
     return (
       <>
         <Confetti fire={1} />
         <div className="card celebrate">
-          <h2>🍴 Ticket printed!</h2>
+          <span className="burst"><Icon name="check" size={40} /></span>
+          <h2>Nice - you are in</h2>
           <div className="big">+{shownPoints}</div>
           <p className="muted">points added to your account</p>
-          <div className="stack" style={{ maxWidth: 280, margin: "16px auto 0" }}>
-            <button className="btn-primary btn-block" onClick={() => navigate("/store")}>Spend in the store →</button>
-            <button className="btn-ghost btn-block" onClick={() => navigate("/")}>Back to home</button>
+          <div className="stack" style={{ maxWidth: 300, margin: "18px auto 0" }}>
+            <button className="btn btn-primary btn-block" onClick={() => navigate("/store")}>
+              Spend in the store <Icon name="arrow" size={18} />
+            </button>
+            <button className="btn btn-ghost btn-block" onClick={() => navigate("/")}>Back to home</button>
           </div>
         </div>
       </>
@@ -139,15 +290,31 @@ export function Survey() {
       <div className="card">
         <h2>{session?.title}</h2>
         <p className="hint">
-          {session?.description || "Tap the forks — one for “pass,” five for “make this every rotation.”"}
-          {session?.menu_day ? ` · Day ${session.menu_day}, ${weekdayFor(session.menu_day - 1)}` : ""}
-          {" · "}<b>{session?.points_reward} pts</b>
+          {session?.description || "Tap the forks - one for pass, five for make this every rotation."}
+          {session?.menu_day ? ` - Day ${session.menu_day}, ${weekdayFor(session.menu_day - 1)}` : ""}
+          {" - "}<b>{session?.points_reward} pts</b>
         </p>
       </div>
 
+      {questions.length > 0 && (
+        <div className="card">
+          <h2>{session?.survey_templates?.title || "Survey questions"}</h2>
+          <p className="hint">{session?.survey_templates?.description || "Answer the staff-built survey questions below."}</p>
+          {questions.map((q) => (
+            <DynamicQuestion
+              key={q.id}
+              question={q}
+              value={answers[q.id]}
+              onChange={(value) => setAnswer(q.id, value)}
+              onToggle={(option) => toggleMulti(q.id, option)}
+            />
+          ))}
+        </div>
+      )}
+
       {daySlots.length > 0 && (
         <div className="card">
-          <h2>Rate today's menu <span className="tag">forks up</span></h2>
+          <h2>Rate today's menu</h2>
           {daySlots.map((s) => (
             <ForkRow
               key={s.slot}
@@ -176,20 +343,30 @@ export function Survey() {
       <div className="card">
         <h2>Tell us more</h2>
         <p className="hint">Taste, portion size, temperature, wait time?</p>
-        <textarea rows={3} value={feedback} onChange={(e) => setFeedback(e.target.value)}
-          placeholder="e.g. The BBQ wings were great, but the grill line was slow." />
+        <textarea
+          rows={3}
+          maxLength={2000}
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+          placeholder="e.g. The BBQ wings were great, but the grill line was slow."
+        />
       </div>
 
       <div className="card">
         <h2>Pitch a new dish</h2>
         <p className="hint">One thing you wish showed up in the rotation?</p>
-        <textarea rows={2} value={idea} onChange={(e) => setIdea(e.target.value)}
-          placeholder="e.g. Loaded nachos with real cheese sauce" />
+        <textarea
+          rows={2}
+          maxLength={1000}
+          value={idea}
+          onChange={(e) => setIdea(e.target.value)}
+          placeholder="e.g. Loaded nachos with real cheese sauce"
+        />
       </div>
 
       {err && <div className="notice err">{err}</div>}
-      <button className="btn-primary btn-block" disabled={busy} onClick={submit}>
-        {busy ? "Printing ticket…" : `Submit & earn ${session?.points_reward} pts`}
+      <button className="btn btn-primary btn-block" disabled={busy} onClick={submit}>
+        {busy ? "Submitting..." : `Submit & earn ${session?.points_reward} pts`}
       </button>
     </>
   );

@@ -15,7 +15,7 @@ export function QRCard({ code }: { code: string }) {
       <div className="join-code">{code}</div>
       {src && <img src={src} alt={`QR for ${code}`} width={240} height={240} />}
       <button
-        className="btn-ghost"
+        className="btn btn-ghost"
         style={{ fontSize: 13, padding: "6px 12px" }}
         onClick={() => navigator.clipboard.writeText(url)}
       >

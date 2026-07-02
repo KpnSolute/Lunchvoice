@@ -55,7 +55,7 @@ export function Voice() {
         <p className="hint">Taste, portion size, temperature, wait time?</p>
         <textarea rows={3} value={feedback} onChange={(e) => setFeedback(e.target.value)}
           placeholder="e.g. The BBQ wings were great, but the grill line was slow." />
-        <button className="btn-primary btn-block" style={{ marginTop: 10 }} disabled={busy || !feedback.trim()}
+        <button className="btn btn-primary btn-block" style={{ marginTop: 10 }} disabled={busy || !feedback.trim()}
           onClick={() => send("feedback", feedback, () => setFeedback(""))}>
           Send feedback
         </button>
@@ -66,7 +66,7 @@ export function Voice() {
         <p className="hint">One thing you wish showed up in the rotation?</p>
         <textarea rows={2} value={idea} onChange={(e) => setIdea(e.target.value)}
           placeholder="e.g. Loaded nachos with real cheese sauce" />
-        <button className="btn-mustard btn-block" style={{ marginTop: 10 }} disabled={busy || !idea.trim()}
+        <button className="btn btn-solid btn-block" style={{ marginTop: 10 }} disabled={busy || !idea.trim()}
           onClick={() => send("idea", idea, () => setIdea(""))}>
           Pitch it
         </button>

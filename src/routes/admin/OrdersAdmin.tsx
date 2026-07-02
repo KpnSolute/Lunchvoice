@@ -63,18 +63,18 @@ export function OrdersAdmin() {
               <div key={o.id} className="item-row">
                 <div className="item-name">
                   {o.item_name}
-                  <small>{o.profiles?.display_name || o.profiles?.email || "student"} · 🍴 {o.token_cost} · {new Date(o.created_at).toLocaleString()}</small>
+                  <small>{o.profiles?.display_name || o.profiles?.email || "student"} · {o.token_cost} pts · {new Date(o.created_at).toLocaleString()}</small>
                 </div>
                 <div className="stack" style={{ alignItems: "flex-end" }}>
                   <span className={`pill ${o.status}`}>{o.status}</span>
                   <div style={{ display: "flex", gap: 6 }}>
                     {next && (
-                      <button className="btn-mustard" style={{ fontSize: 12, padding: "5px 10px" }} onClick={() => setStatus(o, next.status)}>
+                      <button className="btn btn-solid" style={{ fontSize: 12, padding: "5px 10px" }} onClick={() => setStatus(o, next.status)}>
                         {next.label}
                       </button>
                     )}
                     {o.status !== "cancelled" && o.status !== "collected" && (
-                      <button className="btn-ghost" style={{ fontSize: 12, padding: "5px 10px" }} onClick={() => setStatus(o, "cancelled")}>
+                      <button className="btn btn-ghost" style={{ fontSize: 12, padding: "5px 10px" }} onClick={() => setStatus(o, "cancelled")}>
                         Cancel
                       </button>
                     )}

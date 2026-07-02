@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { Icon } from "../../components/Icon";
 
 type RosterRow = {
   id: string;
@@ -58,7 +59,9 @@ export function Roster() {
                 <small>{r.email} · id {r.id.slice(0, 8)}</small>
               </div>
               <div className="muted mono" style={{ fontSize: 12, textAlign: "right" }}>
-                🍴 {r.points} · 🔥 {r.streak}
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
+                  <Icon name="coin" size={13} /> {r.points} · <Icon name="flame" size={13} /> {r.streak}
+                </span>
                 <br />
                 {r.responses} surveys · {r.orders} orders
               </div>

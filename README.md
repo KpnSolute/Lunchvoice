@@ -44,6 +44,13 @@ The anon/publishable key is safe to expose — Row Level Security is the real gu
      --project-ref qprfonxvthmaoxfixigk
    ```
    (`MJCCV1_URL` and `MJCCV1_ANON_KEY` are already set.)
+   Also set the allowed frontend origins for `staff-login` and `staff-status`:
+   ```bash
+   supabase secrets set \
+     APP_ORIGINS='http://localhost:5173,https://lunch-line-survey.onrender.com' \
+     --project-ref qprfonxvthmaoxfixigk
+   ```
+   Add the final custom domain to `APP_ORIGINS` before launch.
 2. **MailerSend delivery for student codes** — the `send-email` edge function delivers OTP
    codes via MailerSend, verified by Supabase's Send Email hook signature.
    - Create a free [MailerSend](https://www.mailersend.com) account, verify a sending domain,

@@ -30,7 +30,7 @@ export function Join() {
         {err ? (
           <>
             <div className="notice err">{err}</div>
-            <button className="btn-ghost" onClick={() => navigate("/")}>Back to home</button>
+            <button className="btn btn-ghost" onClick={() => navigate("/")}>Back to home</button>
           </>
         ) : (
           <p className="muted">Joining session…</p>

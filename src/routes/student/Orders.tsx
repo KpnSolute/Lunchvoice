@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { Icon } from "../../components/Icon";
 import type { Order } from "../../types/db";
 
 const STATUS_LABEL: Record<string, string> = {
   pending: "Preparing",
-  ready: "Ready for pickup 🎉",
+  ready: "Ready for pickup",
   collected: "Collected",
   cancelled: "Cancelled",
 };
@@ -48,7 +49,7 @@ export function Orders() {
             <div key={o.id} className="item-row">
               <div className="item-name">
                 {o.item_name}
-                <small>{new Date(o.created_at).toLocaleDateString()} · 🍴 {o.token_cost}</small>
+                <small style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>{new Date(o.created_at).toLocaleDateString()} · <Icon name="coin" size={12} /> {o.token_cost}</small>
               </div>
               <span className={`pill ${o.status}`}>{STATUS_LABEL[o.status] ?? o.status}</span>
             </div>
