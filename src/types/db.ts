@@ -38,7 +38,7 @@ export type Database = {
           mjcc_username: string | null;
         };
         Insert: { id: string };
-        Update: { display_name?: string | null };
+        Update: { display_name?: string | null; email?: string | null };
         Relationships: [];
       };
       dish_ratings: {
