@@ -59,7 +59,7 @@ origins for the auth edge functions:
 
 ```bash
 supabase secrets set \
-  APP_ORIGINS='http://localhost:5173,https://lunch-line-survey.onrender.com' \
+  APP_ORIGINS='http://localhost:5173,http://127.0.0.1:5173,https://interact-3npi.onrender.com,https://lunch-line-survey.onrender.com' \
   --project-ref qprfonxvthmaoxfixigk
 ```
 
