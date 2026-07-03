@@ -1,0 +1,15 @@
+#!/bin/sh
+# Deploys edge functions when a push includes changes under supabase/functions/.
+# Enable once per clone: git config core.hooksPath .githooks
+
+remote_ref=$(git symbolic-ref --short HEAD 2>/dev/null || echo main)
+
+if git diff --name-only "origin/$remote_ref..HEAD" 2>/dev/null | grep -q '^supabase/functions/'; then
+  echo "supabase/functions/ changed — deploying edge functions..."
+  if ! command -v supabase >/dev/null 2>&1; then
+    echo "supabase CLI not found — install it and re-push, or deploy manually:"
+    echo "  supabase functions deploy --project-ref qprfonxvthmaoxfixigk"
+    exit 1
+  fi
+  supabase functions deploy --project-ref qprfonxvthmaoxfixigk || exit 1
+fi
