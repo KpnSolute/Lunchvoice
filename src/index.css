@@ -135,7 +135,7 @@ button { font-family: var(--font-sans); cursor: pointer; }
 
 /* ---------- forms ---------- */
 label.field { display: block; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
-input:not([type]), input[type=text], input[type=email], input[type=password], input[type=number], textarea, select {
+input:not([type]), input[type=text], input[type=email], input[type=password], input[type=number], input[type=file], textarea, select {
   width: 100%; font-family: var(--font-sans); font-size: 15px; color: var(--ink);
   border: 1.5px solid var(--line); background: var(--surface-2); border-radius: var(--r-sm);
   padding: 13px 15px; resize: vertical;
@@ -148,6 +148,14 @@ input:focus, textarea:focus, select:focus {
   outline: none; border-color: var(--accent); background: var(--surface);
   box-shadow: 0 0 0 3px oklch(0.76 0.185 66 / 0.28);
 }
+input[type=file] { padding: 10px; cursor: pointer; }
+input[type=file]::file-selector-button {
+  border: 0; border-radius: var(--r-sm); background: var(--ink); color: var(--bg);
+  font-family: var(--font-sans); font-weight: 800; padding: 10px 13px; margin-right: 12px;
+  cursor: pointer; transition: opacity var(--dur), transform var(--dur) var(--ease);
+}
+input[type=file]::file-selector-button:hover { opacity: 0.9; }
+input[type=file]::file-selector-button:active { transform: scale(0.97); }
 input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%23999' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -315,6 +323,35 @@ select {
 }
 .template-row:first-of-type { border-top: 0; padding-top: 0; }
 .template-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.menu-import-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.menu-import-day {
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  padding: 12px;
+  min-width: 0;
+}
+.menu-import-day b {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.menu-import-day span {
+  display: block;
+  color: var(--muted);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
 
 /* section label */
 .cat-label {

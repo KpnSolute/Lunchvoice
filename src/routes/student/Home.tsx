@@ -1,8 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthProvider";
 import { Icon, type IconName } from "../../components/Icon";
 import { CYCLE, slotsForDay, weekdayFor } from "../../lib/menu";
+import { supabase } from "../../lib/supabase";
+import type { MenuCycleDay } from "../../types/db";
 
 // Which cycle day "today" maps to. ponytail: simple deterministic pick from the
 // day-of-year so the hero shows a real, stable menu without a schedule table.
@@ -10,6 +12,10 @@ function todayCycleDay(): number {
   const start = new Date(new Date().getFullYear(), 0, 0);
   const doy = Math.floor((Date.now() - start.getTime()) / 86400000);
   return (doy % CYCLE.length) + 1;
+}
+
+function firstMenuItem(value: unknown): string | undefined {
+  return Array.isArray(value) ? value.map(String).find(Boolean) : undefined;
 }
 
 const tiles: { to: string; name: string; sub: string; icon: IconName }[] = [
@@ -22,21 +28,44 @@ const tiles: { to: string; name: string; sub: string; icon: IconName }[] = [
 export function Home() {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const [cycleDay, setCycleDay] = useState<MenuCycleDay | null>(null);
 
   useEffect(() => {
     if (sessionStorage.getItem("pendingJoinCode")) navigate("/join", { replace: true });
   }, [navigate]);
 
   const day = todayCycleDay();
+
+  useEffect(() => {
+    (async () => {
+      const { data: cycle } = await supabase
+        .from("menu_cycles")
+        .select("id")
+        .eq("is_active", true)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cycle) return;
+      const { data } = await supabase
+        .from("menu_cycle_days")
+        .select("*")
+        .eq("cycle_id", cycle.id)
+        .eq("day_number", day)
+        .maybeSingle();
+      setCycleDay((data ?? null) as MenuCycleDay | null);
+    })();
+  }, [day]);
+
   const slots = slotsForDay(day);
-  const lunch = slots.find((s) => s.slot === "lunchEntree")?.name;
-  const dinner = slots.find((s) => s.slot === "dinnerEntree")?.name;
+  const lunch = firstMenuItem(cycleDay?.lunch) ?? slots.find((s) => s.slot === "lunchEntree")?.name;
+  const dinner = firstMenuItem(cycleDay?.dinner) ?? slots.find((s) => s.slot === "dinnerEntree")?.name;
+  const weekday = cycleDay?.weekday || weekdayFor(day - 1);
 
   return (
     <>
       <section className="hero">
         <p className="eyebrow">
-          Today · {weekdayFor(day - 1)} · Day {day}
+          Today · {weekday} · Day {day}
         </p>
         <h1 className="hero-title">How was the food today?</h1>
         <div className="hero-meal">

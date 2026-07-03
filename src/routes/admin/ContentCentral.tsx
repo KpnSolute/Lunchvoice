@@ -4,6 +4,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { QRCard } from "../../components/QRCard";
 import { Icon } from "../../components/Icon";
 import { CYCLE, STAPLES, WEEKDAYS, weekdayFor } from "../../lib/menu";
+import { parseMenuWorkbook, type ParsedMenuWorkbookDay } from "../../lib/menuWorkbook";
 import type { MenuCycle, MenuCycleDay, Session, SurveyQuestion, SurveyTemplate } from "../../types/db";
 
 type Tab = "surveys" | "menu" | "launch" | "results";
@@ -74,6 +75,9 @@ export function ContentCentral() {
   const [cycleTitle, setCycleTitle] = useState("MJCC 28-day cycle");
   const [cycleVersion, setCycleVersion] = useState(new Date().toLocaleDateString());
   const [cyclePaste, setCyclePaste] = useState("");
+  const [cycleFileName, setCycleFileName] = useState("");
+  const [cycleFileDays, setCycleFileDays] = useState<ParsedMenuWorkbookDay[]>([]);
+  const [cycleFileBusy, setCycleFileBusy] = useState(false);
 
   const [launchTitle, setLaunchTitle] = useState("");
   const [launchTemplateId, setLaunchTemplateId] = useState("");
@@ -323,6 +327,72 @@ export function ContentCentral() {
     await load();
   }
 
+  async function previewMenuWorkbook(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    setErr("");
+    setOk("");
+    setCycleFileDays([]);
+    setCycleFileName("");
+    if (!file) return;
+
+    setCycleFileBusy(true);
+    try {
+      const days = await parseMenuWorkbook(file);
+      setCycleFileDays(days);
+      setCycleFileName(file.name);
+      if (!cycleTitle.trim() || cycleTitle === "MJCC 28-day cycle") {
+        setCycleTitle(file.name.replace(/\.[^.]+$/, ""));
+      }
+      setOk(`Read ${days.length} days from ${file.name}. Review the preview, then upload.`);
+    } catch (error) {
+      setErr(error instanceof Error ? error.message : "Could not read that workbook.");
+    } finally {
+      setCycleFileBusy(false);
+    }
+  }
+
+  async function importWorkbookMenu() {
+    setErr("");
+    setOk("");
+    if (cycleFileDays.length !== 28) {
+      setErr("Choose a workbook that previews all 28 menu days first.");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("menu_cycles")
+      .insert({
+        title: cycleTitle.trim() || cycleFileName.replace(/\.[^.]+$/, "") || "Imported 28-day cycle",
+        version_label: cycleVersion.trim() || cycleFileName || null,
+        is_active: false,
+        created_by: profile?.id,
+      })
+      .select()
+      .single();
+    if (error) return setErr(error.message);
+
+    const rows = cycleFileDays.map((day) => ({
+      cycle_id: data.id,
+      day_number: day.day_number,
+      weekday: day.weekday,
+      breakfast: day.breakfast,
+      lunch: day.lunch,
+      dinner: day.dinner,
+      notes: day.notes,
+    }));
+    const { error: dayErr } = await supabase.from("menu_cycle_days").insert(rows);
+    if (dayErr) {
+      await supabase.from("menu_cycles").delete().eq("id", data.id);
+      return setErr(dayErr.message);
+    }
+
+    setLaunchCycleId(data.id);
+    setCycleFileDays([]);
+    setCycleFileName("");
+    setOk("Workbook menu cycle imported as a draft. Review it, then activate when ready.");
+    await load();
+  }
+
   async function activateCycle(c: MenuCycle) {
     setErr("");
     await supabase.from("menu_cycles").update({ is_active: false }).neq("id", c.id);
@@ -523,6 +593,28 @@ export function ContentCentral() {
               </div>
             </div>
             <button className="btn btn-primary" onClick={importStaticMenu}><Icon name="menu" size={16} /> Import current app menu</button>
+            <div className="field-block" style={{ marginTop: 14 }}>
+              <label className="field">Excel workbook</label>
+              <input type="file" accept=".xlsx,.xlsm" onChange={previewMenuWorkbook} disabled={cycleFileBusy} />
+              <div className="input-help">
+                <span>{cycleFileName || "Use the cafeteria workbook with a 28 Day Menu sheet."}</span>
+                <b>{cycleFileBusy ? "Reading..." : `${cycleFileDays.length}/28 days`}</b>
+              </div>
+            </div>
+            {cycleFileDays.length > 0 && (
+              <div className="menu-import-preview">
+                {cycleFileDays.slice(0, 4).map((day) => (
+                  <div key={day.day_number} className="menu-import-day">
+                    <b>Day {day.day_number} - {day.weekday}</b>
+                    <span>Lunch: {asTextList(day.lunch.slice(0, 3))}</span>
+                    <span>Dinner: {asTextList(day.dinner.slice(0, 3))}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button className="btn btn-solid btn-block" style={{ marginTop: 10 }} onClick={importWorkbookMenu} disabled={cycleFileDays.length !== 28 || cycleFileBusy}>
+              <Icon name="arrow" size={16} /> Upload workbook cycle
+            </button>
             <textarea rows={8} style={{ marginTop: 12 }} value={cyclePaste} onChange={(e) => setCyclePaste(e.target.value)} placeholder="Day 1 | Eggs, oatmeal | Char Sui Pork, Chef's Choice | Tuna Casserole, Pasta Shell" />
             <div className="input-help"><span>Paste one line per day with sections separated by pipes.</span><b>{menuPasteLineCount}/28 lines</b></div>
             <button className="btn btn-solid btn-block" style={{ marginTop: 10 }} onClick={importPastedMenu}><Icon name="arrow" size={16} /> Upload pasted cycle</button>
