@@ -59,6 +59,8 @@ export function ContentCentral() {
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
   const [showQr, setShowQr] = useState<string | null>(null);
+  const [resultSessionId, setResultSessionId] = useState("");
+  const [resultTemplateId, setResultTemplateId] = useState("");
 
   const [templateTitle, setTemplateTitle] = useState("");
   const [templateDescription, setTemplateDescription] = useState("");
@@ -144,9 +146,22 @@ export function ContentCentral() {
 
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
   const publishedTemplates = templates.filter((t) => t.status === "published");
+  const activeCycle = cycles.find((c) => c.is_active);
+  const activeSessions = sessions.filter((s) => s.is_active);
+  const draftTemplates = templates.filter((t) => t.status !== "published");
+  const menuPasteLineCount = cyclePaste.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).length;
+  const sessionTemplateById = useMemo(() => new Map(sessions.map((s) => [s.id, s.template_id])), [sessions]);
+  const filteredAnswers = useMemo(() => {
+    return answers.filter((a) => {
+      const sessionId = a.responses?.session_id ?? "";
+      if (resultSessionId && sessionId !== resultSessionId) return false;
+      if (resultTemplateId && sessionTemplateById.get(sessionId) !== resultTemplateId) return false;
+      return true;
+    });
+  }, [answers, resultSessionId, resultTemplateId, sessionTemplateById]);
   const resultGroups = useMemo(() => {
     const map = new Map<string, { prompt: string; type: string; count: number; ratings: number[]; options: Record<string, number>; texts: string[] }>();
-    for (const a of answers) {
+    for (const a of filteredAnswers) {
       const prompt = a.survey_questions?.prompt ?? "Question";
       const type = a.survey_questions?.type ?? "text";
       const row = map.get(a.question_id) ?? { prompt, type, count: 0, ratings: [], options: {}, texts: [] };
@@ -160,7 +175,7 @@ export function ContentCentral() {
       map.set(a.question_id, row);
     }
     return Array.from(map.values());
-  }, [answers]);
+  }, [filteredAnswers]);
 
   async function createTemplate(e: React.FormEvent) {
     e.preventDefault();
@@ -355,15 +370,33 @@ export function ContentCentral() {
         <p className="hint">Build surveys, manage the menu cycle, launch QR sessions, and watch results come in.</p>
       </div>
 
-      <div className="chips">
+      <div className="manager-grid">
+        <div className="metric-tile"><div className="num">{templates.length}</div><div className="lbl">Survey templates</div></div>
+        <div className="metric-tile"><div className="num">{publishedTemplates.length}</div><div className="lbl">Ready to launch</div></div>
+        <div className="metric-tile"><div className="num">{activeSessions.length}</div><div className="lbl">Active sessions</div></div>
+        <div className="metric-tile"><div className="num">{activeCycle ? "1" : "0"}</div><div className="lbl">Active menu cycle</div></div>
+      </div>
+
+      <div className="manager-panel">
+        <span className="eyebrow">Sudo manager workflow</span>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: 26, marginTop: 6 }}>Build better surveys from the menu outward.</h2>
+        <p className="hint">Start with a focused template, connect it to the current menu day, then watch results by session so the kitchen can act quickly.</p>
+        <div className="tool-grid">
+          <div className="tool-note"><b>Ask one clear thing</b><span>Use required ratings sparingly and keep open text for ideas or problems.</span></div>
+          <div className="tool-note"><b>Tie it to a meal</b><span>Attach a menu cycle and day so answers map back to actual dishes.</span></div>
+          <div className="tool-note"><b>Read live results</b><span>Filter by session before changing menus or rewards.</span></div>
+        </div>
+      </div>
+
+      <div className="content-tabs">
         {[
-          ["surveys", "Survey builder"],
-          ["menu", "Menu cycle"],
-          ["launch", "Launch"],
-          ["results", "Results"],
-        ].map(([key, label]) => (
-          <button key={key} className={`chip${tab === key ? " active" : ""}`} onClick={() => setTab(key as Tab)}>
-            {label}
+          ["surveys", "Survey builder", "survey"],
+          ["menu", "Menu cycle", "menu"],
+          ["launch", "Launch", "arrow"],
+          ["results", "Results", "dashboard"],
+        ].map(([key, label, icon]) => (
+          <button key={key} className={`content-tab${tab === key ? " active" : ""}`} onClick={() => setTab(key as Tab)}>
+            <Icon name={icon as Parameters<typeof Icon>[0]["name"]} size={16} /> {label}
           </button>
         ))}
       </div>
@@ -376,21 +409,21 @@ export function ContentCentral() {
           <div className="row2">
             <div className="card">
               <h2>New template</h2>
-              <p className="hint">Start blank or use the prebuilt Dining Voice survey from the original prototype.</p>
-              <form onSubmit={createTemplate}>
+              <p className="hint">Start blank for a specific question, or use the prebuilt Dining Voice survey for daily feedback.</p>
+              <form onSubmit={createTemplate} className="stack">
                 <div className="field-block">
                   <label className="field">Title</label>
-                  <input value={templateTitle} onChange={(e) => setTemplateTitle(e.target.value)} required />
+                  <input value={templateTitle} onChange={(e) => setTemplateTitle(e.target.value)} required placeholder="Lunch pulse check" />
                 </div>
                 <div className="field-block">
                   <label className="field">Description</label>
-                  <textarea rows={2} value={templateDescription} onChange={(e) => setTemplateDescription(e.target.value)} />
+                  <textarea rows={2} value={templateDescription} onChange={(e) => setTemplateDescription(e.target.value)} placeholder="What this survey helps the kitchen decide" />
                 </div>
                 <div className="field-block">
                   <label className="field">Default reward</label>
                   <input type="number" min={0} value={templateReward} onChange={(e) => setTemplateReward(Number(e.target.value))} />
                 </div>
-                <button className="btn btn-primary btn-block">Create blank template</button>
+                <button className="btn btn-primary btn-block"><Icon name="plus" size={16} /> Create blank template</button>
               </form>
               <button className="btn btn-ghost btn-block" style={{ marginTop: 10 }} onClick={createDiningVoiceTemplate}>
                 <Icon name="sparkle" size={16} /> Use Dining Voice template
@@ -400,57 +433,75 @@ export function ContentCentral() {
             <div className="card">
               <h2>Question editor</h2>
               <p className="hint">Pick a template, then add the questions students will answer.</p>
-              <select value={selectedTemplateId} onChange={(e) => setSelectedTemplateId(e.target.value)}>
-                {templates.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
-              </select>
-              <form onSubmit={addQuestion} style={{ marginTop: 12 }}>
+              <div className="field-block">
+                <label className="field">Template</label>
+                <select value={selectedTemplateId} onChange={(e) => setSelectedTemplateId(e.target.value)}>
+                  {templates.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
+                </select>
+              </div>
+              {templates.length === 0 && <div className="notice ok">Create or import a template to unlock the question editor.</div>}
+              <form onSubmit={addQuestion} className="stack">
                 <div className="field-block">
                   <label className="field">Question</label>
                   <input value={qPrompt} onChange={(e) => setQPrompt(e.target.value)} placeholder="e.g. How was the taste?" />
                 </div>
                 <div className="row2">
-                  <select value={qType} onChange={(e) => setQType(e.target.value)}>
-                    <option value="rating">1-5 rating</option>
-                    <option value="text">Text</option>
-                    <option value="single_choice">Single choice</option>
-                    <option value="multi_choice">Multi choice</option>
-                    <option value="yes_no">Yes / No</option>
-                  </select>
-                  <label className="check-row"><input type="checkbox" checked={qRequired} onChange={(e) => setQRequired(e.target.checked)} /> Required</label>
+                  <div className="field-block">
+                    <label className="field">Answer type</label>
+                    <select value={qType} onChange={(e) => setQType(e.target.value)}>
+                      <option value="rating">1-5 rating</option>
+                      <option value="text">Text</option>
+                      <option value="single_choice">Single choice</option>
+                      <option value="multi_choice">Multi choice</option>
+                      <option value="yes_no">Yes / No</option>
+                    </select>
+                  </div>
+                  <div className="field-block">
+                    <label className="field">Requirement</label>
+                    <label className="check-row"><input type="checkbox" checked={qRequired} onChange={(e) => setQRequired(e.target.checked)} /> Required</label>
+                  </div>
                 </div>
                 {(qType === "single_choice" || qType === "multi_choice") && (
-                  <textarea rows={3} style={{ marginTop: 10 }} value={qOptions} onChange={(e) => setQOptions(e.target.value)} placeholder="One option per line" />
+                  <div className="field-block">
+                    <label className="field">Choice options</label>
+                    <textarea rows={3} value={qOptions} onChange={(e) => setQOptions(e.target.value)} placeholder="One option per line" />
+                  </div>
                 )}
-                <button className="btn btn-solid btn-block" style={{ marginTop: 10 }} disabled={!selectedTemplate || !qPrompt.trim()}>
-                  Add question
+                <button className="btn btn-solid btn-block" disabled={!selectedTemplate || !qPrompt.trim()}>
+                  <Icon name="plus" size={16} /> Add question
                 </button>
               </form>
             </div>
           </div>
 
+          {draftTemplates.length > 0 && <p className="hint">{draftTemplates.length} draft template{draftTemplates.length === 1 ? "" : "s"} need publishing before launch.</p>}
+          {templates.length === 0 && <div className="card"><h2>No surveys yet</h2><p className="hint">Use Dining Voice for the fastest start, then tune the questions after students begin answering.</p></div>}
           {templates.map((t) => (
-            <div key={t.id} className="card">
+            <div key={t.id} className="card template-row">
               <div className="spread">
                 <div>
-                  <h2>{t.title} <span className={`pill ${t.status === "published" ? "ready" : "collected"}`}>{t.status}</span></h2>
+                  <h2>{t.title} <span className={`pill ${t.status === "published" ? "ready" : "collected"}`}>{t.status}</span>{selectedTemplateId === t.id && " "}<span className="pill collected">{selectedTemplateId === t.id ? "editing" : `${t.questions.length} questions`}</span></h2>
                   <p className="hint" style={{ margin: 0 }}>{t.description || "No description"} - {t.points_reward} pts - {t.questions.length} questions</p>
                 </div>
-                <div className="row">
+                <div className="template-actions">
                   <button className="btn btn-ghost" onClick={() => setSelectedTemplateId(t.id)}>Edit</button>
                   <button className="btn btn-solid" onClick={() => setTemplateStatus(t, t.status === "published" ? "draft" : "published")}>
                     {t.status === "published" ? "Unpublish" : "Publish"}
                   </button>
                 </div>
               </div>
-              {t.questions.map((q) => (
-                <div key={q.id} className="item-row">
-                  <div className="item-name">
-                    {q.position}. {q.prompt}
-                    <small>{q.type}{q.required ? " - required" : ""}{Array.isArray(q.options) && q.options.length ? ` - ${asTextList(q.options)}` : ""}</small>
+              {selectedTemplateId === t.id && (
+                t.questions.length === 0 ? <p className="hint" style={{ marginTop: 12 }}>No questions yet. Add a rating, choice, or text question above.</p> :
+                t.questions.map((q) => (
+                  <div key={q.id} className="item-row">
+                    <div className="item-name">
+                      {q.position}. {q.prompt}
+                      <small>{q.type}{q.required ? " - required" : ""}{Array.isArray(q.options) && q.options.length ? ` - ${asTextList(q.options)}` : ""}</small>
+                    </div>
+                    <button className="btn btn-ghost" style={{ fontSize: 12, padding: "6px 10px" }} onClick={() => deleteQuestion(q.id)}>Remove</button>
                   </div>
-                  <button className="btn btn-ghost" style={{ fontSize: 12, padding: "6px 10px" }} onClick={() => deleteQuestion(q.id)}>Remove</button>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           ))}
         </>
@@ -462,14 +513,22 @@ export function ContentCentral() {
             <h2>Upload 28-day cycle</h2>
             <p className="hint">Import the current built-in MJCC menu, or paste 28 lines using: Day 1 | breakfast | lunch | dinner.</p>
             <div className="row2">
-              <input value={cycleTitle} onChange={(e) => setCycleTitle(e.target.value)} placeholder="Cycle title" />
-              <input value={cycleVersion} onChange={(e) => setCycleVersion(e.target.value)} placeholder="Version label" />
+              <div className="field-block">
+                <label className="field">Cycle title</label>
+                <input value={cycleTitle} onChange={(e) => setCycleTitle(e.target.value)} placeholder="Cycle title" />
+              </div>
+              <div className="field-block">
+                <label className="field">Version label</label>
+                <input value={cycleVersion} onChange={(e) => setCycleVersion(e.target.value)} placeholder="Version label" />
+              </div>
             </div>
-            <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={importStaticMenu}>Import current app menu</button>
+            <button className="btn btn-primary" onClick={importStaticMenu}><Icon name="menu" size={16} /> Import current app menu</button>
             <textarea rows={8} style={{ marginTop: 12 }} value={cyclePaste} onChange={(e) => setCyclePaste(e.target.value)} placeholder="Day 1 | Eggs, oatmeal | Char Sui Pork, Chef's Choice | Tuna Casserole, Pasta Shell" />
-            <button className="btn btn-solid btn-block" style={{ marginTop: 10 }} onClick={importPastedMenu}>Upload pasted cycle</button>
+            <div className="input-help"><span>Paste one line per day with sections separated by pipes.</span><b>{menuPasteLineCount}/28 lines</b></div>
+            <button className="btn btn-solid btn-block" style={{ marginTop: 10 }} onClick={importPastedMenu}><Icon name="arrow" size={16} /> Upload pasted cycle</button>
           </div>
 
+          {cycles.length === 0 && <div className="card"><h2>No menu cycle loaded</h2><p className="hint">Import the current app menu first so launched surveys can point at real menu days.</p></div>}
           {cycles.map((c) => (
             <div key={c.id} className="card">
               <div className="spread">
@@ -498,36 +557,50 @@ export function ContentCentral() {
           <div className="card">
             <h2>Launch survey session</h2>
             <p className="hint">This creates the join code and QR students scan. Use published templates for student-facing surveys.</p>
-            <form onSubmit={launchSession}>
+            {publishedTemplates.length === 0 && <div className="notice err">Publish at least one survey template before launching.</div>}
+            <form onSubmit={launchSession} className="stack">
               <div className="field-block">
                 <label className="field">Session title</label>
                 <input value={launchTitle} onChange={(e) => setLaunchTitle(e.target.value)} placeholder="Defaults to template title" />
               </div>
               <div className="row2">
-                <select value={launchTemplateId} onChange={(e) => {
-                  setLaunchTemplateId(e.target.value);
-                  const t = templates.find((x) => x.id === e.target.value);
-                  if (t) setLaunchReward(t.points_reward);
-                }}>
-                  <option value="">No dynamic template</option>
-                  {publishedTemplates.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
-                </select>
-                <select value={launchCycleId} onChange={(e) => setLaunchCycleId(e.target.value)}>
-                  <option value="">No menu cycle</option>
-                  {cycles.map((c) => <option key={c.id} value={c.id}>{c.title}{c.is_active ? " (active)" : ""}</option>)}
-                </select>
+                <div className="field-block">
+                  <label className="field">Survey template</label>
+                  <select value={launchTemplateId} onChange={(e) => {
+                    setLaunchTemplateId(e.target.value);
+                    const t = templates.find((x) => x.id === e.target.value);
+                    if (t) setLaunchReward(t.points_reward);
+                  }}>
+                    <option value="">No dynamic template</option>
+                    {publishedTemplates.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
+                  </select>
+                </div>
+                <div className="field-block">
+                  <label className="field">Menu cycle</label>
+                  <select value={launchCycleId} onChange={(e) => setLaunchCycleId(e.target.value)}>
+                    <option value="">No menu cycle</option>
+                    {cycles.map((c) => <option key={c.id} value={c.id}>{c.title}{c.is_active ? " (active)" : ""}</option>)}
+                  </select>
+                </div>
               </div>
-              <div className="row2" style={{ marginTop: 10 }}>
-                <select value={launchDay} onChange={(e) => setLaunchDay(e.target.value === "" ? "" : Number(e.target.value))}>
-                  <option value="">No specific menu day</option>
-                  {Array.from({ length: 28 }, (_, i) => <option key={i} value={i + 1}>Day {i + 1}</option>)}
-                </select>
-                <input type="number" min={0} value={launchReward} onChange={(e) => setLaunchReward(Number(e.target.value))} />
+              <div className="row2">
+                <div className="field-block">
+                  <label className="field">Menu day</label>
+                  <select value={launchDay} onChange={(e) => setLaunchDay(e.target.value === "" ? "" : Number(e.target.value))}>
+                    <option value="">No specific menu day</option>
+                    {Array.from({ length: 28 }, (_, i) => <option key={i} value={i + 1}>Day {i + 1}</option>)}
+                  </select>
+                </div>
+                <div className="field-block">
+                  <label className="field">Point reward</label>
+                  <input type="number" min={0} value={launchReward} onChange={(e) => setLaunchReward(Number(e.target.value))} />
+                </div>
               </div>
-              <button className="btn btn-primary btn-block" style={{ marginTop: 12 }}>Launch session</button>
+              <button className="btn btn-primary btn-block"><Icon name="arrow" size={16} /> Launch session</button>
             </form>
           </div>
 
+          {sessions.length === 0 && <div className="card"><h2>No sessions launched</h2><p className="hint">Launch a published survey to get a join code and QR students can scan.</p></div>}
           {sessions.map((s) => (
             <div key={s.id} className="card">
               <div className="spread">
@@ -546,9 +619,25 @@ export function ContentCentral() {
       {tab === "results" && (
         <div className="card">
           <h2>Live survey results</h2>
-          <p className="hint">Aggregated dynamic answers from the latest student submissions.</p>
+          <p className="hint">Filter by session or template before making menu decisions.</p>
+          <div className="row2">
+            <div className="field-block">
+              <label className="field">Session</label>
+              <select value={resultSessionId} onChange={(e) => setResultSessionId(e.target.value)}>
+                <option value="">All sessions</option>
+                {sessions.map((s) => <option key={s.id} value={s.id}>{s.title} - {s.join_code}</option>)}
+              </select>
+            </div>
+            <div className="field-block">
+              <label className="field">Template</label>
+              <select value={resultTemplateId} onChange={(e) => setResultTemplateId(e.target.value)}>
+                <option value="">All templates</option>
+                {templates.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
+              </select>
+            </div>
+          </div>
           {resultGroups.length === 0 ? (
-            <p className="muted">No dynamic survey answers yet.</p>
+            <p className="muted">No dynamic survey answers match this view yet.</p>
           ) : resultGroups.map((g) => {
             const avg = g.ratings.length ? g.ratings.reduce((a, b) => a + b, 0) / g.ratings.length : null;
             return (
