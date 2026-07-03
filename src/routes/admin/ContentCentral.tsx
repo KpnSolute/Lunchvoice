@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../auth/AuthProvider";
+import { useOrg } from "../../org/OrgProvider";
 import { QRCard } from "../../components/QRCard";
 import { Icon } from "../../components/Icon";
 import { CYCLE, STAPLES, WEEKDAYS, weekdayFor } from "../../lib/menu";
@@ -51,6 +52,7 @@ function asTextList(value: unknown): string {
 
 export function ContentCentral() {
   const { profile } = useAuth();
+  const { org } = useOrg();
   const [tab, setTab] = useState<Tab>("surveys");
   const [templates, setTemplates] = useState<TemplateWithQuestions[]>([]);
   const [cycles, setCycles] = useState<(MenuCycle & { days: MenuCycleDay[] })[]>([]);
@@ -192,6 +194,7 @@ export function ContentCentral() {
         description: templateDescription.trim() || null,
         points_reward: templateReward,
         created_by: profile?.id,
+        org_id: org.id,
       })
       .select()
       .single();
@@ -215,6 +218,7 @@ export function ContentCentral() {
         points_reward: 50,
         status: "published",
         created_by: profile?.id,
+        org_id: org.id,
       })
       .select()
       .single();
@@ -227,6 +231,7 @@ export function ContentCentral() {
       required: q.required,
       options: "options" in q ? q.options : [],
       category: q.category,
+      org_id: org!.id,
     }));
     const { error: qErr } = await supabase.from("survey_questions").insert(rows);
     if (qErr) return setErr(qErr.message);
@@ -249,6 +254,7 @@ export function ContentCentral() {
       options: listFromText(qOptions),
       scale_min: 1,
       scale_max: 5,
+      org_id: org.id,
     });
     if (error) return setErr(error.message);
     setQPrompt("");
@@ -274,7 +280,7 @@ export function ContentCentral() {
     setOk("");
     const { data, error } = await supabase
       .from("menu_cycles")
-      .insert({ title: cycleTitle.trim(), version_label: cycleVersion.trim() || null, is_active: true, created_by: profile?.id })
+      .insert({ title: cycleTitle.trim(), version_label: cycleVersion.trim() || null, is_active: true, created_by: profile?.id, org_id: org.id })
       .select()
       .single();
     if (error) return setErr(error.message);
@@ -286,6 +292,7 @@ export function ContentCentral() {
       breakfast,
       lunch: [lunch, lunchAlt].filter(Boolean),
       dinner: [dinner, dinnerAlt].filter(Boolean),
+      org_id: org.id,
     }));
     const { error: dayErr } = await supabase.from("menu_cycle_days").insert(rows);
     if (dayErr) return setErr(dayErr.message);
@@ -304,7 +311,7 @@ export function ContentCentral() {
     }
     const { data, error } = await supabase
       .from("menu_cycles")
-      .insert({ title: cycleTitle.trim(), version_label: cycleVersion.trim() || null, is_active: false, created_by: profile?.id })
+      .insert({ title: cycleTitle.trim(), version_label: cycleVersion.trim() || null, is_active: false, created_by: profile?.id, org_id: org.id })
       .select()
       .single();
     if (error) return setErr(error.message);
@@ -318,6 +325,7 @@ export function ContentCentral() {
         lunch: listFromText(parts[2] ?? ""),
         dinner: listFromText(parts[3] ?? ""),
         notes: parts[4] || null,
+        org_id: org.id,
       };
     });
     const { error: dayErr } = await supabase.from("menu_cycle_days").insert(rows);
@@ -366,6 +374,7 @@ export function ContentCentral() {
         version_label: cycleVersion.trim() || cycleFileName || null,
         is_active: false,
         created_by: profile?.id,
+        org_id: org.id,
       })
       .select()
       .single();
@@ -379,6 +388,7 @@ export function ContentCentral() {
       lunch: day.lunch,
       dinner: day.dinner,
       notes: day.notes,
+      org_id: org.id,
     }));
     const { error: dayErr } = await supabase.from("menu_cycle_days").insert(rows);
     if (dayErr) {
@@ -421,6 +431,7 @@ export function ContentCentral() {
         template_id: launchTemplateId || null,
         menu_cycle_id: launchCycleId || null,
         created_by: profile?.id,
+        org_id: org.id,
       })
       .select()
       .single();

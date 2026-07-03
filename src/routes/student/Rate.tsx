@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { useOrg } from "../../org/OrgProvider";
 import { Icon } from "../../components/Icon";
 import { RATE_CATEGORIES, RATED_DISHES, type RatedDish } from "../../lib/menu";
 
@@ -24,6 +25,7 @@ function StarRow({ value, onPick }: { value: number; onPick: (n: number) => void
 }
 
 export function Rate() {
+  const { org } = useOrg();
   const [cat, setCat] = useState("All");
   const [mine, setMine] = useState<Record<string, number>>({});
   const [stats, setStats] = useState<Record<string, Stat>>({});
@@ -59,7 +61,7 @@ export function Rate() {
     const { error } = await supabase
       .from("dish_ratings")
       .upsert(
-        { dish_key: d.key, dish_name: d.name, category: d.category, rating: n, updated_at: new Date().toISOString() },
+        { dish_key: d.key, dish_name: d.name, category: d.category, rating: n, org_id: org!.id, updated_at: new Date().toISOString() },
         { onConflict: "student_id,dish_key" }
       );
     if (error) setErr(error.message);

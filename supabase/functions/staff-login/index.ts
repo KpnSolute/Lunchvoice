@@ -67,12 +67,15 @@ Deno.serve(async (req) => {
 
     let email = "";
     let password = "";
+    let orgSlug = "";
     try {
-      ({ email, password } = await req.json());
+      ({ email, password, org: orgSlug } = await req.json());
     } catch {
       return json(req, { error: "Invalid body" }, 400);
     }
     if (!email || !password) return json(req, { error: "Username/email and password required" }, 400);
+    orgSlug = String(orgSlug ?? "").trim();
+    if (!orgSlug) return json(req, { error: "Organization slug required" }, 400);
     const limited = rateLimit(req, email);
     if (limited) return limited;
 
@@ -81,6 +84,20 @@ Deno.serve(async (req) => {
     const V1_SERVICE = required("MJCCV1_SERVICE_ROLE_KEY");
     const V2_URL = Deno.env.get("MJCCV2_URL") ?? required("SUPABASE_URL");
     const V2_SERVICE = Deno.env.get("MJCCV2_SERVICE_ROLE_KEY") ?? required("SUPABASE_SERVICE_ROLE_KEY");
+
+    // Resolve org
+    const v2admin = createClient(V2_URL, V2_SERVICE, { auth: { persistSession: false } });
+    const { data: org } = await v2admin
+      .from("orgs")
+      .select("id, auth_provider")
+      .ilike("slug", orgSlug)
+      .maybeSingle();
+    if (!org) return json(req, { error: "Unknown organization." }, 404);
+
+    // Only mjcc_v1_sudo orgs supported today
+    if (org.auth_provider !== "mjcc_v1_sudo") {
+      return json(req, { error: "Staff login not yet configured for this organization." }, 501);
+    }
 
     const v1admin = createClient(V1_URL, V1_SERVICE, { auth: { persistSession: false } });
 
@@ -125,13 +142,11 @@ Deno.serve(async (req) => {
       return json(req, { error: "This account does not have sudo access." }, 403);
     }
 
-    const v2 = createClient(V2_URL, V2_SERVICE, { auth: { persistSession: false } });
-
     let userId: string | undefined;
-    const created = await v2.auth.admin.createUser({
+    const created = await v2admin.auth.admin.createUser({
       email: loginEmail,
       email_confirm: true,
-      user_metadata: { staff: true, username: profile.username },
+      user_metadata: { staff: true, username: profile.username, org_id: org.id },
     });
     if (created.data.user) {
       userId = created.data.user.id;
@@ -139,7 +154,7 @@ Deno.serve(async (req) => {
       const existingId = /already|registered|exists/i.test(created.error?.message ?? "") ? undefined : null;
       if (existingId === null) return json(req, { error: "Could not provision staff account" }, 500);
       for (let page = 1; page <= 20 && !userId; page++) {
-        const { data: list } = await v2.auth.admin.listUsers({ page, perPage: 100 });
+        const { data: list } = await v2admin.auth.admin.listUsers({ page, perPage: 100 });
         userId = list.users.find((u) => u.email?.toLowerCase() === loginEmail.toLowerCase())?.id;
         if (list.users.length < 100) break;
       }
@@ -147,22 +162,23 @@ Deno.serve(async (req) => {
     if (!userId) return json(req, { error: "Could not provision staff account" }, 500);
 
     const fullName = [profile.display_name, profile.last_name].filter(Boolean).join(" ").trim() || profile.username;
-    await v2.from("profiles").upsert({
+    await v2admin.from("profiles").upsert({
       id: userId,
       email: loginEmail,
       display_name: fullName,
       role: "admin",
       is_staff: true,
       mjcc_username: profile.username,
+      org_id: org.id,
     });
 
-    const { data: link, error: linkErr } = await v2.auth.admin.generateLink({ type: "magiclink", email: loginEmail });
+    const { data: link, error: linkErr } = await v2admin.auth.admin.generateLink({ type: "magiclink", email: loginEmail });
     if (linkErr || !link.properties) {
       console.error("staff_v2_generate_link_failed", linkErr?.message ?? "missing link properties");
       return json(req, { error: "Could not create session" }, 500);
     }
 
-    const { data: session, error: verifyErr } = await v2.auth.verifyOtp({
+    const { data: session, error: verifyErr } = await v2admin.auth.verifyOtp({
       type: "magiclink",
       token_hash: link.properties.hashed_token,
     });

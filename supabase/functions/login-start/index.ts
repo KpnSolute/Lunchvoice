@@ -72,14 +72,17 @@ Deno.serve(async (req) => {
     if (req.method !== "POST") return json(req, { error: "Method not allowed" }, 405);
 
     let identifier = "";
+    let orgSlug = "";
     try {
-      ({ identifier } = await req.json());
+      ({ identifier, org: orgSlug } = await req.json());
     } catch {
       return json(req, { error: "Invalid body" }, 400);
     }
 
     identifier = String(identifier ?? "").trim();
     if (!identifier) return json(req, { error: "Email or staff username required" }, 400);
+    orgSlug = String(orgSlug ?? "").trim();
+    if (!orgSlug) return json(req, { error: "Organization slug required" }, 400);
     const limited = rateLimit(req, identifier);
     if (limited) return limited;
 
@@ -89,9 +92,23 @@ Deno.serve(async (req) => {
     const V2_SERVICE = Deno.env.get("MJCCV2_SERVICE_ROLE_KEY") ?? required("SUPABASE_SERVICE_ROLE_KEY");
     const V2_ANON = Deno.env.get("MJCCV2_ANON_KEY") ?? required("SUPABASE_ANON_KEY");
 
+    // Resolve org
+    const v2admin = createClient(V2_URL, V2_SERVICE, { auth: { persistSession: false } });
+    const { data: org } = await v2admin
+      .from("orgs")
+      .select("id, auth_provider")
+      .ilike("slug", orgSlug)
+      .maybeSingle();
+    if (!org) return json(req, { error: "Unknown organization." }, 404);
+
     if (!isEmail(identifier)) {
       const username = cleanUsername(identifier);
       if (!username) return json(req, { error: "Enter a valid student email or staff username." }, 400);
+
+      // Staff username check — only for mjcc_v1_sudo orgs
+      if (org.auth_provider !== "mjcc_v1_sudo") {
+        return json(req, { error: "Staff login not yet configured for this organization." }, 501);
+      }
 
       const v1admin = createClient(V1_URL, V1_SERVICE, { auth: { persistSession: false } });
       const { data: staffProfile, error: staffErr } = await v1admin
@@ -115,10 +132,10 @@ Deno.serve(async (req) => {
       return json(req, { error: "Staff should enter their MJCC username, not email." }, 400);
     }
 
-    const v2admin = createClient(V2_URL, V2_SERVICE, { auth: { persistSession: false } });
     const { data: existingProfile, error: profileErr } = await v2admin
       .from("profiles")
       .select("id, is_staff")
+      .eq("org_id", org.id)
       .ilike("email", email)
       .maybeSingle();
 
@@ -134,7 +151,10 @@ Deno.serve(async (req) => {
     const kind = existingProfile ? "student_returning" : "student_new";
     const { error } = await auth.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: !existingProfile },
+      options: {
+        shouldCreateUser: !existingProfile,
+        data: { org_id: org.id },
+      },
     });
     if (error) {
       console.error("login_start_student_otp_failed", error.message);

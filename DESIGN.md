@@ -1,4 +1,4 @@
-# DESIGN.md — Dining Voice
+# DESIGN.md — Lunch Voice
 
 Visual system for the bold-editorial, light+dark, no-emoji redesign. All values are
 tokens in `src/index.css` (`:root` = light, `[data-theme="dark"]` / `prefers-color-scheme`

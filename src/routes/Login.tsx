@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { beginLogin, staffLogin, supabase } from "../lib/supabase";
 import { useAuth } from "../auth/AuthProvider";
+import { useOrg } from "../org/OrgProvider";
 
 type Step = "identifier" | "password" | "code";
 type StudentMode = "returning" | "new";
@@ -12,6 +13,7 @@ const canContinue = (value: string) => isEmail(value) || isUsername(value);
 
 export function Login() {
   const { session, loading } = useAuth();
+  const { org } = useOrg();
   const [step, setStep] = useState<Step>("identifier");
   const [studentMode, setStudentMode] = useState<StudentMode>("returning");
   const [identifier, setIdentifier] = useState("");
@@ -26,7 +28,7 @@ export function Login() {
     if (joinCode) sessionStorage.setItem("pendingJoinCode", joinCode);
   }, [joinCode]);
 
-  if (!loading && session) return <Navigate to="/" replace />;
+  if (!loading && session) return <Navigate to="" replace />;
 
   const loginId = identifier.trim();
   const isStudentEmailFlow = step === "code";
@@ -36,7 +38,7 @@ export function Login() {
     setErr("");
     setBusy(true);
     try {
-      const kind = await beginLogin(loginId);
+      const kind = await beginLogin(loginId, org.slug);
       if (kind === "staff") {
         setStep("password");
         return;
@@ -91,7 +93,7 @@ export function Login() {
     setErr("");
     setBusy(true);
     try {
-      await staffLogin(loginId, password);
+      await staffLogin(loginId, password, org.slug);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Login failed");
     } finally {
@@ -111,8 +113,8 @@ export function Login() {
   return (
     <div className="wrap" style={{ maxWidth: 440, paddingTop: 60 }}>
       <div className="card center">
-        <p className="eyebrow tag" style={{ display: "inline-block" }}>Miami Job Corps</p>
-        <h2 style={{ fontSize: 30, marginTop: 10, marginBottom: 4 }}>Dining Voice</h2>
+        <p className="eyebrow tag" style={{ display: "inline-block" }}>Lunch Voice</p>
+        <h2 style={{ fontSize: 30, marginTop: 10, marginBottom: 4 }}>{org.name}</h2>
 
         {err && <div className="notice err" style={{ marginTop: 12 }}>{err}</div>}
 

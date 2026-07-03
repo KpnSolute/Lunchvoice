@@ -15,15 +15,15 @@ import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 const hookSecret = (Deno.env.get("SEND_EMAIL_HOOK_SECRET") ?? "").replace("v1,whsec_", "");
 const apiKey = Deno.env.get("MAILERSEND_API_KEY") ?? "";
 const fromEmail = Deno.env.get("MAIL_FROM") ?? "";
-const fromName = Deno.env.get("MAIL_FROM_NAME") ?? "Dining Voice";
+const fromName = Deno.env.get("MAIL_FROM_NAME") ?? "Lunch Voice";
 
 function codeEmail(code: string, action: string): { subject: string; html: string; text: string } {
   const verb = action === "signup" ? "Confirm your sign-up" : "Sign in";
-  const subject = `${code} is your Dining Voice code`;
-  const text = `Your Dining Voice verification code is ${code}. It expires shortly. If you didn't request this, ignore this email.`;
+  const subject = `${code} is your Lunch Voice code`;
+  const text = `Your Lunch Voice verification code is ${code}. It expires shortly. If you didn't request this, ignore this email.`;
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:440px;margin:0 auto;padding:24px;color:#2B2622">
-      <p style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#E8A33D;margin:0">Miami Job Corps · Dining Voice</p>
+      <p style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#E8A33D;margin:0">Lunch Voice</p>
       <h2 style="margin:8px 0 4px">${verb}</h2>
       <p style="color:#7A7264;margin:0 0 16px">Enter this code to continue. It expires shortly.</p>
       <div style="font-size:34px;font-weight:700;letter-spacing:.24em;background:#FBF3E4;border:1px solid #E4D9C3;border-radius:10px;padding:16px;text-align:center">${code}</div>

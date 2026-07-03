@@ -1,36 +1,38 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
+import { useOrg } from "../org/OrgProvider";
 import { Icon, type IconName } from "./Icon";
 
 const studentTabs: { to: string; label: string; icon: IconName }[] = [
-  { to: "/", label: "Home", icon: "home" },
-  { to: "/rate", label: "Rate", icon: "star" },
-  { to: "/menu", label: "Menu", icon: "menu" },
-  { to: "/surveys", label: "Survey", icon: "survey" },
-  { to: "/voice", label: "Voice", icon: "voice" },
+  { to: "", label: "Home", icon: "home" },
+  { to: "rate", label: "Rate", icon: "star" },
+  { to: "menu", label: "Menu", icon: "menu" },
+  { to: "surveys", label: "Survey", icon: "survey" },
+  { to: "voice", label: "Voice", icon: "voice" },
 ];
 
 const adminTabs: { to: string; label: string; icon: IconName }[] = [
-  { to: "/admin", label: "Dashboard", icon: "dashboard" },
-  { to: "/admin/content", label: "Content", icon: "survey" },
-  { to: "/admin/sessions", label: "Sessions", icon: "survey" },
-  { to: "/admin/store", label: "Store", icon: "store" },
-  { to: "/admin/orders", label: "Orders", icon: "orders" },
+  { to: "admin", label: "Dashboard", icon: "dashboard" },
+  { to: "admin/content", label: "Content", icon: "survey" },
+  { to: "admin/sessions", label: "Sessions", icon: "survey" },
+  { to: "admin/store", label: "Store", icon: "store" },
+  { to: "admin/orders", label: "Orders", icon: "orders" },
 ];
 
 export function Layout() {
   const { isAdmin, signOut } = useAuth();
+  const { org } = useOrg();
   const navigate = useNavigate();
   const tabs = isAdmin ? adminTabs : studentTabs;
 
   return (
     <div className="app-shell">
       <header className="app-header">
-        <div className="brand" onClick={() => navigate(isAdmin ? "/admin" : "/")}>
-          <div className="brand-mark">DV</div>
+        <div className="brand" onClick={() => navigate(isAdmin ? "admin" : "")}>
+          <div className="brand-mark">LV</div>
           <div>
-            <div className="brand-name">Dining Voice</div>
-            <div className="brand-sub">Miami Job Corps</div>
+            <div className="brand-name">Lunch Voice</div>
+            <div className="brand-sub">{org.name}</div>
           </div>
         </div>
         <div className="row" style={{ gap: 8, flexWrap: "nowrap" }}>
@@ -54,7 +56,7 @@ export function Layout() {
       <nav className="bottom-nav">
         <div className="bottom-nav-inner">
           {tabs.map((t) => (
-            <NavLink key={t.to} to={t.to} end={t.to === "/" || t.to === "/admin"}>
+            <NavLink key={t.to} to={t.to} end={t.to === "" || t.to === "admin"}>
               <Icon name={t.icon} size={22} />
               {t.label}
             </NavLink>

@@ -1,4 +1,4 @@
-# PRODUCT.md — Dining Voice
+# PRODUCT.md — Lunch Voice
 
 ## Register
 

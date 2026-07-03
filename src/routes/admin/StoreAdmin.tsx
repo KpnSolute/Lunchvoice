@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { useOrg } from "../../org/OrgProvider";
 import type { StoreItem } from "../../types/db";
 
 export function StoreAdmin() {
+  const { org } = useOrg();
   const [items, setItems] = useState<StoreItem[]>([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -30,6 +32,7 @@ export function StoreAdmin() {
       description: description.trim() || null,
       token_cost: cost,
       stock: stock === "" ? null : Number(stock),
+      org_id: org.id,
     });
     if (error) {
       setErr(error.message);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../auth/AuthProvider";
+import { useOrg } from "../../org/OrgProvider";
 import { QRCard } from "../../components/QRCard";
 import { CYCLE, weekdayFor } from "../../lib/menu";
 import type { Session } from "../../types/db";
@@ -14,6 +15,7 @@ function genCode(): string {
 
 export function Sessions() {
   const { profile } = useAuth();
+  const { org } = useOrg();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -46,6 +48,7 @@ export function Sessions() {
         menu_day: menuDay === "" ? null : Number(menuDay),
         points_reward: reward,
         created_by: profile!.id,
+        org_id: org.id,
       })
       .select()
       .single();

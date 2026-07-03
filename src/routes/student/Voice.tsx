@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { useOrg } from "../../org/OrgProvider";
 
 type Note = { id: string; kind: string; body: string; created_at: string };
 
 export function Voice() {
+  const { org } = useOrg();
   const [feedback, setFeedback] = useState("");
   const [idea, setIdea] = useState("");
   const [notes, setNotes] = useState<Note[]>([]);
@@ -29,7 +31,7 @@ export function Voice() {
     setOk("");
     if (!body.trim()) return;
     setBusy(true);
-    const { error } = await supabase.from("voice_notes").insert({ kind, body: body.trim() });
+    const { error } = await supabase.from("voice_notes").insert({ kind, body: body.trim(), org_id: org!.id });
     setBusy(false);
     if (error) {
       setErr(error.message);

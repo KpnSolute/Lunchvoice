@@ -1,4 +1,4 @@
-# Dining Voice - MJCC Survey + Rewards
+# Lunch Voice - MJCC Survey + Rewards
 
 A TypeScript (Vite + React) web app for Miami Job Corps Center students to rate
 the 28-day cycle menu, earn points, and redeem them for rewards. Staff use
@@ -71,7 +71,7 @@ supabase secrets set \
   SEND_EMAIL_HOOK_SECRET='v1,whsec_...' \
   MAILERSEND_API_KEY='mlsn_...' \
   MAIL_FROM='no-reply@yourdomain.com' \
-  MAIL_FROM_NAME='Dining Voice' \
+  MAIL_FROM_NAME='Lunch Voice' \
   --project-ref qprfonxvthmaoxfixigk
 ```
 
