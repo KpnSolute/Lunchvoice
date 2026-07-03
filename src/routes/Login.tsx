@@ -112,7 +112,7 @@ export function Login() {
     <div className="wrap" style={{ maxWidth: 440, paddingTop: 60 }}>
       <div className="card center">
         <p className="eyebrow tag" style={{ display: "inline-block" }}>Miami Job Corps</p>
-        <h2 style={{ fontSize: 30, marginTop: 10, marginBottom: 4 }}>The Lunch Line</h2>
+        <h2 style={{ fontSize: 30, marginTop: 10, marginBottom: 4 }}>Dining Voice</h2>
 
         {err && <div className="notice err" style={{ marginTop: 12 }}>{err}</div>}
 

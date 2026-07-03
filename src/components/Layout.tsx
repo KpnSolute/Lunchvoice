@@ -27,9 +27,9 @@ export function Layout() {
     <div className="app-shell">
       <header className="app-header">
         <div className="brand" onClick={() => navigate(isAdmin ? "/admin" : "/")}>
-          <div className="brand-mark">LL</div>
+          <div className="brand-mark">DV</div>
           <div>
-            <div className="brand-name">The Lunch Line</div>
+            <div className="brand-name">Dining Voice</div>
             <div className="brand-sub">Miami Job Corps</div>
           </div>
         </div>

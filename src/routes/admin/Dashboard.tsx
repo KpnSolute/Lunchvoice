@@ -40,7 +40,7 @@ export function Dashboard() {
           ["Pending pickups", counts.pendingOrders],
         ].map(([label, n]) => (
           <div key={label} className="card center" style={{ margin: 0 }}>
-            <div style={{ fontFamily: "'Fraunces',serif", fontSize: 34, color: "var(--sage)" }}>{n}</div>
+            <div style={{ fontFamily: "var(--font-display)", fontWeight: 900, letterSpacing: "-0.02em", fontSize: 34, color: "var(--accent)" }}>{n}</div>
             <div className="muted mono" style={{ fontSize: 11 }}>{String(label).toUpperCase()}</div>
           </div>
         ))}

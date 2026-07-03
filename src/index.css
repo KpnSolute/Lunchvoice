@@ -1,5 +1,5 @@
 /* ============================================================
-   The Lunch Line — bold-editorial theme (light + dark, OKLCH)
+   Dining Voice — bold-editorial theme (light + dark, OKLCH)
    Mood: late-night food zine — ink & bone paper, one acid-citrus jolt.
    ============================================================ */
 
@@ -231,33 +231,49 @@ select {
 .hero {
   position: relative; overflow: hidden;
   background: var(--hero-bg); color: var(--hero-ink);
-  border-radius: var(--r-lg); padding: 24px; margin-bottom: 16px;
+  border-radius: var(--r-lg); padding: 26px 24px 24px; margin-bottom: 16px;
 }
 .hero::after {
-  content: ""; position: absolute; top: -40%; right: -18%; width: 260px; height: 260px;
-  background: radial-gradient(circle, oklch(0.76 0.185 66 / 0.22), transparent 70%);
+  content: ""; position: absolute; top: -32%; right: -14%; width: 220px; height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, oklch(0.76 0.185 66 / 0.28), transparent 72%);
   pointer-events: none;
 }
-.hero .eyebrow { color: var(--accent); }
-.hero-title { font-family: var(--font-display); font-weight: 900; letter-spacing: -0.03em; font-size: clamp(1.8rem, 6.5vw, 2.5rem); line-height: 1.02; margin: 6px 0 16px; }
-.hero-meal { position: relative; padding: 12px 0; border-top: 1px solid oklch(1 0 0 / 0.12); }
+.hero .eyebrow { position: relative; color: var(--accent); }
+.hero-title {
+  position: relative;
+  font-family: var(--font-display); font-weight: 900; letter-spacing: -0.03em;
+  font-size: clamp(1.6rem, 6vw, 2.1rem); line-height: 1.05; margin: 8px 0 6px;
+}
+.hero-meal { position: relative; padding: 13px 0; border-top: 1px solid oklch(1 0 0 / 0.12); }
 .hero-meal .lbl { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--pop); }
-.hero-meal .val { font-size: 19px; font-weight: 600; margin-top: 2px; }
-.hero .btn { margin-top: 18px; }
+.hero-meal .val { font-family: var(--font-display); font-size: 21px; font-weight: 700; margin-top: 3px; letter-spacing: -0.01em; }
+.hero .btn { position: relative; margin-top: 18px; border-radius: var(--r-pill); }
 
 /* ---------- home quick tiles ---------- */
 .quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .quick-card {
+  position: relative; overflow: hidden;
   display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
   padding: 18px; text-align: left; box-shadow: var(--shadow);
   transition: transform var(--dur) var(--ease), border-color var(--dur), box-shadow var(--dur);
 }
-.quick-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+.quick-card:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: 0 12px 28px oklch(0.18 0.012 60 / 0.12); }
 .quick-card:active { transform: translateY(0) scale(0.98); }
-.quick-ico { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: var(--surface-2); color: var(--accent); }
-.quick-name { font-weight: 700; font-size: 15.5px; }
+.quick-ico {
+  display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%;
+  background: var(--surface-2); color: var(--accent);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.quick-card:hover .quick-ico { background: var(--accent); color: var(--accent-ink); transform: scale(1.06); }
+.quick-name { font-family: var(--font-display); font-weight: 800; font-size: 16.5px; letter-spacing: -0.01em; }
 .quick-sub { font-size: 12.5px; color: var(--muted); }
+.quick-card .arrow-peek {
+  position: absolute; top: 16px; right: 16px; color: var(--line);
+  opacity: 0; transform: translate(-4px, 4px); transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease), color var(--dur);
+}
+.quick-card:hover .arrow-peek { opacity: 1; transform: translate(0, 0); color: var(--accent); }
 
 /* ---------- stat / number ---------- */
 .stat-num { font-family: var(--font-display); font-weight: 900; font-size: 40px; letter-spacing: -0.03em; line-height: 1; color: var(--accent); }
@@ -366,10 +382,11 @@ select {
 .dish-card {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
-  padding: 15px 17px; transition: border-color var(--dur), transform var(--dur) var(--ease);
+  padding: 15px 17px; box-shadow: var(--shadow);
+  transition: border-color var(--dur), transform var(--dur) var(--ease), box-shadow var(--dur);
 }
-.dish-card:hover { border-color: var(--muted); }
-.dish-name { font-weight: 600; font-size: 15.5px; }
+.dish-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 10px 22px oklch(0.18 0.012 60 / 0.1); }
+.dish-name { font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: -0.01em; }
 .dish-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
 /* rating (stars/forks) */
@@ -387,12 +404,15 @@ select {
 .store-card {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
   padding: 18px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow);
-  transition: transform var(--dur) var(--ease), border-color var(--dur);
+  transition: transform var(--dur) var(--ease), border-color var(--dur), box-shadow var(--dur);
 }
-.store-card:hover:not(.locked) { transform: translateY(-3px); border-color: var(--accent); }
+.store-card:hover:not(.locked) { transform: translateY(-4px); border-color: var(--accent); box-shadow: 0 14px 30px oklch(0.18 0.012 60 / 0.14); }
 .store-card.locked { opacity: 0.55; }
-.store-card .cost { display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-weight: 700; color: var(--accent); }
-.store-card .name { font-weight: 700; font-size: 16.5px; }
+.store-card .cost {
+  display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-weight: 700;
+  color: var(--accent-ink); background: var(--accent); padding: 3px 9px; border-radius: var(--r-pill); font-size: 12.5px;
+}
+.store-card .name { font-family: var(--font-display); font-weight: 800; font-size: 17px; letter-spacing: -0.01em; }
 .store-card .desc { font-size: 13px; color: var(--muted); flex: 1; }
 
 /* ---------- stat rows ---------- */

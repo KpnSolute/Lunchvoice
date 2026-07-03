@@ -1,4 +1,4 @@
-# PRODUCT.md — The Lunch Line
+# PRODUCT.md — Dining Voice
 
 ## Register
 

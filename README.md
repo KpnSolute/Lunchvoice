@@ -1,4 +1,4 @@
-# The Lunch Line - MJCC Survey + Rewards
+# Dining Voice - MJCC Survey + Rewards
 
 A TypeScript (Vite + React) web app for Miami Job Corps Center students to rate
 the 28-day cycle menu, earn points, and redeem them for rewards. Staff use
@@ -59,11 +59,9 @@ origins for the auth edge functions:
 
 ```bash
 supabase secrets set \
-  APP_ORIGINS='http://localhost:5173,http://127.0.0.1:5173,https://interact-3npi.onrender.com,https://lunch-line-survey.onrender.com' \
+  APP_ORIGINS='http://localhost:5173,http://127.0.0.1:5173,https://interact-3npi.onrender.com,https://lunch-line-survey.onrender.com,https://lunchvoice.com,https://www.lunchvoice.com' \
   --project-ref qprfonxvthmaoxfixigk
 ```
-
-Add the final custom domain to `APP_ORIGINS` before launch.
 
 The `send-email` function delivers OTP codes via MailerSend through Supabase's
 Send Email hook. Set:
@@ -73,7 +71,7 @@ supabase secrets set \
   SEND_EMAIL_HOOK_SECRET='v1,whsec_...' \
   MAILERSEND_API_KEY='mlsn_...' \
   MAIL_FROM='no-reply@yourdomain.com' \
-  MAIL_FROM_NAME='The Lunch Line' \
+  MAIL_FROM_NAME='Dining Voice' \
   --project-ref qprfonxvthmaoxfixigk
 ```
 
@@ -117,8 +115,9 @@ Regenerate types after schema changes and paste them into `src/types/db.ts`.
 2. In Render, create a Blueprint from this repo. `render.yaml` defines the
    static site.
 3. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-4. Add the Render URL and final custom domain to Supabase Auth URL
-   configuration and `APP_ORIGINS`.
+4. Point the custom domain `lunchvoice.com` (and `www.lunchvoice.com`) at the
+   Render static site, and add both to Supabase Auth URL configuration and
+   `APP_ORIGINS` (see above).
 
 ## The Menu
 

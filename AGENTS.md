@@ -1,4 +1,4 @@
-# The Lunch Line Agent Memory
+# Dining Voice Agent Memory
 
 This repo is a React/Vite/Supabase app for MJCC dining feedback, menu planning,
 student rewards, and staff content operations.

@@ -64,10 +64,10 @@ export function Home() {
   return (
     <>
       <section className="hero">
-        <p className="eyebrow">
-          Today · {weekday} · Day {day}
-        </p>
-        <h1 className="hero-title">How was the food today?</h1>
+        <p className="eyebrow">On the menu today</p>
+        <h1 className="hero-title">
+          {weekday} · Day {day}
+        </h1>
         <div className="hero-meal">
           <div className="lbl">Lunch</div>
           <div className="val">{lunch}</div>
@@ -105,7 +105,8 @@ export function Home() {
       <div className="quick-grid">
         {tiles.map((t) => (
           <button key={t.to} className="quick-card" onClick={() => navigate(t.to)}>
-            <span className="quick-ico"><Icon name={t.icon} size={22} /></span>
+            <span className="arrow-peek"><Icon name="arrow" size={16} /></span>
+            <span className="quick-ico"><Icon name={t.icon} size={20} /></span>
             <span className="quick-name">{t.name}</span>
             <span className="quick-sub">{t.sub}</span>
           </button>
