@@ -157,14 +157,19 @@ Deno.serve(async (req) => {
     });
 
     const { data: link, error: linkErr } = await v2.auth.admin.generateLink({ type: "magiclink", email: loginEmail });
-    if (linkErr || !link.properties) return json(req, { error: "Could not create session" }, 500);
+    if (linkErr || !link.properties) {
+      console.error("staff_v2_generate_link_failed", linkErr?.message ?? "missing link properties");
+      return json(req, { error: "Could not create session" }, 500);
+    }
 
     const { data: session, error: verifyErr } = await v2.auth.verifyOtp({
       type: "magiclink",
-      email: loginEmail,
       token_hash: link.properties.hashed_token,
     });
-    if (verifyErr || !session.session) return json(req, { error: "Could not create session" }, 500);
+    if (verifyErr || !session.session) {
+      console.error("staff_v2_verify_link_failed", verifyErr?.message ?? "missing session");
+      return json(req, { error: "Could not create session" }, 500);
+    }
 
     return json(req, {
       access_token: session.session.access_token,
