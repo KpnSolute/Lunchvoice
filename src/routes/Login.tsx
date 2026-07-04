@@ -28,7 +28,7 @@ export function Login() {
     if (joinCode) sessionStorage.setItem("pendingJoinCode", joinCode);
   }, [joinCode]);
 
-  if (!loading && session) return <Navigate to="" replace />;
+  if (!loading && session) return <Navigate to={`/${org.slug}`} replace />;
 
   const loginId = identifier.trim();
   const isStudentEmailFlow = step === "code";

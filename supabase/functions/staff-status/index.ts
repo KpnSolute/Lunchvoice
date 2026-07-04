@@ -10,7 +10,7 @@ const devOrigins = ["http://localhost:5173", "http://127.0.0.1:5173"];
 
 function corsFor(req: Request) {
   const origin = req.headers.get("origin") ?? "";
-  const allowList = allowedOrigins.length ? allowedOrigins : devOrigins;
+  const allowList = [...new Set([...allowedOrigins, ...devOrigins])];
   const allowOrigin = !origin || allowList.includes(origin) ? origin || allowList[0] : allowList[0];
   return {
     "Access-Control-Allow-Origin": allowOrigin,

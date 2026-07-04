@@ -12,7 +12,7 @@ const attempts = new Map<string, { count: number; resetAt: number }>();
 
 function corsFor(req: Request) {
   const origin = req.headers.get("origin") ?? "";
-  const allowList = allowedOrigins.length ? allowedOrigins : devOrigins;
+  const allowList = [...new Set([...allowedOrigins, ...devOrigins])];
   const allowOrigin = !origin || allowList.includes(origin) ? origin || allowList[0] : allowList[0];
   return {
     "Access-Control-Allow-Origin": allowOrigin,
