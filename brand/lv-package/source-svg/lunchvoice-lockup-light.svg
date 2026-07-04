@@ -1,0 +1,40 @@
+<svg viewBox="0 0 1200 430" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="1200" height="430" fill="#FAF7F2"/>
+  <g transform="translate(60,0)">
+    
+  <!-- L -->
+  <polygon points="40,40 112,40 112,232 262,232 262,304 40,304"
+           fill="#14110F"/>
+  <!-- V (chevron / bold V) -->
+  <polygon points="132,40 178,40 218,196 258,40 304,40 224,322 200,322"
+           fill="#14110F"/>
+  <!-- speech bubble -->
+  <g>
+    <path d="M244,4
+             h108
+             a26,26 0 0 1 26,26
+             v34
+             a26,26 0 0 1 -26,26
+             h-64
+             l-26,26
+             l4,-26
+             h-22
+             a26,26 0 0 1 -26,-26
+             v-34
+             a26,26 0 0 1 26,-26
+             z"
+          fill="#FF9A18"/>
+    <circle cx="272" cy="47" r="6.5" fill="#FFFFFF"/>
+    <circle cx="298" cy="47" r="6.5" fill="#FFFFFF"/>
+    <circle cx="324" cy="47" r="6.5" fill="#FFFFFF"/>
+  </g>
+  <!-- bowl swoosh -->
+  <path d="M78,344 Q200,410 322,344 L308,330 Q200,378 92,330 Z"
+        fill="#FF9A18"/>
+
+  </g>
+  <line x1="530" y1="40" x2="530" y2="320" stroke="#8B857E" stroke-width="4"/>
+  <text x="580" y="185" font-family="Georgia, 'DM Serif Display', serif" font-weight="700" font-size="108" fill="#14110F">Lunch</text>
+  <text x="580" y="300" font-family="Georgia, 'DM Serif Display', serif" font-weight="700" font-size="108" fill="#14110F">Voice</text>
+  <text x="580" y="360" font-family="Arial, sans-serif" font-size="24" letter-spacing="3" fill="#8B857E">SMART FEEDBACK. BETTER CAFETERIAS.</text>
+</svg>
