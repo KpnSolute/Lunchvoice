@@ -218,10 +218,17 @@
   text-transform: uppercase; color: var(--mk-gray); margin: 0 0 6px;
 }
 .mkt-panel .fld { margin-bottom: 14px; }
-.mkt input, .mkt textarea {
+/* doubled-up selectors out-specify the app-wide input[type=...] dark-mode rules */
+.mkt .mkt-panel input, .mkt .mkt-panel textarea {
   background: #fff; border-color: var(--mk-line); color: var(--mk-espresso);
 }
-.mkt input:focus, .mkt textarea:focus {
+.mkt .mkt-panel input::placeholder, .mkt .mkt-panel textarea::placeholder {
+  color: var(--mk-gray); opacity: 0.8;
+}
+.mkt .mkt-panel input:hover:not(:focus), .mkt .mkt-panel textarea:hover:not(:focus) {
+  border-color: var(--mk-gray);
+}
+.mkt .mkt-panel input:focus, .mkt .mkt-panel textarea:focus {
   border-color: var(--mk-amber); box-shadow: 0 0 0 3px #ff9a1840; background: #fff;
 }
 .mkt-ok {
@@ -243,7 +250,7 @@
   padding-top: 46px; padding-bottom: 46px;
   display: flex; justify-content: space-between; align-items: center; gap: 18px; flex-wrap: wrap;
 }
-.mkt-footer img { height: 40px; width: auto; }
+.mkt-footer img { height: 68px; width: auto; border-radius: 12px; }
 .mkt-footer .fine { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.04em; }
 
 /* ---------- reduced motion ---------- */
