@@ -17,6 +17,17 @@ const apiKey = Deno.env.get("MAILERSEND_API_KEY") ?? "";
 const fromEmail = Deno.env.get("MAIL_FROM") ?? "";
 const fromName = Deno.env.get("MAIL_FROM_NAME") ?? "Lunch Voice";
 
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function logEmailFailure(event: string, detail: Record<string, unknown>): void {
+  console.error(JSON.stringify({ event, ...detail }));
+}
+
 function codeEmail(code: string, action: string): { subject: string; html: string; text: string } {
   const verb = action === "signup" ? "Confirm your sign-up" : "Sign in";
   const subject = `${code} is your Lunch Voice code`;
@@ -35,6 +46,15 @@ function codeEmail(code: string, action: string): { subject: string; html: strin
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("not allowed", { status: 405 });
 
+  if (!hookSecret || !apiKey || !fromEmail) {
+    logEmailFailure("send_email_missing_config", {
+      hasHookSecret: Boolean(hookSecret),
+      hasApiKey: Boolean(apiKey),
+      hasFromEmail: Boolean(fromEmail),
+    });
+    return json({ error: "Email service is not configured" }, 500);
+  }
+
   const payload = await req.text();
   const headers = Object.fromEntries(req.headers);
 
@@ -47,10 +67,7 @@ Deno.serve(async (req) => {
       email_data: { token: string; email_action_type: string };
     });
   } catch (_e) {
-    return new Response(JSON.stringify({ error: "Invalid signature" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json({ error: "Invalid signature" }, 401);
   }
 
   const { subject, html, text } = codeEmail(email_data.token, email_data.email_action_type);
@@ -72,13 +89,15 @@ Deno.serve(async (req) => {
 
   if (!res.ok) {
     const detail = await res.text();
+    logEmailFailure("mailersend_send_failed", {
+      status: res.status,
+      fromDomain: fromEmail.split("@")[1] ?? "",
+      detail: detail.slice(0, 2000),
+    });
     // Surface the error to Supabase so the sign-in reports failure instead of silently
     // "succeeding" with no email. MailerSend 202 = accepted.
-    return new Response(JSON.stringify({ error: { http_code: res.status, message: detail } }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json({ error: "Email provider rejected the message" }, 500);
   }
 
-  return new Response(JSON.stringify({}), { status: 200, headers: { "Content-Type": "application/json" } });
+  return json({});
 });
