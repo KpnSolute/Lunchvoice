@@ -7,7 +7,7 @@
 // Setup (see README):
 //   1. Dashboard → Auth → Hooks → enable "Send Email" hook → point at this function → copy secret.
 //   2. supabase secrets set SEND_EMAIL_HOOK_SECRET='v1,whsec_...' MAILERSEND_API_KEY='...' \
-//        MAIL_FROM='no-reply@lunchvoice.com' MAIL_FROM_NAME='Lunch Voice' \
+//        MAIL_FROM='noreply@lunchvoice.com' MAIL_FROM_NAME='Lunch Voice' \
 //        --project-ref qprfonxvthmaoxfixigk
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";

@@ -70,7 +70,7 @@ Send Email hook. Set:
 supabase secrets set \
   SEND_EMAIL_HOOK_SECRET='v1,whsec_...' \
   MAILERSEND_API_KEY='mlsn_...' \
-  MAIL_FROM='no-reply@lunchvoice.com' \
+  MAIL_FROM='noreply@lunchvoice.com' \
   MAIL_FROM_NAME='Lunch Voice' \
   --project-ref qprfonxvthmaoxfixigk
 ```
