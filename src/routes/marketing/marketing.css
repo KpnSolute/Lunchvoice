@@ -50,7 +50,7 @@
 .mkt-logo img { height: 34px; width: auto; display: block; }
 .mkt-logo b {
   font-family: var(--font-display); font-weight: 900; font-size: 19px;
-  letter-spacing: -0.02em; color: var(--mk-espresso);
+  letter-spacing: -0.02em; color: var(--mk-espresso); white-space: nowrap;
 }
 .mkt-nav-links { display: flex; align-items: center; gap: 22px; }
 .mkt-nav-links a {
@@ -58,7 +58,24 @@
   transition: color 160ms;
 }
 .mkt-nav-links a:hover { color: var(--mk-amber); }
-@media (max-width: 640px) { .mkt-nav-links a:not(.mkt-btn) { display: none; } }
+.mkt-demo-link .compact { display: none; }
+@media (max-width: 640px) {
+  .mkt-nav .mkt-inner { gap: 10px; height: 62px; padding-inline: 16px; }
+  .mkt-logo { gap: 7px; min-width: 0; }
+  .mkt-logo img { height: 28px; }
+  .mkt-logo b { font-size: 16px; }
+  .mkt-nav-links { gap: 8px; }
+  .mkt-nav-links a:not(.mkt-btn):not(.mkt-nav-signin) { display: none; }
+  .mkt-nav-links a.mkt-nav-signin {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 38px; padding: 0 13px; border-radius: 999px; font-size: 13px; font-weight: 700;
+    border: 1.5px solid var(--mk-charcoal); color: var(--mk-charcoal); white-space: nowrap; line-height: 1;
+  }
+  .mkt-nav-links a.mkt-nav-signin:hover { border-color: var(--mk-amber); color: var(--mk-amber); }
+  .mkt-demo-link .wide { display: none; }
+  .mkt-demo-link .compact { display: inline; }
+  .mkt-nav-links .mkt-btn.sm { min-height: 38px; padding: 0 16px; font-size: 13px; white-space: nowrap; }
+}
 
 /* ---------- buttons ---------- */
 .mkt-btn {
@@ -69,6 +86,8 @@
   transition: transform 200ms var(--ease), background 200ms, color 200ms, box-shadow 200ms;
 }
 .mkt-btn:active { transform: scale(0.97); }
+.mkt-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.mkt-btn:disabled:hover { transform: none; box-shadow: none; }
 .mkt-btn-amber { background: var(--mk-amber); color: var(--mk-espresso); }
 .mkt-btn-amber:hover { background: var(--mk-amber-soft); box-shadow: 0 8px 24px #ff9a1855; transform: translateY(-2px); }
 .mkt-btn-dark { background: var(--mk-espresso); color: var(--mk-cream); }
@@ -90,25 +109,6 @@
 @media (max-width: 820px) {
   .mkt-hero .mkt-inner { grid-template-columns: 1fr; padding-top: 56px; padding-bottom: 64px; }
 }
-.mkt-hero-glow {
-  position: absolute; z-index: 0; border-radius: 50%; pointer-events: none;
-  filter: blur(70px);
-}
-.mkt-hero-glow.g1 {
-  width: 560px; height: 560px; top: -220px; right: -140px;
-  background: radial-gradient(circle, #ff9a1840, transparent 70%);
-  animation: mkt-drift 14s ease-in-out infinite alternate;
-}
-.mkt-hero-glow.g2 {
-  width: 420px; height: 420px; bottom: -220px; left: -120px;
-  background: radial-gradient(circle, #ff9a1826, transparent 70%);
-  animation: mkt-drift 18s ease-in-out infinite alternate-reverse;
-}
-@keyframes mkt-drift {
-  from { transform: translate(0, 0) scale(1); }
-  to { transform: translate(-50px, 34px) scale(1.12); }
-}
-
 .mkt-eyebrow {
   font-family: var(--font-mono); font-size: 12px; font-weight: 700;
   letter-spacing: 0.16em; text-transform: uppercase; color: var(--mk-amber);
@@ -118,16 +118,16 @@
   font-size: clamp(2.6rem, 6.4vw, 4.4rem); line-height: 1.0; margin: 16px 0 18px;
 }
 .mkt-hero h1 .amber { color: var(--mk-amber); font-style: italic; }
-.mkt-hero-sub { color: #cfc8bd; font-size: 17px; line-height: 1.6; max-width: 46ch; margin: 0 0 28px; }
+.mkt-hero-sub { color: #e4ddd2; font-size: 18px; line-height: 1.6; max-width: 46ch; margin: 0 0 28px; }
 .mkt-hero-cta { display: flex; gap: 12px; flex-wrap: wrap; }
 
 /* staggered rise-in */
-.mkt-rise { opacity: 0; transform: translateY(26px); animation: mkt-rise 700ms var(--ease) forwards; }
+.mkt-rise { opacity: 1; transform: translateY(18px); animation: mkt-rise 620ms var(--ease) forwards; }
 .mkt-rise.d1 { animation-delay: 80ms; }
 .mkt-rise.d2 { animation-delay: 180ms; }
 .mkt-rise.d3 { animation-delay: 300ms; }
 .mkt-rise.d4 { animation-delay: 420ms; }
-@keyframes mkt-rise { to { opacity: 1; transform: translateY(0); } }
+@keyframes mkt-rise { to { transform: translateY(0); } }
 
 /* hero mark — floating brand icon */
 .mkt-hero-art { display: grid; place-items: center; }
@@ -208,25 +208,25 @@
 .mkt-access { display: grid; grid-template-columns: 1fr 1.2fr; gap: 16px; align-items: start; }
 @media (max-width: 820px) { .mkt-access { grid-template-columns: 1fr; } }
 .mkt-panel {
-  background: var(--mk-cream); border: 1px solid var(--mk-line); border-radius: 20px;
-  padding: 28px 26px; box-shadow: 0 10px 30px #14110f0a;
+  background: #fff; border: 1px solid var(--mk-line); border-radius: 20px;
+  padding: 28px 26px; box-shadow: 0 14px 34px #14110f14;
 }
-.mkt-panel h3 { font-family: var(--font-display); font-weight: 900; font-size: 23px; letter-spacing: -0.02em; margin: 0 0 6px; }
-.mkt-panel .sub { color: var(--mk-gray); font-size: 14px; margin: 0 0 18px; }
+.mkt-panel h3 { font-family: var(--font-display); font-weight: 900; font-size: 23px; letter-spacing: -0.02em; margin: 0 0 6px; color: var(--mk-espresso); }
+.mkt-panel .sub { color: var(--mk-charcoal); font-size: 14.5px; margin: 0 0 18px; }
 .mkt-panel label {
   display: block; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.07em;
-  text-transform: uppercase; color: var(--mk-gray); margin: 0 0 6px;
+  text-transform: uppercase; color: var(--mk-charcoal); margin: 0 0 6px;
 }
 .mkt-panel .fld { margin-bottom: 14px; }
 /* doubled-up selectors out-specify the app-wide input[type=...] dark-mode rules */
 .mkt .mkt-panel input, .mkt .mkt-panel textarea {
-  background: #fff; border-color: var(--mk-line); color: var(--mk-espresso);
+  background: var(--mk-oat); border: 1.5px solid var(--mk-line); color: var(--mk-espresso);
 }
 .mkt .mkt-panel input::placeholder, .mkt .mkt-panel textarea::placeholder {
-  color: var(--mk-gray); opacity: 0.8;
+  color: var(--mk-gray); opacity: 1;
 }
 .mkt .mkt-panel input:hover:not(:focus), .mkt .mkt-panel textarea:hover:not(:focus) {
-  border-color: var(--mk-gray);
+  border-color: var(--mk-charcoal);
 }
 .mkt .mkt-panel input:focus, .mkt .mkt-panel textarea:focus {
   border-color: var(--mk-amber); box-shadow: 0 0 0 3px #ff9a1840; background: #fff;
@@ -256,5 +256,5 @@
 /* ---------- reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
   .mkt .mkt-rise, .mkt .mkt-reveal { opacity: 1; transform: none; animation: none; transition: none; }
-  .mkt .mkt-hero-art img, .mkt .mkt-hero-glow, .mkt .mkt-ticker-track { animation: none; }
+  .mkt .mkt-hero-art img, .mkt .mkt-ticker-track { animation: none; }
 }

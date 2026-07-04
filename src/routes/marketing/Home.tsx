@@ -102,15 +102,16 @@ export function Home() {
           <div className="mkt-nav-links">
             <a href="#features">Product</a>
             <a href="#how">How it works</a>
-            <a href="#signin">Sign in</a>
-            <a className="mkt-btn mkt-btn-amber sm" href="#contact">Request a demo</a>
+            <a className="mkt-nav-signin" href="#signin">Sign in</a>
+            <a className="mkt-btn mkt-btn-amber sm mkt-demo-link" href="#contact">
+              <span className="wide">Request a demo</span>
+              <span className="compact">Demo</span>
+            </a>
           </div>
         </div>
       </nav>
 
       <header className="mkt-hero noise">
-        <div className="mkt-hero-glow g1" />
-        <div className="mkt-hero-glow g2" />
         <div className="mkt-inner">
           <div>
             <p className="mkt-eyebrow mkt-rise d1">For cafeteria operators</p>
@@ -124,7 +125,7 @@ export function Home() {
             </p>
             <div className="mkt-hero-cta mkt-rise d4">
               <a className="mkt-btn mkt-btn-amber" href="#contact">Request a demo</a>
-              <a className="mkt-btn mkt-btn-ghost" href="#signin">Org sign in</a>
+              <a className="mkt-btn mkt-btn-ghost" href="#signin">Open org sign-in</a>
             </div>
           </div>
           <div className="mkt-hero-art mkt-rise d3" aria-hidden="true">
@@ -201,7 +202,7 @@ export function Home() {
                 />
               </div>
               <button className="mkt-btn mkt-btn-dark" onClick={goToOrg} disabled={!slug.trim()}>
-                Go to my org <Icon name="arrow" size={16} />
+                Continue to sign in <Icon name="arrow" size={16} />
               </button>
             </div>
 
