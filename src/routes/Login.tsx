@@ -12,7 +12,7 @@ const isUsername = (value: string) => value.trim().length > 0 && !value.includes
 const canContinue = (value: string) => isEmail(value) || isUsername(value);
 
 export function Login() {
-  const { session, loading } = useAuth();
+  const { session, loading, profile, isAdmin } = useAuth();
   const { org } = useOrg();
   const [step, setStep] = useState<Step>("identifier");
   const [studentMode, setStudentMode] = useState<StudentMode>("returning");
@@ -28,7 +28,12 @@ export function Login() {
     if (joinCode) sessionStorage.setItem("pendingJoinCode", joinCode);
   }, [joinCode]);
 
-  if (!loading && session) return <Navigate to={`/${org.slug}`} replace />;
+  if (!loading && session && profile) {
+    return <Navigate to={isAdmin ? `/${org.slug}/admin` : `/${org.slug}`} replace />;
+  }
+  if (!loading && session) {
+    return <div className="wrap center muted" style={{ paddingTop: 60 }}>Setting up your account...</div>;
+  }
 
   const loginId = identifier.trim();
   const isStudentEmailFlow = step === "code";
