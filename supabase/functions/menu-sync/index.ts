@@ -3,10 +3,7 @@
 // rating aggregates back into MJCCv1's menu_feedback_summary.
 //
 // verify_jwt: false — matches this project's other internal-bridge functions
-// (staff-login, login-start). It reads/writes with the service-role key itself,
-// so JWT verification on the incoming request adds no real protection; anyone
-// scripting this without a Supabase session (e.g. a Render cron hitting it on
-// a schedule, see report) should be able to call it directly.
+// Actual write authorization is enforced in assertSyncAuthorized below.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -35,7 +32,7 @@ function corsFor(req: Request) {
   return {
     "Access-Control-Allow-Origin": allowOrigin,
     Vary: "Origin",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-menu-sync-token",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
 }
@@ -60,6 +57,15 @@ function parseItems(raw: unknown): string[] {
 
 type Entry = { day_of_week: string; week_number: number; meal_type: string; items: unknown };
 
+class HttpError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
 async function resolveOrgId(v2: ReturnType<typeof createClient>, orgSlug: string): Promise<string> {
   const { data, error } = await v2
     .from("orgs")
@@ -69,6 +75,34 @@ async function resolveOrgId(v2: ReturnType<typeof createClient>, orgSlug: string
   if (error) throw new Error(`org lookup failed: ${error.message}`);
   if (!data) throw new Error(`Unknown organization: ${orgSlug}`);
   return data.id;
+}
+
+function bearerToken(req: Request): string | null {
+  const header = req.headers.get("authorization") ?? "";
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match?.[1] ?? null;
+}
+
+async function assertSyncAuthorized(req: Request, v2: ReturnType<typeof createClient>, orgSlug: string) {
+  const internalToken = Deno.env.get("MENU_SYNC_TOKEN")?.trim();
+  const suppliedToken = req.headers.get("x-menu-sync-token")?.trim();
+  if (internalToken && suppliedToken && suppliedToken === internalToken) return;
+
+  const token = bearerToken(req);
+  if (!token) throw new HttpError(401, "Staff session required");
+
+  const { data: userRes, error: userErr } = await v2.auth.getUser(token);
+  if (userErr || !userRes.user) throw new HttpError(401, "Invalid staff session");
+
+  const orgId = await resolveOrgId(v2, orgSlug);
+  const { data: profile, error: profileErr } = await v2
+    .from("profiles")
+    .select("org_id, role, is_staff")
+    .eq("id", userRes.user.id)
+    .maybeSingle();
+  if (profileErr) throw new Error(`profile authorization lookup failed: ${profileErr.message}`);
+  if (!profile?.is_staff && profile?.role !== "admin") throw new HttpError(403, "Staff access required");
+  if (profile.org_id !== orgId) throw new HttpError(403, "Staff session does not match organization");
 }
 
 // Fold MJCCv1's per-meal rows for one day into LunchVoice's breakfast/lunch/dinner shape.
@@ -233,11 +267,14 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const v2 = createClient(required("SUPABASE_URL"), required("SUPABASE_SERVICE_ROLE_KEY"), { auth: { persistSession: false } });
+    await assertSyncAuthorized(req, v2, orgSlug);
     if (action === "sync-feedback") return json(req, await syncFeedback(orgSlug));
     if (action === "sync-menu") return json(req, await syncMenu(orgSlug));
     return json(req, { error: `Unknown action: ${action}` }, 400);
   } catch (e) {
     console.error("menu_sync_failed", action, e instanceof Error ? e.message : e);
-    return json(req, { error: e instanceof Error ? e.message : "menu-sync failed" }, 500);
+    const status = e instanceof HttpError ? e.status : 500;
+    return json(req, { error: e instanceof Error ? e.message : "menu-sync failed" }, status);
   }
 });
