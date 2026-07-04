@@ -10,8 +10,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const LION_CAFE_ORG_ID = "150d0e42-7ddd-4180-868e-954f202d272c";
+const DEFAULT_ORG_SLUG = "LionCafe";
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const allowedOrigins = (Deno.env.get("APP_ORIGINS") ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+const devOrigins = ["http://localhost:5173", "http://127.0.0.1:5173"];
 const WEEKDAY_FULL: Record<string, string> = {
   Sun: "Sunday", Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday",
   Thu: "Thursday", Fri: "Friday", Sat: "Saturday",
@@ -23,8 +28,23 @@ function required(name: string): string {
   return value;
 }
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+function corsFor(req: Request) {
+  const origin = req.headers.get("origin") ?? "";
+  const allowList = [...new Set([...allowedOrigins, ...devOrigins])];
+  const allowOrigin = !origin || allowList.includes(origin) ? origin || allowList[0] : allowList[0];
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    Vary: "Origin",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
+
+function json(req: Request, body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsFor(req), "Content-Type": "application/json" },
+  });
 }
 
 function parseItems(raw: unknown): string[] {
@@ -39,6 +59,17 @@ function parseItems(raw: unknown): string[] {
 }
 
 type Entry = { day_of_week: string; week_number: number; meal_type: string; items: unknown };
+
+async function resolveOrgId(v2: ReturnType<typeof createClient>, orgSlug: string): Promise<string> {
+  const { data, error } = await v2
+    .from("orgs")
+    .select("id")
+    .ilike("slug", orgSlug)
+    .maybeSingle();
+  if (error) throw new Error(`org lookup failed: ${error.message}`);
+  if (!data) throw new Error(`Unknown organization: ${orgSlug}`);
+  return data.id;
+}
 
 // Fold MJCCv1's per-meal rows for one day into LunchVoice's breakfast/lunch/dinner shape.
 // Weekdays: Breakfast -> breakfast, Lunch -> lunch, Dinner -> dinner, Snack dropped
@@ -56,9 +87,10 @@ function foldDay(entries: Entry[]): { breakfast: string[]; lunch: string[]; dinn
   return { breakfast: by["Breakfast"] ?? [], lunch: by["Lunch"] ?? [], dinner: by["Dinner"] ?? [] };
 }
 
-async function syncMenu() {
+async function syncMenu(orgSlug: string) {
   const v1 = createClient(required("MJCCV1_URL"), required("MJCCV1_SERVICE_ROLE_KEY"), { auth: { persistSession: false } });
   const v2 = createClient(required("SUPABASE_URL"), required("SUPABASE_SERVICE_ROLE_KEY"), { auth: { persistSession: false } });
+  const orgId = await resolveOrgId(v2, orgSlug);
 
   const { data: entries, error: entriesErr } = await v1
     .from("menu_entries")
@@ -74,13 +106,13 @@ async function syncMenu() {
   let { data: cycle } = await v2
     .from("menu_cycles")
     .select("id")
-    .eq("org_id", LION_CAFE_ORG_ID)
+    .eq("org_id", orgId)
     .eq("is_active", true)
     .maybeSingle();
   if (!cycle) {
     const { data: created, error: createErr } = await v2
       .from("menu_cycles")
-      .insert({ title: "MJCCv1 28-day cycle menu", is_active: true, org_id: LION_CAFE_ORG_ID })
+      .insert({ title: "MJCCv1 28-day cycle menu", is_active: true, org_id: orgId })
       .select("id")
       .single();
     if (createErr) throw new Error(`menu_cycles insert failed: ${createErr.message}`);
@@ -101,7 +133,7 @@ async function syncMenu() {
         breakfast,
         lunch,
         dinner,
-        org_id: LION_CAFE_ORG_ID,
+        org_id: orgId,
       });
     }
   }
@@ -109,20 +141,28 @@ async function syncMenu() {
   const { error: upsertErr } = await v2.from("menu_cycle_days").upsert(rows, { onConflict: "cycle_id,day_number" });
   if (upsertErr) throw new Error(`menu_cycle_days upsert failed: ${upsertErr.message}`);
 
-  return { cycle_id: cycle.id, days_synced: rows.length };
+  const syncedAt = new Date().toISOString();
+  const { error: stampErr } = await v2
+    .from("menu_cycles")
+    .update({ version_label: "MJCCv1 live sync", updated_at: syncedAt })
+    .eq("id", cycle.id);
+  if (stampErr) throw new Error(`menu_cycles sync stamp failed: ${stampErr.message}`);
+
+  return { cycle_id: cycle.id, days_synced: rows.length, synced_at: syncedAt };
 }
 
-async function syncFeedback() {
+async function syncFeedback(orgSlug: string) {
   const v1 = createClient(required("MJCCV1_URL"), required("MJCCV1_SERVICE_ROLE_KEY"), { auth: { persistSession: false } });
   const v2 = createClient(required("SUPABASE_URL"), required("SUPABASE_SERVICE_ROLE_KEY"), { auth: { persistSession: false } });
+  const orgId = await resolveOrgId(v2, orgSlug);
 
   const { data: cycle } = await v2
     .from("menu_cycles")
     .select("id")
-    .eq("org_id", LION_CAFE_ORG_ID)
+    .eq("org_id", orgId)
     .eq("is_active", true)
     .maybeSingle();
-  if (!cycle) throw new Error("No active menu_cycles row for LionCafe — run the menu sync first");
+  if (!cycle) throw new Error(`No active menu_cycles row for ${orgSlug}. Run the menu sync first.`);
 
   const { data: days, error: daysErr } = await v2
     .from("menu_cycle_days")
@@ -180,21 +220,24 @@ async function syncFeedback() {
 }
 
 Deno.serve(async (req) => {
-  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
+  if (req.method !== "POST") return json(req, { error: "Method not allowed" }, 405);
   let action = "sync-menu";
+  let orgSlug = DEFAULT_ORG_SLUG;
   try {
     const body = await req.json().catch(() => ({}));
     if (body?.action) action = String(body.action);
+    if (body?.org) orgSlug = String(body.org);
   } catch {
     // no body -> default action
   }
 
   try {
-    if (action === "sync-feedback") return json(await syncFeedback());
-    if (action === "sync-menu") return json(await syncMenu());
-    return json({ error: `Unknown action: ${action}` }, 400);
+    if (action === "sync-feedback") return json(req, await syncFeedback(orgSlug));
+    if (action === "sync-menu") return json(req, await syncMenu(orgSlug));
+    return json(req, { error: `Unknown action: ${action}` }, 400);
   } catch (e) {
     console.error("menu_sync_failed", action, e instanceof Error ? e.message : e);
-    return json({ error: e instanceof Error ? e.message : "menu-sync failed" }, 500);
+    return json(req, { error: e instanceof Error ? e.message : "menu-sync failed" }, 500);
   }
 });

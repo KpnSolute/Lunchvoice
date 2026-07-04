@@ -1,6 +1,6 @@
 import { StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { OrgProvider } from "./org/OrgProvider";
 import { Layout } from "./components/Layout";
@@ -65,11 +65,25 @@ function OrgApp() {
   );
 }
 
+function LionCafeRedirect() {
+  const location = useLocation();
+  return <Navigate to={`/LionCafe${location.pathname}${location.search}`} replace />;
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<MarketingHome />} />
+        <Route path="/rate" element={<LionCafeRedirect />} />
+        <Route path="/menu" element={<LionCafeRedirect />} />
+        <Route path="/surveys" element={<LionCafeRedirect />} />
+        <Route path="/voice" element={<LionCafeRedirect />} />
+        <Route path="/store" element={<LionCafeRedirect />} />
+        <Route path="/orders" element={<LionCafeRedirect />} />
+        <Route path="/join" element={<LionCafeRedirect />} />
+        <Route path="/survey/:sessionId" element={<LionCafeRedirect />} />
+        <Route path="/admin/*" element={<LionCafeRedirect />} />
         <Route path="/:orgSlug/*" element={<OrgProvider><OrgApp /></OrgProvider>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

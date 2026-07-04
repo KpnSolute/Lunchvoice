@@ -4,6 +4,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { Icon, type IconName } from "../../components/Icon";
 import { CYCLE, slotsForDay, weekdayFor } from "../../lib/menu";
 import { supabase } from "../../lib/supabase";
+import { useOrg } from "../../org/OrgProvider";
 import type { MenuCycleDay } from "../../types/db";
 
 // Which cycle day "today" maps to. ponytail: simple deterministic pick from the
@@ -19,20 +20,21 @@ function firstMenuItem(value: unknown): string | undefined {
 }
 
 const tiles: { to: string; name: string; sub: string; icon: IconName }[] = [
-  { to: "/rate", name: "Rate the dishes", sub: "Stars for anything you've tried", icon: "star" },
-  { to: "/surveys", name: "Surveys", sub: "Join with a code, earn points", icon: "survey" },
-  { to: "/store", name: "Store", sub: "Spend your points", icon: "store" },
-  { to: "/orders", name: "My orders", sub: "Track your pickups", icon: "orders" },
+  { to: "rate", name: "Rate the dishes", sub: "Stars for anything you've tried", icon: "star" },
+  { to: "surveys", name: "Surveys", sub: "Join with a code, earn points", icon: "survey" },
+  { to: "store", name: "Store", sub: "Spend your points", icon: "store" },
+  { to: "orders", name: "My orders", sub: "Track your pickups", icon: "orders" },
 ];
 
 export function Home() {
   const { profile } = useAuth();
+  const { org } = useOrg();
   const navigate = useNavigate();
   const [cycleDay, setCycleDay] = useState<MenuCycleDay | null>(null);
 
   useEffect(() => {
-    if (sessionStorage.getItem("pendingJoinCode")) navigate("/join", { replace: true });
-  }, [navigate]);
+    if (sessionStorage.getItem("pendingJoinCode")) navigate(`/${org.slug}/join`, { replace: true });
+  }, [navigate, org.slug]);
 
   const day = todayCycleDay();
 
@@ -76,7 +78,7 @@ export function Home() {
           <div className="lbl">Dinner</div>
           <div className="val">{dinner}</div>
         </div>
-        <button className="btn btn-primary btn-block" onClick={() => navigate(`/rate?day=${day}`)}>
+        <button className="btn btn-primary btn-block" onClick={() => navigate(`/${org.slug}/rate?day=${day}`)}>
           Rate today's meals
           <Icon name="arrow" size={18} />
         </button>
@@ -104,7 +106,7 @@ export function Home() {
 
       <div className="quick-grid">
         {tiles.map((t) => (
-          <button key={t.to} className="quick-card" onClick={() => navigate(t.to)}>
+          <button key={t.to} className="quick-card" onClick={() => navigate(`/${org.slug}/${t.to}`)}>
             <span className="arrow-peek"><Icon name="arrow" size={16} /></span>
             <span className="quick-ico"><Icon name={t.icon} size={20} /></span>
             <span className="quick-name">{t.name}</span>

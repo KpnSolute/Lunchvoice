@@ -28,7 +28,7 @@ export function Layout() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <div className="brand" onClick={() => navigate(isAdmin ? "admin" : "")}>
+        <div className="brand" onClick={() => navigate(isAdmin ? `/${org.slug}/admin` : `/${org.slug}`)}>
           <div className="brand-mark">LV</div>
           <div>
             <div className="brand-name">Lunch Voice</div>
@@ -56,7 +56,7 @@ export function Layout() {
       <nav className="bottom-nav">
         <div className="bottom-nav-inner">
           {tabs.map((t) => (
-            <NavLink key={t.to} to={t.to} end={t.to === "" || t.to === "admin"}>
+            <NavLink key={t.to} to={`/${org.slug}/${t.to}`.replace(/\/$/, "")} end={t.to === "" || t.to === "admin"}>
               <Icon name={t.icon} size={22} />
               {t.label}
             </NavLink>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
+import { useOrg } from "../../org/OrgProvider";
 import { useAuth } from "../../auth/AuthProvider";
 import { slotsForDay, STAPLES, weekdayFor, type Slot } from "../../lib/menu";
 import { Confetti } from "../../components/Confetti";
@@ -137,6 +138,7 @@ function DynamicQuestion({
 export function Survey() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
+  const { org } = useOrg();
   const { refreshProfile } = useAuth();
 
   const [session, setSession] = useState<SurveySession | null>(null);
@@ -178,12 +180,12 @@ export function Survey() {
 
       const { data: existing } = await supabase.from("responses").select("id").eq("session_id", sessionId).maybeSingle();
       if (existing) {
-        navigate("/", { replace: true });
+        navigate(`/${org.slug}`, { replace: true });
         return;
       }
       setLoading(false);
     })();
-  }, [sessionId, navigate]);
+  }, [sessionId, navigate, org.slug]);
 
   const daySlots = useMemo(() => {
     if (cycleDay) {
@@ -275,10 +277,10 @@ export function Survey() {
           <div className="big">+{shownPoints}</div>
           <p className="muted">points added to your account</p>
           <div className="stack" style={{ maxWidth: 300, margin: "18px auto 0" }}>
-            <button className="btn btn-primary btn-block" onClick={() => navigate("/store")}>
+            <button className="btn btn-primary btn-block" onClick={() => navigate(`/${org.slug}/store`)}>
               Spend in the store <Icon name="arrow" size={18} />
             </button>
-            <button className="btn btn-ghost btn-block" onClick={() => navigate("/")}>Back to home</button>
+            <button className="btn btn-ghost btn-block" onClick={() => navigate(`/${org.slug}`)}>Back to home</button>
           </div>
         </div>
       </>

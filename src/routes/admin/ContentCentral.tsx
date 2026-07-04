@@ -31,6 +31,36 @@ const DINING_VOICE_QUESTIONS = [
   { type: "text", prompt: "Pitch a dish you want on the rotation", required: false, category: "Ideas" },
 ];
 
+const QUESTION_PACKS = [
+  {
+    name: "Meal pulse",
+    helper: "Three fast answers after lunch or dinner.",
+    questions: [
+      { type: "rating", prompt: "How was today's main dish?", required: true, category: "Meal quality" },
+      { type: "single_choice", prompt: "Was the portion right?", required: true, options: ["Too small", "Just right", "Too much"], category: "Portion" },
+      { type: "text", prompt: "What one thing should the kitchen adjust?", required: false, category: "Open feedback" },
+    ],
+  },
+  {
+    name: "Menu planning",
+    helper: "Good for deciding what to repeat or retire.",
+    questions: [
+      { type: "multi_choice", prompt: "What do you want more of on the cycle?", required: true, options: ["Chicken", "Seafood", "Vegetarian", "Breakfast-for-dinner", "International dishes", "Fresh salad or fruit"], category: "Planning" },
+      { type: "text", prompt: "Name one meal we should add next cycle.", required: false, category: "Ideas" },
+      { type: "yes_no", prompt: "Should today's meal come back?", required: true, category: "Planning" },
+    ],
+  },
+  {
+    name: "Service check",
+    helper: "Short line, temperature, and serving feedback.",
+    questions: [
+      { type: "rating", prompt: "Was the food served at the right temperature?", required: true, category: "Service" },
+      { type: "rating", prompt: "How was the line speed today?", required: false, category: "Service" },
+      { type: "text", prompt: "Anything staff should know before the next service?", required: false, category: "Service" },
+    ],
+  },
+];
+
 function genCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const bytes = new Uint8Array(6);
@@ -80,6 +110,7 @@ export function ContentCentral() {
   const [cycleFileName, setCycleFileName] = useState("");
   const [cycleFileDays, setCycleFileDays] = useState<ParsedMenuWorkbookDay[]>([]);
   const [cycleFileBusy, setCycleFileBusy] = useState(false);
+  const [menuSyncing, setMenuSyncing] = useState(false);
 
   const [launchTitle, setLaunchTitle] = useState("");
   const [launchTemplateId, setLaunchTemplateId] = useState("");
@@ -263,6 +294,31 @@ export function ContentCentral() {
     await load();
   }
 
+  async function addQuestionPack(pack: (typeof QUESTION_PACKS)[number]) {
+    if (!selectedTemplate) {
+      setErr("Create or select a template before adding a question pack.");
+      return;
+    }
+    setErr("");
+    setOk("");
+    const rows = pack.questions.map((q, i) => ({
+      template_id: selectedTemplate.id,
+      position: selectedTemplate.questions.length + i + 1,
+      type: q.type,
+      prompt: q.prompt,
+      required: q.required,
+      options: "options" in q ? q.options : [],
+      category: q.category,
+      scale_min: 1,
+      scale_max: 5,
+      org_id: org.id,
+    }));
+    const { error } = await supabase.from("survey_questions").insert(rows);
+    if (error) return setErr(error.message);
+    setOk(`${pack.name} questions added to ${selectedTemplate.title}.`);
+    await load();
+  }
+
   async function setTemplateStatus(t: SurveyTemplate, status: string) {
     const { error } = await supabase.from("survey_templates").update({ status }).eq("id", t.id);
     if (error) setErr(error.message);
@@ -298,6 +354,24 @@ export function ContentCentral() {
     if (dayErr) return setErr(dayErr.message);
     setLaunchCycleId(data.id);
     setOk("Current 28-day menu was imported and activated.");
+    await load();
+  }
+
+  async function syncMJCCMenu() {
+    const confirmed = window.confirm(
+      "Sync the active menu cycle from MJCCv1 now? This updates the menu cards students see."
+    );
+    if (!confirmed) return;
+    setErr("");
+    setOk("");
+    setMenuSyncing(true);
+    const { data, error } = await supabase.functions.invoke("menu-sync", {
+      body: { action: "sync-menu", org: org.slug },
+    });
+    setMenuSyncing(false);
+    if (error) return setErr(error.message);
+    const synced = typeof data === "object" && data && "days_synced" in data ? String(data.days_synced) : "28";
+    setOk(`MJCCv1 menu synced. ${synced} menu days are now feeding Lunch Voice cards.`);
     await load();
   }
 
@@ -521,6 +595,15 @@ export function ContentCentral() {
                 </select>
               </div>
               {templates.length === 0 && <div className="notice ok">Create or import a template to unlock the question editor.</div>}
+              <div className="question-packs">
+                {QUESTION_PACKS.map((pack) => (
+                  <button key={pack.name} type="button" className="pack-card" onClick={() => addQuestionPack(pack)} disabled={!selectedTemplate}>
+                    <b>{pack.name}</b>
+                    <span>{pack.helper}</span>
+                    <em>{pack.questions.length} questions</em>
+                  </button>
+                ))}
+              </div>
               <form onSubmit={addQuestion} className="stack">
                 <div className="field-block">
                   <label className="field">Question</label>
@@ -592,7 +675,16 @@ export function ContentCentral() {
         <>
           <div className="card">
             <h2>Upload 28-day cycle</h2>
-            <p className="hint">Import the current built-in MJCC menu, or paste 28 lines using: Day 1 | breakfast | lunch | dinner.</p>
+            <p className="hint">MJCCv1 is the source of truth. Sync it first, then use workbook or paste import only for corrections and drafts.</p>
+            <div className="sync-banner">
+              <div>
+                <b>Live MJCCv1 menu feed</b>
+                <span>{activeCycle ? `${activeCycle.title} - ${activeCycle.days.length}/28 days loaded` : "No active menu cycle loaded yet"}</span>
+              </div>
+              <button className="btn btn-primary" onClick={syncMJCCMenu} disabled={menuSyncing}>
+                <Icon name="arrow" size={16} /> {menuSyncing ? "Syncing..." : "Sync from MJCCv1"}
+              </button>
+            </div>
             <div className="row2">
               <div className="field-block">
                 <label className="field">Cycle title</label>

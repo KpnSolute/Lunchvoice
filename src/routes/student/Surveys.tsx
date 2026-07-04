@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
+import { useOrg } from "../../org/OrgProvider";
 import { Icon } from "../../components/Icon";
 import type { Session } from "../../types/db";
 
@@ -8,6 +9,7 @@ type JoinedSession = Session & { completed: boolean };
 
 export function Surveys() {
   const navigate = useNavigate();
+  const { org } = useOrg();
   const [sessions, setSessions] = useState<JoinedSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [code, setCode] = useState("");
@@ -36,7 +38,7 @@ export function Surveys() {
     setErr("");
     const { data, error } = await supabase.rpc("join_session", { p_code: code.trim() });
     if (error) setErr(error.message);
-    else navigate(`/survey/${data}`);
+    else navigate(`/${org.slug}/survey/${data}`);
   }
 
   const open = sessions.filter((s) => !s.completed && s.is_active);
@@ -78,7 +80,7 @@ export function Surveys() {
                 {s.title}
                 <small>{s.points_reward} pts{s.menu_day ? ` · Day ${s.menu_day}` : ""}</small>
               </div>
-              <button className="btn btn-primary" onClick={() => navigate(`/survey/${s.id}`)}>Start <Icon name="arrow" size={16} /></button>
+              <button className="btn btn-primary" onClick={() => navigate(`/${org.slug}/survey/${s.id}`)}>Start <Icon name="arrow" size={16} /></button>
             </div>
           ))
         )}
