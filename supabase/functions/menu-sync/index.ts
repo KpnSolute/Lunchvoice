@@ -8,16 +8,12 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const DEFAULT_ORG_SLUG = "LionCafe";
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DEFAULT_MJCC_MENU_API_BASE = "https://mjcc-managements.onrender.com";
 const allowedOrigins = (Deno.env.get("APP_ORIGINS") ?? "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
 const devOrigins = ["http://localhost:5173", "http://127.0.0.1:5173"];
-const WEEKDAY_FULL: Record<string, string> = {
-  Sun: "Sunday", Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday",
-  Thu: "Thursday", Fri: "Friday", Sat: "Saturday",
-};
 
 function required(name: string): string {
   const value = Deno.env.get(name);
@@ -44,18 +40,9 @@ function json(req: Request, body: unknown, status = 200) {
   });
 }
 
-function parseItems(raw: unknown): string[] {
-  if (typeof raw !== "string") return Array.isArray(raw) ? raw.map(String) : [];
-  if (!raw.startsWith("[")) return [raw].filter(Boolean);
-  try {
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr.map(String) : [];
-  } catch {
-    return [];
-  }
-}
-
-type Entry = { day_of_week: string; week_number: number; meal_type: string; items: unknown };
+type PublicMenuSlot = { slot_name: string; item_name: string };
+type PublicMenuDay = { cycle_day: number; day_of_week: string; meals: Record<string, PublicMenuSlot[]> };
+type PublicMenuCycle = { anchor_date: string; days: PublicMenuDay[] };
 
 class HttpError extends Error {
   status: number;
@@ -112,30 +99,29 @@ async function assertSyncAuthorized(req: Request, v2: ReturnType<typeof createCl
 //   its first 4 items are the same staples (breakfast), the rest are the day's
 //   lunch dishes. Verified against MJCCv1 day1 Brunch data: last 2 of 6 items
 //   ("Char Sui Pork", "Chef's Choice") match CYCLE[0]'s lunchEntree/lunchAlt exactly.
-function foldDay(entries: Entry[]): { breakfast: string[]; lunch: string[]; dinner: string[] } {
-  const by = Object.fromEntries(entries.map((e) => [e.meal_type, parseItems(e.items)]));
-  if (by["Brunch"]) {
-    const brunch = by["Brunch"];
-    return { breakfast: brunch.slice(0, 4), lunch: brunch.slice(4), dinner: by["Dinner"] ?? [] };
-  }
-  return { breakfast: by["Breakfast"] ?? [], lunch: by["Lunch"] ?? [], dinner: by["Dinner"] ?? [] };
+function mjccApiBase(): string {
+  return (Deno.env.get("MJCC_MENU_API_BASE") ?? DEFAULT_MJCC_MENU_API_BASE).replace(/\/$/, "");
+}
+
+async function fetchPublicMenuCycle(): Promise<PublicMenuCycle> {
+  const res = await fetch(`${mjccApiBase()}/api/public/menu/cycle`);
+  if (!res.ok) throw new Error(`MJCC public menu API failed: ${res.status}`);
+  return await res.json();
+}
+
+function mealNames(day: PublicMenuDay, periods: string[]): string[] {
+  return periods
+    .flatMap((period) => day.meals?.[period] ?? [])
+    .map((slot) => slot.item_name)
+    .filter(Boolean);
 }
 
 async function syncMenu(orgSlug: string) {
-  const v1 = createClient(required("MJCCV1_URL"), required("MJCCV1_SERVICE_ROLE_KEY"), { auth: { persistSession: false } });
   const v2 = createClient(required("SUPABASE_URL"), required("SUPABASE_SERVICE_ROLE_KEY"), { auth: { persistSession: false } });
   const orgId = await resolveOrgId(v2, orgSlug);
 
-  const { data: entries, error: entriesErr } = await v1
-    .from("menu_entries")
-    .select("cycle_id, day_of_week, week_number, meal_type, items")
-    .order("week_number")
-    .limit(1000);
-  if (entriesErr) throw new Error(`menu_entries read failed: ${entriesErr.message}`);
-  if (!entries?.length) throw new Error("MJCCv1 menu_entries returned no rows");
-
-  const activeCycleId = entries[0].cycle_id;
-  const active = entries.filter((e) => e.cycle_id === activeCycleId);
+  const publicCycle = await fetchPublicMenuCycle();
+  if (!publicCycle.days?.length) throw new Error("MJCC public menu API returned no days");
 
   let { data: cycle } = await v2
     .from("menu_cycles")
@@ -153,24 +139,15 @@ async function syncMenu(orgSlug: string) {
     cycle = created;
   }
 
-  // day_number 1-28, day1 = Sunday of week1 (LunchVoice's numbering, per task spec).
-  const rows = [];
-  for (let week = 1; week <= 4; week++) {
-    for (let d = 0; d < 7; d++) {
-      const dow = WEEKDAYS[d];
-      const dayEntries = active.filter((e) => e.week_number === week && e.day_of_week === dow);
-      const { breakfast, lunch, dinner } = foldDay(dayEntries);
-      rows.push({
-        cycle_id: cycle.id,
-        day_number: (week - 1) * 7 + d + 1,
-        weekday: WEEKDAY_FULL[dow],
-        breakfast,
-        lunch,
-        dinner,
-        org_id: orgId,
-      });
-    }
-  }
+  const rows = publicCycle.days.map((day) => ({
+    cycle_id: cycle.id,
+    day_number: day.cycle_day,
+    weekday: day.day_of_week,
+    breakfast: mealNames(day, ["Breakfast", "Brunch"]),
+    lunch: mealNames(day, ["Lunch", "Brunch"]),
+    dinner: mealNames(day, ["Dinner"]),
+    org_id: orgId,
+  }));
 
   const { error: upsertErr } = await v2.from("menu_cycle_days").upsert(rows, { onConflict: "cycle_id,day_number" });
   if (upsertErr) throw new Error(`menu_cycle_days upsert failed: ${upsertErr.message}`);
@@ -178,11 +155,11 @@ async function syncMenu(orgSlug: string) {
   const syncedAt = new Date().toISOString();
   const { error: stampErr } = await v2
     .from("menu_cycles")
-    .update({ version_label: "MJCCv1 live sync", updated_at: syncedAt })
+    .update({ version_label: `MJCC public API sync ${publicCycle.anchor_date}`, updated_at: syncedAt })
     .eq("id", cycle.id);
   if (stampErr) throw new Error(`menu_cycles sync stamp failed: ${stampErr.message}`);
 
-  return { cycle_id: cycle.id, days_synced: rows.length, synced_at: syncedAt };
+  return { cycle_id: cycle.id, days_synced: rows.length, source_anchor_date: publicCycle.anchor_date, synced_at: syncedAt };
 }
 
 async function syncFeedback(orgSlug: string) {

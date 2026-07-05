@@ -61,6 +61,10 @@ export function Login() {
   async function verifyStudent(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
+    if (studentMode === "new" && !name.trim()) {
+      setErr("Add a name for your student pass before verifying.");
+      return;
+    }
     setBusy(true);
     const email = loginId.toLowerCase();
     const { data, error } = await supabase.auth.verifyOtp({
@@ -77,7 +81,7 @@ export function Login() {
     if (data.user) {
       const updates = {
         email,
-        ...(studentMode === "new" && name.trim() ? { display_name: name.trim() } : {}),
+        ...(studentMode === "new" ? { display_name: name.trim() } : {}),
       };
       const { error: profileErr } = await supabase.from("profiles").update(updates).eq("id", data.user.id);
       if (profileErr) {
@@ -179,15 +183,25 @@ export function Login() {
           <form onSubmit={verifyStudent} className="stack" style={{ marginTop: 12 }}>
             <p className="hint" style={{ margin: 0 }}>
               {studentMode === "new" ? (
-                <>Enter the code we emailed to <b>{loginId}</b>, then add your name once.</>
+                <>Create your student pass for <b>{loginId}</b>. This name is for your screen; staff sees your student ID.</>
               ) : (
                 <>Enter the code we emailed to <b>{loginId}</b>.</>
               )}
             </p>
+            {studentMode === "new" && (
+              <input
+                type="text"
+                autoFocus
+                required
+                placeholder="Your name or nickname"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            )}
             <input
               type="text"
               inputMode="numeric"
-              autoFocus
+              autoFocus={studentMode !== "new"}
               required
               placeholder="Verification code"
               value={code}
@@ -195,15 +209,7 @@ export function Login() {
               className="mono"
               style={{ textAlign: "center", fontSize: 22, letterSpacing: ".3em" }}
             />
-            {studentMode === "new" && (
-              <input
-                type="text"
-                placeholder="Your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            )}
-            <button className="btn btn-primary btn-block" disabled={busy || !code.trim()}>
+            <button className="btn btn-primary btn-block" disabled={busy || !code.trim() || (studentMode === "new" && !name.trim())}>
               {busy ? "Verifying..." : "Verify & sign in"}
             </button>
             <button type="button" className="link-btn" onClick={reset}>Use a different login</button>
@@ -213,5 +219,4 @@ export function Login() {
     </div>
   );
 }
-
 

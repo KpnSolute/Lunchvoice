@@ -3,12 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthProvider";
 import { Icon, type IconName } from "../../components/Icon";
 import { CYCLE, slotsForDay, weekdayFor } from "../../lib/menu";
+import { firstMealItem, getPublicMenuToday, type PublicMenuDay } from "../../lib/mjccMenuApi";
 import { supabase } from "../../lib/supabase";
 import { useOrg } from "../../org/OrgProvider";
 import type { MenuCycleDay } from "../../types/db";
 
-// Which cycle day "today" maps to. ponytail: simple deterministic pick from the
-// day-of-year so the hero shows a real, stable menu without a schedule table.
 function todayCycleDay(): number {
   const start = new Date(new Date().getFullYear(), 0, 0);
   const doy = Math.floor((Date.now() - start.getTime()) / 86400000);
@@ -31,6 +30,7 @@ export function Home() {
   const { org } = useOrg();
   const navigate = useNavigate();
   const [cycleDay, setCycleDay] = useState<MenuCycleDay | null>(null);
+  const [apiDay, setApiDay] = useState<PublicMenuDay | null>(null);
 
   useEffect(() => {
     if (sessionStorage.getItem("pendingJoinCode")) navigate(`/${org.slug}/join`, { replace: true });
@@ -40,6 +40,13 @@ export function Home() {
 
   useEffect(() => {
     (async () => {
+      try {
+        setApiDay(await getPublicMenuToday());
+        return;
+      } catch (e) {
+        console.warn("mjcc_public_menu_today_failed", e);
+      }
+
       const { data: cycle } = await supabase
         .from("menu_cycles")
         .select("id")
@@ -48,6 +55,7 @@ export function Home() {
         .limit(1)
         .maybeSingle();
       if (!cycle) return;
+
       const { data } = await supabase
         .from("menu_cycle_days")
         .select("*")
@@ -59,16 +67,23 @@ export function Home() {
   }, [day]);
 
   const slots = slotsForDay(day);
-  const lunch = firstMenuItem(cycleDay?.lunch) ?? slots.find((s) => s.slot === "lunchEntree")?.name;
-  const dinner = firstMenuItem(cycleDay?.dinner) ?? slots.find((s) => s.slot === "dinnerEntree")?.name;
-  const weekday = cycleDay?.weekday || weekdayFor(day - 1);
+  const displayDay = apiDay?.cycle_day ?? day;
+  const lunch =
+    firstMealItem(apiDay, ["Lunch", "Brunch"]) ??
+    firstMenuItem(cycleDay?.lunch) ??
+    slots.find((s) => s.slot === "lunchEntree")?.name;
+  const dinner =
+    firstMealItem(apiDay, ["Dinner"]) ??
+    firstMenuItem(cycleDay?.dinner) ??
+    slots.find((s) => s.slot === "dinnerEntree")?.name;
+  const weekday = apiDay?.day_of_week || cycleDay?.weekday || weekdayFor(day - 1);
 
   return (
     <>
       <section className="hero">
         <p className="eyebrow">On the menu today</p>
         <h1 className="hero-title">
-          {weekday} · Day {day}
+          {weekday} &middot; Day {displayDay}
         </h1>
         <div className="hero-meal">
           <div className="lbl">Lunch</div>
@@ -78,7 +93,7 @@ export function Home() {
           <div className="lbl">Dinner</div>
           <div className="val">{dinner}</div>
         </div>
-        <button className="btn btn-primary btn-block" onClick={() => navigate(`/${org.slug}/rate?day=${day}`)}>
+        <button className="btn btn-primary btn-block" onClick={() => navigate(`/${org.slug}/rate?day=${displayDay}`)}>
           Rate today's meals
           <Icon name="arrow" size={18} />
         </button>
