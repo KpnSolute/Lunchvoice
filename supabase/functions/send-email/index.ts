@@ -1,19 +1,23 @@
 // send-email: Supabase Auth "Send Email" hook.
 //
-// Supabase still generates the real OTP/token and calls this function instead of sending
-// its own email. We deliver the 6-digit code via MailerSend. Because the token stays inside
-// Supabase Auth, verifyOtp() and all RLS are unchanged — we only swap the mail transport.
+// Supabase generates the OTP/token and calls this function instead of sending
+// its own email. We deliver via AWS SES. The token stays inside Supabase Auth
+// so verifyOtp() and all RLS are unchanged.
 //
-// Setup (see README):
-//   1. Dashboard → Auth → Hooks → enable "Send Email" hook → point at this function → copy secret.
-//   2. supabase secrets set SEND_EMAIL_HOOK_SECRET='v1,whsec_...' MAILERSEND_API_KEY='...' \
-//        MAIL_FROM='noreply@lunchvoice.com' MAIL_FROM_NAME='Lunch Voice' \
-//        --project-ref qprfonxvthmaoxfixigk
+// Secrets required:
+//   SEND_EMAIL_HOOK_SECRET  v1,whsec_... (from Supabase Auth hook config)
+//   AWS_REGION              us-east-1
+//   AWS_ACCESS_KEY_ID
+//   AWS_SECRET_ACCESS_KEY
+//   MAIL_FROM               noreply@lunchvoice.com
+//   MAIL_FROM_NAME          Lunch Voice
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 
 const hookSecret = (Deno.env.get("SEND_EMAIL_HOOK_SECRET") ?? "").replace("v1,whsec_", "");
-const apiKey = Deno.env.get("MAILERSEND_API_KEY") ?? "";
+const awsRegion = Deno.env.get("AWS_REGION") ?? "us-east-1";
+const awsKeyId = Deno.env.get("AWS_ACCESS_KEY_ID") ?? "";
+const awsSecret = Deno.env.get("AWS_SECRET_ACCESS_KEY") ?? "";
 const fromEmail = Deno.env.get("MAIL_FROM") ?? "";
 const fromName = Deno.env.get("MAIL_FROM_NAME") ?? "Lunch Voice";
 
@@ -22,10 +26,6 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { "Content-Type": "application/json" },
   });
-}
-
-function logEmailFailure(event: string, detail: Record<string, unknown>): void {
-  console.error(JSON.stringify({ event, ...detail }));
 }
 
 function codeEmail(code: string, action: string): { subject: string; html: string; text: string } {
@@ -43,15 +43,60 @@ function codeEmail(code: string, action: string): { subject: string; html: strin
   return { subject, html, text };
 }
 
+// AWS Signature V4 — minimal implementation for SES SendEmail only.
+async function hmac(key: ArrayBuffer | Uint8Array, msg: string): Promise<ArrayBuffer> {
+  const k = await crypto.subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return crypto.subtle.sign("HMAC", k, new TextEncoder().encode(msg));
+}
+
+async function sha256hex(data: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(data));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function sigV4(method: string, path: string, body: string): Promise<Record<string, string>> {
+  const now = new Date();
+  const datestamp = now.toISOString().slice(0, 10).replace(/-/g, "");
+  const amzdate = now.toISOString().replace(/[:\-]|\.\d{3}/g, "").slice(0, 15) + "Z";
+  const service = "ses";
+  const host = `email.${awsRegion}.amazonaws.com`;
+  const contentType = "application/json";
+  const payloadHash = await sha256hex(body);
+
+  const canonicalHeaders =
+    `content-type:${contentType}\nhost:${host}\nx-amz-date:${amzdate}\n`;
+  const signedHeaders = "content-type;host;x-amz-date";
+  const canonicalRequest = [method, path, "", canonicalHeaders, signedHeaders, payloadHash].join("\n");
+
+  const credScope = `${datestamp}/${awsRegion}/${service}/aws4_request`;
+  const stringToSign = ["AWS4-HMAC-SHA256", amzdate, credScope, await sha256hex(canonicalRequest)].join("\n");
+
+  const enc = new TextEncoder();
+  const kDate = await hmac(enc.encode("AWS4" + awsSecret), datestamp);
+  const kRegion = await hmac(kDate, awsRegion);
+  const kService = await hmac(kRegion, service);
+  const kSigning = await hmac(kService, "aws4_request");
+  const sigBuf = await hmac(kSigning, stringToSign);
+  const signature = Array.from(new Uint8Array(sigBuf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+
+  return {
+    "Content-Type": contentType,
+    "X-Amz-Date": amzdate,
+    Authorization: `AWS4-HMAC-SHA256 Credential=${awsKeyId}/${credScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("not allowed", { status: 405 });
 
-  if (!hookSecret || !apiKey || !fromEmail) {
-    logEmailFailure("send_email_missing_config", {
+  if (!hookSecret || !awsKeyId || !awsSecret || !fromEmail) {
+    console.error(JSON.stringify({
+      event: "send_email_missing_config",
       hasHookSecret: Boolean(hookSecret),
-      hasApiKey: Boolean(apiKey),
+      hasAwsKey: Boolean(awsKeyId),
+      hasAwsSecret: Boolean(awsSecret),
       hasFromEmail: Boolean(fromEmail),
-    });
+    }));
     return json({ error: "Email service is not configured" }, 500);
   }
 
@@ -72,30 +117,35 @@ Deno.serve(async (req) => {
 
   const { subject, html, text } = codeEmail(email_data.token, email_data.email_action_type);
 
-  const res = await fetch("https://api.mailersend.com/v1/email", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
+  const sesPath = "/v2/email/outbound-emails";
+  const sesBody = JSON.stringify({
+    FromEmailAddress: `${fromName} <${fromEmail}>`,
+    Destination: { ToAddresses: [user.email] },
+    Content: {
+      Simple: {
+        Subject: { Data: subject, Charset: "UTF-8" },
+        Body: {
+          Html: { Data: html, Charset: "UTF-8" },
+          Text: { Data: text, Charset: "UTF-8" },
+        },
+      },
     },
-    body: JSON.stringify({
-      from: { email: fromEmail, name: fromName },
-      to: [{ email: user.email }],
-      subject,
-      html,
-      text,
-    }),
+  });
+
+  const sigHeaders = await sigV4("POST", sesPath, sesBody);
+  const res = await fetch(`https://email.${awsRegion}.amazonaws.com${sesPath}`, {
+    method: "POST",
+    headers: sigHeaders,
+    body: sesBody,
   });
 
   if (!res.ok) {
     const detail = await res.text();
-    logEmailFailure("mailersend_send_failed", {
+    console.error(JSON.stringify({
+      event: "ses_send_failed",
       status: res.status,
-      fromDomain: fromEmail.split("@")[1] ?? "",
       detail: detail.slice(0, 2000),
-    });
-    // Surface the error to Supabase so the sign-in reports failure instead of silently
-    // "succeeding" with no email. MailerSend 202 = accepted.
+    }));
     return json({ error: "Email provider rejected the message" }, 500);
   }
 

@@ -63,16 +63,23 @@ supabase secrets set \
   --project-ref qprfonxvthmaoxfixigk
 ```
 
-The `send-email` function delivers OTP codes via MailerSend through Supabase's
-Send Email hook. Set:
+The `send-email` function delivers OTP codes through Supabase's Send Email
+hook, using AWS SES as the mail provider. Deploy it with JWT verification
+disabled because Supabase Auth signs the webhook payload instead of sending a
+user JWT.
 
 ```bash
 supabase secrets set \
   SEND_EMAIL_HOOK_SECRET='v1,whsec_...' \
-  MAILERSEND_API_KEY='mlsn_...' \
+  AWS_REGION='us-east-1' \
+  AWS_ACCESS_KEY_ID='...' \
+  AWS_SECRET_ACCESS_KEY='...' \
   MAIL_FROM='noreply@lunchvoice.com' \
   MAIL_FROM_NAME='Lunch Voice' \
   --project-ref qprfonxvthmaoxfixigk
+
+supabase secrets unset MAILERSEND_API_KEY --project-ref qprfonxvthmaoxfixigk
+supabase functions deploy send-email --no-verify-jwt --project-ref qprfonxvthmaoxfixigk
 ```
 
 ## Database

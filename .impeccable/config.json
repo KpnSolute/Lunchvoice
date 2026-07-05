@@ -1,7 +1,24 @@
 {
   "version": 1,
   "ignoreValues": {
-    "overused-font": ["Fraunces", "Space Grotesk", "Space Mono", "Arial"]
+    "overused-font": [
+      "Fraunces",
+      "Space Grotesk",
+      "Space Mono",
+      "Arial"
+    ]
   },
-  "reason": "Fraunces/Space Grotesk/Space Mono are the project's intentional receipt-ticket type system, carried over from the provided template and confirmed by the user. Arial is a web-safe fallback required for HTML email."
+  "reason": "Fraunces/Space Grotesk/Space Mono are the project's intentional receipt-ticket type system, carried over from the provided template and confirmed by the user. Arial is a web-safe fallback required for HTML email.",
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "arial",
+        "reason": "Email-safe font for transactional OTP HTML email, not a UI design choice",
+        "createdAt": "2026-07-05T02:32:11.728Z"
+      }
+    ]
+  }
 }
