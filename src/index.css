@@ -609,6 +609,55 @@ select {
 }
 @keyframes fall { to { transform: translateY(105vh) rotate(540deg); opacity: 0; } }
 
+/* ============================================================
+   Login — full-bleed tenant background + liquid-glass panel
+   ============================================================ */
+.login-screen {
+  position: relative; min-height: 100dvh;
+  display: grid; place-items: center;
+  padding: 24px 18px;
+}
+.login-bg {
+  position: fixed; inset: 0; z-index: 0;
+  background-size: cover; background-position: center;
+}
+.login-bg::after {
+  /* darken + vignette so the glass panel stays readable on any photo */
+  content: ""; position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at center, transparent 30%, oklch(0.15 0.01 60 / 0.55) 100%),
+    linear-gradient(oklch(0.15 0.01 60 / 0.28), oklch(0.15 0.01 60 / 0.38));
+}
+.login-glass {
+  position: relative; z-index: 1;
+  width: min(430px, 100%);
+  padding: 30px 26px 26px;
+  border-radius: var(--r-lg);
+  background: color-mix(in oklch, var(--surface) 62%, transparent);
+  backdrop-filter: blur(22px) saturate(1.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  border: 1px solid color-mix(in oklch, var(--surface) 30%, oklch(1 0 0 / 0.5));
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.35),
+    0 24px 60px oklch(0 0 0 / 0.35);
+  animation: login-in 520ms var(--ease);
+}
+@keyframes login-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.98); }
+}
+.login-logo { height: 76px; width: auto; filter: drop-shadow(0 6px 16px oklch(0 0 0 / 0.25)); }
+.login-title {
+  font-family: var(--font-display); font-weight: 900; letter-spacing: -0.02em;
+  font-size: 29px; margin: 10px 0 4px;
+}
+/* glass-friendly inputs: slightly translucent so the photo glows through */
+.login-glass input {
+  background: color-mix(in oklch, var(--surface) 72%, transparent);
+}
+.login-glass input:focus {
+  background: color-mix(in oklch, var(--surface) 88%, transparent);
+}
+
 /* ---------- reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }

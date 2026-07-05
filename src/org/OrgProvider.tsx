@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { NotFoundOrg } from "../routes/marketing/NotFoundOrg";
+import { tenantBrand } from "./tenantBrand";
 
 type Org = { id: string; slug: string; name: string };
 
@@ -29,6 +30,28 @@ export function OrgProvider({ children }: { children: ReactNode }) {
         else setState({ org: null, loading: false, notFound: true });
       });
   }, [orgSlug]);
+
+  // Tenant favicon + tab title while inside an org's space.
+  useEffect(() => {
+    const org = state.org;
+    if (!org) return;
+    document.title = `${org.name} · Lunch Voice`;
+    const brand = tenantBrand(org.slug);
+    if (!brand) return;
+    const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    const prevHref = link?.href;
+    if (link) {
+      link.type = "image/svg+xml";
+      link.href = brand.favicon;
+    }
+    return () => {
+      document.title = "Lunch Voice";
+      if (link && prevHref) {
+        link.type = "";
+        link.href = prevHref;
+      }
+    };
+  }, [state.org]);
 
   if (state.loading) return <div className="wrap center muted" style={{ paddingTop: 60 }}>Loading...</div>;
   if (state.notFound) return <NotFoundOrg slug={orgSlug} />;

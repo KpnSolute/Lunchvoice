@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { beginLogin, staffLogin, supabase } from "../lib/supabase";
 import { useAuth } from "../auth/AuthProvider";
 import { useOrg } from "../org/OrgProvider";
+import { tenantBrand } from "../org/tenantBrand";
 
 type Step = "identifier" | "password" | "code";
 type StudentMode = "returning" | "new";
@@ -115,11 +116,20 @@ export function Login() {
     setErr("");
   }
 
+  const brand = tenantBrand(org.slug);
+
   return (
-    <div className="wrap" style={{ maxWidth: 440, paddingTop: 60 }}>
-      <div className="card center">
-        <p className="eyebrow tag" style={{ display: "inline-block" }}>Lunch Voice</p>
-        <h2 style={{ fontSize: 30, marginTop: 10, marginBottom: 4 }}>{org.name}</h2>
+    <div className="login-screen">
+      {brand?.loginBg && (
+        <div className="login-bg" style={{ backgroundImage: `url(${brand.loginBg})` }} />
+      )}
+      <div className="login-glass center">
+        {brand ? (
+          <img className="login-logo" src={brand.logo} alt="" />
+        ) : (
+          <p className="eyebrow tag" style={{ display: "inline-block" }}>Lunch Voice</p>
+        )}
+        <h2 className="login-title">{org.name}</h2>
 
         {err && <div className="notice err" style={{ marginTop: 12 }}>{err}</div>}
 
@@ -203,3 +213,5 @@ export function Login() {
     </div>
   );
 }
+
+
