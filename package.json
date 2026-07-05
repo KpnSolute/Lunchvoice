@@ -11,7 +11,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "postinstall": "git config core.hooksPath .githooks || true",
-    "deploy:functions": "supabase functions deploy --project-ref qprfonxvthmaoxfixigk"
+    "deploy:functions": "supabase functions deploy --project-ref qprfonxvthmaoxfixigk",
+    "check:email": "node scripts/check-email-setup.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",

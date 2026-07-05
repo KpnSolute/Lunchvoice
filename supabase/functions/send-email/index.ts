@@ -28,6 +28,11 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+// Supabase Auth hooks expect errors as { error: { http_code, message } }.
+function errorJson(message: string, status: number): Response {
+  return json({ error: { http_code: status, message } }, status);
+}
+
 function codeEmail(code: string, action: string): { subject: string; html: string; text: string } {
   const verb = action === "signup" ? "Confirm your sign-up" : "Sign in";
   const subject = `${code} is your Lunch Voice code`;
@@ -43,7 +48,7 @@ function codeEmail(code: string, action: string): { subject: string; html: strin
   return { subject, html, text };
 }
 
-// AWS Signature V4 — minimal implementation for SES SendEmail only.
+// AWS Signature V4 - minimal implementation for SES SendEmail only.
 async function hmac(key: ArrayBuffer | Uint8Array, msg: string): Promise<ArrayBuffer> {
   const k = await crypto.subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   return crypto.subtle.sign("HMAC", k, new TextEncoder().encode(msg));
@@ -97,7 +102,7 @@ Deno.serve(async (req) => {
       hasAwsSecret: Boolean(awsSecret),
       hasFromEmail: Boolean(fromEmail),
     }));
-    return json({ error: "Email service is not configured" }, 500);
+    return errorJson("Email service is not configured", 500);
   }
 
   const payload = await req.text();
@@ -112,7 +117,17 @@ Deno.serve(async (req) => {
       email_data: { token: string; email_action_type: string };
     });
   } catch (_e) {
-    return json({ error: "Invalid signature" }, 401);
+    return errorJson("Invalid signature", 401);
+  }
+
+  if (!user?.email || !email_data?.token || !email_data?.email_action_type) {
+    console.error(JSON.stringify({
+      event: "send_email_invalid_payload",
+      hasEmail: Boolean(user?.email),
+      hasToken: Boolean(email_data?.token),
+      hasActionType: Boolean(email_data?.email_action_type),
+    }));
+    return errorJson("Missing required email fields", 400);
   }
 
   const { subject, html, text } = codeEmail(email_data.token, email_data.email_action_type);
@@ -132,21 +147,29 @@ Deno.serve(async (req) => {
     },
   });
 
-  const sigHeaders = await sigV4("POST", sesPath, sesBody);
-  const res = await fetch(`https://email.${awsRegion}.amazonaws.com${sesPath}`, {
-    method: "POST",
-    headers: sigHeaders,
-    body: sesBody,
-  });
+  try {
+    const sigHeaders = await sigV4("POST", sesPath, sesBody);
+    const res = await fetch(`https://email.${awsRegion}.amazonaws.com${sesPath}`, {
+      method: "POST",
+      headers: sigHeaders,
+      body: sesBody,
+    });
 
-  if (!res.ok) {
-    const detail = await res.text();
+    if (!res.ok) {
+      const detail = await res.text();
+      console.error(JSON.stringify({
+        event: "ses_send_failed",
+        status: res.status,
+        detail: detail.slice(0, 2000),
+      }));
+      return errorJson("Email provider rejected the message", 500);
+    }
+  } catch (e) {
     console.error(JSON.stringify({
-      event: "ses_send_failed",
-      status: res.status,
-      detail: detail.slice(0, 2000),
+      event: "ses_send_error",
+      message: e instanceof Error ? e.message : String(e),
     }));
-    return json({ error: "Email provider rejected the message" }, 500);
+    return errorJson("Email provider request failed", 500);
   }
 
   return json({});

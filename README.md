@@ -82,6 +82,43 @@ supabase secrets unset MAILERSEND_API_KEY --project-ref qprfonxvthmaoxfixigk
 supabase functions deploy send-email --no-verify-jwt --project-ref qprfonxvthmaoxfixigk
 ```
 
+Check the setup at any time. This prints secret names/status only, never secret
+values:
+
+```bash
+npm run check:email
+```
+
+#### SES sandbox vs. production access
+
+A freshly verified SES domain starts in the sandbox: you can only send to
+addresses/domains that are also verified in SES, and there is a low daily send
+quota. Student emails are arbitrary personal addresses, so login codes will
+fail to send until AWS grants production access. Until then, do one of:
+
+- Verify individual test recipient addresses in the SES console so you can
+  send OTP codes to those addresses only.
+- Request production access from the SES console. AWS typically reviews this in
+  a few hours to a couple of days.
+
+If SES rejects a message, `send-email` logs `ses_send_failed`. If the request
+cannot reach SES or signing fails, it logs `ses_send_error`.
+
+#### Once IAM keys exist
+
+1. Set the two AWS secrets. The rest of the SES hook secrets are configured
+   separately.
+   ```bash
+   supabase secrets set \
+     AWS_ACCESS_KEY_ID='...' \
+     AWS_SECRET_ACCESS_KEY='...' \
+     --project-ref qprfonxvthmaoxfixigk
+   ```
+2. Run `npm run check:email` and confirm every check passes.
+3. Redeploy with `npm run deploy:functions`.
+4. Trigger a test sign-in to a SES-verified recipient while sandboxed. After
+   AWS grants production access, test a real LionCafe student email.
+
 ## Database
 
 Schema lives in Supabase project `qprfonxvthmaoxfixigk`.
