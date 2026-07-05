@@ -860,28 +860,63 @@ export type Database = {
         Row: {
           body: string
           created_at: string
+          dish_name: string | null
+          hidden_at: string | null
+          hidden_by: string | null
           id: string
           kind: string
+          meal_period: string | null
+          menu_day: number | null
           org_id: string
+          reports: number
+          status: string
           student_id: string
         }
         Insert: {
           body: string
           created_at?: string
+          dish_name?: string | null
+          hidden_at?: string | null
+          hidden_by?: string | null
           id?: string
           kind?: string
+          meal_period?: string | null
+          menu_day?: number | null
           org_id: string
+          reports?: number
+          status?: string
           student_id?: string
         }
         Update: {
           body?: string
           created_at?: string
+          dish_name?: string | null
+          hidden_at?: string | null
+          hidden_by?: string | null
           id?: string
           kind?: string
+          meal_period?: string | null
+          menu_day?: number | null
           org_id?: string
+          reports?: number
+          status?: string
           student_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "voice_notes_hidden_by_fkey"
+            columns: ["hidden_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_notes_hidden_by_fkey"
+            columns: ["hidden_by"]
+            isOneToOne: false
+            referencedRelation: "student_roster"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "voice_notes_org_id_fkey"
             columns: ["org_id"]
