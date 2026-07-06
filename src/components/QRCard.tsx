@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { joinUrl, qrDataUrl } from "../lib/qr";
+import { useOrg } from "../org/OrgProvider";
 
 // Shows the join code + a scannable QR that deep-links students into the session.
 export function QRCard({ code }: { code: string }) {
+  const { org } = useOrg();
   const [src, setSrc] = useState("");
-  const url = joinUrl(code);
+  const url = joinUrl(code, org.slug);
 
   useEffect(() => {
     qrDataUrl(url).then(setSrc);

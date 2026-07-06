@@ -36,8 +36,9 @@ export function Surveys() {
   async function join(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
-    const { data, error } = await supabase.rpc("join_session", { p_code: code.trim() });
+    const { data, error } = await supabase.rpc("join_session", { p_code: code.trim().toUpperCase() });
     if (error) setErr(error.message);
+    else if (!data || String(data).includes("not found")) setErr(String(data || "Session not found or closed."));
     else navigate(`/${org.slug}/survey/${data}`);
   }
 

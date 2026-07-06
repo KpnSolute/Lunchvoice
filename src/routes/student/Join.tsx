@@ -20,8 +20,9 @@ export function Join() {
       navigate(`/${org.slug}`, { replace: true });
       return;
     }
-    supabase.rpc("join_session", { p_code: code }).then(({ data, error }) => {
+    supabase.rpc("join_session", { p_code: code.trim().toUpperCase() }).then(({ data, error }) => {
       if (error) setErr(error.message);
+      else if (!data || String(data).includes("not found")) setErr(String(data || "Session not found or closed."));
       else navigate(`/${org.slug}/survey/${data}`, { replace: true });
     });
   }, [params, navigate, org.slug]);

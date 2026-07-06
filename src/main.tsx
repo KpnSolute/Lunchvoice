@@ -25,8 +25,9 @@ import "./index.css";
 
 function Gate({ children, adminOnly }: { children: ReactNode; adminOnly?: boolean }) {
   const { session, profile, loading, isAdmin } = useAuth();
+  const location = useLocation();
   if (loading) return <div className="wrap center muted" style={{ paddingTop: 60 }}>Loading…</div>;
-  if (!session) return <Navigate to="login" replace />;
+  if (!session) return <Navigate to={`login${location.search}`} replace />;
   if (!profile) return <div className="wrap center muted" style={{ paddingTop: 60 }}>Setting up your account…</div>;
   if (adminOnly && !isAdmin) return <Navigate to="" replace />;
   return <>{children}</>;
