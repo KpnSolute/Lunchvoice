@@ -14,7 +14,6 @@ const studentTabs: { to: string; label: string; icon: IconName }[] = [
 const adminTabs: { to: string; label: string; icon: IconName }[] = [
   { to: "admin", label: "Dashboard", icon: "dashboard" },
   { to: "admin/content", label: "Content", icon: "survey" },
-  { to: "admin/sessions", label: "Sessions", icon: "survey" },
   { to: "admin/store", label: "Store", icon: "store" },
   { to: "admin/orders", label: "Orders", icon: "orders" },
 ];

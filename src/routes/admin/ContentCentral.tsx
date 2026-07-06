@@ -403,9 +403,25 @@ export function ContentCentral() {
   }
 
   async function setTemplateStatus(t: SurveyTemplate, status: string) {
+    setErr("");
+    setOk("");
     const { error } = await supabase.from("survey_templates").update({ status }).eq("id", t.id);
-    if (error) setErr(error.message);
-    else await load();
+    if (error) return setErr(error.message);
+    if (status === "published") {
+      setOk(`"${t.title}" is published. Next: hit Launch to create the QR session students scan.`);
+    } else {
+      setOk(`"${t.title}" moved back to draft.`);
+    }
+    await load();
+  }
+
+  // One-click path from a published template to a live session: preselect it and jump to Launch.
+  function goLaunch(t: TemplateWithQuestions) {
+    setLaunchTemplateId(t.id);
+    setLaunchReward(t.points_reward);
+    setTab("launch");
+    setErr("");
+    setOk("");
   }
 
   async function deleteQuestion(id: string) {
@@ -785,7 +801,7 @@ export function ContentCentral() {
             </div>
           </div>
 
-          {draftTemplates.length > 0 && <p className="hint">{draftTemplates.length} draft template{draftTemplates.length === 1 ? "" : "s"} need publishing before launch.</p>}
+          {draftTemplates.length > 0 && <p className="hint">{draftTemplates.length} draft template{draftTemplates.length === 1 ? " needs" : "s need"} publishing before launch.</p>}
           {templates.length === 0 && <div className="card"><h2>No surveys yet</h2><p className="hint">Use Dining Voice for the fastest start, then tune the questions after students begin answering.</p></div>}
           {templates.map((t) => (
             <div key={t.id} className="card template-row">
@@ -799,6 +815,11 @@ export function ContentCentral() {
                   <button className="btn btn-solid" onClick={() => setTemplateStatus(t, t.status === "published" ? "draft" : "published")}>
                     {t.status === "published" ? "Unpublish" : "Publish"}
                   </button>
+                  {t.status === "published" && (
+                    <button className="btn btn-primary" onClick={() => goLaunch(t)}>
+                      <Icon name="arrow" size={16} /> Launch
+                    </button>
+                  )}
                 </div>
               </div>
               {selectedTemplateId === t.id && (
