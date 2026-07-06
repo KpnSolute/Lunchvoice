@@ -30,6 +30,10 @@ export function Login() {
   }, [joinCode]);
 
   if (!loading && session && profile) {
+    const pendingJoinCode = joinCode || sessionStorage.getItem("pendingJoinCode");
+    if (!isAdmin && pendingJoinCode) {
+      return <Navigate to={`/${org.slug}/join?code=${encodeURIComponent(pendingJoinCode)}`} replace />;
+    }
     return <Navigate to={isAdmin ? `/${org.slug}/admin` : `/${org.slug}`} replace />;
   }
   if (!loading && session) {
@@ -219,4 +223,3 @@ export function Login() {
     </div>
   );
 }
-
