@@ -21,6 +21,18 @@ const kinds = [
   { value: "shoutout", label: "Shoutout" },
 ];
 
+const officialKindLabels: Record<string, string> = {
+  announcement: "Announcement",
+  bonus: "Prize bonus",
+  special: "Menu special",
+  event: "MJCC event",
+  result: "Survey result",
+};
+
+function isOfficial(kind: string): boolean {
+  return Object.prototype.hasOwnProperty.call(officialKindLabels, kind);
+}
+
 function todayCycleDay(): number {
   const start = new Date(new Date().getFullYear(), 0, 0);
   const doy = Math.floor((Date.now() - start.getTime()) / 86400000);
@@ -156,13 +168,13 @@ export function Voice() {
               <div className="item-name" style={{ fontWeight: 400, fontSize: 14 }}>
                 {p.body}
                 <small>
-                  Anonymous student
+                  {isOfficial(p.kind) ? "Lunch Voice update" : "Anonymous student"}
                   {p.dish_name ? ` · ${p.dish_name}` : ""}
                   {p.menu_day ? ` · Day ${p.menu_day}` : ""}
                   {` · ${new Date(p.created_at).toLocaleDateString()}`}
                 </small>
               </div>
-              <span className={`pill ${p.kind === "idea" ? "ready" : "pending"}`}>{p.kind}</span>
+              <span className={`pill ${isOfficial(p.kind) || p.kind === "idea" ? "ready" : "pending"}`}>{officialKindLabels[p.kind] ?? p.kind}</span>
             </div>
           ))
         )}

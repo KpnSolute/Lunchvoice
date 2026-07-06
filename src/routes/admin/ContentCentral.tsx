@@ -16,7 +16,7 @@ type AnswerRow = {
   value: unknown;
   question_id: string;
   survey_questions?: { prompt: string; type: string } | null;
-  responses?: { session_id: string; submitted_at: string } | null;
+  responses?: { id: string; session_id: string; submitted_at: string } | null;
 };
 
 const DINING_VOICE_QUESTIONS = [
@@ -80,6 +80,45 @@ function asTextList(value: unknown): string {
   return Array.isArray(value) ? value.map(String).join(", ") : "";
 }
 
+const SESSION_DURATION_OPTIONS = [
+  { label: "30 minutes", minutes: 30 },
+  { label: "1 hour", minutes: 60 },
+  { label: "2 hours", minutes: 120 },
+  { label: "Lunch period", minutes: 180 },
+  { label: "All day", minutes: 720 },
+  { label: "No auto-lock", minutes: 0 },
+];
+
+const VOICE_ANNOUNCEMENT_KINDS = [
+  { value: "announcement", label: "Announcement" },
+  { value: "bonus", label: "Prize bonus" },
+  { value: "special", label: "Menu special" },
+  { value: "event", label: "MJCC event" },
+  { value: "result", label: "Survey result" },
+];
+
+function sessionClosesAt(minutes: number): string | null {
+  if (!minutes) return null;
+  return new Date(Date.now() + minutes * 60000).toISOString();
+}
+
+function isSessionOpen(s: Pick<Session, "is_active" | "closes_at">): boolean {
+  if (!s.is_active) return false;
+  if (!s.closes_at) return true;
+  return new Date(s.closes_at).getTime() > Date.now();
+}
+
+function closeText(value: string | null | undefined): string {
+  if (!value) return "no auto-lock";
+  const time = new Date(value);
+  if (time.getTime() <= Date.now()) return "locked by time";
+  return `locks ${time.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
+}
+
+function optionWidth(count: number, max: number): string {
+  return `${Math.max(10, Math.round((count / Math.max(1, max)) * 100))}%`;
+}
+
 export function ContentCentral() {
   const { profile } = useAuth();
   const { org } = useOrg();
@@ -117,6 +156,10 @@ export function ContentCentral() {
   const [launchCycleId, setLaunchCycleId] = useState("");
   const [launchDay, setLaunchDay] = useState<number | "">("");
   const [launchReward, setLaunchReward] = useState(50);
+  const [launchDuration, setLaunchDuration] = useState(120);
+  const [voiceKind, setVoiceKind] = useState("announcement");
+  const [voiceDay, setVoiceDay] = useState<number | "">("");
+  const [voiceBody, setVoiceBody] = useState("");
 
   async function load() {
     setLoading(true);
@@ -132,7 +175,7 @@ export function ContentCentral() {
         .limit(30),
       supabase
         .from("survey_answers")
-        .select("id, value, question_id, survey_questions(prompt, type), responses(session_id, submitted_at)")
+        .select("id, value, question_id, survey_questions(prompt, type), responses(id, session_id, submitted_at)")
         .order("created_at", { ascending: false })
         .limit(250),
     ]);
@@ -184,10 +227,22 @@ export function ContentCentral() {
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
   const publishedTemplates = templates.filter((t) => t.status === "published");
   const activeCycle = cycles.find((c) => c.is_active);
-  const activeSessions = sessions.filter((s) => s.is_active);
+  const activeSessions = sessions.filter(isSessionOpen);
   const draftTemplates = templates.filter((t) => t.status !== "published");
   const menuPasteLineCount = cyclePaste.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).length;
   const sessionTemplateById = useMemo(() => new Map(sessions.map((s) => [s.id, s.template_id])), [sessions]);
+  const sessionResponseCounts = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const a of answers) {
+      const sessionId = a.responses?.session_id;
+      const responseId = a.responses?.id;
+      if (!sessionId || !responseId) continue;
+      const set = map.get(sessionId) ?? new Set<string>();
+      set.add(responseId);
+      map.set(sessionId, set);
+    }
+    return new Map(Array.from(map.entries()).map(([id, set]) => [id, set.size]));
+  }, [answers]);
   const filteredAnswers = useMemo(() => {
     return answers.filter((a) => {
       const sessionId = a.responses?.session_id ?? "";
@@ -212,6 +267,26 @@ export function ContentCentral() {
       map.set(a.question_id, row);
     }
     return Array.from(map.values());
+  }, [filteredAnswers]);
+  const resultStats = useMemo(() => {
+    const responseIds = new Set<string>();
+    let ratingSum = 0;
+    let ratingCount = 0;
+    let textCount = 0;
+    for (const a of filteredAnswers) {
+      if (a.responses?.id) responseIds.add(a.responses.id);
+      if (typeof a.value === "number") {
+        ratingSum += a.value;
+        ratingCount += 1;
+      }
+      if (typeof a.value === "string" && a.value.trim()) textCount += 1;
+    }
+    return {
+      responses: responseIds.size,
+      answers: filteredAnswers.length,
+      avg: ratingCount ? ratingSum / ratingCount : null,
+      textCount,
+    };
   }, [filteredAnswers]);
 
   async function createTemplate(e: React.FormEvent) {
@@ -504,6 +579,7 @@ export function ContentCentral() {
         menu_day: launchDay === "" ? null : Number(launchDay),
         template_id: launchTemplateId || null,
         menu_cycle_id: launchCycleId || null,
+        closes_at: sessionClosesAt(launchDuration),
         created_by: profile?.id,
         org_id: org.id,
       })
@@ -511,9 +587,59 @@ export function ContentCentral() {
       .single();
     if (error) return setErr(error.message);
     setLaunchTitle("");
+    setLaunchDuration(120);
     setShowQr(data.id);
     setOk("Survey session launched. Share the QR or join code.");
     await load();
+  }
+
+  async function toggleSession(s: SessionRow) {
+    setErr("");
+    setOk("");
+    const opening = !isSessionOpen(s);
+    const update: Partial<Session> = { is_active: opening };
+    if (opening && s.closes_at && new Date(s.closes_at).getTime() <= Date.now()) update.closes_at = null;
+    const { error } = await supabase.from("sessions").update(update).eq("id", s.id);
+    if (error) return setErr(error.message);
+    setOk(opening ? "Session reopened." : "Session closed.");
+    await load();
+  }
+
+  async function extendSession(s: SessionRow, minutes = 30) {
+    setErr("");
+    setOk("");
+    const current = s.closes_at ? new Date(s.closes_at).getTime() : Date.now();
+    const base = Math.max(current, Date.now());
+    const { error } = await supabase
+      .from("sessions")
+      .update({ is_active: true, closes_at: new Date(base + minutes * 60000).toISOString() })
+      .eq("id", s.id);
+    if (error) return setErr(error.message);
+    setOk(`Session extended ${minutes} minutes.`);
+    await load();
+  }
+
+  async function postVoiceAnnouncement(e: React.FormEvent) {
+    e.preventDefault();
+    setErr("");
+    setOk("");
+    const text = voiceBody.trim();
+    if (text.length < 8) {
+      setErr("Write a little more before posting to Voice.");
+      return;
+    }
+    const { error } = await supabase.from("voice_notes").insert({
+      kind: voiceKind,
+      body: text,
+      menu_day: voiceDay === "" ? null : Number(voiceDay),
+      meal_period: voiceKind,
+      status: "visible",
+      org_id: org.id,
+    });
+    if (error) return setErr(error.message);
+    setVoiceBody("");
+    setVoiceDay("");
+    setOk("Posted to Student Voice.");
   }
 
   if (loading) return <div className="card muted">Loading Content Central...</div>;
@@ -791,7 +917,43 @@ export function ContentCentral() {
                   <input type="number" min={0} value={launchReward} onChange={(e) => setLaunchReward(Number(e.target.value))} />
                 </div>
               </div>
+              <div className="field-block">
+                <label className="field">Auto-lock</label>
+                <select value={launchDuration} onChange={(e) => setLaunchDuration(Number(e.target.value))}>
+                  {SESSION_DURATION_OPTIONS.map((option) => (
+                    <option key={option.minutes} value={option.minutes}>{option.label}</option>
+                  ))}
+                </select>
+                <div className="input-help"><span>QR links and join codes stop accepting new responses after this time.</span></div>
+              </div>
               <button className="btn btn-primary btn-block"><Icon name="arrow" size={16} /> Launch session</button>
+            </form>
+          </div>
+
+          <div className="card">
+            <h2>Post to Student Voice</h2>
+            <p className="hint">Use Voice for survey results, special menus, prize bonuses, and MJCC event announcements.</p>
+            <form onSubmit={postVoiceAnnouncement} className="stack">
+              <div className="row2">
+                <div className="field-block">
+                  <label className="field">Channel</label>
+                  <select value={voiceKind} onChange={(e) => setVoiceKind(e.target.value)}>
+                    {VOICE_ANNOUNCEMENT_KINDS.map((kind) => (
+                      <option key={kind.value} value={kind.value}>{kind.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field-block">
+                  <label className="field">Menu day</label>
+                  <select value={voiceDay} onChange={(e) => setVoiceDay(e.target.value === "" ? "" : Number(e.target.value))}>
+                    <option value="">Not tied to a menu day</option>
+                    {Array.from({ length: 28 }, (_, i) => <option key={i} value={i + 1}>Day {i + 1}</option>)}
+                  </select>
+                </div>
+              </div>
+              <textarea rows={3} value={voiceBody} onChange={(e) => setVoiceBody(e.target.value)} maxLength={500} placeholder="Example: Double points at dinner tonight, or students rated burrito bowls 4.6/5 this week." />
+              <div className="input-help"><span>Posts appear in the student Voice wall.</span><b>{voiceBody.length}/500</b></div>
+              <button className="btn btn-solid btn-block"><Icon name="voice" size={16} /> Publish update</button>
             </form>
           </div>
 
@@ -800,10 +962,14 @@ export function ContentCentral() {
             <div key={s.id} className="card">
               <div className="spread">
                 <div>
-                  <h2>{s.title} <span className={`pill ${s.is_active ? "ready" : "collected"}`}>{s.is_active ? "active" : "closed"}</span></h2>
-                  <p className="hint" style={{ margin: 0 }}>Code <b className="mono">{s.join_code}</b> - {s.points_reward} pts - {s.survey_templates?.title || "fixed survey"}</p>
+                  <h2>{s.title} <span className={`pill ${isSessionOpen(s) ? "ready" : "collected"}`}>{isSessionOpen(s) ? "active" : "closed"}</span></h2>
+                  <p className="hint" style={{ margin: 0 }}>Code <b className="mono">{s.join_code}</b> - {s.points_reward} pts - {s.survey_templates?.title || "fixed survey"} - {closeText(s.closes_at)} - {sessionResponseCounts.get(s.id) ?? 0} responses</p>
                 </div>
-                <button className="btn btn-solid" onClick={() => setShowQr(showQr === s.id ? null : s.id)}>{showQr === s.id ? "Hide QR" : "Show QR"}</button>
+                <div className="stack" style={{ alignItems: "flex-end" }}>
+                  <button className="btn btn-solid" onClick={() => setShowQr(showQr === s.id ? null : s.id)}>{showQr === s.id ? "Hide QR" : "Show QR"}</button>
+                  <button className="btn btn-ghost" onClick={() => extendSession(s, 30)}>Extend 30m</button>
+                  <button className="btn btn-ghost" onClick={() => toggleSession(s)}>{isSessionOpen(s) ? "Close" : "Reopen"}</button>
+                </div>
               </div>
               {showQr === s.id && <div style={{ marginTop: 14 }}><QRCard code={s.join_code} /></div>}
             </div>
@@ -815,6 +981,12 @@ export function ContentCentral() {
         <div className="card">
           <h2>Live survey results</h2>
           <p className="hint">Filter by session or template before making menu decisions.</p>
+          <div className="manager-grid" style={{ marginTop: 12 }}>
+            <div className="metric-tile"><div className="num">{resultStats.responses}</div><div className="lbl">Responses</div></div>
+            <div className="metric-tile"><div className="num">{resultStats.answers}</div><div className="lbl">Answers</div></div>
+            <div className="metric-tile"><div className="num">{resultStats.avg === null ? "-" : resultStats.avg.toFixed(1)}</div><div className="lbl">Avg rating</div></div>
+            <div className="metric-tile"><div className="num">{resultStats.textCount}</div><div className="lbl">Open comments</div></div>
+          </div>
           <div className="row2">
             <div className="field-block">
               <label className="field">Session</label>
@@ -835,13 +1007,14 @@ export function ContentCentral() {
             <p className="muted">No dynamic survey answers match this view yet.</p>
           ) : resultGroups.map((g) => {
             const avg = g.ratings.length ? g.ratings.reduce((a, b) => a + b, 0) / g.ratings.length : null;
+            const maxOptionCount = Math.max(1, ...Object.values(g.options));
             return (
               <div key={g.prompt} className="item-row" style={{ alignItems: "flex-start" }}>
                 <div className="item-name" style={{ flex: 1 }}>
                   {g.prompt}
                   <small>{g.count} answer{g.count === 1 ? "" : "s"}</small>
                   {Object.entries(g.options).map(([label, count]) => (
-                    <div key={label} className="result-bar"><span>{label}</span><b style={{ width: `${Math.max(8, count * 18)}px` }} /> <em>{count}</em></div>
+                    <div key={label} className="result-bar"><span>{label}</span><b style={{ width: optionWidth(count, maxOptionCount) }} /> <em>{count}</em></div>
                   ))}
                   {g.texts.slice(0, 4).map((text, i) => <small key={i} className="quote-line">{text}</small>)}
                 </div>

@@ -13,6 +13,33 @@ function genCode(): string {
   return s;
 }
 
+const DURATION_OPTIONS = [
+  { label: "30 minutes", minutes: 30 },
+  { label: "1 hour", minutes: 60 },
+  { label: "2 hours", minutes: 120 },
+  { label: "Lunch period", minutes: 180 },
+  { label: "All day", minutes: 720 },
+  { label: "No auto-lock", minutes: 0 },
+];
+
+function closesAt(minutes: number): string | null {
+  if (!minutes) return null;
+  return new Date(Date.now() + minutes * 60000).toISOString();
+}
+
+function isOpen(s: Session): boolean {
+  if (!s.is_active) return false;
+  if (!s.closes_at) return true;
+  return new Date(s.closes_at).getTime() > Date.now();
+}
+
+function lockLabel(value: string | null): string {
+  if (!value) return "no auto-lock";
+  const time = new Date(value);
+  if (time.getTime() <= Date.now()) return "locked by time";
+  return `locks ${time.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
+}
+
 export function Sessions() {
   const { profile } = useAuth();
   const { org } = useOrg();
@@ -21,6 +48,7 @@ export function Sessions() {
   const [description, setDescription] = useState("");
   const [menuDay, setMenuDay] = useState<number | "">("");
   const [reward, setReward] = useState(50);
+  const [duration, setDuration] = useState(120);
   const [err, setErr] = useState("");
   const [showQr, setShowQr] = useState<string | null>(null);
 
@@ -47,6 +75,7 @@ export function Sessions() {
         join_code: genCode(),
         menu_day: menuDay === "" ? null : Number(menuDay),
         points_reward: reward,
+        closes_at: closesAt(duration),
         created_by: profile!.id,
         org_id: org.id,
       })
@@ -60,12 +89,26 @@ export function Sessions() {
     setDescription("");
     setMenuDay("");
     setReward(50);
+    setDuration(120);
     setShowQr(data.id);
     load();
   }
 
   async function toggleActive(s: Session) {
-    await supabase.from("sessions").update({ is_active: !s.is_active }).eq("id", s.id);
+    const opening = !isOpen(s);
+    const update: Partial<Session> = { is_active: opening };
+    if (opening && s.closes_at && new Date(s.closes_at).getTime() <= Date.now()) update.closes_at = null;
+    await supabase.from("sessions").update(update).eq("id", s.id);
+    load();
+  }
+
+  async function extend(s: Session) {
+    const current = s.closes_at ? new Date(s.closes_at).getTime() : Date.now();
+    const base = Math.max(current, Date.now());
+    await supabase
+      .from("sessions")
+      .update({ is_active: true, closes_at: new Date(base + 30 * 60000).toISOString() })
+      .eq("id", s.id);
     load();
   }
 
@@ -98,6 +141,15 @@ export function Sessions() {
               <input type="number" min={0} value={reward} onChange={(e) => setReward(Number(e.target.value))} />
             </div>
           </div>
+          <div className="field-block">
+            <label className="field">Auto-lock</label>
+            <select value={duration} onChange={(e) => setDuration(Number(e.target.value))}>
+              {DURATION_OPTIONS.map((option) => (
+                <option key={option.minutes} value={option.minutes}>{option.label}</option>
+              ))}
+            </select>
+            <div className="input-help"><span>Join codes and QR links stop accepting new responses after this time.</span></div>
+          </div>
           {err && <div className="notice err">{err}</div>}
           <button className="btn btn-primary btn-block">Create session</button>
         </form>
@@ -107,11 +159,12 @@ export function Sessions() {
         <div key={s.id} className="card">
           <div className="spread">
             <div>
-              <h2 style={{ marginBottom: 2 }}>{s.title} <span className={`pill ${s.is_active ? "ready" : "collected"}`}>{s.is_active ? "active" : "closed"}</span></h2>
+              <h2 style={{ marginBottom: 2 }}>{s.title} <span className={`pill ${isOpen(s) ? "ready" : "collected"}`}>{isOpen(s) ? "active" : "closed"}</span></h2>
               <p className="muted" style={{ margin: 0 }}>
                 Code <b className="mono">{s.join_code}</b> · {s.points_reward} pts
                 {s.menu_day ? ` · Day ${s.menu_day}` : " · staples only"}
               </p>
+              <p className="hint" style={{ margin: "4px 0 0" }}>{lockLabel(s.closes_at)}</p>
             </div>
             <div className="stack" style={{ alignItems: "flex-end" }}>
               <button className="btn btn-solid" style={{ fontSize: 13, padding: "7px 12px" }}
@@ -119,7 +172,10 @@ export function Sessions() {
                 {showQr === s.id ? "Hide QR" : "Show QR"}
               </button>
               <button className="btn btn-ghost" style={{ fontSize: 13, padding: "7px 12px" }} onClick={() => toggleActive(s)}>
-                {s.is_active ? "Close" : "Reopen"}
+                {isOpen(s) ? "Close" : "Reopen"}
+              </button>
+              <button className="btn btn-ghost" style={{ fontSize: 13, padding: "7px 12px" }} onClick={() => extend(s)}>
+                Extend 30m
               </button>
             </div>
           </div>
