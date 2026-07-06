@@ -74,7 +74,7 @@ function DynamicQuestion({
         {question.help_text && <small>{question.help_text}</small>}
       </div>
 
-      {question.type === "rating" && (
+      {(question.type === "rating" || question.type === "flame") && (
         <div className="rating rating-large">
           {Array.from({ length: question.scale_max - question.scale_min + 1 }, (_, i) => question.scale_min + i).map((n) => (
             <button
@@ -84,9 +84,28 @@ function DynamicQuestion({
               onClick={() => onChange(n)}
               aria-label={`${n} out of ${question.scale_max}`}
             >
-              <Icon name={Number(value ?? 0) >= n ? "star-fill" : "star"} size={24} />
+              {question.type === "flame" ? (
+                <Icon name="flame" size={24} strokeWidth={Number(value ?? 0) >= n ? 2.4 : 1.75} />
+              ) : (
+                <Icon name={Number(value ?? 0) >= n ? "star-fill" : "star"} size={24} />
+              )}
             </button>
           ))}
+        </div>
+      )}
+
+      {question.type === "slider" && (
+        <div className="slider-row">
+          <input
+            type="range"
+            min={question.scale_min}
+            max={question.scale_max}
+            step={1}
+            value={typeof value === "number" ? value : Math.round((question.scale_min + question.scale_max) / 2)}
+            onChange={(e) => onChange(Number(e.target.value))}
+            aria-label={question.prompt}
+          />
+          <b className="slider-value mono">{typeof value === "number" ? value : "–"}</b>
         </div>
       )}
 

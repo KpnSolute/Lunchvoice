@@ -549,6 +549,9 @@ select {
   padding-left: 10px;
   border-left: 2px solid var(--line);
 }
+.slider-row { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+.slider-row input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; }
+.slider-value { min-width: 2ch; text-align: center; font-size: 19px; color: var(--accent); }
 
 /* ---------- join code / QR ---------- */
 .join-code { font-family: var(--font-mono); font-size: 34px; font-weight: 700; letter-spacing: 0.14em; color: var(--accent); text-align: center; }

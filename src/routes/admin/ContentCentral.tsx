@@ -364,8 +364,8 @@ export function ContentCentral() {
       options: listFromText(qOptions),
       help_text: qHelp.trim() || null,
       category: qCategory.trim() || null,
-      scale_min: 1,
-      scale_max: 5,
+      scale_min: qType === "slider" ? 0 : 1,
+      scale_max: qType === "slider" ? 10 : 5,
       org_id: org.id,
     });
     if (error) return setErr(error.message);
@@ -773,14 +773,23 @@ export function ContentCentral() {
                   <div className="field-block">
                     <label className="field">Answer type</label>
                     <select value={qType} onChange={(e) => setQType(e.target.value)}>
-                      <option value="rating">Rating scale: 1 to 5</option>
+                      <option value="rating">Rating scale: 1 to 5 stars</option>
+                      <option value="flame">Hype scale: 1 to 5 flames</option>
+                      <option value="slider">Slider: 0 to 10</option>
                       <option value="single_choice">Single choice buttons</option>
                       <option value="multi_choice">Multi-select chips</option>
-                      <option value="text">Open text input</option>
                       <option value="yes_no">Yes / No buttons</option>
+                      <option value="text">Open text input</option>
                     </select>
                     <div className="input-help">
-                      <span>{qType === "rating" ? "Students tap 1-5 stars." : qType === "text" ? "Students type a short answer." : qType === "multi_choice" ? "Students can pick more than one option." : "Students pick one option."}</span>
+                      <span>{
+                        qType === "rating" ? "Students tap 1-5 stars." :
+                        qType === "flame" ? "Students tap 1-5 flames — fun for hype questions." :
+                        qType === "slider" ? "Students drag a 0-10 slider — good for 'how likely' questions." :
+                        qType === "text" ? "Students type a short answer." :
+                        qType === "multi_choice" ? "Students can pick more than one option." :
+                        "Students pick one option."
+                      }</span>
                     </div>
                   </div>
                   <div className="field-block">
