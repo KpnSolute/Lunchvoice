@@ -20,15 +20,16 @@ type AnswerRow = {
 };
 
 const DINING_VOICE_QUESTIONS = [
-  { type: "rating", prompt: "Overall, how was the dining experience today?", required: true, category: "Satisfaction" },
-  { type: "rating", prompt: "Taste and flavor", required: true, category: "Quality" },
-  { type: "rating", prompt: "Freshness", required: false, category: "Quality" },
-  { type: "rating", prompt: "Served hot / at the right temperature", required: false, category: "Quality" },
-  { type: "single_choice", prompt: "How were the portions?", required: false, options: ["Too small", "Just right", "Too much"], category: "Service" },
-  { type: "rating", prompt: "Menu variety", required: false, category: "Planning" },
-  { type: "multi_choice", prompt: "What should we add more of?", required: false, options: ["Vegetarian options", "International dishes", "Healthier meals", "Bigger portions", "Fresh fruit and salad", "Late-night snacks", "Halal options"], category: "Planning" },
-  { type: "text", prompt: "What should the kitchen know?", required: false, category: "Open feedback" },
-  { type: "text", prompt: "Pitch a dish you want on the rotation", required: false, category: "Ideas" },
+  { type: "rating", prompt: "Overall, how satisfied are you with the dining hall?", required: true, category: "Satisfaction", help_text: "1 poor, 5 great" },
+  { type: "rating", prompt: "Taste & flavor", required: true, category: "Food quality" },
+  { type: "rating", prompt: "Freshness", required: false, category: "Food quality" },
+  { type: "rating", prompt: "Served hot / at temp", required: false, category: "Food quality" },
+  { type: "single_choice", prompt: "How are the portion sizes?", required: true, options: ["Too small", "Just right", "Too much"], category: "Portions" },
+  { type: "rating", prompt: "Menu variety", required: false, category: "Menu variety", help_text: "Enough different options?" },
+  { type: "rating", prompt: "Cleanliness & staff", required: false, category: "Cleanliness & staff", help_text: "Dining hall & service" },
+  { type: "multi_choice", prompt: "What would you like more of?", required: false, options: ["More vegetarian options", "More international dishes", "Healthier / lighter meals", "Bigger portions", "More variety week to week", "Fresh fruit & salad bar", "Late-night snacks", "Halal options"], category: "Planning", help_text: "Pick any that apply." },
+  { type: "text", prompt: "Suggest a dish for the kitchen", required: false, category: "Ideas", help_text: "e.g. Rice bowls, more grilled chicken..." },
+  { type: "text", prompt: "Anything else you'd like the team to know?", required: false, category: "Open feedback", help_text: "Taste, freshness, timing, cleanliness, staff - tell us anything." },
 ];
 
 const QUESTION_PACKS = [
@@ -142,6 +143,8 @@ export function ContentCentral() {
   const [qType, setQType] = useState("rating");
   const [qRequired, setQRequired] = useState(false);
   const [qOptions, setQOptions] = useState("");
+  const [qHelp, setQHelp] = useState("");
+  const [qCategory, setQCategory] = useState("");
 
   const [cycleTitle, setCycleTitle] = useState("MJCC 28-day cycle");
   const [cycleVersion, setCycleVersion] = useState(new Date().toLocaleDateString());
@@ -337,6 +340,7 @@ export function ContentCentral() {
       required: q.required,
       options: "options" in q ? q.options : [],
       category: q.category,
+      help_text: "help_text" in q ? q.help_text : null,
       org_id: org!.id,
     }));
     const { error: qErr } = await supabase.from("survey_questions").insert(rows);
@@ -358,6 +362,8 @@ export function ContentCentral() {
       prompt: qPrompt.trim(),
       required: qRequired,
       options: listFromText(qOptions),
+      help_text: qHelp.trim() || null,
+      category: qCategory.trim() || null,
       scale_min: 1,
       scale_max: 5,
       org_id: org.id,
@@ -365,6 +371,8 @@ export function ContentCentral() {
     if (error) return setErr(error.message);
     setQPrompt("");
     setQOptions("");
+    setQHelp("");
+    setQCategory("");
     setQRequired(false);
     await load();
   }
@@ -737,14 +745,27 @@ export function ContentCentral() {
                 </div>
                 <div className="row2">
                   <div className="field-block">
+                    <label className="field">Section</label>
+                    <input value={qCategory} onChange={(e) => setQCategory(e.target.value)} placeholder="Food quality, Planning, Service" />
+                  </div>
+                  <div className="field-block">
+                    <label className="field">Help text</label>
+                    <input value={qHelp} onChange={(e) => setQHelp(e.target.value)} placeholder="Short hint shown under the question" />
+                  </div>
+                </div>
+                <div className="row2">
+                  <div className="field-block">
                     <label className="field">Answer type</label>
                     <select value={qType} onChange={(e) => setQType(e.target.value)}>
-                      <option value="rating">1-5 rating</option>
-                      <option value="text">Text</option>
-                      <option value="single_choice">Single choice</option>
-                      <option value="multi_choice">Multi choice</option>
-                      <option value="yes_no">Yes / No</option>
+                      <option value="rating">Rating scale: 1 to 5</option>
+                      <option value="single_choice">Single choice buttons</option>
+                      <option value="multi_choice">Multi-select chips</option>
+                      <option value="text">Open text input</option>
+                      <option value="yes_no">Yes / No buttons</option>
                     </select>
+                    <div className="input-help">
+                      <span>{qType === "rating" ? "Students tap 1-5 stars." : qType === "text" ? "Students type a short answer." : qType === "multi_choice" ? "Students can pick more than one option." : "Students pick one option."}</span>
+                    </div>
                   </div>
                   <div className="field-block">
                     <label className="field">Requirement</label>
@@ -786,7 +807,7 @@ export function ContentCentral() {
                   <div key={q.id} className="item-row">
                     <div className="item-name">
                       {q.position}. {q.prompt}
-                      <small>{q.type}{q.required ? " - required" : ""}{Array.isArray(q.options) && q.options.length ? ` - ${asTextList(q.options)}` : ""}</small>
+                      <small>{q.category ? `${q.category} - ` : ""}{q.type}{q.required ? " - required" : ""}{q.help_text ? ` - ${q.help_text}` : ""}{Array.isArray(q.options) && q.options.length ? ` - ${asTextList(q.options)}` : ""}</small>
                     </div>
                     <button className="btn btn-ghost" style={{ fontSize: 12, padding: "6px 10px" }} onClick={() => deleteQuestion(q.id)}>Remove</button>
                   </div>

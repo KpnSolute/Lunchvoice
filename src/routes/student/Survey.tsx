@@ -69,6 +69,7 @@ function DynamicQuestion({
   return (
     <div className="dynamic-question">
       <div className="item-name">
+        {question.category && <small>{question.category}</small>}
         {question.prompt} {question.required && <span className="tag">Required</span>}
         {question.help_text && <small>{question.help_text}</small>}
       </div>
@@ -95,7 +96,7 @@ function DynamicQuestion({
           maxLength={4000}
           value={typeof value === "string" ? value : ""}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Type your answer"
+          placeholder={question.help_text || "Type your answer"}
         />
       )}
 
@@ -204,6 +205,7 @@ export function Survey() {
     () => [...(session?.survey_templates?.survey_questions ?? [])].sort((a, b) => a.position - b.position),
     [session]
   );
+  const hasDynamicTemplate = questions.length > 0;
 
   function pick(key: string, dish_name: string, slot: Slot, rating: number) {
     setRatings((r) => ({ ...r, [key]: { dish_name, slot, rating } }));
@@ -314,7 +316,7 @@ export function Survey() {
         </div>
       )}
 
-      {daySlots.length > 0 && (
+      {!hasDynamicTemplate && daySlots.length > 0 && (
         <div className="card">
           <h2>Rate today's menu</h2>
           {daySlots.map((s) => (
@@ -329,42 +331,46 @@ export function Survey() {
         </div>
       )}
 
-      <div className="card">
-        <h2>Everyday staples</h2>
-        <p className="hint">On the line most days, cycle day or not.</p>
-        {STAPLES.map((s) => (
-          <ForkRow
-            key={s.id}
-            name={s.name}
-            value={ratings[`staple:${s.id}`]?.rating ?? 0}
-            onPick={(n) => pick(`staple:${s.id}`, s.name, "staple", n)}
-          />
-        ))}
-      </div>
+      {!hasDynamicTemplate && (
+        <>
+          <div className="card">
+            <h2>Everyday staples</h2>
+            <p className="hint">On the line most days, cycle day or not.</p>
+            {STAPLES.map((s) => (
+              <ForkRow
+                key={s.id}
+                name={s.name}
+                value={ratings[`staple:${s.id}`]?.rating ?? 0}
+                onPick={(n) => pick(`staple:${s.id}`, s.name, "staple", n)}
+              />
+            ))}
+          </div>
 
-      <div className="card">
-        <h2>Tell us more</h2>
-        <p className="hint">Taste, portion size, temperature, wait time?</p>
-        <textarea
-          rows={3}
-          maxLength={2000}
-          value={feedback}
-          onChange={(e) => setFeedback(e.target.value)}
-          placeholder="e.g. The BBQ wings were great, but the grill line was slow."
-        />
-      </div>
+          <div className="card">
+            <h2>Tell us more</h2>
+            <p className="hint">Taste, portion size, temperature, wait time?</p>
+            <textarea
+              rows={3}
+              maxLength={2000}
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              placeholder="e.g. The BBQ wings were great, but the grill line was slow."
+            />
+          </div>
 
-      <div className="card">
-        <h2>Pitch a new dish</h2>
-        <p className="hint">One thing you wish showed up in the rotation?</p>
-        <textarea
-          rows={2}
-          maxLength={1000}
-          value={idea}
-          onChange={(e) => setIdea(e.target.value)}
-          placeholder="e.g. Loaded nachos with real cheese sauce"
-        />
-      </div>
+          <div className="card">
+            <h2>Pitch a new dish</h2>
+            <p className="hint">One thing you wish showed up in the rotation?</p>
+            <textarea
+              rows={2}
+              maxLength={1000}
+              value={idea}
+              onChange={(e) => setIdea(e.target.value)}
+              placeholder="e.g. Loaded nachos with real cheese sauce"
+            />
+          </div>
+        </>
+      )}
 
       {err && <div className="notice err">{err}</div>}
       <button className="btn btn-primary btn-block" disabled={busy} onClick={submit}>
