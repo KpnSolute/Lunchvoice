@@ -4,6 +4,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { useOrg } from "../../org/OrgProvider";
 import { QRCard } from "../../components/QRCard";
 import { Icon } from "../../components/Icon";
+import { Bars, DistributionColumns, TrendLine, dailyTrend, shortDay } from "../../components/charts";
 import { CYCLE, STAPLES, WEEKDAYS, weekdayFor } from "../../lib/menu";
 import { parseMenuWorkbook, type ParsedMenuWorkbookDay } from "../../lib/menuWorkbook";
 import type { MenuCycle, MenuCycleDay, Session, SurveyQuestion, SurveyTemplate } from "../../types/db";
@@ -116,8 +117,16 @@ function closeText(value: string | null | undefined): string {
   return `locks ${time.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
 }
 
-function optionWidth(count: number, max: number): string {
-  return `${Math.max(10, Math.round((count / Math.max(1, max)) * 100))}%`;
+// Bucket numeric answers into scale positions (1-5 for ratings/flames, 0-10 for sliders).
+function ratingBuckets(values: number[], type: string): { buckets: number[]; labels: string[] } {
+  const min = type === "slider" ? 0 : 1;
+  const max = type === "slider" ? 10 : 5;
+  const buckets = Array.from({ length: max - min + 1 }, () => 0);
+  for (const v of values) {
+    const i = Math.round(v) - min;
+    if (i >= 0 && i < buckets.length) buckets[i] += 1;
+  }
+  return { buckets, labels: buckets.map((_, i) => String(min + i)) };
 }
 
 export function ContentCentral() {
@@ -227,6 +236,12 @@ export function ContentCentral() {
     }
   }, [templates, selectedTemplateId, launchTemplateId]);
 
+  // Sensible launch default: the active menu cycle, so sessions map to real dishes without extra clicks.
+  useEffect(() => {
+    const active = cycles.find((c) => c.is_active);
+    if (active) setLaunchCycleId((cur) => cur || active.id);
+  }, [cycles]);
+
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
   const publishedTemplates = templates.filter((t) => t.status === "published");
   const activeCycle = cycles.find((c) => c.is_active);
@@ -270,6 +285,13 @@ export function ContentCentral() {
       map.set(a.question_id, row);
     }
     return Array.from(map.values());
+  }, [filteredAnswers]);
+  const resultTrend = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const a of filteredAnswers) {
+      if (a.responses?.id && a.responses.submitted_at) seen.set(a.responses.id, a.responses.submitted_at);
+    }
+    return dailyTrend([...seen.values()], 14);
   }, [filteredAnswers]);
   const resultStats = useMemo(() => {
     const responseIds = new Set<string>();
@@ -1054,19 +1076,25 @@ export function ContentCentral() {
               </select>
             </div>
           </div>
+          <div className="field-block" style={{ marginTop: 4 }}>
+            <label className="field">Responses per day — last 14 days</label>
+            <TrendLine points={resultTrend} height={100} formatLabel={shortDay} />
+          </div>
           {resultGroups.length === 0 ? (
             <p className="muted">No dynamic survey answers match this view yet.</p>
           ) : resultGroups.map((g) => {
             const avg = g.ratings.length ? g.ratings.reduce((a, b) => a + b, 0) / g.ratings.length : null;
-            const maxOptionCount = Math.max(1, ...Object.values(g.options));
+            const optionItems = Object.entries(g.options)
+              .sort((a, b) => b[1] - a[1])
+              .map(([label, count]) => ({ label, value: count }));
+            const dist = g.ratings.length ? ratingBuckets(g.ratings, g.type) : null;
             return (
               <div key={g.prompt} className="item-row" style={{ alignItems: "flex-start" }}>
                 <div className="item-name" style={{ flex: 1 }}>
                   {g.prompt}
-                  <small>{g.count} answer{g.count === 1 ? "" : "s"}</small>
-                  {Object.entries(g.options).map(([label, count]) => (
-                    <div key={label} className="result-bar"><span>{label}</span><b style={{ width: optionWidth(count, maxOptionCount) }} /> <em>{count}</em></div>
-                  ))}
+                  <small>{g.count} answer{g.count === 1 ? "" : "s"}{avg !== null ? ` · avg ${avg.toFixed(1)}` : ""}</small>
+                  {dist && <DistributionColumns buckets={dist.buckets} labels={dist.labels} />}
+                  {optionItems.length > 0 && <div style={{ marginTop: 10 }}><Bars items={optionItems} /></div>}
                   {g.texts.slice(0, 4).map((text, i) => <small key={i} className="quote-line">{text}</small>)}
                 </div>
                 {avg !== null && <span className="avg"><Icon name="star-fill" size={13} /> {avg.toFixed(1)}</span>}

@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { useOrg } from "../org/OrgProvider";
+import { tenantBrand } from "../org/tenantBrand";
 import { Icon, type IconName } from "./Icon";
 
 const studentTabs: { to: string; label: string; icon: IconName }[] = [
@@ -23,12 +24,13 @@ export function Layout() {
   const { org } = useOrg();
   const navigate = useNavigate();
   const tabs = isAdmin ? adminTabs : studentTabs;
+  const brand = tenantBrand(org.slug);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${isAdmin ? " admin-shell" : ""}`}>
       <header className="app-header">
         <div className="brand" onClick={() => navigate(isAdmin ? `/${org.slug}/admin` : `/${org.slug}`)}>
-          <div className="brand-mark">LV</div>
+          {brand ? <img className="brand-logo" src={brand.logo} alt="" /> : <div className="brand-mark">LV</div>}
           <div>
             <div className="brand-name">Lunch Voice</div>
             <div className="brand-sub">{org.name}</div>
