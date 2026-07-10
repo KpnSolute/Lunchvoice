@@ -1,27 +1,45 @@
 import { useEffect, useState } from "react";
-import { CYCLE, STAPLES, weekdayFor } from "../../lib/menu";
-import { getPublicMenuCycle, mealItems, type PublicMenuCycle } from "../../lib/mjccMenuApi";
+import { STAPLES } from "../../lib/menu";
+import { getPublicMenuCycle, getPublicMenuToday, type PublicMenuCycle, type PublicMenuDay } from "../../lib/mjccMenuApi";
+import {
+  displayDaysFromApi,
+  displayDaysFromCycle,
+  displayDaysFromStatic,
+  formatMenuDate,
+  groupMenuWeeks,
+  type DisplayMenuDay,
+} from "../../lib/menuDisplay";
 import { supabase } from "../../lib/supabase";
 import type { MenuCycle, MenuCycleDay } from "../../types/db";
 
 type ActiveCycle = MenuCycle & { days: MenuCycleDay[] };
 
-function list(value: unknown): string {
-  return Array.isArray(value) ? value.map(String).filter(Boolean).join(" / ") : "";
-}
-
-function listApi(day: PublicMenuCycle["days"][number], periods: string[]): string {
-  return mealItems(day, periods).join(" / ");
+function MealList({ label, items }: { label: string; items: string[] }) {
+  return (
+    <div className="menu-meal-block">
+      <div className="meal-tag">{label}</div>
+      {items.length ? (
+        <ul className="menu-item-list">
+          {items.map((item, index) => <li key={`${label}-${index}`}>{item}</li>)}
+        </ul>
+      ) : (
+        <div className="menu-empty">No items scheduled</div>
+      )}
+    </div>
+  );
 }
 
 export function MenuPage() {
   const [active, setActive] = useState<ActiveCycle | null>(null);
   const [apiCycle, setApiCycle] = useState<PublicMenuCycle | null>(null);
+  const [apiToday, setApiToday] = useState<PublicMenuDay | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        setApiCycle(await getPublicMenuCycle(true));
+        const [cycle, today] = await Promise.all([getPublicMenuCycle(true), getPublicMenuToday()]);
+        setApiCycle(cycle);
+        setApiToday(today);
         return;
       } catch (e) {
         console.warn("mjcc_public_menu_cycle_failed", e);
@@ -40,55 +58,72 @@ export function MenuPage() {
     })();
   }, []);
 
-  const hasApiDays = Boolean(apiCycle?.days.length);
+  const days: DisplayMenuDay[] = apiCycle?.days.length
+    ? displayDaysFromApi(apiCycle)
+    : active?.days.length
+      ? displayDaysFromCycle(active)
+      : displayDaysFromStatic();
+  const todayCycleDay = apiToday?.cycle_day;
+  const weeks = groupMenuWeeks(days);
 
   return (
     <>
       <div className="page-head">
-        <h2>28-day cycle menu</h2>
+        <h2>Cycle menu</h2>
         <p className="hint">
           {apiCycle
-            ? `Live MJCC API cycle anchored ${apiCycle.anchor_date}`
+            ? `Live MJCC API cycle anchored ${formatMenuDate(apiCycle.anchor_date) || apiCycle.anchor_date}`
             : active
-              ? `${active.title}${active.version_label ? ` - ${active.version_label}` : ""}`
-              : "What's coming up on the line, day by day."}
+              ? `${active.title}${active.starts_on ? ` - anchored ${formatMenuDate(active.starts_on)}` : ""}`
+              : "Fallback cycle shown until the live menu feed is available."}
         </p>
       </div>
 
-      <div className="card">
-        <h2>Everyday staples</h2>
-        <p className="hint" style={{ margin: 0 }}>{STAPLES.map((s) => s.name).join(" - ")}</p>
+      <div className="menu-staples">
+        <div>
+          <div className="eyebrow">Everyday staples</div>
+          <h2>Always available</h2>
+        </div>
+        <div className="staple-row">
+          {STAPLES.map((s) => <span key={s.name} className="staple-chip">{s.name}</span>)}
+        </div>
       </div>
 
-      <div className="menu-grid">
-        {hasApiDays ? apiCycle!.days.map((d) => (
-          <div key={d.cycle_day} className="card menu-day">
-            <div className="cat-label">Day {d.cycle_day} - {d.day_of_week || weekdayFor(d.cycle_day - 1)}</div>
-            <div className="menu-meal"><span className="meal-tag">Breakfast</span> {listApi(d, ["Breakfast"]) || listApi(d, ["Brunch"])}</div>
-            <div className="menu-meal"><span className="meal-tag">Lunch</span> {listApi(d, ["Lunch"]) || listApi(d, ["Brunch"])}</div>
-            <div className="menu-meal"><span className="meal-tag">Dinner</span> {listApi(d, ["Dinner"])}</div>
-            {d.feedback?.length ? (
-              <div className="menu-meal">
-                <span className="meal-tag">Top rated</span>
-                {d.feedback[0].dish_name} ({Number(d.feedback[0].avg_rating ?? 0).toFixed(1)} / {d.feedback[0].response_count} votes)
-              </div>
-            ) : null}
+      {weeks.map((week) => (
+        <section key={week[0]?.cycleWeek} className="menu-week">
+          <div className="menu-week-head">
+            <div>
+              <span className="eyebrow">Week {week[0]?.cycleWeek}</span>
+              <h2>Days {week[0]?.cycleDay}-{week[week.length - 1]?.cycleDay}</h2>
+            </div>
+            <span>{week[0]?.date ? `${formatMenuDate(week[0].date)} - ${formatMenuDate(week[week.length - 1].date)}` : "28-day rotation"}</span>
           </div>
-        )) : active?.days.length ? active.days.map((d) => (
-          <div key={d.id} className="card menu-day">
-            <div className="cat-label">Day {d.day_number} - {d.weekday || weekdayFor(d.day_number - 1)}</div>
-            <div className="menu-meal"><span className="meal-tag">Breakfast</span> {list(d.breakfast)}</div>
-            <div className="menu-meal"><span className="meal-tag">Lunch</span> {list(d.lunch)}</div>
-            <div className="menu-meal"><span className="meal-tag">Dinner</span> {list(d.dinner)}</div>
+          <div className="menu-grid">
+            {week.map((day) => (
+              <article key={day.key} className={`menu-day ${day.cycleDay === todayCycleDay ? "is-today" : ""}`}>
+                <div className="menu-day-head">
+                  <div>
+                    <div className="cat-label">Day {day.cycleDay}</div>
+                    <h3>{day.weekday}</h3>
+                    {day.date && <span>{formatMenuDate(day.date)}</span>}
+                  </div>
+                  {day.cycleDay === todayCycleDay && <span className="pill ready">today</span>}
+                </div>
+                <MealList label="Breakfast" items={day.breakfast} />
+                <MealList label="Lunch" items={day.lunch} />
+                <MealList label="Dinner" items={day.dinner} />
+                {day.feedback?.length ? (
+                  <div className="menu-top-rated">
+                    <span>Top rated</span>
+                    <b>{day.feedback[0].dish_name}</b>
+                    <small>{Number(day.feedback[0].avg_rating ?? 0).toFixed(1)} rating / {day.feedback[0].response_count} votes</small>
+                  </div>
+                ) : null}
+              </article>
+            ))}
           </div>
-        )) : CYCLE.map(([lunch, lunchAlt, dinner, dinnerAlt], i) => (
-          <div key={i} className="card menu-day">
-            <div className="cat-label">Day {i + 1} - {weekdayFor(i)}</div>
-            <div className="menu-meal"><span className="meal-tag">Lunch</span> {lunch} <span className="muted">or</span> {lunchAlt}</div>
-            <div className="menu-meal"><span className="meal-tag">Dinner</span> {dinner} <span className="muted">or</span> {dinnerAlt}</div>
-          </div>
-        ))}
-      </div>
+        </section>
+      ))}
     </>
   );
 }

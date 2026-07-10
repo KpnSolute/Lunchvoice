@@ -235,7 +235,12 @@ select {
 .hero-meal { position: relative; padding: 13px 0; border-top: 1px solid var(--line); }
 .hero-meal .lbl { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--pop); }
 .hero-meal .val { font-family: var(--font-display); font-size: 21px; font-weight: 700; margin-top: 3px; letter-spacing: -0.01em; }
+.hero-date { position: relative; margin: -2px 0 14px; color: var(--muted); font-size: 13px; }
+.hero-meal-live { display: grid; gap: 8px; }
+.hero-menu-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+.today-mini-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .hero .btn { position: relative; margin-top: 18px; border-radius: var(--r-pill); }
+@media (max-width: 520px) { .today-mini-grid { grid-template-columns: 1fr; } }
 
 /* ---------- home quick tiles ---------- */
 .quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
@@ -586,11 +591,51 @@ select {
 .qr-card img { border: 1px solid var(--line); border-radius: var(--r-sm); background: #fff; }
 
 /* ---------- menu page ---------- */
-.menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
-.menu-day { padding: 16px 18px; margin-bottom: 0; }
-.menu-day .cat-label { margin-top: 0; }
-.menu-meal { font-size: 14px; padding: 5px 0; }
-.meal-tag { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-right: 8px; }
+.menu-staples, .menu-cycle-panel {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 18px; box-shadow: var(--shadow); margin-bottom: 16px;
+}
+.menu-staples { display: grid; gap: 12px; }
+.menu-staples h2 { margin: 4px 0 0; font-family: var(--font-display); font-size: 22px; }
+.staple-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.staple-chip {
+  display: inline-flex; align-items: center; min-height: 30px; padding: 6px 10px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); font-size: 13px; font-weight: 700;
+}
+.menu-week { margin: 18px 0 24px; }
+.menu-week-head {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 14px;
+  margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--line);
+}
+.menu-week-head h2 { margin: 4px 0 0; font-family: var(--font-display); font-size: 24px; }
+.menu-week-head > span { color: var(--muted); font-size: 13px; text-align: right; }
+.menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.menu-day {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 14px; box-shadow: var(--shadow); margin-bottom: 0; display: grid; gap: 12px;
+}
+.menu-day.is-today { border-color: var(--pop); box-shadow: 0 0 0 2px var(--ok-bg), var(--shadow); }
+.menu-day-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.menu-day-head .cat-label { margin: 0 0 4px; }
+.menu-day-head .cat-label::after { display: none; }
+.menu-day-head h3 { margin: 0; font-family: var(--font-display); font-size: 22px; line-height: 1.05; }
+.menu-day-head span { color: var(--muted); font-size: 12px; }
+.menu-meal-block { display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+.meal-tag { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.menu-item-list { margin: 0; padding-left: 18px; display: grid; gap: 5px; font-size: 14px; line-height: 1.35; }
+.menu-item-list.compact { font-size: 13px; gap: 4px; }
+.menu-empty { color: var(--muted); font-size: 13px; }
+.menu-top-rated {
+  display: grid; gap: 2px; background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 10px; font-size: 13px;
+}
+.menu-top-rated span { color: var(--muted); font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+.menu-top-rated small { color: var(--muted); }
+@media (max-width: 620px) {
+  .menu-week-head { align-items: flex-start; flex-direction: column; }
+  .menu-week-head > span { text-align: left; }
+  .menu-grid { grid-template-columns: 1fr; }
+}
 
 /* ---------- celebrate (points earned) ---------- */
 .celebrate { text-align: center; padding: 40px 20px; }

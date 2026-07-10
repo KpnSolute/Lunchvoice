@@ -1,25 +1,25 @@
 // send-email: Supabase Auth "Send Email" hook.
 //
 // Supabase generates the OTP/token and calls this function instead of sending
-// its own email. We deliver via AWS SES. The token stays inside Supabase Auth
-// so verifyOtp() and all RLS are unchanged.
+// its own email. We deliver via Azure Communication Services Email. The token
+// stays inside Supabase Auth so verifyOtp() and all RLS are unchanged.
 //
 // Secrets required:
-//   SEND_EMAIL_HOOK_SECRET  v1,whsec_... (from Supabase Auth hook config)
-//   AWS_REGION              us-east-1
-//   AWS_ACCESS_KEY_ID
-//   AWS_SECRET_ACCESS_KEY
-//   MAIL_FROM               noreply@lunchvoice.com
-//   MAIL_FROM_NAME          Lunch Voice
+//   SEND_EMAIL_HOOK_SECRET                  v1,whsec_... (from Supabase Auth hook config)
+//   ACS_ENDPOINT + ACS_ACCESS_KEY           Azure Communication Services endpoint/key
+//     or AZURE_COMMUNICATION_CONNECTION_STRING endpoint=https://...;accesskey=...
+//   MAIL_FROM or AZURE_EMAIL_SENDER         sender from the verified Azure email domain
+//   MAIL_FROM_NAME                          Lunch Voice
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 
 const hookSecret = (Deno.env.get("SEND_EMAIL_HOOK_SECRET") ?? "").replace("v1,whsec_", "");
-const awsRegion = Deno.env.get("AWS_REGION") ?? "us-east-1";
-const awsKeyId = Deno.env.get("AWS_ACCESS_KEY_ID") ?? "";
-const awsSecret = Deno.env.get("AWS_SECRET_ACCESS_KEY") ?? "";
-const fromEmail = Deno.env.get("MAIL_FROM") ?? "";
+const azureConnectionString = Deno.env.get("AZURE_COMMUNICATION_CONNECTION_STRING") ?? "";
+const acsEndpoint = Deno.env.get("ACS_ENDPOINT") ?? "";
+const acsAccessKey = Deno.env.get("ACS_ACCESS_KEY") ?? "";
+const azureSender = Deno.env.get("MAIL_FROM") ?? Deno.env.get("AZURE_EMAIL_SENDER") ?? "";
 const fromName = Deno.env.get("MAIL_FROM_NAME") ?? "Lunch Voice";
+const azureApiVersion = "2025-09-01";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -48,59 +48,83 @@ function codeEmail(code: string, action: string): { subject: string; html: strin
   return { subject, html, text };
 }
 
-// AWS Signature V4 - minimal implementation for SES SendEmail only.
-async function hmac(key: ArrayBuffer | Uint8Array, msg: string): Promise<ArrayBuffer> {
-  const k = await crypto.subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  return crypto.subtle.sign("HMAC", k, new TextEncoder().encode(msg));
+function azureCredentials(): { endpoint: URL; accessKey: string } | null {
+  if (acsEndpoint && acsAccessKey) {
+    try {
+      return { endpoint: new URL(acsEndpoint), accessKey: acsAccessKey };
+    } catch (_e) {
+      return null;
+    }
+  }
+
+  const parts = new Map(
+    azureConnectionString
+      .split(";")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => {
+        const idx = part.indexOf("=");
+        return idx === -1 ? ["", ""] : [part.slice(0, idx).toLowerCase(), part.slice(idx + 1)];
+      }),
+  );
+
+  const endpoint = parts.get("endpoint");
+  const accessKey = parts.get("accesskey");
+  if (!endpoint || !accessKey) return null;
+
+  try {
+    return { endpoint: new URL(endpoint), accessKey };
+  } catch (_e) {
+    return null;
+  }
 }
 
-async function sha256hex(data: string): Promise<string> {
+function base64(bytes: ArrayBuffer | Uint8Array): string {
+  const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  let binary = "";
+  for (const byte of data) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+async function sha256base64(data: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(data));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return base64(buf);
 }
 
-async function sigV4(method: string, path: string, body: string): Promise<Record<string, string>> {
-  const now = new Date();
-  const datestamp = now.toISOString().slice(0, 10).replace(/-/g, "");
-  const amzdate = now.toISOString().replace(/[:\-]|\.\d{3}/g, "").slice(0, 15) + "Z";
-  const service = "ses";
-  const host = `email.${awsRegion}.amazonaws.com`;
-  const contentType = "application/json";
-  const payloadHash = await sha256hex(body);
+async function hmacBase64(base64Key: string, msg: string): Promise<string> {
+  const rawKey = Uint8Array.from(atob(base64Key), (c) => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey("raw", rawKey, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
+  return base64(signature);
+}
 
-  const canonicalHeaders =
-    `content-type:${contentType}\nhost:${host}\nx-amz-date:${amzdate}\n`;
-  const signedHeaders = "content-type;host;x-amz-date";
-  const canonicalRequest = [method, path, "", canonicalHeaders, signedHeaders, payloadHash].join("\n");
-
-  const credScope = `${datestamp}/${awsRegion}/${service}/aws4_request`;
-  const stringToSign = ["AWS4-HMAC-SHA256", amzdate, credScope, await sha256hex(canonicalRequest)].join("\n");
-
-  const enc = new TextEncoder();
-  const kDate = await hmac(enc.encode("AWS4" + awsSecret), datestamp);
-  const kRegion = await hmac(kDate, awsRegion);
-  const kService = await hmac(kRegion, service);
-  const kSigning = await hmac(kService, "aws4_request");
-  const sigBuf = await hmac(kSigning, stringToSign);
-  const signature = Array.from(new Uint8Array(sigBuf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+async function azureHeaders(endpoint: URL, pathAndQuery: string, body: string, accessKey: string): Promise<Record<string, string>> {
+  const date = new Date().toUTCString();
+  const host = endpoint.host;
+  const contentHash = await sha256base64(body);
+  const stringToSign = `POST\n${pathAndQuery}\n${date};${host};${contentHash}`;
+  const signature = await hmacBase64(accessKey, stringToSign);
 
   return {
-    "Content-Type": contentType,
-    "X-Amz-Date": amzdate,
-    Authorization: `AWS4-HMAC-SHA256 Credential=${awsKeyId}/${credScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
+    "Content-Type": "application/json",
+    "x-ms-date": date,
+    "x-ms-content-sha256": contentHash,
+    Authorization: `HMAC-SHA256 SignedHeaders=x-ms-date;host;x-ms-content-sha256&Signature=${signature}`,
   };
 }
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("not allowed", { status: 405 });
 
-  if (!hookSecret || !awsKeyId || !awsSecret || !fromEmail) {
+  const azure = azureCredentials();
+  if (!hookSecret || !azure || !azureSender) {
     console.error(JSON.stringify({
       event: "send_email_missing_config",
       hasHookSecret: Boolean(hookSecret),
-      hasAwsKey: Boolean(awsKeyId),
-      hasAwsSecret: Boolean(awsSecret),
-      hasFromEmail: Boolean(fromEmail),
+      hasAcsEndpoint: Boolean(acsEndpoint),
+      hasAcsAccessKey: Boolean(acsAccessKey),
+      hasAzureConnectionString: Boolean(azureConnectionString),
+      hasSender: Boolean(azureSender),
     }));
     return errorJson("Email service is not configured", 500);
   }
@@ -132,33 +156,35 @@ Deno.serve(async (req) => {
 
   const { subject, html, text } = codeEmail(email_data.token, email_data.email_action_type);
 
-  const sesPath = "/v2/email/outbound-emails";
-  const sesBody = JSON.stringify({
-    FromEmailAddress: `${fromName} <${fromEmail}>`,
-    Destination: { ToAddresses: [user.email] },
-    Content: {
-      Simple: {
-        Subject: { Data: subject, Charset: "UTF-8" },
-        Body: {
-          Html: { Data: html, Charset: "UTF-8" },
-          Text: { Data: text, Charset: "UTF-8" },
-        },
-      },
+  const pathAndQuery = `/emails:send?api-version=${azureApiVersion}`;
+  const emailBody = JSON.stringify({
+    senderAddress: azureSender,
+    content: {
+      subject,
+      plainText: text,
+      html,
     },
+    recipients: {
+      to: [{ address: user.email }],
+    },
+    headers: {
+      "x-lunch-voice-provider": "azure-communication-services",
+    },
+    replyTo: [{ address: azureSender, displayName: fromName }],
   });
 
   try {
-    const sigHeaders = await sigV4("POST", sesPath, sesBody);
-    const res = await fetch(`https://email.${awsRegion}.amazonaws.com${sesPath}`, {
+    const signedHeaders = await azureHeaders(azure.endpoint, pathAndQuery, emailBody, azure.accessKey);
+    const res = await fetch(new URL(pathAndQuery, azure.endpoint).toString(), {
       method: "POST",
-      headers: sigHeaders,
-      body: sesBody,
+      headers: signedHeaders,
+      body: emailBody,
     });
 
     if (!res.ok) {
       const detail = await res.text();
       console.error(JSON.stringify({
-        event: "ses_send_failed",
+        event: "azure_email_send_failed",
         status: res.status,
         detail: detail.slice(0, 2000),
       }));
@@ -166,7 +192,7 @@ Deno.serve(async (req) => {
     }
   } catch (e) {
     console.error(JSON.stringify({
-      event: "ses_send_error",
+      event: "azure_email_send_error",
       message: e instanceof Error ? e.message : String(e),
     }));
     return errorJson("Email provider request failed", 500);

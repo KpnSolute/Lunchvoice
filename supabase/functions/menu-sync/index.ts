@@ -132,7 +132,7 @@ async function syncMenu(orgSlug: string) {
   if (!cycle) {
     const { data: created, error: createErr } = await v2
       .from("menu_cycles")
-      .insert({ title: "MJCCv1 28-day cycle menu", is_active: true, org_id: orgId })
+      .insert({ title: "MJCCv1 28-day cycle menu", is_active: true, starts_on: publicCycle.anchor_date, org_id: orgId })
       .select("id")
       .single();
     if (createErr) throw new Error(`menu_cycles insert failed: ${createErr.message}`);
@@ -155,7 +155,7 @@ async function syncMenu(orgSlug: string) {
   const syncedAt = new Date().toISOString();
   const { error: stampErr } = await v2
     .from("menu_cycles")
-    .update({ version_label: `MJCC public API sync ${publicCycle.anchor_date}`, updated_at: syncedAt })
+    .update({ starts_on: publicCycle.anchor_date, version_label: `MJCC public API sync ${publicCycle.anchor_date}`, updated_at: syncedAt })
     .eq("id", cycle.id);
   if (stampErr) throw new Error(`menu_cycles sync stamp failed: ${stampErr.message}`);
 

@@ -5,8 +5,7 @@ import { useOrg } from "../../org/OrgProvider";
 import { QRCard } from "../../components/QRCard";
 import { Icon } from "../../components/Icon";
 import { Bars, DistributionColumns, TrendLine, dailyTrend, shortDay } from "../../components/charts";
-import { CYCLE, STAPLES, WEEKDAYS, weekdayFor } from "../../lib/menu";
-import { parseMenuWorkbook, type ParsedMenuWorkbookDay } from "../../lib/menuWorkbook";
+import { displayDaysFromCycle, formatMenuDate, groupMenuWeeks, type DisplayMenuDay } from "../../lib/menuDisplay";
 import type { MenuCycle, MenuCycleDay, Session, SurveyQuestion, SurveyTemplate } from "../../types/db";
 
 type Tab = "surveys" | "menu" | "launch" | "results";
@@ -19,6 +18,40 @@ type AnswerRow = {
   survey_questions?: { prompt: string; type: string } | null;
   responses?: { id: string; session_id: string; submitted_at: string } | null;
 };
+type ResponseRow = { id: string; session_id: string; submitted_at: string };
+
+function StaffMealList({ label, items }: { label: string; items: string[] }) {
+  return (
+    <div className="menu-meal-block">
+      <div className="meal-tag">{label}</div>
+      {items.length ? (
+        <ul className="menu-item-list compact">
+          {items.map((item, index) => <li key={`${label}-${index}`}>{item}</li>)}
+        </ul>
+      ) : (
+        <div className="menu-empty">Not scheduled</div>
+      )}
+    </div>
+  );
+}
+
+function StaffMenuDayCard({ day, isToday }: { day: DisplayMenuDay; isToday: boolean }) {
+  return (
+    <article className={`menu-day ${isToday ? "is-today" : ""}`}>
+      <div className="menu-day-head">
+        <div>
+          <div className="cat-label">Day {day.cycleDay}</div>
+          <h3>{day.weekday}</h3>
+          {day.date && <span>{formatMenuDate(day.date)}</span>}
+        </div>
+        {isToday && <span className="pill ready">today</span>}
+      </div>
+      <StaffMealList label="Breakfast" items={day.breakfast} />
+      <StaffMealList label="Lunch" items={day.lunch} />
+      <StaffMealList label="Dinner" items={day.dinner} />
+    </article>
+  );
+}
 
 const DINING_VOICE_QUESTIONS = [
   { type: "rating", prompt: "Overall, how satisfied are you with the dining hall?", required: true, category: "Satisfaction", help_text: "1 poor, 5 great" },
@@ -136,6 +169,7 @@ export function ContentCentral() {
   const [templates, setTemplates] = useState<TemplateWithQuestions[]>([]);
   const [cycles, setCycles] = useState<(MenuCycle & { days: MenuCycleDay[] })[]>([]);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [responses, setResponses] = useState<ResponseRow[]>([]);
   const [answers, setAnswers] = useState<AnswerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -155,14 +189,6 @@ export function ContentCentral() {
   const [qHelp, setQHelp] = useState("");
   const [qCategory, setQCategory] = useState("");
 
-  const [cycleTitle, setCycleTitle] = useState("MJCC 28-day cycle");
-  const [cycleVersion, setCycleVersion] = useState(new Date().toLocaleDateString());
-  const [cyclePaste, setCyclePaste] = useState("");
-  const [cycleFileName, setCycleFileName] = useState("");
-  const [cycleFileDays, setCycleFileDays] = useState<ParsedMenuWorkbookDay[]>([]);
-  const [cycleFileBusy, setCycleFileBusy] = useState(false);
-  const [menuSyncing, setMenuSyncing] = useState(false);
-
   const [launchTitle, setLaunchTitle] = useState("");
   const [launchTemplateId, setLaunchTemplateId] = useState("");
   const [launchCycleId, setLaunchCycleId] = useState("");
@@ -175,7 +201,7 @@ export function ContentCentral() {
 
   async function load() {
     setLoading(true);
-    const [templateRes, questionRes, cycleRes, dayRes, sessionRes, answerRes] = await Promise.all([
+    const [templateRes, questionRes, cycleRes, dayRes, sessionRes, responseRes, answerRes] = await Promise.all([
       supabase.from("survey_templates").select("*").order("updated_at", { ascending: false }),
       supabase.from("survey_questions").select("*").order("position"),
       supabase.from("menu_cycles").select("*").order("updated_at", { ascending: false }),
@@ -186,19 +212,26 @@ export function ContentCentral() {
         .order("created_at", { ascending: false })
         .limit(30),
       supabase
+        .from("responses")
+        .select("id, session_id, submitted_at")
+        .order("submitted_at", { ascending: false })
+        .limit(1000),
+      supabase
         .from("survey_answers")
         .select("id, value, question_id, survey_questions(prompt, type), responses(id, session_id, submitted_at)")
         .order("created_at", { ascending: false })
         .limit(250),
     ]);
 
-    if (templateRes.error || questionRes.error || cycleRes.error || dayRes.error || sessionRes.error) {
+    if (templateRes.error || questionRes.error || cycleRes.error || dayRes.error || sessionRes.error || responseRes.error || answerRes.error) {
       setErr(
         templateRes.error?.message ||
           questionRes.error?.message ||
           cycleRes.error?.message ||
           dayRes.error?.message ||
           sessionRes.error?.message ||
+          responseRes.error?.message ||
+          answerRes.error?.message ||
           "Could not load Content Central."
       );
     }
@@ -218,6 +251,7 @@ export function ContentCentral() {
       }))
     );
     setSessions((sessionRes.data ?? []) as unknown as SessionRow[]);
+    setResponses((responseRes.data ?? []) as unknown as ResponseRow[]);
     setAnswers((answerRes.data ?? []) as unknown as AnswerRow[]);
     setLoading(false);
   }
@@ -245,22 +279,19 @@ export function ContentCentral() {
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
   const publishedTemplates = templates.filter((t) => t.status === "published");
   const activeCycle = cycles.find((c) => c.is_active);
+  const activeCycleDisplayDays = activeCycle ? displayDaysFromCycle(activeCycle) : [];
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const activeCycleToday = activeCycleDisplayDays.find((day) => day.date === todayIso);
   const activeSessions = sessions.filter(isSessionOpen);
   const draftTemplates = templates.filter((t) => t.status !== "published");
-  const menuPasteLineCount = cyclePaste.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).length;
   const sessionTemplateById = useMemo(() => new Map(sessions.map((s) => [s.id, s.template_id])), [sessions]);
   const sessionResponseCounts = useMemo(() => {
-    const map = new Map<string, Set<string>>();
-    for (const a of answers) {
-      const sessionId = a.responses?.session_id;
-      const responseId = a.responses?.id;
-      if (!sessionId || !responseId) continue;
-      const set = map.get(sessionId) ?? new Set<string>();
-      set.add(responseId);
-      map.set(sessionId, set);
+    const map = new Map<string, number>();
+    for (const response of responses) {
+      map.set(response.session_id, (map.get(response.session_id) ?? 0) + 1);
     }
-    return new Map(Array.from(map.entries()).map(([id, set]) => [id, set.size]));
-  }, [answers]);
+    return map;
+  }, [responses]);
   const filteredAnswers = useMemo(() => {
     return answers.filter((a) => {
       const sessionId = a.responses?.session_id ?? "";
@@ -448,160 +479,6 @@ export function ContentCentral() {
 
   async function deleteQuestion(id: string) {
     const { error } = await supabase.from("survey_questions").delete().eq("id", id);
-    if (error) setErr(error.message);
-    else await load();
-  }
-
-  async function importStaticMenu() {
-    setErr("");
-    setOk("");
-    const { data, error } = await supabase
-      .from("menu_cycles")
-      .insert({ title: cycleTitle.trim(), version_label: cycleVersion.trim() || null, is_active: true, created_by: profile?.id, org_id: org.id })
-      .select()
-      .single();
-    if (error) return setErr(error.message);
-    const breakfast = STAPLES.map((s) => s.name);
-    const rows = CYCLE.map(([lunch, lunchAlt, dinner, dinnerAlt], i) => ({
-      cycle_id: data.id,
-      day_number: i + 1,
-      weekday: weekdayFor(i),
-      breakfast,
-      lunch: [lunch, lunchAlt].filter(Boolean),
-      dinner: [dinner, dinnerAlt].filter(Boolean),
-      org_id: org.id,
-    }));
-    const { error: dayErr } = await supabase.from("menu_cycle_days").insert(rows);
-    if (dayErr) return setErr(dayErr.message);
-    setLaunchCycleId(data.id);
-    setOk("Current 28-day menu was imported and activated.");
-    await load();
-  }
-
-  async function syncMJCCMenu() {
-    const confirmed = window.confirm(
-      "Sync the active menu cycle from MJCCv1 now? This updates the menu cards students see."
-    );
-    if (!confirmed) return;
-    setErr("");
-    setOk("");
-    setMenuSyncing(true);
-    const { data, error } = await supabase.functions.invoke("menu-sync", {
-      body: { action: "sync-menu", org: org.slug },
-    });
-    setMenuSyncing(false);
-    if (error) return setErr(error.message);
-    const synced = typeof data === "object" && data && "days_synced" in data ? String(data.days_synced) : "28";
-    setOk(`MJCCv1 menu synced. ${synced} menu days are now feeding Lunch Voice cards.`);
-    await load();
-  }
-
-  async function importPastedMenu() {
-    setErr("");
-    setOk("");
-    const lines = cyclePaste.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-    if (lines.length !== 28) {
-      setErr("Paste exactly 28 lines: Day 1 | breakfast items | lunch items | dinner items");
-      return;
-    }
-    const { data, error } = await supabase
-      .from("menu_cycles")
-      .insert({ title: cycleTitle.trim(), version_label: cycleVersion.trim() || null, is_active: false, created_by: profile?.id, org_id: org.id })
-      .select()
-      .single();
-    if (error) return setErr(error.message);
-    const rows = lines.map((line, i) => {
-      const parts = line.split("|").map((p) => p.trim());
-      return {
-        cycle_id: data.id,
-        day_number: i + 1,
-        weekday: WEEKDAYS[i % 7],
-        breakfast: listFromText(parts[1] ?? ""),
-        lunch: listFromText(parts[2] ?? ""),
-        dinner: listFromText(parts[3] ?? ""),
-        notes: parts[4] || null,
-        org_id: org.id,
-      };
-    });
-    const { error: dayErr } = await supabase.from("menu_cycle_days").insert(rows);
-    if (dayErr) return setErr(dayErr.message);
-    setCyclePaste("");
-    setOk("Menu cycle imported. Review it, then activate when ready.");
-    await load();
-  }
-
-  async function previewMenuWorkbook(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    setErr("");
-    setOk("");
-    setCycleFileDays([]);
-    setCycleFileName("");
-    if (!file) return;
-
-    setCycleFileBusy(true);
-    try {
-      const days = await parseMenuWorkbook(file);
-      setCycleFileDays(days);
-      setCycleFileName(file.name);
-      if (!cycleTitle.trim() || cycleTitle === "MJCC 28-day cycle") {
-        setCycleTitle(file.name.replace(/\.[^.]+$/, ""));
-      }
-      setOk(`Read ${days.length} days from ${file.name}. Review the preview, then upload.`);
-    } catch (error) {
-      setErr(error instanceof Error ? error.message : "Could not read that workbook.");
-    } finally {
-      setCycleFileBusy(false);
-    }
-  }
-
-  async function importWorkbookMenu() {
-    setErr("");
-    setOk("");
-    if (cycleFileDays.length !== 28) {
-      setErr("Choose a workbook that previews all 28 menu days first.");
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("menu_cycles")
-      .insert({
-        title: cycleTitle.trim() || cycleFileName.replace(/\.[^.]+$/, "") || "Imported 28-day cycle",
-        version_label: cycleVersion.trim() || cycleFileName || null,
-        is_active: false,
-        created_by: profile?.id,
-        org_id: org.id,
-      })
-      .select()
-      .single();
-    if (error) return setErr(error.message);
-
-    const rows = cycleFileDays.map((day) => ({
-      cycle_id: data.id,
-      day_number: day.day_number,
-      weekday: day.weekday,
-      breakfast: day.breakfast,
-      lunch: day.lunch,
-      dinner: day.dinner,
-      notes: day.notes,
-      org_id: org.id,
-    }));
-    const { error: dayErr } = await supabase.from("menu_cycle_days").insert(rows);
-    if (dayErr) {
-      await supabase.from("menu_cycles").delete().eq("id", data.id);
-      return setErr(dayErr.message);
-    }
-
-    setLaunchCycleId(data.id);
-    setCycleFileDays([]);
-    setCycleFileName("");
-    setOk("Workbook menu cycle imported as a draft. Review it, then activate when ready.");
-    await load();
-  }
-
-  async function activateCycle(c: MenuCycle) {
-    setErr("");
-    await supabase.from("menu_cycles").update({ is_active: false }).neq("id", c.id);
-    const { error } = await supabase.from("menu_cycles").update({ is_active: !c.is_active }).eq("id", c.id);
     if (error) setErr(error.message);
     else await load();
   }
@@ -873,76 +750,69 @@ export function ContentCentral() {
       {tab === "menu" && (
         <>
           <div className="card">
-            <h2>Upload 28-day cycle</h2>
-            <p className="hint">MJCCv1 is the source of truth. Sync it first, then use workbook or paste import only for corrections and drafts.</p>
-            <div className="sync-banner">
+            <h2>Menu stream</h2>
+            <p className="hint">LionCafe menus are fed from MJCCv1 in the background. Staff can review what students see, but menu edits stay in the source system.</p>
+            <div className="manager-grid" style={{ marginTop: 12 }}>
+              <div className="metric-tile">
+                <div className="num">{activeCycle ? "Live" : "-"}</div>
+                <div className="lbl">MJCCv1 feed</div>
+              </div>
+              <div className="metric-tile">
+                <div className="num">{activeCycle?.days.length ?? 0}/28</div>
+                <div className="lbl">Cycle days</div>
+              </div>
+              <div className="metric-tile">
+                <div className="num">{cycles.length}</div>
+                <div className="lbl">Stored cycles</div>
+              </div>
+            </div>
+            <div className="sync-banner" style={{ marginTop: 14 }}>
               <div>
-                <b>Live MJCCv1 menu feed</b>
-                <span>{activeCycle ? `${activeCycle.title} - ${activeCycle.days.length}/28 days loaded` : "No active menu cycle loaded yet"}</span>
+                <b>{activeCycle ? activeCycle.title : "No active LionCafe menu feed"}</b>
+                <span>
+                  {activeCycle
+                    ? `${activeCycle.version_label || "Synced from MJCCv1"} - ${activeCycle.days.length}/28 days available`
+                    : "The background menu bridge has not populated an active cycle yet."}
+                </span>
               </div>
-              <button className="btn btn-primary" onClick={syncMJCCMenu} disabled={menuSyncing}>
-                <Icon name="arrow" size={16} /> {menuSyncing ? "Syncing..." : "Sync from MJCCv1"}
-              </button>
+              <span className={`pill ${activeCycle ? "ready" : "collected"}`}>{activeCycle ? "connected" : "waiting"}</span>
             </div>
-            <div className="row2">
-              <div className="field-block">
-                <label className="field">Cycle title</label>
-                <input value={cycleTitle} onChange={(e) => setCycleTitle(e.target.value)} placeholder="Cycle title" />
-              </div>
-              <div className="field-block">
-                <label className="field">Version label</label>
-                <input value={cycleVersion} onChange={(e) => setCycleVersion(e.target.value)} placeholder="Version label" />
-              </div>
-            </div>
-            <button className="btn btn-primary" onClick={importStaticMenu}><Icon name="menu" size={16} /> Import current app menu</button>
-            <div className="field-block" style={{ marginTop: 14 }}>
-              <label className="field">Excel workbook</label>
-              <input type="file" accept=".xlsx,.xlsm" onChange={previewMenuWorkbook} disabled={cycleFileBusy} />
-              <div className="input-help">
-                <span>{cycleFileName || "Use the cafeteria workbook with a 28 Day Menu sheet."}</span>
-                <b>{cycleFileBusy ? "Reading..." : `${cycleFileDays.length}/28 days`}</b>
-              </div>
-            </div>
-            {cycleFileDays.length > 0 && (
-              <div className="menu-import-preview">
-                {cycleFileDays.slice(0, 4).map((day) => (
-                  <div key={day.day_number} className="menu-import-day">
-                    <b>Day {day.day_number} - {day.weekday}</b>
-                    <span>Lunch: {asTextList(day.lunch.slice(0, 3))}</span>
-                    <span>Dinner: {asTextList(day.dinner.slice(0, 3))}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            <button className="btn btn-solid btn-block" style={{ marginTop: 10 }} onClick={importWorkbookMenu} disabled={cycleFileDays.length !== 28 || cycleFileBusy}>
-              <Icon name="arrow" size={16} /> Upload workbook cycle
-            </button>
-            <textarea rows={8} style={{ marginTop: 12 }} value={cyclePaste} onChange={(e) => setCyclePaste(e.target.value)} placeholder="Day 1 | Eggs, oatmeal | Char Sui Pork, Chef's Choice | Tuna Casserole, Pasta Shell" />
-            <div className="input-help"><span>Paste one line per day with sections separated by pipes.</span><b>{menuPasteLineCount}/28 lines</b></div>
-            <button className="btn btn-solid btn-block" style={{ marginTop: 10 }} onClick={importPastedMenu}><Icon name="arrow" size={16} /> Upload pasted cycle</button>
           </div>
 
-          {cycles.length === 0 && <div className="card"><h2>No menu cycle loaded</h2><p className="hint">Import the current app menu first so launched surveys can point at real menu days.</p></div>}
-          {cycles.map((c) => (
-            <div key={c.id} className="card">
-              <div className="spread">
-                <div>
-                  <h2>{c.title} <span className={`pill ${c.is_active ? "ready" : "collected"}`}>{c.is_active ? "active" : "draft"}</span></h2>
-                  <p className="hint" style={{ margin: 0 }}>{c.version_label || "No version"} - {c.days.length}/28 days loaded</p>
+          {cycles.length === 0 && <div className="card"><h2>No menu data yet</h2><p className="hint">The background bridge has not produced a LionCafe cycle in MJCCv2 yet.</p></div>}
+          {cycles.map((c) => {
+            const displayDays = displayDaysFromCycle(c);
+            const weeks = groupMenuWeeks(displayDays);
+            const cycleToday = c.id === activeCycle?.id ? activeCycleToday : undefined;
+            return (
+              <section key={c.id} className="menu-cycle-panel">
+                <div className="spread">
+                  <div>
+                    <h2>{c.title} <span className={`pill ${c.is_active ? "ready" : "collected"}`}>{c.is_active ? "active" : "draft"}</span></h2>
+                    <p className="hint" style={{ margin: 0 }}>
+                      {c.version_label || "No version"} - {c.days.length}/28 days loaded{c.starts_on ? ` - anchored ${formatMenuDate(c.starts_on)}` : ""}
+                    </p>
+                  </div>
                 </div>
-                <button className="btn btn-solid" onClick={() => activateCycle(c)}>{c.is_active ? "Deactivate" : "Activate"}</button>
-              </div>
-              <div className="menu-grid" style={{ marginTop: 12 }}>
-                {c.days.slice(0, 6).map((d) => (
-                  <div key={d.id} className="menu-day card">
-                    <div className="cat-label">Day {d.day_number} - {d.weekday}</div>
-                    <div className="menu-meal"><span className="meal-tag">Lunch</span>{asTextList(d.lunch)}</div>
-                    <div className="menu-meal"><span className="meal-tag">Dinner</span>{asTextList(d.dinner)}</div>
+                {weeks.map((week) => (
+                  <div key={`${c.id}-${week[0]?.cycleWeek}`} className="menu-week">
+                    <div className="menu-week-head">
+                      <div>
+                        <span className="eyebrow">Week {week[0]?.cycleWeek}</span>
+                        <h2>Days {week[0]?.cycleDay}-{week[week.length - 1]?.cycleDay}</h2>
+                      </div>
+                      <span>{week[0]?.date ? `${formatMenuDate(week[0].date)} - ${formatMenuDate(week[week.length - 1].date)}` : "28-day rotation"}</span>
+                    </div>
+                    <div className="menu-grid">
+                      {week.map((day) => (
+                        <StaffMenuDayCard key={day.key} day={day} isToday={day.cycleDay === cycleToday?.cycleDay} />
+                      ))}
+                    </div>
                   </div>
                 ))}
-              </div>
-            </div>
-          ))}
+              </section>
+            );
+          })}
         </>
       )}
 

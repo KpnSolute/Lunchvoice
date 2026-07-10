@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Readiness check for the SES-backed send-email hook. Prints pass/fail per
-// requirement, never secret values. Safe to run anytime.
+// Readiness check for the Azure Communication Services-backed send-email hook.
+// Prints pass/fail per requirement, never secret values. Safe to run anytime.
 //
 //   npm run check:email
 
@@ -9,14 +9,29 @@ import { readFileSync } from "node:fs";
 
 const REQUIRED_SECRETS = [
   "SEND_EMAIL_HOOK_SECRET",
-  "AWS_REGION",
-  "AWS_ACCESS_KEY_ID",
-  "AWS_SECRET_ACCESS_KEY",
-  "MAIL_FROM",
   "MAIL_FROM_NAME",
 ];
 
-const REMOVED_SECRETS = ["MAILERSEND_API_KEY"];
+const REQUIRED_SECRET_GROUPS = [
+  {
+    label: "Azure Communication Services credentials",
+    anyOf: [
+      ["ACS_ENDPOINT", "ACS_ACCESS_KEY"],
+      ["AZURE_COMMUNICATION_CONNECTION_STRING"],
+    ],
+  },
+  {
+    label: "Azure sender address",
+    anyOf: [["MAIL_FROM"], ["AZURE_EMAIL_SENDER"]],
+  },
+];
+
+const REMOVED_SECRETS = [
+  "AWS_REGION",
+  "AWS_ACCESS_KEY_ID",
+  "AWS_SECRET_ACCESS_KEY",
+  "MAILERSEND_API_KEY",
+];
 
 let ok = true;
 const pass = (msg) => console.log(`  PASS  ${msg}`);
@@ -56,6 +71,15 @@ try {
 if (secretNames) {
   for (const name of REQUIRED_SECRETS) {
     secretNames.includes(name) ? pass(`${name} present`) : fail(`${name} missing`);
+  }
+
+  for (const group of REQUIRED_SECRET_GROUPS) {
+    const found = group.anyOf.find((names) => names.every((name) => secretNames.includes(name)));
+    if (found) {
+      pass(`${group.label} present (${found.join(" + ")})`);
+    } else {
+      fail(`${group.label} missing (${group.anyOf.map((names) => names.join(" + ")).join(" or ")})`);
+    }
   }
 
   for (const name of REMOVED_SECRETS) {

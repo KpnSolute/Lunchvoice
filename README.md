@@ -64,20 +64,21 @@ supabase secrets set \
 ```
 
 The `send-email` function delivers OTP codes through Supabase's Send Email
-hook, using AWS SES as the mail provider. Deploy it with JWT verification
-disabled because Supabase Auth signs the webhook payload instead of sending a
-user JWT.
+hook, using Azure Communication Services Email as the mail provider. Deploy it
+with JWT verification disabled because Supabase Auth signs the webhook payload
+instead of sending a user JWT.
 
 ```bash
 supabase secrets set \
   SEND_EMAIL_HOOK_SECRET='v1,whsec_...' \
-  AWS_REGION='us-east-1' \
-  AWS_ACCESS_KEY_ID='...' \
-  AWS_SECRET_ACCESS_KEY='...' \
-  MAIL_FROM='noreply@lunchvoice.com' \
+  ACS_ENDPOINT='https://...communication.azure.com' \
+  ACS_ACCESS_KEY='...' \
+  MAIL_FROM='DoNotReply@...azurecomm.net' \
   MAIL_FROM_NAME='Lunch Voice' \
   --project-ref qprfonxvthmaoxfixigk
 
+supabase secrets unset AWS_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY \
+  --project-ref qprfonxvthmaoxfixigk
 supabase secrets unset MAILERSEND_API_KEY --project-ref qprfonxvthmaoxfixigk
 supabase functions deploy send-email --no-verify-jwt --project-ref qprfonxvthmaoxfixigk
 ```
@@ -89,35 +90,29 @@ values:
 npm run check:email
 ```
 
-#### SES sandbox vs. production access
+#### Azure Communication Services Email
 
-A freshly verified SES domain starts in the sandbox: you can only send to
-addresses/domains that are also verified in SES, and there is a low daily send
-quota. Student emails are arbitrary personal addresses, so login codes will
-fail to send until AWS grants production access. Until then, do one of:
+The Azure Communication Services resource must be connected to an Email
+Communication Services domain, and `MAIL_FROM` must be a sender address from
+that verified Azure domain or custom domain. `ACS_ENDPOINT` and
+`ACS_ACCESS_KEY` come from the Communication Services resource's Keys page.
 
-- Verify individual test recipient addresses in the SES console so you can
-  send OTP codes to those addresses only.
-- Request production access from the SES console. AWS typically reviews this in
-  a few hours to a couple of days.
+If Azure rejects a message, `send-email` logs `azure_email_send_failed`. If the
+request cannot reach Azure or signing fails, it logs `azure_email_send_error`.
 
-If SES rejects a message, `send-email` logs `ses_send_failed`. If the request
-cannot reach SES or signing fails, it logs `ses_send_error`.
+#### Once Azure credentials exist
 
-#### Once IAM keys exist
-
-1. Set the two AWS secrets. The rest of the SES hook secrets are configured
-   separately.
+1. Set the Azure email secrets.
    ```bash
    supabase secrets set \
-     AWS_ACCESS_KEY_ID='...' \
-     AWS_SECRET_ACCESS_KEY='...' \
+     ACS_ENDPOINT='https://...communication.azure.com' \
+     ACS_ACCESS_KEY='...' \
+     MAIL_FROM='DoNotReply@...azurecomm.net' \
      --project-ref qprfonxvthmaoxfixigk
    ```
 2. Run `npm run check:email` and confirm every check passes.
 3. Redeploy with `npm run deploy:functions`.
-4. Trigger a test sign-in to a SES-verified recipient while sandboxed. After
-   AWS grants production access, test a real LionCafe student email.
+4. Trigger a test sign-in and confirm a real LionCafe student OTP is delivered.
 
 ## Database
 
