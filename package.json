@@ -1,7 +1,7 @@
 {
   "name": "lunch-line-survey",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.0.1",
   "type": "module",
   "engines": {
     "node": ">=22.12.0"
@@ -9,6 +9,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "check:brain": "node scripts/check-agent-brain.mjs",
+    "check:release": "node scripts/release-policy.mjs check",
+    "test:light": "npm run check:brain && npm run build",
+    "test:heavy": "npm run test:light && npm audit --audit-level=high",
     "preview": "vite preview",
     "postinstall": "git config core.hooksPath .githooks || true",
     "deploy:functions": "supabase functions deploy --project-ref qprfonxvthmaoxfixigk",

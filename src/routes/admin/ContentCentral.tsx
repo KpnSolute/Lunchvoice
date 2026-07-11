@@ -20,6 +20,34 @@ type AnswerRow = {
 };
 type ResponseRow = { id: string; session_id: string; submitted_at: string };
 
+const CONTENT_TOUR_STEPS: { title: string; body: string; tab: Tab }[] = [
+  {
+    title: "Welcome to Content Central",
+    body: "This is where staff build surveys, connect them to menu days, launch QR sessions, and review student feedback. This guide appears once for your staff account.",
+    tab: "surveys",
+  },
+  {
+    title: "1. Create a survey template",
+    body: "Start with a blank template and give it a clear title, purpose, and point reward. For a faster start, choose the prebuilt Dining Voice template.",
+    tab: "surveys",
+  },
+  {
+    title: "2. Add the questions",
+    body: "Select your template in Question editor. Add a ready-made question pack or create rating, choice, slider, yes/no, and open-text questions. Keep required questions focused.",
+    tab: "surveys",
+  },
+  {
+    title: "3. Publish and launch",
+    body: "Publish the finished template, open Launch, connect the menu cycle/day, choose points and duration, then create the QR code and join code students will use.",
+    tab: "launch",
+  },
+  {
+    title: "4. Read and act on results",
+    body: "Results update as students respond. Filter by session or template, compare ratings and comments, then use the findings to improve the next meal or survey.",
+    tab: "results",
+  },
+];
+
 function StaffMealList({ label, items }: { label: string; items: string[] }) {
   return (
     <div className="menu-meal-block">
@@ -116,11 +144,16 @@ function asTextList(value: unknown): string {
 }
 
 const SESSION_DURATION_OPTIONS = [
+  { label: "15 minutes", minutes: 15 },
   { label: "30 minutes", minutes: 30 },
   { label: "1 hour", minutes: 60 },
   { label: "2 hours", minutes: 120 },
-  { label: "Lunch period", minutes: 180 },
-  { label: "All day", minutes: 720 },
+  { label: "3 hours", minutes: 180 },
+  { label: "6 hours", minutes: 360 },
+  { label: "12 hours", minutes: 720 },
+  { label: "1 day", minutes: 1440 },
+  { label: "2 days", minutes: 2880 },
+  { label: "1 week", minutes: 10080 },
   { label: "No auto-lock", minutes: 0 },
 ];
 
@@ -175,8 +208,10 @@ export function ContentCentral() {
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
   const [showQr, setShowQr] = useState<string | null>(null);
+  const [sessionDurationDrafts, setSessionDurationDrafts] = useState<Record<string, number>>({});
   const [resultSessionId, setResultSessionId] = useState("");
   const [resultTemplateId, setResultTemplateId] = useState("");
+  const [tourStep, setTourStep] = useState<number | null>(null);
 
   const [templateTitle, setTemplateTitle] = useState("");
   const [templateDescription, setTemplateDescription] = useState("");
@@ -218,7 +253,9 @@ export function ContentCentral() {
         .limit(1000),
       supabase
         .from("survey_answers")
-        .select("id, value, question_id, survey_questions(prompt, type), responses(id, session_id, submitted_at)")
+        .select(
+          "id, value, question_id, survey_questions!survey_answers_question_id_fkey(prompt, type), responses!survey_answers_response_id_fkey(id, session_id, submitted_at)",
+        )
         .order("created_at", { ascending: false })
         .limit(250),
     ]);
@@ -259,6 +296,23 @@ export function ContentCentral() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    const key = `lunchvoice:content-tour:v1:${profile.id}`;
+    if (!window.localStorage.getItem(key)) setTourStep(0);
+  }, [profile?.id]);
+
+  useEffect(() => {
+    if (tourStep === null) return;
+    setTab(CONTENT_TOUR_STEPS[tourStep].tab);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [tourStep]);
+
+  function finishTour() {
+    if (profile?.id) window.localStorage.setItem(`lunchvoice:content-tour:v1:${profile.id}`, "complete");
+    setTourStep(null);
+  }
 
   useEffect(() => {
     const t = templates[0];
@@ -528,17 +582,18 @@ export function ContentCentral() {
     await load();
   }
 
-  async function extendSession(s: SessionRow, minutes = 30) {
+  async function setSessionDuration(s: SessionRow) {
     setErr("");
     setOk("");
-    const current = s.closes_at ? new Date(s.closes_at).getTime() : Date.now();
-    const base = Math.max(current, Date.now());
+    const minutes = sessionDurationDrafts[s.id] ?? 30;
+    const closesAt = minutes === 0 ? null : sessionClosesAt(minutes);
     const { error } = await supabase
       .from("sessions")
-      .update({ is_active: true, closes_at: new Date(base + minutes * 60000).toISOString() })
+      .update({ is_active: true, closes_at: closesAt })
       .eq("id", s.id);
     if (error) return setErr(error.message);
-    setOk(`Session extended ${minutes} minutes.`);
+    const duration = SESSION_DURATION_OPTIONS.find((option) => option.minutes === minutes)?.label ?? `${minutes} minutes`;
+    setOk(minutes === 0 ? "Session set to stay open until manually closed." : `Session duration set to ${duration} from now.`);
     await load();
   }
 
@@ -569,9 +624,12 @@ export function ContentCentral() {
 
   return (
     <>
-      <div className="page-head">
-        <h2>Content Central</h2>
-        <p className="hint">Build surveys, manage the menu cycle, launch QR sessions, and watch results come in.</p>
+      <div className="page-head spread">
+        <div>
+          <h2>Content Central</h2>
+          <p className="hint">Build surveys, manage the menu cycle, launch QR sessions, and watch results come in.</p>
+        </div>
+        <button className="btn btn-ghost" onClick={() => setTourStep(0)}><Icon name="sparkle" size={16} /> Show guide</button>
       </div>
 
       <div className="manager-grid">
@@ -910,7 +968,18 @@ export function ContentCentral() {
                 </div>
                 <div className="stack" style={{ alignItems: "flex-end" }}>
                   <button className="btn btn-solid" onClick={() => setShowQr(showQr === s.id ? null : s.id)}>{showQr === s.id ? "Hide QR" : "Show QR"}</button>
-                  <button className="btn btn-ghost" onClick={() => extendSession(s, 30)}>Extend 30m</button>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    <select
+                      aria-label={`Duration for ${s.title}`}
+                      value={sessionDurationDrafts[s.id] ?? 30}
+                      onChange={(e) => setSessionDurationDrafts((current) => ({ ...current, [s.id]: Number(e.target.value) }))}
+                    >
+                      {SESSION_DURATION_OPTIONS.map((option) => (
+                        <option key={option.minutes} value={option.minutes}>{option.label}</option>
+                      ))}
+                    </select>
+                    <button className="btn btn-ghost" onClick={() => setSessionDuration(s)}>Set duration</button>
+                  </div>
                   <button className="btn btn-ghost" onClick={() => toggleSession(s)}>{isSessionOpen(s) ? "Close" : "Reopen"}</button>
                 </div>
               </div>
@@ -971,6 +1040,27 @@ export function ContentCentral() {
               </div>
             );
           })}
+        </div>
+      )}
+      {tourStep !== null && (
+        <div className="tour-backdrop" role="dialog" aria-modal="true" aria-labelledby="content-tour-title">
+          <div className="tour-card">
+            <div className="tour-progress" aria-label={`Step ${tourStep + 1} of ${CONTENT_TOUR_STEPS.length}`}>
+              {CONTENT_TOUR_STEPS.map((_, index) => <span key={index} className={index <= tourStep ? "active" : ""} />)}
+            </div>
+            <span className="eyebrow">Content Central guide · {tourStep + 1}/{CONTENT_TOUR_STEPS.length}</span>
+            <h2 id="content-tour-title">{CONTENT_TOUR_STEPS[tourStep].title}</h2>
+            <p>{CONTENT_TOUR_STEPS[tourStep].body}</p>
+            <div className="tour-actions">
+              <button className="btn btn-ghost" onClick={finishTour}>{tourStep === 0 ? "Skip guide" : "Close"}</button>
+              <div>
+                {tourStep > 0 && <button className="btn btn-ghost" onClick={() => setTourStep(tourStep - 1)}>Back</button>}
+                <button className="btn btn-primary" onClick={() => tourStep === CONTENT_TOUR_STEPS.length - 1 ? finishTour() : setTourStep(tourStep + 1)}>
+                  {tourStep === CONTENT_TOUR_STEPS.length - 1 ? "Finish" : "Next"}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </>
