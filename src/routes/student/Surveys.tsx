@@ -17,17 +17,22 @@ export function Surveys() {
 
   useEffect(() => {
     (async () => {
-      // sessions the student joined + whether they've already responded
-      const { data: members } = await supabase
-        .from("session_members")
-        .select("session_id, sessions(*)")
-        .order("joined_at", { ascending: false });
-      const { data: responses } = await supabase.from("responses").select("session_id");
+      // Load every active session in the tenant so newly launched surveys are
+      // discoverable without requiring students to already have a join code.
+      // Keep joined sessions in the result as well so completed history remains
+      // useful when the session is still visible to the student.
+      const [{ data: activeSessions }, { data: members }, { data: responses }] = await Promise.all([
+        supabase.from("sessions").select("*").eq("is_active", true).order("created_at", { ascending: false }),
+        supabase.from("session_members").select("session_id, sessions(*)").order("joined_at", { ascending: false }),
+        supabase.from("responses").select("session_id"),
+      ]);
       const done = new Set((responses ?? []).map((r) => r.session_id));
-      const list = (members ?? [])
+      const joined = (members ?? [])
         .map((m) => m.sessions as unknown as Session)
-        .filter(Boolean)
-        .map((s) => ({ ...s, completed: done.has(s.id) }));
+        .filter(Boolean);
+      const byId = new Map<string, Session>();
+      for (const session of [...((activeSessions ?? []) as Session[]), ...joined]) byId.set(session.id, session);
+      const list = [...byId.values()].map((s) => ({ ...s, completed: done.has(s.id) }));
       setSessions(list);
       setLoading(false);
     })();
@@ -42,8 +47,8 @@ export function Surveys() {
     else navigate(`/${org.slug}/survey/${data}`);
   }
 
-  const open = sessions.filter((s) => !s.completed && s.is_active);
-  const past = sessions.filter((s) => s.completed || !s.is_active);
+  const open = sessions.filter((s) => !s.completed && s.is_active && (!s.closes_at || new Date(s.closes_at).getTime() > Date.now()));
+  const past = sessions.filter((s) => !open.some((openSession) => openSession.id === s.id));
 
   return (
     <>

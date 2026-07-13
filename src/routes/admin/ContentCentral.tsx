@@ -217,6 +217,10 @@ export function ContentCentral() {
   const [templateDescription, setTemplateDescription] = useState("");
   const [templateReward, setTemplateReward] = useState(50);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [editTemplateTitle, setEditTemplateTitle] = useState("");
+  const [editTemplateDescription, setEditTemplateDescription] = useState("");
+  const [editTemplateReward, setEditTemplateReward] = useState(50);
   const [qPrompt, setQPrompt] = useState("");
   const [qType, setQType] = useState("rating");
   const [qRequired, setQRequired] = useState(false);
@@ -522,6 +526,29 @@ export function ContentCentral() {
     await load();
   }
 
+  function beginEditTemplate(t: SurveyTemplate) {
+    setSelectedTemplateId(t.id);
+    setEditingTemplateId(t.id);
+    setEditTemplateTitle(t.title);
+    setEditTemplateDescription(t.description ?? "");
+    setEditTemplateReward(t.points_reward);
+  }
+
+  async function saveTemplate(t: SurveyTemplate) {
+    setErr("");
+    setOk("");
+    const title = editTemplateTitle.trim();
+    if (!title) return setErr("Survey title is required.");
+    const { error } = await supabase
+      .from("survey_templates")
+      .update({ title, description: editTemplateDescription.trim() || null, points_reward: editTemplateReward })
+      .eq("id", t.id);
+    if (error) return setErr(error.message);
+    setEditingTemplateId(null);
+    setOk(`"${title}" updated.`);
+    await load();
+  }
+
   // One-click path from a published template to a live session: preselect it and jump to Launch.
   function goLaunch(t: TemplateWithQuestions) {
     setLaunchTemplateId(t.id);
@@ -777,7 +804,7 @@ export function ContentCentral() {
                   <p className="hint" style={{ margin: 0 }}>{t.description || "No description"} - {t.points_reward} pts - {t.questions.length} questions</p>
                 </div>
                 <div className="template-actions">
-                  <button className="btn btn-ghost" onClick={() => setSelectedTemplateId(t.id)}>Edit</button>
+                  <button className="btn btn-ghost" onClick={() => beginEditTemplate(t)}>Edit</button>
                   <button className="btn btn-solid" onClick={() => setTemplateStatus(t, t.status === "published" ? "draft" : "published")}>
                     {t.status === "published" ? "Unpublish" : "Publish"}
                   </button>
@@ -788,6 +815,28 @@ export function ContentCentral() {
                   )}
                 </div>
               </div>
+              {editingTemplateId === t.id && (
+                <div className="card" style={{ marginTop: 12, background: "var(--paper)" }}>
+                  <div className="row2">
+                    <div className="field-block">
+                      <label className="field">Title</label>
+                      <input value={editTemplateTitle} onChange={(e) => setEditTemplateTitle(e.target.value)} />
+                    </div>
+                    <div className="field-block">
+                      <label className="field">Default reward</label>
+                      <input type="number" min={0} value={editTemplateReward} onChange={(e) => setEditTemplateReward(Number(e.target.value))} />
+                    </div>
+                  </div>
+                  <div className="field-block">
+                    <label className="field">Description</label>
+                    <textarea rows={2} value={editTemplateDescription} onChange={(e) => setEditTemplateDescription(e.target.value)} />
+                  </div>
+                  <div className="template-actions">
+                    <button className="btn btn-solid" onClick={() => saveTemplate(t)}>Save changes</button>
+                    <button className="btn btn-ghost" onClick={() => setEditingTemplateId(null)}>Cancel</button>
+                  </div>
+                </div>
+              )}
               {selectedTemplateId === t.id && (
                 t.questions.length === 0 ? <p className="hint" style={{ marginTop: 12 }}>No questions yet. Add a rating, choice, or text question above.</p> :
                 t.questions.map((q) => (

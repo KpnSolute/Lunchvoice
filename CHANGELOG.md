@@ -8,6 +8,9 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Fixed
 
+- Made all currently open, non-expired survey sessions visible on the student
+  survey page without requiring a prior join, and added editable metadata for
+  existing admin survey templates.
 - Disambiguated the admin results embeds from `survey_answers` to
   `survey_questions` and `responses`, preventing PostgREST `PGRST201` errors
   when duplicate database foreign-key relationships are present.
