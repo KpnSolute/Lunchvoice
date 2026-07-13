@@ -156,7 +156,7 @@ Next:
 ## 2026-07-11 — Publish 0.0.1 Baseline
 
 Start: 12:44 PM
-End: In progress
+End: 12:47 PM
 
 Goal:
 Commit and push the complete verified Lunchvoice workspace baseline to `main`,
@@ -169,10 +169,40 @@ Completed:
 - Verified GitHub CLI authentication as `KpnWorld` and the SSH origin.
 
 Verified:
-- Pending final checks, commit, push, workflow, and deployment confirmation.
+- Commit `24b1684` pushed to `main` and tagged `v0.0.1`.
+- Heavy GitHub workflow completed successfully.
+- Render served the matching production asset bundle.
 
 Blockers:
 - None.
 
 Next:
-- Stage explicit project files, commit, push `main`, and inspect remote checks.
+- Continue Lunchvoice work under the automated version and release policy.
+
+## 2026-07-13 — Governing Local Agent Protocol
+
+Start: 12:00 AM
+End: 12:05 AM
+
+Goal:
+Make Codex and Claude governing frontline agents that share changelog memory,
+operate under KpnRelay, communicate with oversight/synthesis channels, delegate
+routine work locally, and push verified work without repeated confirmation.
+
+Completed:
+- Verified PowerShell commands for Codex, Claude, OpenCode, and Mimo.
+- Documented KpnRelay pawn scope and structured overseer/synthesis handoffs.
+- Added standing authority for safe routine commits and pushes.
+- Added bounded low-cost delegation and retry limits to prevent credit drain.
+- Added Windows PowerShell execution standards for automated frontline tasks.
+
+Verified:
+- `AGENTS.md` and `CLAUDE.md` are byte-for-byte identical.
+- Agent-brain consistency, TypeScript, Vite build, and Git diff checks passed.
+
+Blockers:
+- No standalone `kpnrelay` executable is installed; coordination uses existing
+  relay branches and whichever orchestrator channel issued the task.
+
+Next:
+- Use the protocol for future Codex, Claude, KpnRelay, and delegated CLI work.

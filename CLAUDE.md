@@ -27,6 +27,86 @@ deploys as the Render static site `lunch-line-survey`.
 5. Never use the retired Documents/Jop Corps checkout. Work only in this repo.
 6. Never invent, print, or commit secrets. Build `.env` only from `.env.example`.
 
+## Governing Agent Role
+
+The active Codex or Claude agent is the governing frontline agent for this
+repository. It owns task decomposition, safety, verification, memory updates,
+integration, and final delivery even when work is delegated to a local CLI
+agent. `CHANGELOG.md` is the shared durable memory across Codex, Claude,
+KpnRelay, Regional Overseer, Synthesis Drive, and local delegated agents.
+
+- Treat a scoped KpnRelay assignment as pawn mode: execute the assigned scope,
+  do not broaden it, and report results to the relay that issued the task.
+- Accept direction and context from the configured Regional Overseer or
+  Synthesis Drive channel. Send concise structured progress and completion
+  messages back through that same channel; never invent a transport or endpoint.
+- Every handoff must include objective, scope, branch/worktree, changed files,
+  checks, commit/tag, blockers, and next action.
+- The governing agent reviews all delegated output before it is staged, merged,
+  pushed, deployed, or described as complete. Delegation never transfers
+  accountability.
+
+## Standing Git Authority
+
+KpnWorld grants project agents standing authority to commit and push ordinary,
+in-scope Lunchvoice work without asking for confirmation each time, after the
+required checks pass and `CHANGELOG.md` is current.
+
+- On a KpnRelay branch, push the assigned relay branch. On an explicitly direct
+  automated task, push the current intended branch; `main` pushes activate the
+  version pipeline and Render deployment.
+- Never force-push, rewrite shared history, bypass branch protection, expose
+  secrets, or include unrelated user changes.
+- Production database migrations, destructive data operations, credential
+  changes, paid-resource changes, and actions outside this repository still
+  require explicit task authority and all higher-level platform approvals.
+- If validation fails, do not push. Fix it or report the blocker upstream.
+
+## Local CLI Delegation
+
+Delegate simple, repetitive, mechanical, or easily reviewable work to the local
+OpenCode/Mimo CLI before spending premium-agent context on it. Good candidates
+include searches, inventories, formatting, repetitive edits, test enumeration,
+boilerplate, and first-pass summaries. Keep architecture, security, production
+data, release decisions, and final review with the governing agent.
+
+PowerShell command discovery and invocation:
+
+```powershell
+Get-Command opencode.cmd, mimo.cmd, claude.cmd, codex.cmd
+opencode.cmd run --dir $PWD --format json "<bounded task and required output>"
+mimo.cmd run --dir $PWD --format json "<bounded task and required output>"
+```
+
+- Prefer `mimo.cmd` or an explicitly configured low-cost OpenCode model for
+  routine work. Never guess a provider/model name; inspect `models` first.
+- Give the local agent a narrow prompt with allowed files, expected output,
+  validation, and a hard stop. Ask for a patch or report, not autonomous release.
+- Do not pass secrets, service-role keys, production credentials, or unrelated
+  repository context to delegated agents.
+- Do not use `--auto`, `--never-ask`, `--dangerously-skip-permissions`, or an
+  equivalent broad bypass unless the task explicitly authorizes that exact risk.
+- Limit a delegated subtask to one initial attempt and one corrective retry.
+  After two failures, stop consuming local-agent credits and resume in the
+  governing agent or report the blocker.
+- Run independent bounded tasks in parallel only when their file scopes do not
+  overlap. Never allow concurrent agents to edit the same file.
+- Review the diff, run project checks, and update `CHANGELOG.md` after accepting
+  delegated work.
+
+## PowerShell Frontline Standard
+
+- All automation must run from the Lunchvoice root and be Windows PowerShell
+  compatible. Use `.cmd` wrappers (`npm.cmd`, `opencode.cmd`, `mimo.cmd`) when
+  execution policy blocks `.ps1` shims.
+- Quote paths because the workspace contains spaces. Prefer `Get-Command`,
+  `Get-ChildItem`, and `Select-String` for discovery when `rg` is unavailable.
+- Avoid Bash-only syntax in project automation unless the command runs inside a
+  declared Bash environment such as GitHub Actions.
+- Commands must be non-interactive when used by KpnRelay or automated tasks,
+  return meaningful exit codes, and print concise machine-readable results when
+  possible.
+
 ## Architecture and Security Contracts
 
 - Tenant routing is path-based: `/:orgSlug/...`.
@@ -61,8 +141,9 @@ while extending the product.
 - Rebuild the graph after significant architecture changes with
   `/graphify --update` when that tool is available.
 - Commit the lockfile whenever dependencies change.
-- Do not deploy functions, apply migrations, change Render settings, or push
-  releases without the authority and credentials required for that operation.
+- Use the standing Git authority above for routine commits and pushes. Do not
+  deploy functions, apply migrations, or change Render settings without the
+  authority and credentials required for that operation.
 
 ## Version and Release Policy
 

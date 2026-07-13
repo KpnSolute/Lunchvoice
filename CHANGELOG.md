@@ -14,6 +14,10 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added governing-agent rules for Codex and Claude, including KpnRelay pawn
+  operation, Regional Overseer/Synthesis Drive handoffs, standing routine push
+  authority, bounded OpenCode/Mimo delegation, credit safeguards, and
+  PowerShell-first frontline automation.
 - Added staff controls to edit store-item details, stock, point cost, and
   visibility, plus guarded permanent deletion for items without order history.
 - Added a one-time, per-staff Content Central tutorial covering survey creation,
