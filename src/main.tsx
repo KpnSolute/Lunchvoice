@@ -71,11 +71,21 @@ function LionCafeRedirect() {
   return <Navigate to={`/LionCafe${location.pathname}${location.search}`} replace />;
 }
 
+function RootEntry() {
+  const location = useLocation();
+  const isLionCafeHost = window.location.hostname.toLowerCase() === "lioncafe.lunchvoice.com";
+  if (isLionCafeHost) {
+    const suffix = location.pathname === "/" ? "" : location.pathname;
+    return <Navigate to={`/LionCafe${suffix}${location.search}`} replace />;
+  }
+  return <MarketingHome />;
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<MarketingHome />} />
+        <Route path="/" element={<RootEntry />} />
         <Route path="/rate" element={<LionCafeRedirect />} />
         <Route path="/menu" element={<LionCafeRedirect />} />
         <Route path="/surveys" element={<LionCafeRedirect />} />
