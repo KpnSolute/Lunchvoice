@@ -14,8 +14,9 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
-- Added hostname routing so `lioncafe.lunchvoice.com` opens the existing
-  LionCafe tenant space while preserving its current path-based URLs.
+- Added wildcard hostname routing so any subscribed organization can use
+  `<orgSlug>.lunchvoice.com` while the root and `www` hosts remain the public
+  Lunch Voice site. Existing `/:orgSlug` URLs remain compatible.
 - Added governing-agent rules for Codex and Claude, including KpnRelay pawn
   operation, Regional Overseer/Synthesis Drive handoffs, standing routine push
   authority, bounded OpenCode/Mimo delegation, credit safeguards, and

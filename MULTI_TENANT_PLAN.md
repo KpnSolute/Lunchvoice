@@ -13,10 +13,11 @@ LionCafe as tenant #1," so a real second contractor can be onboarded later via a
 row, no code changes.
 
 Domain `lunchvoice.com` is already live (Render). Root `/` becomes a public marketing page (services
-pitch, "request our services" lead form, org-login lookup). Each contractor lives under
-`https://lunchvoice.com/:orgSlug/...` (path-based, not subdomain — avoids wildcard DNS/cert work). Staff
-auth for LionCafe keeps its exact current mechanism (bridges live to MJCCv1's `user_profiles.role='sudo'`
-— e.g. credential "jeremiah / JerBlue.16" already exists there) — only cosmetic/routing changes, per the
+pitch, "request our services" lead form, org-login lookup). Each contractor's canonical address is
+`https://<orgSlug>.lunchvoice.com/...`; wildcard DNS and a wildcard Render domain map that hostname onto
+the existing `/:orgSlug/...` route tree. The path form remains a compatibility URL. Staff auth for
+LionCafe keeps its exact current mechanism (bridges live to MJCCv1's `user_profiles.role='sudo'`) — only
+cosmetic/routing changes, per the
 user's explicit confirmation. A future second contractor would need their own equivalent bridge, which
 this plan leaves a clear (not over-built) extension point for, without constructing it now.
 

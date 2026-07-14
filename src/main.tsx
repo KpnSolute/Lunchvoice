@@ -71,12 +71,21 @@ function LionCafeRedirect() {
   return <Navigate to={`/LionCafe${location.pathname}${location.search}`} replace />;
 }
 
+const PRIMARY_HOSTS = new Set(["lunchvoice.com", "www.lunchvoice.com"]);
+
+function tenantSlugFromHostname(hostname: string) {
+  const normalized = hostname.toLowerCase().replace(/\.$/, "");
+  if (PRIMARY_HOSTS.has(normalized) || !normalized.endsWith(".lunchvoice.com")) return null;
+  const subdomain = normalized.slice(0, -".lunchvoice.com".length);
+  return subdomain && !subdomain.includes(".") ? subdomain : null;
+}
+
 function RootEntry() {
   const location = useLocation();
-  const isLionCafeHost = window.location.hostname.toLowerCase() === "lioncafe.lunchvoice.com";
-  if (isLionCafeHost) {
+  const tenantSlug = tenantSlugFromHostname(window.location.hostname);
+  if (tenantSlug) {
     const suffix = location.pathname === "/" ? "" : location.pathname;
-    return <Navigate to={`/LionCafe${suffix}${location.search}`} replace />;
+    return <Navigate to={`/${tenantSlug}${suffix}${location.search}`} replace />;
   }
   return <MarketingHome />;
 }

@@ -109,7 +109,13 @@ mimo.cmd run --dir $PWD --format json "<bounded task and required output>"
 
 ## Architecture and Security Contracts
 
-- Tenant routing is path-based: `/:orgSlug/...`.
+- Tenant URLs are subdomain-first: `https://<orgSlug>.lunchvoice.com/...`.
+  The frontend maps that hostname internally onto the existing
+  `/:orgSlug/...` route tree, which remains a supported compatibility path.
+  `lunchvoice.com` and `www.lunchvoice.com` always serve the public site.
+- Production DNS and Render use one wildcard tenant binding
+  (`*.lunchvoice.com`), so adding an organization does not require another
+  DNS record, certificate, or frontend code change.
 - `OrgProvider` resolves the organization before login; `AuthProvider` is nested
   inside it and rejects profile/URL organization mismatches.
 - Public tables are organization-scoped with `org_id`; inserts include it
