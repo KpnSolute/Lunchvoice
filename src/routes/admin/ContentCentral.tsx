@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../auth/AuthProvider";
 import { useOrg } from "../../org/OrgProvider";
@@ -211,6 +211,7 @@ export function ContentCentral() {
   const [sessionDurationDrafts, setSessionDurationDrafts] = useState<Record<string, number>>({});
   const [resultSessionId, setResultSessionId] = useState("");
   const [resultTemplateId, setResultTemplateId] = useState("");
+  const [resultsUpdatedAt, setResultsUpdatedAt] = useState<Date | null>(null);
   const [tourStep, setTourStep] = useState<number | null>(null);
 
   const [templateTitle, setTemplateTitle] = useState("");
@@ -257,7 +258,7 @@ export function ContentCentral() {
           "id, value, question_id, survey_questions!survey_answers_question_id_fkey(prompt, type), responses!survey_answers_response_id_fkey(id, session_id, submitted_at)",
         )
         .order("created_at", { ascending: false })
-        .limit(250),
+        .limit(1000),
     ]);
 
     if (templateRes.error || questionRes.error || cycleRes.error || dayRes.error || sessionRes.error || responseRes.error || answerRes.error) {
@@ -290,12 +291,60 @@ export function ContentCentral() {
     setSessions((sessionRes.data ?? []) as unknown as SessionRow[]);
     setResponses((responseRes.data ?? []) as unknown as ResponseRow[]);
     setAnswers((answerRes.data ?? []) as unknown as AnswerRow[]);
+    setResultsUpdatedAt(new Date());
     setLoading(false);
   }
+
+  const refreshResults = useCallback(async () => {
+    const [responseRes, answerRes] = await Promise.all([
+      supabase
+        .from("responses")
+        .select("id, session_id, submitted_at")
+        .order("submitted_at", { ascending: false })
+        .limit(1000),
+      supabase
+        .from("survey_answers")
+        .select(
+          "id, value, question_id, survey_questions!survey_answers_question_id_fkey(prompt, type), responses!survey_answers_response_id_fkey(id, session_id, submitted_at)",
+        )
+        .order("created_at", { ascending: false })
+        .limit(1000),
+    ]);
+
+    if (responseRes.error || answerRes.error) {
+      console.error("live_results_refresh_failed", responseRes.error ?? answerRes.error);
+      return;
+    }
+    setResponses((responseRes.data ?? []) as unknown as ResponseRow[]);
+    setAnswers((answerRes.data ?? []) as unknown as AnswerRow[]);
+    setResultsUpdatedAt(new Date());
+  }, []);
 
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    const refresh = () => void refreshResults();
+    const channel = supabase
+      .channel(`content-results-${org.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "responses", filter: `org_id=eq.${org.id}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "survey_answers", filter: `org_id=eq.${org.id}` }, refresh)
+      .subscribe();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") refresh();
+    }, 5000);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      void supabase.removeChannel(channel);
+    };
+  }, [org.id, refreshResults]);
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -354,6 +403,13 @@ export function ContentCentral() {
       return true;
     });
   }, [answers, resultSessionId, resultTemplateId, sessionTemplateById]);
+  const filteredResponses = useMemo(() => {
+    return responses.filter((response) => {
+      if (resultSessionId && response.session_id !== resultSessionId) return false;
+      if (resultTemplateId && sessionTemplateById.get(response.session_id) !== resultTemplateId) return false;
+      return true;
+    });
+  }, [responses, resultSessionId, resultTemplateId, sessionTemplateById]);
   const resultGroups = useMemo(() => {
     const map = new Map<string, { prompt: string; type: string; count: number; ratings: number[]; options: Record<string, number>; texts: string[] }>();
     for (const a of filteredAnswers) {
@@ -372,19 +428,13 @@ export function ContentCentral() {
     return Array.from(map.values());
   }, [filteredAnswers]);
   const resultTrend = useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const a of filteredAnswers) {
-      if (a.responses?.id && a.responses.submitted_at) seen.set(a.responses.id, a.responses.submitted_at);
-    }
-    return dailyTrend([...seen.values()], 14);
-  }, [filteredAnswers]);
+    return dailyTrend(filteredResponses.map((response) => response.submitted_at), 14);
+  }, [filteredResponses]);
   const resultStats = useMemo(() => {
-    const responseIds = new Set<string>();
     let ratingSum = 0;
     let ratingCount = 0;
     let textCount = 0;
     for (const a of filteredAnswers) {
-      if (a.responses?.id) responseIds.add(a.responses.id);
       if (typeof a.value === "number") {
         ratingSum += a.value;
         ratingCount += 1;
@@ -392,12 +442,12 @@ export function ContentCentral() {
       if (typeof a.value === "string" && a.value.trim()) textCount += 1;
     }
     return {
-      responses: responseIds.size,
+      responses: filteredResponses.length,
       answers: filteredAnswers.length,
       avg: ratingCount ? ratingSum / ratingCount : null,
       textCount,
     };
-  }, [filteredAnswers]);
+  }, [filteredAnswers, filteredResponses]);
 
   async function createTemplate(e: React.FormEvent) {
     e.preventDefault();
@@ -992,7 +1042,10 @@ export function ContentCentral() {
       {tab === "results" && (
         <div className="card">
           <h2>Live survey results</h2>
-          <p className="hint">Filter by session or template before making menu decisions.</p>
+          <p className="hint">
+            Filter by session or template before making menu decisions. Results refresh automatically every 5 seconds
+            {resultsUpdatedAt ? ` (last checked ${resultsUpdatedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })})` : ""}.
+          </p>
           <div className="manager-grid" style={{ marginTop: 12 }}>
             <div className="metric-tile"><div className="num">{resultStats.responses}</div><div className="lbl">Responses</div></div>
             <div className="metric-tile"><div className="num">{resultStats.answers}</div><div className="lbl">Answers</div></div>

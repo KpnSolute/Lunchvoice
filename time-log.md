@@ -206,3 +206,34 @@ Blockers:
 
 Next:
 - Use the protocol for future Codex, Claude, KpnRelay, and delegated CLI work.
+## 2026-07-15 — Critical Staff Session and Live Results Fix
+
+Start: 03:00 PM
+End: 03:10 PM
+
+Goal:
+Stop sudo staff from being logged out after authentication and restore live
+survey-result calculations in Content Central.
+
+Completed:
+- Confirmed tenant-subdomain requests were rejected by the deployed Edge
+  Function CORS response.
+- Allowed valid HTTPS Lunchvoice tenant origins and made staff revalidation
+  distinguish confirmed revocation from temporary service failure.
+- Added live-result subscriptions with focus and five-second polling fallbacks.
+- Corrected response totals and trends to calculate from response records.
+
+Verified:
+- Agent-brain consistency, TypeScript, Vite production build, Git diff check,
+  and heavy npm security audit passed with zero vulnerabilities.
+- Deployed `login-start`, `staff-login`, `staff-status`, and `menu-sync` to
+  MJCCv2 using Supabase server-side bundling.
+- Production preflight checks return the correct LionCafe tenant origin for all
+  four functions.
+
+Blockers:
+- A real sudo credential is still required for the final browser login test.
+
+Next:
+- Push `main`, wait for Render, then confirm sudo login and a new live response
+  with an authorized staff account.

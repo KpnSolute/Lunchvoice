@@ -11,7 +11,15 @@ const devOrigins = ["http://localhost:5173", "http://127.0.0.1:5173"];
 function corsFor(req: Request) {
   const origin = req.headers.get("origin") ?? "";
   const allowList = [...new Set([...allowedOrigins, ...devOrigins])];
-  const allowOrigin = !origin || allowList.includes(origin) ? origin || allowList[0] : allowList[0];
+  const wildcardTenant = (() => {
+    try {
+      const url = new URL(origin);
+      return url.protocol === "https:" && (url.hostname === "lunchvoice.com" || url.hostname === "www.lunchvoice.com" || url.hostname.endsWith(".lunchvoice.com"));
+    } catch {
+      return false;
+    }
+  })();
+  const allowOrigin = !origin || allowList.includes(origin) || wildcardTenant ? origin || allowList[0] : allowList[0];
   return {
     "Access-Control-Allow-Origin": allowOrigin,
     Vary: "Origin",

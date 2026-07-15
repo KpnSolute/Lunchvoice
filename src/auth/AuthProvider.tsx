@@ -27,17 +27,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Org mismatch guard: stale bookmark or shared-device loading wrong org
     if (data && org && data.org_id !== org.id) {
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: "local" });
       setProfile(null);
       return;
     }
 
     if (data?.is_staff) {
-      const stillStaff = await verifyStaffAccess();
-      if (!stillStaff) {
-        await supabase.auth.signOut();
+      const staffAccess = await verifyStaffAccess();
+      if (staffAccess === "revoked") {
+        await supabase.auth.signOut({ scope: "local" });
         setProfile(null);
         return;
+      }
+      if (staffAccess === "unavailable") {
+        console.warn("Staff status could not be revalidated; keeping the current local session and retrying on the next profile refresh.");
       }
     }
     setProfile(data ?? null);

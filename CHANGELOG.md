@@ -8,6 +8,12 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Fixed
 
+- Allowed HTTPS tenant subdomains through the staff Edge Function CORS checks
+  and stopped transient staff-status failures from signing sudo staff out. Only
+  a confirmed upstream access revocation now ends the local session.
+- Made Content Central results refresh from database changes, browser focus,
+  and a five-second polling fallback. Response totals and trends now use the
+  response records directly, including submissions without dynamic answers.
 - Disambiguated the admin results embeds from `survey_answers` to
   `survey_questions` and `responses`, preventing PostgREST `PGRST201` errors
   when duplicate database foreign-key relationships are present.

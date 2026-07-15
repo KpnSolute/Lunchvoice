@@ -46,16 +46,23 @@ export async function staffLogin(email: string, password: string, orgSlug: strin
   if (error) throw error;
 }
 
-export async function verifyStaffAccess(): Promise<boolean> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) return false;
-  const res = await fetch(`${url}/functions/v1/staff-status`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", apikey: key, Authorization: `Bearer ${token}` },
-  });
-  if (res.status === 403 || res.status === 401) return false;
-  if (!res.ok) return false;
-  const body = await res.json();
-  return body.staff !== false;
+export type StaffAccessStatus = "valid" | "revoked" | "unavailable";
+
+export async function verifyStaffAccess(): Promise<StaffAccessStatus> {
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (error || !token) return "unavailable";
+    const res = await fetch(`${url}/functions/v1/staff-status`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: key, Authorization: `Bearer ${token}` },
+    });
+    const body = await res.json().catch(() => ({}));
+    if (res.status === 403 || (res.ok && body.staff === false)) return "revoked";
+    if (!res.ok) return "unavailable";
+    return "valid";
+  } catch (error) {
+    console.warn("staff_status_unavailable", error);
+    return "unavailable";
+  }
 }
