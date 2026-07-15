@@ -272,3 +272,32 @@ Blockers:
 Next:
 - Push the frontend and migration record, verify Render, then test all three
   paths with authorized staff/student accounts.
+
+## 2026-07-15 — Student Voice Calculation and Posting Fix
+
+Start: 03:30 PM
+End: 03:42 PM
+
+Goal:
+Make Student Voice posts save correctly and ensure student feedback totals are
+calculated from live tenant data.
+
+Completed:
+- Traced the student post payload through the live MJCCv2 schema and RLS policy.
+- Added the authenticated student ID and visible status required for inserts.
+- Added exact totals for all voices, reviews, ideas, and shoutouts with live,
+  focus, and polling refresh paths.
+- Added Student Voice totals and ideas to the staff dashboard without treating
+  text comments as numeric dish ratings.
+
+Verified:
+- Production MJCCv2 currently contains one visible review from one student.
+- A rollback-only authenticated insert passed the live tenant RLS policy.
+- TypeScript and the Vite production build passed.
+
+Blockers:
+- Final end-to-end posting still requires an authorized student browser login.
+
+Next:
+- Verify the automated release and Render deploy, then submit one Student Voice
+  post with an authorized student account.

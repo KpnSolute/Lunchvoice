@@ -8,6 +8,12 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Fixed
 
+- Fixed Student Voice submissions by sending the authenticated student ID and
+  visible status required by the tenant-scoped database insert policy.
+- Replaced the displayed-row count with exact Student Voice totals and kind
+  counts, refreshed through database events, browser focus, and five-second
+  polling. The admin dashboard now includes those totals and Student Voice
+  ideas alongside survey ideas.
 - Allowed HTTPS tenant subdomains through the staff Edge Function CORS checks
   and stopped transient staff-status failures from signing sudo staff out. Only
   a confirmed upstream access revocation now ends the local session.

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from "../../auth/AuthProvider";
 import { Icon } from "../../components/Icon";
 import { CYCLE, weekdayFor } from "../../lib/menu";
 import { getPublicMenuToday, mealItems, type PublicMenuDay } from "../../lib/mjccMenuApi";
@@ -46,7 +47,9 @@ function fallbackDishOptions(day: number): string[] {
 
 export function Voice() {
   const { org } = useOrg();
+  const { session } = useAuth();
   const [posts, setPosts] = useState<VoicePost[]>([]);
+  const [counts, setCounts] = useState({ total: 0, reviews: 0, ideas: 0, shoutouts: 0 });
   const [today, setToday] = useState<PublicMenuDay | null>(null);
   const [kind, setKind] = useState("review");
   const [dishName, setDishName] = useState("");
@@ -61,26 +64,51 @@ export function Voice() {
     return live.length ? live : fallbackDishOptions(day);
   }, [day, today]);
 
-  async function load() {
-    const { data, error } = await supabase
-      .from("voice_notes")
-      .select("id, kind, body, created_at, menu_day, dish_name, meal_period")
-      .eq("status", "visible")
-      .order("created_at", { ascending: false })
-      .limit(50);
+  const load = useCallback(async () => {
+    const [feed, total, reviews, ideas, shoutouts] = await Promise.all([
+      supabase
+        .from("voice_notes")
+        .select("id, kind, body, created_at, menu_day, dish_name, meal_period")
+        .eq("status", "visible")
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabase.from("voice_notes").select("id", { count: "exact", head: true }).eq("status", "visible"),
+      supabase.from("voice_notes").select("id", { count: "exact", head: true }).eq("status", "visible").eq("kind", "review"),
+      supabase.from("voice_notes").select("id", { count: "exact", head: true }).eq("status", "visible").eq("kind", "idea"),
+      supabase.from("voice_notes").select("id", { count: "exact", head: true }).eq("status", "visible").eq("kind", "shoutout"),
+    ]);
+    const error = feed.error ?? total.error ?? reviews.error ?? ideas.error ?? shoutouts.error;
     if (error) {
       setErr(error.message);
       return;
     }
-    setPosts((data ?? []) as VoicePost[]);
-  }
+    setPosts((feed.data ?? []) as VoicePost[]);
+    setCounts({
+      total: total.count ?? 0,
+      reviews: reviews.count ?? 0,
+      ideas: ideas.count ?? 0,
+      shoutouts: shoutouts.count ?? 0,
+    });
+  }, []);
 
   useEffect(() => {
     load();
     getPublicMenuToday()
       .then(setToday)
       .catch((e) => console.warn("voice_public_menu_today_failed", e));
-  }, []);
+    const channel = supabase
+      .channel("student-voice-feed")
+      .on("postgres_changes", { event: "*", schema: "public", table: "voice_notes" }, load)
+      .subscribe();
+    const timer = window.setInterval(load, 5000);
+    const refresh = () => load();
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      void supabase.removeChannel(channel);
+    };
+  }, [load]);
 
   async function post() {
     const text = body.trim();
@@ -90,6 +118,10 @@ export function Voice() {
       setErr("Write a little more so the review is useful.");
       return;
     }
+    if (!session?.user || !org) {
+      setErr("Your session is not ready. Sign in again and retry.");
+      return;
+    }
     setBusy(true);
     const { error } = await supabase.from("voice_notes").insert({
       kind,
@@ -97,7 +129,9 @@ export function Voice() {
       dish_name: dishName || null,
       menu_day: day,
       meal_period: dishName ? "Meal" : null,
-      org_id: org!.id,
+      org_id: org.id,
+      student_id: session.user.id,
+      status: "visible",
     });
     setBusy(false);
     if (error) {
@@ -156,9 +190,22 @@ export function Voice() {
       </div>
 
       <div className="card">
+        <div className="manager-grid">
+          {[
+            ["All voices", counts.total],
+            ["Reviews", counts.reviews],
+            ["Ideas", counts.ideas],
+            ["Shoutouts", counts.shoutouts],
+          ].map(([label, value]) => (
+            <div key={label} className="metric-tile">
+              <div className="num">{value}</div>
+              <div className="lbl">{label}</div>
+            </div>
+          ))}
+        </div>
         <div className="spread">
           <h2>Meal talk</h2>
-          <span className="points-badge">{posts.length} posts</span>
+          <span className="points-badge">{counts.total} posts</span>
         </div>
         {posts.length === 0 ? (
           <p className="muted">No reviews yet. Start the wall.</p>
