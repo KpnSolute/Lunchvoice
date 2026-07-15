@@ -6,11 +6,50 @@ import { supabase } from "../../lib/supabase";
 import type { DishStat } from "../../types/db";
 
 const TREND_DAYS = 14;
+const TOP_IDEA_LIMIT = 12;
+
+type IdeaRow = { idea: string; submitted_at: string; source: string };
+type TopIdea = IdeaRow & { count: number; sources: string[] };
+type SurveyIdeaAnswer = {
+  value: unknown;
+  created_at: string;
+  survey_questions: { category: string | null } | null;
+};
+
+function ideaText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string").join(", ");
+  return "";
+}
+
+function rankIdeas(rows: IdeaRow[]): TopIdea[] {
+  const grouped = new Map<string, TopIdea>();
+  for (const row of rows) {
+    const idea = row.idea.trim().replace(/\s+/g, " ");
+    if (!idea) continue;
+    const key = idea.toLocaleLowerCase();
+    const current = grouped.get(key);
+    if (!current) {
+      grouped.set(key, { ...row, idea, count: 1, sources: [row.source] });
+      continue;
+    }
+    current.count += 1;
+    if (!current.sources.includes(row.source)) current.sources.push(row.source);
+    if (Date.parse(row.submitted_at) > Date.parse(current.submitted_at)) {
+      current.idea = idea;
+      current.submitted_at = row.submitted_at;
+      current.source = row.source;
+    }
+  }
+  return [...grouped.values()]
+    .sort((a, b) => b.count - a.count || Date.parse(b.submitted_at) - Date.parse(a.submitted_at))
+    .slice(0, TOP_IDEA_LIMIT);
+}
 
 export function Dashboard() {
   const [stats, setStats] = useState<DishStat[]>([]);
   const [externalTopMeals, setExternalTopMeals] = useState<PublicMenuStat[]>([]);
-  const [ideas, setIdeas] = useState<{ idea: string; submitted_at: string; source: string }[]>([]);
+  const [ideas, setIdeas] = useState<TopIdea[]>([]);
   const [counts, setCounts] = useState({ responses: 0, voices: 0, reviews: 0, ideas: 0, orders: 0, pendingOrders: 0 });
   const [recentResponseTimes, setRecentResponseTimes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,10 +58,15 @@ export function Dashboard() {
       const since = new Date();
       since.setDate(since.getDate() - (TREND_DAYS - 1));
       since.setHours(0, 0, 0, 0);
-      const [{ data: ds }, { data: responseIdeas }, voiceIdeas, respCount, voiceCount, reviewCount, ideaCount, orderRows, recentResp] = await Promise.all([
+      const [{ data: ds }, { data: responseIdeas }, surveyIdeaAnswers, voiceIdeas, respCount, voiceCount, reviewCount, ideaCount, orderRows, recentResp] = await Promise.all([
         supabase.from("dish_stats").select("*"),
-        supabase.from("responses").select("idea, submitted_at").not("idea", "is", null).order("submitted_at", { ascending: false }).limit(30),
-        supabase.from("voice_notes").select("body, created_at").eq("status", "visible").eq("kind", "idea").order("created_at", { ascending: false }).limit(30),
+        supabase.from("responses").select("idea, submitted_at").not("idea", "is", null).order("submitted_at", { ascending: false }).limit(500),
+        supabase
+          .from("survey_answers")
+          .select("value, created_at, survey_questions!survey_answers_question_id_fkey(category)")
+          .order("created_at", { ascending: false })
+          .limit(500),
+        supabase.from("voice_notes").select("body, created_at").eq("status", "visible").eq("kind", "idea").order("created_at", { ascending: false }).limit(500),
         supabase.from("responses").select("id", { count: "exact", head: true }),
         supabase.from("voice_notes").select("id", { count: "exact", head: true }).eq("status", "visible"),
         supabase.from("voice_notes").select("id", { count: "exact", head: true }).eq("status", "visible").eq("kind", "review"),
@@ -31,13 +75,14 @@ export function Dashboard() {
         supabase.from("responses").select("submitted_at").gte("submitted_at", since.toISOString()).limit(2000),
       ]);
       setStats(ds ?? []);
-      const mergedIdeas = [
+      const mergedIdeas: IdeaRow[] = [
         ...((responseIdeas ?? []) as { idea: string; submitted_at: string }[]).map((item) => ({ ...item, source: "Survey" })),
+        ...((surveyIdeaAnswers.data ?? []) as unknown as SurveyIdeaAnswer[])
+          .filter((item) => item.survey_questions?.category?.toLocaleLowerCase() === "ideas")
+          .map((item) => ({ idea: ideaText(item.value), submitted_at: item.created_at, source: "Survey" })),
         ...((voiceIdeas.data ?? []) as { body: string; created_at: string }[]).map((item) => ({ idea: item.body, submitted_at: item.created_at, source: "Student Voice" })),
-      ]
-        .sort((a, b) => Date.parse(b.submitted_at) - Date.parse(a.submitted_at))
-        .slice(0, 30);
-      setIdeas(mergedIdeas);
+      ];
+      setIdeas(rankIdeas(mergedIdeas));
       setRecentResponseTimes(((recentResp.data ?? []) as { submitted_at: string }[]).map((r) => r.submitted_at));
       const orders = orderRows.data ?? [];
       setCounts({
@@ -56,6 +101,7 @@ export function Dashboard() {
     const channel = supabase
       .channel("admin-dashboard-feedback")
       .on("postgres_changes", { event: "*", schema: "public", table: "responses" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "survey_answers" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "voice_notes" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, load)
       .subscribe();
@@ -140,16 +186,24 @@ export function Dashboard() {
       </div>
 
       <div className="card">
-        <h2>Latest dish ideas</h2>
+        <h2>Top dish ideas</h2>
+        <p className="hint">Most-requested ideas from surveys and Student Voice.</p>
         {ideas.length === 0 ? (
           <p className="muted">No ideas submitted yet.</p>
         ) : (
-          ideas.map((i, idx) => (
-            <div key={idx} className="item-row">
-              <div className="item-name row" style={{ fontWeight: 400, alignItems: "flex-start", gap: 8 }}><Icon name="bulb" size={16} className="muted" /> {i.idea}</div>
-              <span className="muted mono" style={{ fontSize: 11 }}>{i.source} Â· {new Date(i.submitted_at).toLocaleDateString()}</span>
-            </div>
-          ))
+          <div className="idea-cloud">
+            {ideas.map((idea) => (
+              <span
+                key={idea.idea.toLocaleLowerCase()}
+                className="idea-bubble"
+                title={`${idea.count} mention${idea.count === 1 ? "" : "s"} · ${idea.sources.join(" + ")} · latest ${new Date(idea.submitted_at).toLocaleDateString()}`}
+              >
+                <Icon name="bulb" size={15} />
+                <span>{idea.idea}</span>
+                {idea.count > 1 && <b>{idea.count}</b>}
+              </span>
+            ))}
+          </div>
         )}
       </div>
     </>

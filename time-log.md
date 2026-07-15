@@ -336,3 +336,33 @@ Blockers:
 Next:
 - Complete one authorized end-to-end MJCC-to-LionCafe login and download a QR
   image from a real staff session for final visual confirmation.
+
+## 2026-07-15 — Admin Session and Top Ideas
+
+Start: 06:00 PM
+End: 06:24 PM
+
+Goal:
+Keep staff signed in during active admin work, enforce a 60-minute inactivity
+limit, and surface the most-requested student dish ideas as useful tag bubbles.
+
+Completed:
+- Added a cross-tab 60-minute staff inactivity timer with an MJCC admin-login
+  return path and local-only Supabase sign-out.
+- Traced blank dashboard ideas to legacy empty response fields and switched the
+  ranking to dynamic Ideas-category survey answers plus other valid idea sources.
+- Added case-insensitive aggregation, empty-answer filtering, request counts,
+  realtime refresh, and responsive tag-bubble styling for the top 12 ideas.
+
+Verified:
+- Confirmed the live dynamic survey data contains a submitted Ideas answer while
+  the legacy response idea fields contain no usable ideas.
+- TypeScript and the Vite production build passed.
+- Supabase local-scope sign-out behavior was checked against current documentation.
+
+Blockers:
+- Browser validation of the full inactivity window requires an authorized staff
+  session and 60 minutes without activity.
+
+Next:
+- Run the heavy release gate, push the verified change, and monitor deployment.

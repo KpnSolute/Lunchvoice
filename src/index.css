@@ -282,6 +282,21 @@ select {
 .chip:active { transform: scale(0.95); }
 .chip.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 
+.idea-cloud { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.idea-bubble {
+  display: inline-flex; align-items: center; gap: 7px; max-width: 100%;
+  padding: 9px 13px; border: 1px solid var(--line); border-radius: var(--r-pill);
+  background: var(--accent); color: var(--accent-ink); font-size: 13px; font-weight: 650;
+}
+.idea-bubble:nth-child(3n + 2) { background: var(--surface-2); color: var(--ink); }
+.idea-bubble:nth-child(3n) { background: var(--pop); color: oklch(0.20 0.06 150); }
+.idea-bubble > span { overflow-wrap: anywhere; }
+.idea-bubble b {
+  display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px;
+  border-radius: var(--r-pill); background: color-mix(in oklch, currentColor 14%, transparent);
+  font-family: var(--font-mono); font-size: 10px;
+}
+
 .content-tabs {
   display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);

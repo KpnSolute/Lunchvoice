@@ -21,6 +21,10 @@ export function Login() {
   const [code, setCode] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [staffMode, setStaffMode] = useState(
+    () => new URLSearchParams(window.location.search).get("mode") === "staff",
+  );
+  const inactive = new URLSearchParams(window.location.search).get("reason") === "inactive";
 
   const [joinCode] = useState(() => new URLSearchParams(window.location.search).get("code"));
   useEffect(() => {
@@ -123,9 +127,32 @@ export function Login() {
         )}
         <h2 className="login-title">{org.name}</h2>
 
+        {inactive && (
+          <div className="notice" style={{ marginTop: 12 }}>
+            Your admin session ended after 60 minutes without activity. Continue with MJCC to sign in again.
+          </div>
+        )}
         {err && <div className="notice err" style={{ marginTop: 12 }}>{err}</div>}
 
-        {step === "identifier" && (
+        {step === "identifier" && staffMode && (
+          <div className="stack" style={{ marginTop: 12 }}>
+            <p className="hint" style={{ margin: 0 }}>
+              Staff access is managed by your MJCC account and LionCafe permission.
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary btn-block"
+              onClick={() => window.location.assign(MJCC_STAFF_SSO_URL)}
+            >
+              Continue with MJCC
+            </button>
+            <button type="button" className="link-btn" onClick={() => setStaffMode(false)}>
+              Use student login
+            </button>
+          </div>
+        )}
+
+        {step === "identifier" && !staffMode && (
           <form onSubmit={continueLogin} className="stack" style={{ marginTop: 12 }}>
             <p className="hint" style={{ margin: 0 }}>
               Students use their email. Staff continue through the MJCC portal below.

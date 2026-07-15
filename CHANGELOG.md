@@ -8,6 +8,13 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Fixed
 
+- Made staff sessions expire only after 60 minutes of real inactivity across
+  open Lunchvoice tabs, then return staff to the MJCC-backed admin login instead
+  of silently dropping them into the student flow.
+- Replaced blank legacy dish-idea rows with ranked tag bubbles sourced from
+  dynamic survey answers categorized as Ideas, legacy survey ideas, and visible
+  Student Voice ideas. Empty answers are ignored and repeated ideas show their
+  combined request count.
 - Replaced the separate Lunchvoice staff-password flow with a one-time MJCC
   single-sign-on handoff. Staff sessions are now provisioned in MJCCv2 only
   after KpnCompute confirms the live LionCafe role grant, and persisted sessions
