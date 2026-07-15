@@ -1,7 +1,9 @@
-// staff-login: authenticates a staff member against MJCCv1, confirms role='sudo',
+// staff-login: legacy rollback path that authenticates against MJCCv1 and
+// confirms the live LionCafe role-scope grant.
 // then provisions/returns a MJCCv2 admin session.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { hasLionCafeAccess } from "../_shared/staffAccess.ts";
 
 const allowedOrigins = (Deno.env.get("APP_ORIGINS") ?? "")
   .split(",")
@@ -146,8 +148,8 @@ Deno.serve(async (req) => {
       return json(req, { error: "Could not confirm MJCCv1 sudo profile." }, 502);
     }
 
-    if (!profile || profile.active === false || profile.role !== "sudo") {
-      return json(req, { error: "This account does not have sudo access." }, 403);
+    if (!profile || profile.active === false || !await hasLionCafeAccess(v1admin, profile.role)) {
+      return json(req, { error: "This account does not have LionCafe access." }, 403);
     }
 
     let userId: string | undefined;

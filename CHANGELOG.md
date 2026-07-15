@@ -8,6 +8,10 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Fixed
 
+- Replaced the separate Lunchvoice staff-password flow with a one-time MJCC
+  single-sign-on handoff. Staff sessions are now provisioned in MJCCv2 only
+  after KpnCompute confirms the live LionCafe role grant, and persisted sessions
+  continue to recheck that same grant.
 - Fixed Student Voice submissions by sending the authenticated student ID and
   visible status required by the tenant-scoped database insert policy.
 - Replaced the displayed-row count with exact Student Voice totals and kind
@@ -26,6 +30,10 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added a campus-compatible KpnCompute launch path, a short-lived SSO callback,
+  and staff QR destination controls for either the Render campus URL or the
+  public Lunchvoice URL. QR codes can now be downloaded as high-resolution PNG
+  images for flyers.
 - Added three clear student survey access paths: QR links that survive sign-in
   or sign-up and open the intended survey, code entry on the Surveys page, and
   an optional staff-controlled Available surveys list.

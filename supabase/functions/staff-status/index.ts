@@ -1,6 +1,8 @@
-// staff-status: revalidates a persisted MJCCv2 staff session against MJCCv1 sudo.
+// staff-status: revalidates a persisted MJCCv2 staff session against the live
+// MJCCv1 LionCafe role-scope grant.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { hasLionCafeAccess } from "../_shared/staffAccess.ts";
 
 const allowedOrigins = (Deno.env.get("APP_ORIGINS") ?? "")
   .split(",")
@@ -84,7 +86,9 @@ Deno.serve(async (req) => {
       .ilike("username", username)
       .single();
 
-    const valid = !!v1Profile && v1Profile.active !== false && v1Profile.role === "sudo";
+    const valid = !!v1Profile &&
+      v1Profile.active !== false &&
+      await hasLionCafeAccess(v1admin, v1Profile.role);
     if (!valid) {
       await v2.from("profiles").update({ role: "student", is_staff: false }).eq("id", userRes.user.id);
       return json(req, { error: "Staff access revoked" }, 403);

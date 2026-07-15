@@ -301,3 +301,35 @@ Blockers:
 Next:
 - Verify the automated release and Render deploy, then submit one Student Voice
   post with an authorized student account.
+
+## 2026-07-15 — KpnCompute SSO and QR Sharing
+
+Start: 05:51 PM
+End: 05:59 PM
+
+Goal:
+Integrate the existing KpnCompute and Lunchvoice applications so authorized
+MJCC staff enter LionCafe without a second login, while improving QR sharing.
+
+Completed:
+- Added a short-lived, one-time SSO handoff issued by KpnCompute and exchanged
+  by Lunchvoice without cloning or replacing either application.
+- Replaced the staff password screen with Continue with MJCC and retained the
+  live LionCafe role-scope mapping as the access authority.
+- Added campus/public QR destination selection and high-resolution PNG download.
+- Applied the additive, service-role-only SSO handoff table to MJCCv1.
+
+Verified:
+- Lunchvoice agent-brain, TypeScript, production build, release policy, and npm
+  security audit passed with zero vulnerabilities.
+- KpnCompute release gate passed with 96 backend tests, lint, formatting, and
+  production frontend build.
+- KpnCompute commit `1021cc3` was pushed to `main`; Render deployments started.
+
+Blockers:
+- Final browser SSO validation requires an authorized MJCC account after both
+  Render deployments and the new MJCCv2 Edge Function are live.
+
+Next:
+- Deploy the Edge Functions, verify both Render services, and complete one
+  authorized end-to-end MJCC-to-LionCafe login.

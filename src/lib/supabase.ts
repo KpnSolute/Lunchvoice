@@ -17,6 +17,7 @@ export const supabase = createClient<Database>(url, key, {
 });
 
 export type LoginStartKind = "staff" | "student_returning" | "student_new";
+export const MJCC_STAFF_SSO_URL = "https://mjcc.kpncompute.com/?launch=lioncafe";
 
 export async function beginLogin(identifier: string, orgSlug: string): Promise<LoginStartKind> {
   const res = await fetch(`${url}/functions/v1/login-start`, {
@@ -27,23 +28,6 @@ export async function beginLogin(identifier: string, orgSlug: string): Promise<L
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || "Login check failed");
   return body.kind;
-}
-
-// Staff (MJCCv1 sudo) sign in via an edge function that verifies their MJCCv1 credentials
-// server-side, then returns a MJCCv2 admin session which we install on this client.
-export async function staffLogin(email: string, password: string, orgSlug: string): Promise<void> {
-  const res = await fetch(`${url}/functions/v1/staff-login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", apikey: key },
-    body: JSON.stringify({ email, password, org: orgSlug }),
-  });
-  const body = await res.json();
-  if (!res.ok) throw new Error(body.error || "Staff login failed");
-  const { error } = await supabase.auth.setSession({
-    access_token: body.access_token,
-    refresh_token: body.refresh_token,
-  });
-  if (error) throw error;
 }
 
 export type StaffAccessStatus = "valid" | "revoked" | "unavailable";
@@ -65,4 +49,19 @@ export async function verifyStaffAccess(): Promise<StaffAccessStatus> {
     console.warn("staff_status_unavailable", error);
     return "unavailable";
   }
+}
+
+export async function staffSso(code: string, orgSlug: string): Promise<void> {
+  const res = await fetch(`${url}/functions/v1/staff-sso`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: key },
+    body: JSON.stringify({ code, org: orgSlug }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || "MJCC sign-in failed");
+  const { error } = await supabase.auth.verifyOtp({
+    type: "magiclink",
+    token_hash: body.token_hash,
+  });
+  if (error) throw error;
 }

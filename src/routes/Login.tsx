@@ -1,16 +1,15 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { beginLogin, staffLogin, supabase } from "../lib/supabase";
+import { beginLogin, MJCC_STAFF_SSO_URL, supabase } from "../lib/supabase";
 import { useAuth } from "../auth/AuthProvider";
 import { useOrg } from "../org/OrgProvider";
 import { tenantBrand } from "../org/tenantBrand";
 
-type Step = "identifier" | "password" | "code";
+type Step = "identifier" | "code";
 type StudentMode = "returning" | "new";
 
 const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-const isUsername = (value: string) => value.trim().length > 0 && !value.includes("@");
-const canContinue = (value: string) => isEmail(value) || isUsername(value);
+const canContinue = (value: string) => isEmail(value);
 
 export function Login() {
   const { session, loading, profile, isAdmin } = useAuth();
@@ -19,7 +18,6 @@ export function Login() {
   const [studentMode, setStudentMode] = useState<StudentMode>("returning");
   const [identifier, setIdentifier] = useState("");
   const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -50,7 +48,7 @@ export function Login() {
     try {
       const kind = await beginLogin(loginId, org.slug);
       if (kind === "staff") {
-        setStep("password");
+        window.location.assign(MJCC_STAFF_SSO_URL);
         return;
       }
       setStudentMode(kind === "student_new" ? "new" : "returning");
@@ -102,23 +100,9 @@ export function Login() {
     setBusy(false);
   }
 
-  async function verifyStaff(e: React.FormEvent) {
-    e.preventDefault();
-    setErr("");
-    setBusy(true);
-    try {
-      await staffLogin(loginId, password, org.slug);
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Login failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   function reset() {
     setStep("identifier");
     setStudentMode("returning");
-    setPassword("");
     setCode("");
     setName("");
     setErr("");
@@ -144,7 +128,7 @@ export function Login() {
         {step === "identifier" && (
           <form onSubmit={continueLogin} className="stack" style={{ marginTop: 12 }}>
             <p className="hint" style={{ margin: 0 }}>
-              Students use their email every time. Staff use their MJCC sudo username.
+              Students use their email. Staff continue through the MJCC portal below.
             </p>
             <input
               type="text"
@@ -153,33 +137,21 @@ export function Login() {
               required
               autoCapitalize="none"
               spellCheck={false}
-              placeholder="Student email or staff username"
+              placeholder="Student email"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
             />
             <button className="btn btn-primary btn-block" disabled={busy || !canContinue(identifier)}>
               {busy ? "Checking..." : "Continue"}
             </button>
-          </form>
-        )}
-
-        {step === "password" && (
-          <form onSubmit={verifyStaff} className="stack" style={{ marginTop: 12 }}>
-            <p className="hint" style={{ margin: 0 }}>
-              Sudo sign-in for <b>{loginId}</b>. Enter your MJCC password.
-            </p>
-            <input
-              type="password"
-              autoFocus
-              required
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <button className="btn btn-primary btn-block" disabled={busy || !password}>
-              {busy ? "Signing in..." : "Sign in"}
+            <div className="muted center" style={{ fontSize: 12 }}>Staff access</div>
+            <button
+              type="button"
+              className="btn btn-ghost btn-block"
+              onClick={() => window.location.assign(MJCC_STAFF_SSO_URL)}
+            >
+              Continue with MJCC
             </button>
-            <button type="button" className="link-btn" onClick={reset}>Use a different login</button>
           </form>
         )}
 

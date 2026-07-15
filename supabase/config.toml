@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.staff-login]
 verify_jwt = false
 
+[functions.staff-sso]
+verify_jwt = false
+
 [functions.send-email]
 verify_jwt = false
 

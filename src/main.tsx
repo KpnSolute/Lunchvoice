@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { OrgProvider } from "./org/OrgProvider";
 import { Layout } from "./components/Layout";
 import { Login } from "./routes/Login";
+import { StaffSsoCallback } from "./routes/StaffSsoCallback";
 import { Home } from "./routes/student/Home";
 import { Rate } from "./routes/student/Rate";
 import { MenuPage } from "./routes/student/MenuPage";
@@ -37,6 +38,7 @@ function OrgApp() {
     <AuthProvider>
       <Routes>
         <Route path="login" element={<Login />} />
+        <Route path="sso" element={<StaffSsoCallback />} />
         <Route path="join" element={<Gate><Join /></Gate>} />
 
         <Route element={<Gate><Layout /></Gate>}>

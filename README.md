@@ -37,20 +37,24 @@ functions are the actual guardrails.
   function checks whether the email already has a MJCCv2 student profile, sends
   the Supabase OTP code, and tells the UI whether to show the one-time name
   field. Supabase Auth still owns verification through `verifyOtp`.
-- Staff enter their MJCCv1 sudo username first, then their password.
-  `login-start` confirms the username exists as an active MJCCv1 `sudo`;
-  `staff-login` verifies the password against MJCCv1, provisions/updates the
-  MJCCv2 admin profile, and returns a MJCCv2 admin session. Staff should not
-  use email on the login screen.
-- `staff-status` revalidates persisted staff sessions against MJCCv1, so
-  revoking sudo in MJCCv1 removes site admin access.
+- Staff select **Continue with MJCC** and authenticate at `mjcc.kpncompute.com`.
+  KpnCompute issues a short-lived one-time code after verifying the live
+  LionCafe role grant. `staff-sso` exchanges it server-to-server, then
+  provisions or updates the MJCCv2 admin profile and starts a MJCCv2 session.
+- `staff-status` revalidates persisted staff sessions against the same live
+  MJCCv1 LionCafe role grant, so removing that permission removes site access.
 
 ### Required Supabase Setup
 
-`login-start`, `staff-login`, and `staff-status` need MJCCv1 credentials:
+`login-start`, the legacy `staff-login` rollback path, and `staff-status` need
+MJCCv1 credentials. `staff-sso` and KpnCompute derive a purpose-specific HMAC
+bridge key from that existing server-only credential. A separately rotatable
+bridge secret can optionally be configured on both services:
 
 ```bash
 supabase secrets set MJCCV1_SERVICE_ROLE_KEY=<mjccv1 service_role key> \
+  --project-ref qprfonxvthmaoxfixigk
+supabase secrets set LUNCHVOICE_SSO_SECRET=<32+ byte random secret> \
   --project-ref qprfonxvthmaoxfixigk
 ```
 
