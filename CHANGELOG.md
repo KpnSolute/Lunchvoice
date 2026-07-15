@@ -20,6 +20,11 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added three clear student survey access paths: QR links that survive sign-in
+  or sign-up and open the intended survey, code entry on the Surveys page, and
+  an optional staff-controlled Available surveys list.
+- Added an authenticated, tenant-scoped `join_available_session` RPC plus staff
+  launch/session controls for opting sessions into student discovery.
 - Added wildcard hostname routing so any subscribed organization can use
   `<orgSlug>.lunchvoice.com` while the root and `www` hosts remain the public
   Lunch Voice site. Existing `/:orgSlug` URLs remain compatible.
@@ -40,6 +45,9 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Changed
 
+- Restricted session reads so code-only sessions stay hidden until a student
+  joins, while discoverable active sessions and each student's joined history
+  remain accessible under RLS.
 - Reset the repository package version baseline to `0.0.1` for the new release
   sequence. Historical commits remain untagged; automation begins at current
   `main`.

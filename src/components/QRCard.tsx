@@ -23,6 +23,7 @@ export function QRCard({ code }: { code: string }) {
       >
         Copy join link
       </button>
+      <div className="muted center" style={{ fontSize: 12 }}>Scan to sign in or sign up, join this session, and open its survey directly.</div>
       <div className="muted mono" style={{ fontSize: 11, wordBreak: "break-all" }}>{url}</div>
     </div>
   );

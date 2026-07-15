@@ -237,3 +237,38 @@ Blockers:
 Next:
 - Push `main`, wait for Render, then confirm sudo login and a new live response
   with an authorized staff account.
+
+## 2026-07-15 — Simplified Survey Session Access
+
+Start: 03:11 PM
+End: 03:20 PM
+
+Goal:
+Make session sharing straightforward through direct QR access, code entry, and
+staff-controlled discovery while keeping code-only sessions private.
+
+Completed:
+- Preserved QR join intent through student sign-in/sign-up and clarified the
+  direct-access behavior on staff QR cards.
+- Kept session code entry on the main Surveys page and added a distinct list of
+  staff-approved Available surveys.
+- Added staff controls at launch and on active sessions to opt discovery in or
+  out without affecting QR/code access.
+- Applied an additive MJCCv2 migration for discovery, tenant-scoped joining,
+  least-privilege function grants, indexes, and tightened session RLS.
+
+Verified:
+- Agent-brain consistency, TypeScript, Vite production build, release-policy
+  check, and heavy npm audit passed with zero vulnerabilities.
+- Live MJCCv2 schema, RLS policy, and RPC privileges match the intended design.
+- Supabase security and performance advisors were reviewed after migration.
+
+Blockers:
+- Docker Desktop is not running, so local Supabase container tests are not
+  available.
+- `lioncafe.lunchvoice.com` does not currently resolve in DNS; Render's service
+  URL is live and current.
+
+Next:
+- Push the frontend and migration record, verify Render, then test all three
+  paths with authorized staff/student accounts.

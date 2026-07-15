@@ -231,6 +231,7 @@ export function ContentCentral() {
   const [launchDay, setLaunchDay] = useState<number | "">("");
   const [launchReward, setLaunchReward] = useState(50);
   const [launchDuration, setLaunchDuration] = useState(120);
+  const [launchDiscoverable, setLaunchDiscoverable] = useState(false);
   const [voiceKind, setVoiceKind] = useState("announcement");
   const [voiceDay, setVoiceDay] = useState<number | "">("");
   const [voiceBody, setVoiceBody] = useState("");
@@ -607,6 +608,7 @@ export function ContentCentral() {
         template_id: launchTemplateId || null,
         menu_cycle_id: launchCycleId || null,
         closes_at: sessionClosesAt(launchDuration),
+        show_on_dashboard: launchDiscoverable,
         created_by: profile?.id,
         org_id: org.id,
       })
@@ -615,6 +617,7 @@ export function ContentCentral() {
     if (error) return setErr(error.message);
     setLaunchTitle("");
     setLaunchDuration(120);
+    setLaunchDiscoverable(false);
     setShowQr(data.id);
     setOk("Survey session launched. Share the QR or join code.");
     await load();
@@ -644,6 +647,16 @@ export function ContentCentral() {
     if (error) return setErr(error.message);
     const duration = SESSION_DURATION_OPTIONS.find((option) => option.minutes === minutes)?.label ?? `${minutes} minutes`;
     setOk(minutes === 0 ? "Session set to stay open until manually closed." : `Session duration set to ${duration} from now.`);
+    await load();
+  }
+
+  async function toggleSessionDiscovery(s: SessionRow) {
+    setErr("");
+    setOk("");
+    const showOnDashboard = !s.show_on_dashboard;
+    const { error } = await supabase.from("sessions").update({ show_on_dashboard: showOnDashboard }).eq("id", s.id);
+    if (error) return setErr(error.message);
+    setOk(showOnDashboard ? "Session added to Available surveys." : "Session is now accessible by QR or code only.");
     await load();
   }
 
@@ -977,6 +990,10 @@ export function ContentCentral() {
                 </select>
                 <div className="input-help"><span>QR links and join codes stop accepting new responses after this time.</span></div>
               </div>
+              <label className="check-row">
+                <input type="checkbox" checked={launchDiscoverable} onChange={(e) => setLaunchDiscoverable(e.target.checked)} />
+                <span><b>Show in Available surveys</b><small>Students can discover and join it without a code. Leave off for QR/code-only access.</small></span>
+              </label>
               <button className="btn btn-primary btn-block"><Icon name="arrow" size={16} /> Launch session</button>
             </form>
           </div>
@@ -1031,6 +1048,9 @@ export function ContentCentral() {
                     <button className="btn btn-ghost" onClick={() => setSessionDuration(s)}>Set duration</button>
                   </div>
                   <button className="btn btn-ghost" onClick={() => toggleSession(s)}>{isSessionOpen(s) ? "Close" : "Reopen"}</button>
+                  <button className="btn btn-ghost" onClick={() => toggleSessionDiscovery(s)}>
+                    {s.show_on_dashboard ? "Remove from Available" : "Show in Available"}
+                  </button>
                 </div>
               </div>
               {showQr === s.id && <div style={{ marginTop: 14 }}><QRCard code={s.join_code} /></div>}

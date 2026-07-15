@@ -543,6 +543,7 @@ export type Database = {
           opens_at: string | null
           org_id: string
           points_reward: number
+          show_on_dashboard: boolean
           template_id: string | null
           title: string
         }
@@ -559,6 +560,7 @@ export type Database = {
           opens_at?: string | null
           org_id: string
           points_reward?: number
+          show_on_dashboard?: boolean
           template_id?: string | null
           title: string
         }
@@ -575,6 +577,7 @@ export type Database = {
           opens_at?: string | null
           org_id?: string
           points_reward?: number
+          show_on_dashboard?: boolean
           template_id?: string | null
           title?: string
         }
@@ -1021,6 +1024,7 @@ export type Database = {
     Functions: {
       caller_org_id: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      join_available_session: { Args: { p_session_id: string }; Returns: string }
       join_session: { Args: { p_code: string }; Returns: string }
       redeem_item: { Args: { p_item_id: string }; Returns: string }
       submit_response: {
