@@ -305,7 +305,7 @@ Next:
 ## 2026-07-15 — KpnCompute SSO and QR Sharing
 
 Start: 05:51 PM
-End: 05:59 PM
+End: 06:08 PM
 
 Goal:
 Integrate the existing KpnCompute and Lunchvoice applications so authorized
@@ -324,12 +324,15 @@ Verified:
   security audit passed with zero vulnerabilities.
 - KpnCompute release gate passed with 96 backend tests, lint, formatting, and
   production frontend build.
-- KpnCompute commit `1021cc3` was pushed to `main`; Render deployments started.
+- KpnCompute release `v0.0.7` and Lunchvoice release `v0.0.7` completed; all
+  KpnCompute and Interact Render services report live.
+- The MJCCv2 staff auth functions are active, forged handoffs are rejected, and
+  the production callback route and updated frontend bundle respond correctly.
 
 Blockers:
-- Final browser SSO validation requires an authorized MJCC account after both
-  Render deployments and the new MJCCv2 Edge Function are live.
+- Final browser SSO validation still requires an authorized MJCC account; the
+  anonymous and forged-code production checks correctly fail closed.
 
 Next:
-- Deploy the Edge Functions, verify both Render services, and complete one
-  authorized end-to-end MJCC-to-LionCafe login.
+- Complete one authorized end-to-end MJCC-to-LionCafe login and download a QR
+  image from a real staff session for final visual confirmation.

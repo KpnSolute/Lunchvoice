@@ -33,7 +33,8 @@ categories and the repository's decimal `X.X.X` release policy.
 - Added a campus-compatible KpnCompute launch path, a short-lived SSO callback,
   and staff QR destination controls for either the Render campus URL or the
   public Lunchvoice URL. QR codes can now be downloaded as high-resolution PNG
-  images for flyers.
+  images for flyers. The KpnCompute bridge, MJCCv2 functions, and Interact
+  frontend were deployed and verified fail-closed for anonymous/forged access.
 - Added three clear student survey access paths: QR links that survive sign-in
   or sign-up and open the intended survey, code entry on the Surveys page, and
   an optional staff-controlled Available surveys list.
