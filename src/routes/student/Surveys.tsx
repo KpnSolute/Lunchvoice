@@ -103,7 +103,7 @@ export function Surveys() {
       <div className="card">
         <h2>Available surveys <span className="tag">{available.length} available</span></h2>
         {loading ? (
-          <p className="muted">Loadingâ€¦</p>
+          <p className="muted">Loading…</p>
         ) : available.length === 0 ? (
           <p className="muted">No public sessions are available right now. You can still join a private session with its QR or code.</p>
         ) : (
@@ -111,7 +111,7 @@ export function Surveys() {
             <div key={session.id} className="item-row">
               <div className="item-name">
                 {session.title}
-                <small>{session.points_reward} pts{session.menu_day ? ` Â· Day ${session.menu_day}` : ""}{session.description ? ` Â· ${session.description}` : ""}</small>
+                <small>{session.points_reward} pts{session.menu_day ? ` · Day ${session.menu_day}` : ""}{session.description ? ` · ${session.description}` : ""}</small>
               </div>
               <button className="btn btn-primary" onClick={() => joinAvailable(session.id)}>Join & start <Icon name="arrow" size={16} /></button>
             </div>

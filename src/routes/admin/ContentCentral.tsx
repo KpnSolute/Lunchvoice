@@ -8,7 +8,7 @@ import { Bars, DistributionColumns, TrendLine, dailyTrend, shortDay } from "../.
 import { displayDaysFromCycle, formatMenuDate, groupMenuWeeks, type DisplayMenuDay } from "../../lib/menuDisplay";
 import type { MenuCycle, MenuCycleDay, Session, SurveyQuestion, SurveyTemplate } from "../../types/db";
 
-type Tab = "surveys" | "menu" | "launch" | "results";
+type Tab = "surveys" | "menu" | "launch" | "sessions" | "results";
 type TemplateWithQuestions = SurveyTemplate & { questions: SurveyQuestion[] };
 type SessionRow = Session & { survey_templates?: SurveyTemplate | null; menu_cycles?: MenuCycle | null };
 type AnswerRow = {
@@ -209,6 +209,7 @@ export function ContentCentral() {
   const [ok, setOk] = useState("");
   const [showQr, setShowQr] = useState<string | null>(null);
   const [sessionDurationDrafts, setSessionDurationDrafts] = useState<Record<string, number>>({});
+  const [sessionSearch, setSessionSearch] = useState("");
   const [resultSessionId, setResultSessionId] = useState("");
   const [resultTemplateId, setResultTemplateId] = useState("");
   const [resultsUpdatedAt, setResultsUpdatedAt] = useState<Date | null>(null);
@@ -247,7 +248,7 @@ export function ContentCentral() {
         .from("sessions")
         .select("*, survey_templates(title, status, points_reward), menu_cycles(title)")
         .order("created_at", { ascending: false })
-        .limit(30),
+        .limit(200),
       supabase
         .from("responses")
         .select("id, session_id, submitted_at")
@@ -388,6 +389,13 @@ export function ContentCentral() {
   const activeCycleToday = activeCycleDisplayDays.find((day) => day.date === todayIso);
   const activeSessions = sessions.filter(isSessionOpen);
   const draftTemplates = templates.filter((t) => t.status !== "published");
+  const sessionSearchQuery = sessionSearch.trim().toLowerCase();
+  const searchedSessions = sessions.filter((s) => {
+    if (!sessionSearchQuery) return true;
+    return s.title.toLowerCase().includes(sessionSearchQuery) || s.join_code.toLowerCase().includes(sessionSearchQuery);
+  });
+  const openSessions = searchedSessions.filter(isSessionOpen);
+  const closedSessions = searchedSessions.filter((s) => !isSessionOpen(s));
   const sessionTemplateById = useMemo(() => new Map(sessions.map((s) => [s.id, s.template_id])), [sessions]);
   const sessionResponseCounts = useMemo(() => {
     const map = new Map<string, number>();
@@ -624,15 +632,21 @@ export function ContentCentral() {
   }
 
   async function toggleSession(s: SessionRow) {
+    const opening = !isSessionOpen(s);
+    const confirmed = window.confirm(
+      opening
+        ? `Reopen "${s.title}"? Students will be able to submit responses again.`
+        : `Close "${s.title}"? Students will no longer be able to submit responses.`
+    );
+    if (!confirmed) return;
     setErr("");
     setOk("");
-    const opening = !isSessionOpen(s);
     const update: Partial<Session> = { is_active: opening };
     if (opening && s.closes_at && new Date(s.closes_at).getTime() <= Date.now()) update.closes_at = null;
     const { error } = await supabase.from("sessions").update(update).eq("id", s.id);
     if (error) return setErr(error.message);
+    setSessions((current) => current.map((row) => (row.id === s.id ? { ...row, ...update } : row)));
     setOk(opening ? "Session reopened." : "Session closed.");
-    await load();
   }
 
   async function setSessionDuration(s: SessionRow) {
@@ -642,22 +656,28 @@ export function ContentCentral() {
     const closesAt = minutes === 0 ? null : sessionClosesAt(minutes);
     const { error } = await supabase
       .from("sessions")
-      .update({ is_active: true, closes_at: closesAt })
+      .update({ closes_at: closesAt })
       .eq("id", s.id);
     if (error) return setErr(error.message);
+    setSessions((current) => current.map((row) => (row.id === s.id ? { ...row, closes_at: closesAt } : row)));
     const duration = SESSION_DURATION_OPTIONS.find((option) => option.minutes === minutes)?.label ?? `${minutes} minutes`;
     setOk(minutes === 0 ? "Session set to stay open until manually closed." : `Session duration set to ${duration} from now.`);
-    await load();
   }
 
   async function toggleSessionDiscovery(s: SessionRow) {
+    const showOnDashboard = !s.show_on_dashboard;
+    const confirmed = window.confirm(
+      showOnDashboard
+        ? `Show "${s.title}" in Available surveys? Students will be able to discover and join it without a code.`
+        : `Remove "${s.title}" from Available surveys? Students will no longer be able to find it without a QR code or join code.`
+    );
+    if (!confirmed) return;
     setErr("");
     setOk("");
-    const showOnDashboard = !s.show_on_dashboard;
     const { error } = await supabase.from("sessions").update({ show_on_dashboard: showOnDashboard }).eq("id", s.id);
     if (error) return setErr(error.message);
+    setSessions((current) => current.map((row) => (row.id === s.id ? { ...row, show_on_dashboard: showOnDashboard } : row)));
     setOk(showOnDashboard ? "Session added to Available surveys." : "Session is now accessible by QR or code only.");
-    await load();
   }
 
   async function postVoiceAnnouncement(e: React.FormEvent) {
@@ -681,6 +701,46 @@ export function ContentCentral() {
     setVoiceBody("");
     setVoiceDay("");
     setOk("Posted to Student Voice.");
+  }
+
+  function renderSessionCard(s: SessionRow) {
+    return (
+      <div key={s.id} className="card">
+        <div className="spread">
+          <div>
+            <h2>{s.title} <span className={`pill ${isSessionOpen(s) ? "ready" : "collected"}`}>{isSessionOpen(s) ? "active" : "closed"}</span></h2>
+            <p className="hint" style={{ margin: 0 }}>Code <b className="mono">{s.join_code}</b> - {s.points_reward} pts - {s.survey_templates?.title || "No linked survey"} - {closeText(s.closes_at)} - {sessionResponseCounts.get(s.id) ?? 0} responses</p>
+          </div>
+          <div className="stack" style={{ alignItems: "flex-end" }}>
+            <button className="btn btn-solid" onClick={() => setShowQr(showQr === s.id ? null : s.id)}>{showQr === s.id ? "Hide QR" : "Show QR"}</button>
+            {showQr === s.id && <div style={{ marginTop: 4 }}><QRCard code={s.join_code} /></div>}
+          </div>
+        </div>
+        <div className="tool-note" style={{ marginTop: 14 }}>
+          <b>Live controls</b>
+          <div className="stack" style={{ marginTop: 8 }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <select
+                aria-label={`Duration for ${s.title}`}
+                value={sessionDurationDrafts[s.id] ?? 30}
+                onChange={(e) => setSessionDurationDrafts((current) => ({ ...current, [s.id]: Number(e.target.value) }))}
+              >
+                {SESSION_DURATION_OPTIONS.map((option) => (
+                  <option key={option.minutes} value={option.minutes}>{option.label}</option>
+                ))}
+              </select>
+              <button className="btn btn-ghost" onClick={() => setSessionDuration(s)}>Set duration</button>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button className="btn btn-ghost" onClick={() => toggleSession(s)}>{isSessionOpen(s) ? "Close" : "Reopen"}</button>
+              <button className="btn btn-ghost" onClick={() => toggleSessionDiscovery(s)}>
+                {s.show_on_dashboard ? "Remove from Available" : "Show in Available"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (loading) return <div className="card muted">Loading Content Central...</div>;
@@ -718,6 +778,7 @@ export function ContentCentral() {
           ["surveys", "Survey builder", "survey"],
           ["menu", "Menu cycle", "menu"],
           ["launch", "Launch", "arrow"],
+          ["sessions", "Sessions", "roster"],
           ["results", "Results", "dashboard"],
         ].map(([key, label, icon]) => (
           <button key={key} className={`content-tab${tab === key ? " active" : ""}`} onClick={() => setTab(key as Tab)}>
@@ -1024,38 +1085,50 @@ export function ContentCentral() {
               <button className="btn btn-solid btn-block"><Icon name="voice" size={16} /> Publish update</button>
             </form>
           </div>
+        </>
+      )}
+
+      {tab === "sessions" && (
+        <>
+          <div className="card">
+            <div className="spread">
+              <div>
+                <h2>Session manager</h2>
+                <p className="hint" style={{ margin: 0 }}>Search, review, and control live and closed sessions.</p>
+              </div>
+              <span className="hint" style={{ margin: 0 }}>Showing {sessions.length} sessions</span>
+            </div>
+            <input
+              style={{ marginTop: 12 }}
+              placeholder="Search by title or join code..."
+              value={sessionSearch}
+              onChange={(e) => setSessionSearch(e.target.value)}
+            />
+          </div>
 
           {sessions.length === 0 && <div className="card"><h2>No sessions launched</h2><p className="hint">Launch a published survey to get a join code and QR students can scan.</p></div>}
-          {sessions.map((s) => (
-            <div key={s.id} className="card">
-              <div className="spread">
-                <div>
-                  <h2>{s.title} <span className={`pill ${isSessionOpen(s) ? "ready" : "collected"}`}>{isSessionOpen(s) ? "active" : "closed"}</span></h2>
-                  <p className="hint" style={{ margin: 0 }}>Code <b className="mono">{s.join_code}</b> - {s.points_reward} pts - {s.survey_templates?.title || "fixed survey"} - {closeText(s.closes_at)} - {sessionResponseCounts.get(s.id) ?? 0} responses</p>
-                </div>
-                <div className="stack" style={{ alignItems: "flex-end" }}>
-                  <button className="btn btn-solid" onClick={() => setShowQr(showQr === s.id ? null : s.id)}>{showQr === s.id ? "Hide QR" : "Show QR"}</button>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
-                    <select
-                      aria-label={`Duration for ${s.title}`}
-                      value={sessionDurationDrafts[s.id] ?? 30}
-                      onChange={(e) => setSessionDurationDrafts((current) => ({ ...current, [s.id]: Number(e.target.value) }))}
-                    >
-                      {SESSION_DURATION_OPTIONS.map((option) => (
-                        <option key={option.minutes} value={option.minutes}>{option.label}</option>
-                      ))}
-                    </select>
-                    <button className="btn btn-ghost" onClick={() => setSessionDuration(s)}>Set duration</button>
-                  </div>
-                  <button className="btn btn-ghost" onClick={() => toggleSession(s)}>{isSessionOpen(s) ? "Close" : "Reopen"}</button>
-                  <button className="btn btn-ghost" onClick={() => toggleSessionDiscovery(s)}>
-                    {s.show_on_dashboard ? "Remove from Available" : "Show in Available"}
-                  </button>
-                </div>
+
+          {sessions.length > 0 && (
+            <>
+              <div className="spread" style={{ marginBottom: 8 }}>
+                <h2 style={{ margin: 0 }}>Active <span className="points-badge">{openSessions.length} sessions</span></h2>
               </div>
-              {showQr === s.id && <div style={{ marginTop: 14 }}><QRCard code={s.join_code} /></div>}
-            </div>
-          ))}
+              {openSessions.length === 0 ? (
+                <p className="hint">No active sessions match this search.</p>
+              ) : (
+                openSessions.map((s) => renderSessionCard(s))
+              )}
+
+              <div className="spread" style={{ marginTop: 20, marginBottom: 8 }}>
+                <h2 style={{ margin: 0 }}>Closed <span className="points-badge">{closedSessions.length} sessions</span></h2>
+              </div>
+              {closedSessions.length === 0 ? (
+                <p className="hint">No closed sessions match this search.</p>
+              ) : (
+                closedSessions.map((s) => renderSessionCard(s))
+              )}
+            </>
+          )}
         </>
       )}
 

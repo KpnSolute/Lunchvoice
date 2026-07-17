@@ -8,6 +8,27 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Fixed
 
+- Stopped "Set duration" from silently reopening a closed survey session to
+  students — it now only updates the auto-lock time, never `is_active`.
+  Reopening a session is exclusively a Close/Reopen action, and that action
+  (along with Remove/Show in Available) now requires a confirmation naming the
+  live student-facing consequence before it fires.
+- Stopped every session-card action (Close/Reopen, Set duration, Available
+  toggle) from reloading the whole Content Central tab and resetting scroll to
+  the top — these now patch local state instead of a full refetch.
+- Added a unique constraint on `responses(session_id, student_id)` to close a
+  check-then-insert race in `submit_response` that could double-award points
+  on a double-submit or retry. Confirmed zero existing duplicate rows before
+  applying.
+- Re-scoped `sessions.join_code` uniqueness from global to per-`org_id`,
+  matching the org-scoped design of the rest of the schema; prevents a
+  spurious insert failure if two different orgs happen to generate the same
+  join code.
+- Fixed double-encoded UTF-8 (mojibake) on the student Surveys page that
+  rendered `Loading…` and `·` as garbled characters.
+- Replaced the ambiguous "fixed survey" session label with "No linked survey"
+  so staff can tell an intentionally template-less session from a broken
+  join.
 - Made staff sessions expire only after 60 minutes of real inactivity across
   open Lunchvoice tabs, then return staff to the MJCC-backed admin login instead
   of silently dropping them into the student flow.
@@ -37,6 +58,11 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added a dedicated "Sessions" tab in Content Central, separate from "Launch,"
+  with search by title/join code, Active/Closed grouping with counts, a
+  visually distinct "Live controls" cluster on each card so staff can tell
+  read-only info from student-facing actions, and the QR code now renders
+  directly under its own button instead of below three unrelated controls.
 - Added a campus-compatible KpnCompute launch path, a short-lived SSO callback,
   and staff QR destination controls for either the Render campus URL or the
   public Lunchvoice URL. QR codes can now be downloaded as high-resolution PNG
