@@ -451,10 +451,13 @@ export function ContentCentral() {
       const row = map.get(a.question_id) ?? { prompt, type, count: 0, ratings: [], options: {}, texts: [] };
       row.count += 1;
       if (typeof a.value === "number") row.ratings.push(a.value);
-      if (typeof a.value === "string") row.texts.push(a.value);
       if (Array.isArray(a.value)) for (const v of a.value) row.options[String(v)] = (row.options[String(v)] ?? 0) + 1;
-      if (typeof a.value === "string" && (type === "single_choice" || type === "yes_no")) {
-        row.options[a.value] = (row.options[a.value] ?? 0) + 1;
+      if (typeof a.value === "string") {
+        if (type === "single_choice" || type === "yes_no") {
+          row.options[a.value] = (row.options[a.value] ?? 0) + 1;
+        } else {
+          row.texts.push(a.value);
+        }
       }
       map.set(a.question_id, row);
     }
@@ -472,7 +475,8 @@ export function ContentCentral() {
         ratingSum += a.value;
         ratingCount += 1;
       }
-      if (typeof a.value === "string" && a.value.trim()) textCount += 1;
+      const type = a.survey_questions?.type;
+      if (typeof a.value === "string" && a.value.trim() && type !== "single_choice" && type !== "yes_no") textCount += 1;
     }
     return {
       responses: filteredResponses.length,

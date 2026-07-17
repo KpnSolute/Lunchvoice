@@ -8,6 +8,12 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Fixed
 
+- Fixed `single_choice`/`yes_no` answers being double-counted in Content
+  Central's Results tab: they were tallied correctly as choice-bar options
+  but also pushed into the free-text bucket, inflating "Open comments" and
+  showing structured picks (e.g. "Yes", "Too small") as if they were quoted
+  student comments. Only genuine open-text answers land in the text bucket
+  now.
 - Fixed the dead "Continue with MJCC" staff sign-in button: `MJCC_STAFF_SSO_URL`
   pointed at `mjcc.kpncompute.com`, whose apex domain no longer resolves in
   DNS. The live portal moved to `mjcc.kpnsolute.com` (confirmed reachable,
