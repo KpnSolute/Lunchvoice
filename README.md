@@ -37,7 +37,7 @@ functions are the actual guardrails.
   function checks whether the email already has a MJCCv2 student profile, sends
   the Supabase OTP code, and tells the UI whether to show the one-time name
   field. Supabase Auth still owns verification through `verifyOtp`.
-- Staff select **Continue with MJCC** and authenticate at `mjcc.kpncompute.com`.
+- Staff select **Continue with MJCC** and authenticate at `mjcc.kpnsolute.com`.
   KpnCompute issues a short-lived one-time code after verifying the live
   LionCafe role grant. `staff-sso` exchanges it server-to-server, then
   provisions or updates the MJCCv2 admin profile and starts a MJCCv2 session.

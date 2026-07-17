@@ -17,7 +17,7 @@ export const supabase = createClient<Database>(url, key, {
 });
 
 export type LoginStartKind = "staff" | "student_returning" | "student_new";
-export const MJCC_STAFF_SSO_URL = "https://mjcc.kpncompute.com/?launch=lioncafe";
+export const MJCC_STAFF_SSO_URL = "https://mjcc.kpnsolute.com/?launch=lioncafe";
 
 export async function beginLogin(identifier: string, orgSlug: string): Promise<LoginStartKind> {
   const res = await fetch(`${url}/functions/v1/login-start`, {

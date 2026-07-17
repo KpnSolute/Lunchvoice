@@ -8,6 +8,13 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Fixed
 
+- Fixed the dead "Continue with MJCC" staff sign-in button: `MJCC_STAFF_SSO_URL`
+  pointed at `mjcc.kpncompute.com`, whose apex domain no longer resolves in
+  DNS. The live portal moved to `mjcc.kpnsolute.com` (confirmed reachable,
+  same underlying Render service) — updated the constant and the matching
+  README reference. Backend edge functions were unaffected; they already call
+  the stable `mjcc-managements.onrender.com` URL directly.
+
 - Stopped "Set duration" from silently reopening a closed survey session to
   students — it now only updates the auto-lock time, never `is_active`.
   Reopening a session is exclusively a Close/Reopen action, and that action
