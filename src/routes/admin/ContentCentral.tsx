@@ -170,6 +170,18 @@ function sessionClosesAt(minutes: number): string | null {
   return new Date(Date.now() + minutes * 60000).toISOString();
 }
 
+// Maps a session's real closes_at back onto the nearest preset so the duration
+// dropdown reflects what's actually persisted instead of a fixed default.
+function closestDurationMinutes(closesAt: string | null | undefined): number {
+  if (!closesAt) return 0;
+  const remainingMinutes = (new Date(closesAt).getTime() - Date.now()) / 60000;
+  if (remainingMinutes <= 0) return 30;
+  const presets = SESSION_DURATION_OPTIONS.filter((option) => option.minutes > 0);
+  return presets.reduce((closest, option) =>
+    Math.abs(option.minutes - remainingMinutes) < Math.abs(closest.minutes - remainingMinutes) ? option : closest
+  ).minutes;
+}
+
 function isSessionOpen(s: Pick<Session, "is_active" | "closes_at">): boolean {
   if (!s.is_active) return false;
   if (!s.closes_at) return true;
@@ -380,6 +392,18 @@ export function ContentCentral() {
     const active = cycles.find((c) => c.is_active);
     if (active) setLaunchCycleId((cur) => cur || active.id);
   }, [cycles]);
+
+  // Seed each session's duration draft from its real closes_at (once) so the dropdown
+  // reflects what's actually persisted instead of always showing a fixed default.
+  useEffect(() => {
+    const unseeded = sessions.filter((s) => !(s.id in sessionDurationDrafts));
+    if (unseeded.length === 0) return;
+    setSessionDurationDrafts((current) => {
+      const next = { ...current };
+      for (const s of unseeded) next[s.id] = closestDurationMinutes(s.closes_at);
+      return next;
+    });
+  }, [sessions, sessionDurationDrafts]);
 
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
   const publishedTemplates = templates.filter((t) => t.status === "published");
@@ -652,7 +676,7 @@ export function ContentCentral() {
   async function setSessionDuration(s: SessionRow) {
     setErr("");
     setOk("");
-    const minutes = sessionDurationDrafts[s.id] ?? 30;
+    const minutes = sessionDurationDrafts[s.id] ?? closestDurationMinutes(s.closes_at);
     const closesAt = minutes === 0 ? null : sessionClosesAt(minutes);
     const { error } = await supabase
       .from("sessions")
@@ -722,7 +746,7 @@ export function ContentCentral() {
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <select
                 aria-label={`Duration for ${s.title}`}
-                value={sessionDurationDrafts[s.id] ?? 30}
+                value={sessionDurationDrafts[s.id] ?? closestDurationMinutes(s.closes_at)}
                 onChange={(e) => setSessionDurationDrafts((current) => ({ ...current, [s.id]: Number(e.target.value) }))}
               >
                 {SESSION_DURATION_OPTIONS.map((option) => (

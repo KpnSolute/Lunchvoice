@@ -14,6 +14,23 @@ categories and the repository's decimal `X.X.X` release policy.
   same underlying Render service) — updated the constant and the matching
   README reference. Backend edge functions were unaffected; they already call
   the stable `mjcc-managements.onrender.com` URL directly.
+- Applied the `responses`/`join_code` tracking-integrity migration to MJCCv2
+  (unique constraint on `responses(session_id, student_id)`, org-scoped
+  `join_code`, reserved-column comments). While applying it, found and
+  dropped a second, untracked unique constraint on the same `responses`
+  columns that predated this change and wasn't recorded in any migration
+  file — both enforced the same thing, so the untracked one was removed.
+- Applied `20260706153000_add_flame_slider_question_types.sql`, which had
+  been written and committed but never actually run against MJCCv2 — the
+  `survey_questions.type` check constraint was silently missing `flame` and
+  `slider` even though the Question Editor UI already offered both as answer
+  types, so creating either would have failed with a database error.
+- Made the session duration dropdown reflect what's actually saved:
+  previously it always showed a hardcoded "30 minutes" default regardless of
+  the session's real `closes_at`, so clicking "Set duration" without
+  deliberately changing the dropdown could silently shrink a session that
+  was set to close much later. It now seeds from the session's persisted
+  duration (mapped to the closest preset) on load.
 
 - Stopped "Set duration" from silently reopening a closed survey session to
   students — it now only updates the auto-lock time, never `is_active`.
