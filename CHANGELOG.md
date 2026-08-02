@@ -8,6 +8,19 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Fixed
 
+- Fixed the Supabase MCP server failing with a permission error in every
+  local AI tool (Claude Code, Cursor, VS Code). `.mcp.json`,
+  `.cursor/mcp.json`, and `.vscode/mcp.json` all pointed at the hosted
+  `mcp.supabase.com` endpoint; the two IDE configs sent no `Authorization`
+  header at all, and none had ever been committed, so a fresh clone had no
+  working Supabase MCP access regardless of tool. Switched all three to the
+  local `npx`-spawned `@supabase/mcp-server-supabase` server, scoped to this
+  project via `--project-ref=qprfonxvthmaoxfixigk` and authenticated with
+  `SUPABASE_ACCESS_TOKEN` (documented in `.env.example`, same Supabase
+  account as KpnCompute). Verified full read/write access to the live
+  project via the Management API directly (19 public tables reachable)
+  before committing the config.
+
 - Fixed `single_choice`/`yes_no` answers being double-counted in Content
   Central's Results tab: they were tallied correctly as choice-bar options
   but also pushed into the free-text bucket, inflating "Open comments" and
@@ -87,6 +100,9 @@ categories and the repository's decimal `X.X.X` release policy.
   when duplicate database foreign-key relationships are present.
 
 ### Added
+
+- Added the project-scoped Supabase MCP skeleton at `.mcp.json`, targeting
+  MJCCv2 (`qprfonxvthmaoxfixigk`) without storing credentials in the repository.
 
 - Added a dedicated "Sessions" tab in Content Central, separate from "Launch,"
   with search by title/join code, Active/Closed grouping with counts, a
