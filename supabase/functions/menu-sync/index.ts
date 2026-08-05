@@ -6,9 +6,11 @@
 // Actual write authorization is enforced in assertSyncAuthorized below.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { verifyKpnSoluteWebhook } from "../_shared/kpnsoluteWebhooks.ts";
 
 const DEFAULT_ORG_SLUG = "LionCafe";
 const DEFAULT_MJCC_MENU_API_BASE = "https://mjcc-managements.onrender.com";
+const MAX_CLOUDEVENT_BYTES = 256 * 1024;
 const allowedOrigins = (Deno.env.get("APP_ORIGINS") ?? "")
   .split(",")
   .map((s) => s.trim())
@@ -51,6 +53,12 @@ function json(req: Request, body: unknown, status = 200) {
 type PublicMenuSlot = { slot_name: string; item_name: string };
 type PublicMenuDay = { cycle_day: number; day_of_week: string; meals: Record<string, PublicMenuSlot[]> };
 type PublicMenuCycle = { anchor_date: string; days: PublicMenuDay[] };
+type KpnCloudEvent = {
+  specversion: string; id: string; source: string; type: string; time: string;
+  tenantid: string; data: Record<string, unknown>;
+};
+const MENU_DAY_EVENT = "com.kpnsolute.compute.menu.day.updated.v1";
+const MENU_CYCLE_EVENT = "com.kpnsolute.compute.menu.cycle.updated.v1";
 
 class HttpError extends Error {
   status: number;
@@ -61,7 +69,10 @@ class HttpError extends Error {
   }
 }
 
-async function resolveOrgId(v2: ReturnType<typeof createClient>, orgSlug: string): Promise<string> {
+// supabase-js 2.112's ungenerated generic schema resolves query rows to never;
+// this Edge Function intentionally uses runtime-validated rows.
+// deno-lint-ignore no-explicit-any
+async function resolveOrgId(v2: any, orgSlug: string): Promise<string> {
   const { data, error } = await v2
     .from("orgs")
     .select("id")
@@ -69,7 +80,7 @@ async function resolveOrgId(v2: ReturnType<typeof createClient>, orgSlug: string
     .maybeSingle();
   if (error) throw new Error(`org lookup failed: ${error.message}`);
   if (!data) throw new Error(`Unknown organization: ${orgSlug}`);
-  return data.id;
+  return (data as { id: string }).id;
 }
 
 function bearerToken(req: Request): string | null {
@@ -78,7 +89,8 @@ function bearerToken(req: Request): string | null {
   return match?.[1] ?? null;
 }
 
-async function assertSyncAuthorized(req: Request, v2: ReturnType<typeof createClient>, orgSlug: string) {
+// deno-lint-ignore no-explicit-any
+async function assertSyncAuthorized(req: Request, v2: any, orgSlug: string) {
   const internalToken = Deno.env.get("MENU_SYNC_TOKEN")?.trim();
   const suppliedToken = req.headers.get("x-menu-sync-token")?.trim();
   if (internalToken && suppliedToken && suppliedToken === internalToken) return;
@@ -96,8 +108,9 @@ async function assertSyncAuthorized(req: Request, v2: ReturnType<typeof createCl
     .eq("id", userRes.user.id)
     .maybeSingle();
   if (profileErr) throw new Error(`profile authorization lookup failed: ${profileErr.message}`);
-  if (!profile?.is_staff && profile?.role !== "admin") throw new HttpError(403, "Staff access required");
-  if (profile.org_id !== orgId) throw new HttpError(403, "Staff session does not match organization");
+  const staffProfile = profile as { org_id: string; role: string | null; is_staff: boolean } | null;
+  if (!staffProfile?.is_staff && staffProfile?.role !== "admin") throw new HttpError(403, "Staff access required");
+  if (staffProfile.org_id !== orgId) throw new HttpError(403, "Staff session does not match organization");
 }
 
 // Fold MJCCv1's per-meal rows for one day into LunchVoice's breakfast/lunch/dinner shape.
@@ -122,6 +135,84 @@ function mealNames(day: PublicMenuDay, periods: string[]): string[] {
     .flatMap((period) => day.meals?.[period] ?? [])
     .map((slot) => slot.item_name)
     .filter(Boolean);
+}
+
+function tenantOrgSlug(tenantId: string): string {
+  let mapping: Record<string, string> = { mjcc: DEFAULT_ORG_SLUG };
+  const configured = Deno.env.get("KPNSOLUTE_TENANT_ORG_MAP")?.trim();
+  if (configured) {
+    try { mapping = JSON.parse(configured); }
+    catch { throw new HttpError(500, "KPNSOLUTE_TENANT_ORG_MAP is invalid JSON"); }
+  }
+  const orgSlug = mapping[tenantId];
+  if (!orgSlug) throw new HttpError(403, `Tenant is not mapped: ${tenantId}`);
+  return orgSlug;
+}
+
+function object(value: unknown, name: string): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new HttpError(422, `${name} must be an object`);
+  return value as Record<string, unknown>;
+}
+
+function normalizeWebhookDay(value: unknown) {
+  const day = object(value, "menu day");
+  const meals = object(day.meals, "menu day meals") as Record<string, PublicMenuSlot[]>;
+  const publicDay: PublicMenuDay = {
+    cycle_day: Number(day.cycle_day),
+    day_of_week: String(day.day_of_week ?? ""),
+    meals,
+  };
+  if (!Number.isInteger(publicDay.cycle_day) || publicDay.cycle_day < 1) throw new HttpError(422, "cycle_day is invalid");
+  return {
+    day_number: publicDay.cycle_day,
+    weekday: publicDay.day_of_week,
+    breakfast: mealNames(publicDay, ["Breakfast", "Brunch"]),
+    lunch: mealNames(publicDay, ["Lunch", "Brunch"]),
+    dinner: mealNames(publicDay, ["Dinner"]),
+  };
+}
+
+async function handleKpnSoluteEvent(req: Request, rawBody: string) {
+  const secret = required("KPNSOLUTE_EVENTS_SIGNING_SECRET");
+  const verdict = await verifyKpnSoluteWebhook(secret, req.headers, rawBody);
+  if (!verdict.ok) throw new HttpError(401, verdict.reason ?? "Invalid webhook signature");
+
+  const event = object(JSON.parse(rawBody), "CloudEvent") as unknown as KpnCloudEvent;
+  if (event.specversion !== "1.0" || !event.id || !event.time || !event.tenantid) throw new HttpError(422, "Invalid CloudEvents envelope");
+  if (![MENU_DAY_EVENT, MENU_CYCLE_EVENT].includes(event.type)) throw new HttpError(422, `Unsupported event type: ${event.type}`);
+  if (!Number.isFinite(Date.parse(event.time))) throw new HttpError(422, "CloudEvent time is invalid");
+
+  const orgSlug = tenantOrgSlug(event.tenantid);
+  const v2 = createClient(required("SUPABASE_URL"), required("SUPABASE_SERVICE_ROLE_KEY"), { auth: { persistSession: false } });
+  const orgId = await resolveOrgId(v2, orgSlug);
+  const eventData = object(event.data, "CloudEvent data");
+  const sourceDays = event.type === MENU_DAY_EVENT ? [eventData] : eventData.days;
+  if (!Array.isArray(sourceDays) || sourceDays.length === 0) throw new HttpError(422, "CloudEvent contains no menu days");
+  const days = sourceDays.map(normalizeWebhookDay);
+  const anchorDate = typeof eventData.anchor_date === "string"
+    ? eventData.anchor_date
+    : typeof (sourceDays[0] as Record<string, unknown>).anchor_date === "string"
+      ? String((sourceDays[0] as Record<string, unknown>).anchor_date)
+      : null;
+
+  const { data, error } = await v2.rpc("apply_kpnsolute_menu_event", {
+    target_webhook_id: req.headers.get("webhook-id"),
+    target_org_id: orgId,
+    target_tenant_id: event.tenantid,
+    target_source_event_id: event.id,
+    target_event_type: event.type,
+    target_occurred_at: event.time,
+    target_anchor_date: anchorDate,
+    target_days: days,
+  });
+  if (error) throw new Error(`CloudEvents menu projection failed: ${error.message}`);
+  const result = data?.[0] ?? {};
+  return json(req, {
+    accepted: true,
+    duplicate: Boolean(result.duplicate),
+    cycle_id: result.cycle_id ?? null,
+    days_applied: Number(result.days_applied ?? 0),
+  }, 202);
 }
 
 async function syncMenu(orgSlug: string) {
@@ -241,6 +332,18 @@ async function syncFeedback(orgSlug: string) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(req) });
   if (req.method !== "POST") return json(req, { error: "Method not allowed" }, 405);
+  if (req.headers.has("webhook-id")) {
+    try {
+      const rawBody = await req.text();
+      if (new TextEncoder().encode(rawBody).byteLength > MAX_CLOUDEVENT_BYTES) {
+        return json(req, { error: `CloudEvent exceeds ${MAX_CLOUDEVENT_BYTES} bytes` }, 413);
+      }
+      return await handleKpnSoluteEvent(req, rawBody);
+    } catch (e) {
+      console.error("kpnsolute_menu_event_failed", e instanceof Error ? e.message : e);
+      return json(req, { error: e instanceof Error ? e.message : "CloudEvents menu sync failed" }, e instanceof HttpError ? e.status : 500);
+    }
+  }
   let action = "sync-menu";
   let orgSlug = DEFAULT_ORG_SLUG;
   try {

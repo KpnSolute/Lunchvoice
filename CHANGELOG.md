@@ -6,7 +6,24 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added
+
+- Added a signed KpnSolute CloudEvents receiver to the existing `menu-sync`
+  function for MJCC menu-day and menu-cycle events. It verifies Standard
+  Webhooks signatures against the raw request body, enforces the tenant-to-org
+  mapping, and atomically deduplicates and projects menu data into Lunchvoice.
+  The existing pull/manual synchronization remains available as a fallback.
+- Added the service-role-only event receipt/projection migration and bounded
+  CloudEvent request bodies to 256 KiB. Source verification passed Deno check,
+  the independent signature test, `check:brain`, and the production build. No
+  migration, secret, function deployment, or live subscription was applied.
+
 ### Fixed
+
+- Updated the locked PostCSS toolchain to remove the high-severity source-map
+  path-disclosure advisory found by the release audit. Two moderate React
+  Router advisories remain because their upstream fix requires the separate
+  React Router 7 migration; the high-severity release gate is clean.
 
 - Fixed the Supabase MCP server failing with a permission error in every
   local AI tool (Claude Code, Cursor, VS Code). `.mcp.json`,
