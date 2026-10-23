@@ -10,13 +10,26 @@ Lunchvoice is a multi-tenant React, TypeScript, Vite, and Supabase application
 for dining feedback, menu planning, student rewards, and staff operations. It
 deploys as the Render static site `lunch-line-survey`.
 
-- GitHub: `MJCC-Portal/Interact`
+- GitHub: `KpnSolute/Lunchvoice`
 - Production Supabase: MJCCv2 (`qprfonxvthmaoxfixigk`)
 - MJCCv1 (`mgvyylvmkxhhataavqjz`) is an upstream staff/menu system, not this
   repository's deployment target.
 - Local frontend: `npm run dev`
 - Architecture map: `graphify-out/wiki/index.md`
 - Product details: `README.md`, `PRODUCT.md`, and `DESIGN.md`
+
+
+## V2 North Star and Claude Implementation Handoff (2026-10-23)
+
+**Authoritative product source:** `docs/v2/PRODUCT_SPEC.md`. Read it and its source-to-target gap matrix before planning or changing code. `MULTI_TENANT_PLAN.md` is historical implementation context, NOT current v2 direction. v2 is a consumer Hub/Campaign platform, canonical `lunchvoice.com/{hubSlug}`; existing subdomains remain compatibility only. Global account via `auth.kpnsolute.com` / Google OAuth; multi-Hub membership, configurable guest Campaign participation, separated anonymous responses, per-Hub roles/pages/rewards, evidence-backed analytics, subscriptions and protected slug reservations are v2 scope. **Do not treat spec-only features as implemented.**
+
+**Founder-approved terms:** Starter $13/month, Team $29/month; seasonal Campaign Starter $19/first 2 weeks + $13 per extra week; Campaign Plus Team-equivalent (prices pending); 3/6 role slots; Starter 15 concurrent Campaigns overall; Starter 2 active Survey mode and >50% community engagement gate, Team 5 active Survey mode and >=20%; $25 slug protection for 12 months with 25-day grace then release; Hub applicant Discovery minimum 700 valid members; first beta 50 owners, target Dec 13 2026. Open commercial decisions MUST be recorded, not guessed.
+
+**Execution order:** (0) comprehensive repository + deployed-system read-only audit and gaps evidence; (1) security/identity and backwards-compatible migration designs; (2) reviewed implementation PRs with two-Hub RLS and membership tests; (3) Campaign/guest/anonymity + entitlement tests; (4) builder/analytics; (5) beta, restore/rehearsal, conditional launch. Create issues with file references, risks, owner, test, acceptance criteria and dependencies. Claude is governing architecture/implementation agent; coordinate UI, API/data, security QA with bounded delegations per rules above.
+
+**Compatibility/safety:** Do not remove the MJCC staff SSO or overwrite its data, alter production Supabase, switch domains, enable billing, or deploy `auth.kpnsolute.com` without separately scoped approval. Retain existing `org_id` isolation until migrated; no bypass for guests or Owner roles. Treat every subscription/role/response rule as server enforced; private and anonymous content must remain private. Existing architecture contract above describes CURRENT state, not the target v2 requirement.
+
+**V2 Definition of Done:** In addition to standard project DoD below, each v2 workstream must have source-backed existing-vs-target evidence, migration and rollback, unit+integration+E2E negative permission cases, accessible responsive UI, auditable entitlements, privacy-suppressed analytics, security review and merged CI-passing PR. Release requires all 14 evidence gates in `docs/v2/PRODUCT_SPEC.md` §12 and an explicit GO/NO-GO. Never claim production ready on source or build evidence alone.
 
 ## Mandatory Agent Startup
 
