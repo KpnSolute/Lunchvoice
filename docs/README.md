@@ -32,12 +32,14 @@ scope or implementation. Review order: roadmap first.
 | [frontend/EXPERIENCE_PLAN.md](frontend/EXPERIENCE_PLAN.md) | Drafted; design artifacts **Pending** (designer's handoff not delivered) |
 | [archeture/STAGING_MANIFEST.md](archeture/STAGING_MANIFEST.md) | Drafted; cost estimates unverified at purchase time; nothing provisioned |
 | [backend/D01_IDENTITY_DECISION_PACKET.md](backend/D01_IDENTITY_DECISION_PACKET.md) | Drafted; options, costs and migration implications for founder approval |
+| [api/README.md](api/README.md) | **API reference**: v1 as deployed (verified against production 2026-10-23) and the planned v2 surface |
 
 ## Documentation structure
 
 ```text
 docs/
   README.md
+  api/                        # API reference: Edge Functions, RPC, Data API, webhooks, v2
   backend/
     README.md                 # Claude starts here
     ROADMAP_PROPOSITION.md    # October 23-December 11 roadmap request

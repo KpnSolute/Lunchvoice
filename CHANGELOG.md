@@ -38,6 +38,13 @@ categories and the repository's decimal `X.X.X` release policy.
   replay cleanly on an empty database, and an isolated authorization verification was performed with results held
   privately. Documentation only; no production access, migration, secret, resource or deployment.
 
+- Added the API reference (`docs/api/`): Edge Functions (endpoints, request/response, status codes, CORS, rate
+  limits, configuration names), RPCs (signatures, behaviour, errors), the Data API (tables and views, read scoping,
+  supported writes), inbound webhooks (Auth send-email hook, KpnSolute menu CloudEvents) and an index of the planned
+  v2 API mapped from today's endpoints. The v1 sections were verified against production with read-only catalog
+  queries through the project MCP server on 2026-10-23 (function signatures and execute privileges, table privileges,
+  columns, read policies, deployed Edge Function versions); differences from the repository are called out. Documentation only.
+
 - Corrected and verified project facts (2026-10-23): the production Supabase project's name is `Lunchvoice`
   (ref `qprfonxvthmaoxfixigk`, us-west-2; the founder calls it LunchVoicev2), updated identically in both agent brain
   files and the resource map. Recorded PR #4 and #5 as merged, the founder-authorized profile hardening migration
