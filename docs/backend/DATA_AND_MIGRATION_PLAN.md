@@ -171,6 +171,23 @@ Authorization and storage key on Hub ID. Release removes the exclusive slug clai
 claimant receives none of the previous Hub's memberships, Campaigns, answers, analytics, billing, permissions or tokens. Slug history keeps a generation counter; shares, QR codes and embed tokens
 encode the Hub ID and generation and fail on mismatch. See the privacy plan for the test list.
 
+## 8a. Production drift (verified 2026-10-23, read-only)
+
+Production migration history (via the project MCP server) does **not** match the repository's migration files:
+
+| Item | Repository | Production history |
+| --- | --- | --- |
+| Early migrations | `0001`-`0009` files | `0001`-`0007` by number; 0008/0009 recorded as `20260703225631` / `20260703225645` |
+| Different version numbers for the same change | `20260706025927` widen voice notes, `20260716140000` tracking integrity, `20260717033000` drop redundant unique, `20260706153000` flame/slider, `20260804170000` event receipts | `20260706025911`, `20260717030553`, `20260717030651`, `20260717030741`, `20260805142204` |
+| In repository, absent from production history | `20260705145345_anonymize_student_roster`, `20260705234139_voice_forum_reviews` | not listed (effects may have been applied another way; unverified) |
+| In production, absent from repository | none | `20260805181227_qualify_kpnsolute_cycle_id` |
+| Grants applied outside migrations | none | column-limited profile UPDATE grant (now codified by `20261023225534`, PR #7) |
+
+Consequences: `supabase db push` or a naive replay would misjudge what is applied; R-02b (replay harness) and R-19 (rehearsal)
+must start from production's actual schema (a schema dump via an authorized read-only path) or reconcile the history first. Proposed
+follow-up: a reconciliation PR that fetches the missing `qualify_kpnsolute_cycle_id` statements from production history and
+verifies whether the two repository-only migrations' effects exist in production.
+
 ## 9. Risks
 
 | Risk | Mitigation |

@@ -38,6 +38,12 @@ categories and the repository's decimal `X.X.X` release policy.
   replay cleanly on an empty database, and an isolated authorization verification was performed with results held
   privately. Documentation only; no production access, migration, secret, resource or deployment.
 
+- Corrected and verified project facts (2026-10-23): the production Supabase project's name is `Lunchvoice`
+  (ref `qprfonxvthmaoxfixigk`, us-west-2; the founder calls it LunchVoicev2), updated identically in both agent brain
+  files and the resource map. Recorded PR #4 and #5 as merged, the founder-authorized profile hardening migration
+  applied to production (file in PR #7), and a verified production migration-history drift table in the data plan.
+  Documentation only.
+
 - Recorded the founder's consumer-first direction (2026-10-23): v2 does not rely on the native MJCC-specific
   integrations, and a developer-facing connector system (a Hub plugs in its own APIs to drive surveys) is planned,
   with timing for the LionCafe launch unresolved. Added the direction note to the product spec, a proposed D-13

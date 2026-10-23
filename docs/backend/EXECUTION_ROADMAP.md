@@ -50,8 +50,8 @@ supplied:** the survey operator and launch-support owner; the survey's opening t
 questionnaire, audience and anonymity requirement; the staging budget and resource owner. Production deployment,
 migrations and paid-resource creation remain unapproved.
 
-**Scope note (founder, 2026-10-23):** the production Supabase project is now named **LunchVoicev2** (formerly
-MJCCv2; the project reference is expected to be unchanged, unverified), and **v2 will not use the upstream MJCCv1
+**Scope note (founder, 2026-10-23):** the production Supabase project is the founder's **LunchVoicev2** (formerly
+MJCCv2). **Verified 2026-10-23:** its dashboard name is `Lunchvoice`, ref `qprfonxvthmaoxfixigk` (unchanged), region us-west-2, and **v2 will not use the upstream MJCCv1
 inventory system yet**. Recorded consequences: (1) the v2 launch scope takes **no new dependency** on MJCCv1 or
 KpnCompute; (2) existing MJCCv1-backed code (the staff login bridge `staff-login`/`staff-sso`/`staff-status` and the
 `menu-sync` pull and signed-event paths) stays as **legacy** and is neither extended nor, yet, retired; (3) **open
@@ -225,7 +225,7 @@ section 8 explains why that is not a safe plan of record.
   with two-Hub synthetic fixtures; behavioural runner script.
 - Owner: Claude. Needs: Docker (present), Supabase CLI, Deno, GitHub Actions minutes.
 - Dates: Oct 26-Nov 3; 3-5 d; confidence medium.
-- **Status (2026-10-23): first slice in progress.** PR [#5](https://github.com/KpnSolute/Lunchvoice/pull/5) (stacked on #4) adds
+- **Status (2026-10-23): first slice merged** as PR [#5](https://github.com/KpnSolute/Lunchvoice/pull/5) (squash `8efe4ce`); every PR now gets checks. It adds
   the `pull_request` workflow, the `pr` policy mode, the corrected heavy-test selector, a bundle smoke check and
   7 script tests; its first real GitHub run passed (2 checks). **Remaining (R-02b):** local Postgres replay and two-Hub
   allow/deny/concurrency tests. Finding from local replay: `0001_baseline.sql` does **not** replay cleanly on an empty
@@ -241,7 +241,7 @@ section 8 explains why that is not a safe plan of record.
 - Req: DoD OPS-1. Reuse: lockfile. Deliver (own PR): update `vite`, `nanoid`/`source-map-js`
   (transitive) and assess `react-router` 6.x advisories (fix may require the v7 migration).
 - Owner: Claude. Dates: Oct 26-30 (to Nov 4 if router major migration is needed); 1-3 d; confidence medium.
-- **Status (2026-10-23): PR [#4](https://github.com/KpnSolute/Lunchvoice/pull/4) open (lockfile only).** The three high advisories
+- **Status (2026-10-23): PR [#4](https://github.com/KpnSolute/Lunchvoice/pull/4) merged (squash `8013fe0`, lockfile only).** The three high advisories
   are remediated (`npm audit --audit-level=high` exits 0 locally). Two moderate `react-router` advisories remain; their fix needs
   React Router 7 (major), documented as residual risk with a call-site assessment. `test:heavy` was run locally on Node 22.22.1,
   not yet on the CI-pinned 22.12.0. A preview smoke test is advisable before merging to `main`.
@@ -261,7 +261,11 @@ section 8 explains why that is not a safe plan of record.
   The verification proposal is held privately (outside this repository); this public plan records neither
   specifics nor any claim of production exposure. **Update (2026-10-23):** an isolated local verification was performed on a
   throwaway database built from the repository's migrations; its results and any candidate fix are held privately by the
-  founder. **Production status remains unverified**; no production probe was run. A broader review of write policies on other
+  founder. **Production update (2026-10-23, founder-authorized):** a read-only catalog check showed production already limits
+  self-service profile updates to `email`/`display_name` (a grant never recorded in the migrations). The remaining profile write
+  hardening (no table-level INSERT/UPDATE for API roles, plus a protective trigger) was applied as migration
+  `20261023225534_restrict_profile_self_service_columns` through the project MCP server and verified; the file is recorded in PR
+  [#7](https://github.com/KpnSolute/Lunchvoice/pull/7). A live student and staff sign-in after the change is still to be checked. A broader review of write policies on other
   tables (insert/update checks that bind only to the organization) is part of this item; details are kept out of this public repository.
 - Accept: direct PostgREST/RPC test suite shows denies in the isolated database; migrations replay cleanly.
 - Fallback: if no isolated database is available, deliver the test suite and a migration marked
