@@ -8,6 +8,13 @@ costs, migration implications) rather than something the founder must specify. R
 Vendor facts below were read from Supabase and Google documentation on 2026-10-23 and are **not proof of this
 project's configuration**; every row marked "unverified" must be confirmed in staging.
 
+## 0. Status (2026-10-23)
+
+**Option D is approved by the founder as the contingency.** If the central issuer is not ready or the staging spike does not
+pass by **Nov 6**, the Dec 11 MJCC beta launches on Supabase's built-in Google provider and the central issuer follows after
+launch. This departs from V2-03's "central `auth.kpnsolute.com`" wording by explicit founder approval. **Still open:** approval of
+Option A as the target and spike scope, the identity-service owner, and the staff-account linking exclusion (section 8, items 1, 3, 4).
+
 ## 1. What must be true (confirmed requirements)
 
 - Central KpnSolute Identity at `auth.kpnsolute.com`; Google OAuth/OIDC first, Apple later (V2-03).
@@ -83,7 +90,7 @@ rows remain attached to the same user ID after linking.
 ## 8. Decisions requested from the founder
 
 1. Approve Option A as the target and the spike scope above.
-2. Approve (or reject) Option D as the contingency if the issuer is not ready by Nov 6.
+2. ~~Approve (or reject) Option D as the contingency if the issuer is not ready by Nov 6.~~ **Approved 2026-10-23.**
 3. Name the identity-service owner and hosting responsibility by Oct 28.
 4. Confirm that MJCC staff accounts are excluded from automatic linking.
 

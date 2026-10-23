@@ -7,6 +7,18 @@ they are **estimates to re-verify on the live pages before any purchase**, and s
 disagree with their own snapshots. Companion documents: [resource map](RESOURCE_MAP.md),
 [execution roadmap](../backend/EXECUTION_ROADMAP.md), [D-01 decision packet](../backend/D01_IDENTITY_DECISION_PACKET.md).
 
+## 0. Founder decisions recorded (2026-10-23)
+
+- **Monthly cap: $50 for staging.** (The duration was not stated; the proposal was 3 months, so this document keeps a
+  3-month review point, after which the cap is re-confirmed.) Central identity hosting (S-5), production PITR and live
+  billing fees are outside this cap and need their own decision.
+- **Owner: the founder** for the staging resources. This records ownership, not permission for Claude to create or pay for
+  anything; resources are still created only after explicit written permission (checklist item 7 in section 5), or by a person
+  the founder names.
+- **D-01 contingency (Option D) approved**: see the [D-01 packet](../backend/D01_IDENTITY_DECISION_PACKET.md).
+- Still open from the checklist: Supabase organization/plan, domain/DNS owner, whether any sanitized data may be used
+  (default no), and the permission to create resources.
+
 ## 1. Purpose and rules
 
 Staging exists so identity, membership, permission, entitlement, migration and rehearsal work can be

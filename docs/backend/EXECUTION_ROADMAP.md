@@ -258,7 +258,9 @@ section 8 explains why that is not a safe plan of record.
 - **Status (2026-10-23): manifest and cost estimate drafted** in [STAGING_MANIFEST.md](../archeture/STAGING_MANIFEST.md)
   (14 resources, rough envelope about $10-$50 per month, proposed cap $50 per month for 3 months, all unpurchased and to be
   re-verified), plus the [D-01 decision packet](D01_IDENTITY_DECISION_PACKET.md). **Awaiting founder:** budget cap, resource owners, Supabase
-  organization, domain/DNS owner, and written permission to create resources.
+  organization, domain/DNS owner, and written permission to create resources. **Answered 2026-10-23:** cap **$50 per month**;
+  owner **the founder**; Option D approved. Still open: the Supabase organization/plan, domain/DNS owner, sanitized-data policy
+  (default none) and written permission for Claude to create resources.
 - Decide: founder approval to provision by Oct 28. Blocks R-04, R-06, R-12, R-19.
 - Accept: manifest reviewed; staging reachable; no production credentials used.
 - Fallback: local Supabase CLI + Docker for all database work; identity and billing
@@ -277,9 +279,10 @@ section 8 explains why that is not a safe plan of record.
 - Needs: R-05, D-01, a Google OAuth client, Supabase plan that supports custom OIDC (**unverified** for this project).
 - Dates: Oct 28-Nov 6; 5-8 d; confidence **low-medium**. Critical path.
 - Decide: D-01 by Oct 30. Accept: scenario matrix passes in staging; UUID/response/points continuity shown.
-- Fallback (needs founder approval, deviates from V2-03 wording): launch on
+- Fallback (**approved by the founder 2026-10-23** as Option D; deviates from V2-03 wording): launch on
   Supabase's built-in Google provider for MJCCv2 with a documented migration to the central
-  issuer later; Apple stays later in both cases.
+  issuer later; Apple stays later in both cases. **Trigger: the central issuer is not ready or the staging
+  spike has not passed by Nov 6.** See the [D-01 packet](D01_IDENTITY_DECISION_PACKET.md).
 
 **R-07 Memberships and compatibility mapping (Core-2)**
 - Req: V2-02/04, DoD IDM-2/4/5. Reuse: `orgs`, `profiles.org_id`, `caller_org_id()`.
@@ -619,7 +622,7 @@ deadlines are to protect the critical path.
 
 | ID | Decide by | Options | Rec. | Consequence if late |
 | --- | --- | --- | --- | --- |
-| D-01 Central identity contract | Oct 30 | A upstream OIDC to Supabase Auth; B direct JWT trust; C central issuer on Supabase OAuth server | A, spiked in staging; fallback to built-in Google provider (needs founder approval) | R-06 slips day for day; critical path |
+| D-01 Central identity contract | Oct 30 | A upstream OIDC to Supabase Auth; B direct JWT trust; C central issuer on Supabase OAuth server | A, spiked in staging; **fallback Option D (built-in Google provider) approved 2026-10-23**, trigger Nov 6; target A and the identity-service owner still to approve | R-06 slips day for day; critical path |
 | D-02 Capability catalog | Nov 6 | Additive union of role grants with no deny; or explicit deny rules | Additive, no deny; Owner-only operations outside catalog | R-08 uses fixed templates |
 | D-03 Guest proof | Nov 9 | Random revocable per-Campaign token (hashed at rest) plus per-device dedupe; or account-only | Token plus rate limits; no conversion at launch | Guests deferred |
 | D-04 Additional-survey gate | Nov 6 | Proposed card in the implementation plan; modified; or another algorithm | Proposed card with an explicit zero-member bootstrap rule | Gate stays disabled; caps still enforced |
@@ -636,7 +639,7 @@ deadlines are to protect the critical path.
 
 | Resource | Gap | Assign by |
 | --- | --- | --- |
-| Staging (database, auth, hosting) | Does not exist; paid-resource authority needed | Oct 28 |
+| Staging (database, auth, hosting) | Does not exist. **Budget cap $50 per month and owner (founder) set 2026-10-23**; written permission to create resources, Supabase organization and domain/DNS owner still open | Oct 28 |
 | KpnSolute Identity (`auth.kpnsolute.com`) | Owner, repository, hosting TBD; integration absent | Oct 28 |
 | Google OAuth client | Not provisioned (unverified) | Oct 30 |
 | Billing provider and sandbox | Undecided | Nov 6 |

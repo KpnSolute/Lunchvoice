@@ -38,6 +38,11 @@ categories and the repository's decimal `X.X.X` release policy.
   replay cleanly on an empty database, and an isolated authorization verification was performed with results held
   privately. Documentation only; no production access, migration, secret, resource or deployment.
 
+- Recorded three founder decisions (2026-10-23): a $50 per month staging cap, the founder as staging resource
+  owner (ownership only, not permission for Claude to create resources), and approval of D-01 Option D (Supabase's
+  built-in Google provider) as the contingency if the central issuer or staging spike is not ready by Nov 6. Updated
+  the staging manifest, D-01 packet and roadmap. Documentation only.
+
 - Linked the founder-designated Claude Design manager in the frontend handoff and
   both agent brains. Recorded the observed screen gaps, current signature direction,
   stale animated SVG export and unresolved branding attribution, with required
