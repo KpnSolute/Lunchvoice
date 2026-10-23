@@ -8,6 +8,22 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added the authoritative LunchVoice v2 documentation suite under `docs/v2/`:
+  product specification, source-backed current-state audit at main `0dbc343`,
+  target architecture, implementation roadmap, and separate documentation/release
+  acceptance criteria. Incorporated the founder's supplemental decisions for
+  Hubs, central Google identity, multi-Hub membership, protected Owner/custom
+  roles, Campaign modes and gates, guest/anonymity controls, Hub Builder, analytics,
+  seasonal/subscription entitlements, annual name reservation, discovery and beta.
+  Recorded remaining decisions explicitly, including both Campaign Plus prices.
+- Updated identical agent brain files with v2 authority and Claude's implementation
+  handoff after review/approval; corrected the repository identifier while
+  preserving security, release, delegation, and production-operation governance.
+  This is documentation only: no source, dependency, migration, production secret,
+  function deployment, or runtime configuration change. The source audit records
+  three high and two moderate dependency entries reported on 2026-10-23 as existing
+  launch blockers, not a passing heavy release audit.
+
 - Added a signed KpnSolute CloudEvents receiver to the existing `menu-sync`
   function for MJCC menu-day and menu-cycle events. It verifies Standard
   Webhooks signatures against the raw request body, enforces the tenant-to-org

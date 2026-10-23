@@ -10,13 +10,52 @@ Lunchvoice is a multi-tenant React, TypeScript, Vite, and Supabase application
 for dining feedback, menu planning, student rewards, and staff operations. It
 deploys as the Render static site `lunch-line-survey`.
 
-- GitHub: `MJCC-Portal/Interact`
+- GitHub: `KpnSolute/Lunchvoice`
 - Production Supabase: MJCCv2 (`qprfonxvthmaoxfixigk`)
 - MJCCv1 (`mgvyylvmkxhhataavqjz`) is an upstream staff/menu system, not this
   repository's deployment target.
 - Local frontend: `npm run dev`
 - Architecture map: `graphify-out/wiki/index.md`
 - Product details: `README.md`, `PRODUCT.md`, and `DESIGN.md`
+
+## LunchVoice v2 Product Authority and Handoff
+
+The authoritative v2 target is the reviewed suite in `docs/v2/`:
+`PRODUCT_SPEC.md`, `CURRENT_STATE_AUDIT.md`, `ARCHITECTURE.md`,
+`IMPLEMENTATION_PLAN.md`, and `DEFINITION_OF_DONE.md`. Read it before v2 work.
+The product spec records confirmed founder decisions; architecture proposals and
+the D-01 through D-12 decision register must not be treated as approved defaults.
+Legacy product documents and the architecture contracts below describe the
+current system and compatibility obligations, not the complete v2 vision.
+
+- V2 is a consumer community and feedback platform: customizable Hubs and
+  Campaigns, central `auth.kpnsolute.com` Google identity (Apple later), one
+  account across multiple Hubs, free participant accounts, fine-grained roles,
+  explicitly authorized guests, and protected anonymous responses.
+- Target canonical Hub URLs are `lunchvoice.com/{hubSlug}`. Existing subdomain
+  and LionCafe links must remain compatible until a tested transition is approved.
+  Preserve tenant isolation, verified authority, RLS, grants, and secret handling
+  while replacing single-org profiles with membership-based authorization.
+- Entitlements are enforced server-side. Starter is $13/month with 3 custom roles,
+  3 custom pages, 15 active Campaigns and at most 2 active Survey-mode Campaigns;
+  Team is $29/month with 6 custom roles and at most 5 active Survey-mode Campaigns.
+  Owner is protected and outside role slots. Additional-survey gates are >50%
+  Starter and >=20% Team eligible-member participation, within caps. Read the
+  decision register before choosing the remaining gate/counting rules.
+- Seasonal Campaign Starter is $19/two weeks plus $13/extra week; Campaign Plus
+  is Team-equivalent with base and extension prices undecided. Name reservation
+  is $25/12 months, renewable for $25/12 months, with 25 calendar days of grace
+  from expiry before release. Slug reuse must never transfer private Hub data.
+- At least 700 valid accepted members permits a discovery application, not
+  automatic listing. Public waitlist precedes a maximum 50 beta Hub owners.
+  November 12, 2026 is a proposed prototype/waitlist milestone; December 13, 2026
+  is the consumer launch target, subject to the v2 Definition of Done.
+- Preserve MJCC/LionCafe and support its planned December Campaign through a
+  non-destructive migration with reconciliation and rollback evidence.
+- Claude implements after specification review and approval. The documentation
+  phase is feature-branch/PR work only: no main merge, manual tag, production
+  migration, production secret change, or deployment. Existing standing authority
+  and production boundaries remain in force for later explicitly scoped tasks.
 
 ## Mandatory Agent Startup
 
