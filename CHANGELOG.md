@@ -8,6 +8,14 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Researched the v2 core against current Google, Supabase, and PostgreSQL primary
+  documentation. Added a recommended OIDC federation spike, alternatives and
+  identity-linking constraints, plus a five-PR core plan for verification,
+  central identity, memberships, permissions, and atomic Campaign activation.
+  Included a founder-review gate proposal, staging evidence requirements and
+  milestone sequencing; no unresolved product policy was marked approved and
+  no implementation, migration, provider configuration or deployment was performed.
+
 - Added the authoritative LunchVoice v2 documentation suite under `docs/v2/`:
   product specification, source-backed current-state audit at main `0dbc343`,
   target architecture, implementation roadmap, and separate documentation/release

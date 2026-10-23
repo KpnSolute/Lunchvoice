@@ -6,7 +6,102 @@ structures below are **engineering recommendations**, not claims of existing cod
 or approved external-service APIs. See the [audit](CURRENT_STATE_AUDIT.md) for the
 baseline at `0dbc343227bdb8f3cd5745f59c0247ae84841aec`.
 
-## System boundaries
+## Core research and recommended first design
+
+Research checked 2026-10-23 against primary documentation. These recommendations
+advance D-01/D-02/D-04; they do not close founder decisions or prove project-level
+feature availability. The implementation sequence is in the roadmap's
+**Core-first execution plan**.
+
+### Identity: preserve local account IDs while federating login
+
+**Recommended first spike:** make central KpnSolute Identity an upstream OIDC
+provider for LunchVoice's Supabase Auth. This is an engineering inference from
+the current `auth.users` foreign keys and `auth.uid()`-based policies: retaining
+local UUIDs should reduce migration scope compared with replacing every caller
+identity. It still requires a proven account-linking and session design.
+
+| Option | Documented capability | LunchVoice implication |
+| --- | --- | --- |
+| A: upstream custom OIDC login; recommended spike | Supabase Auth supports custom OIDC providers with discovery and JWKS verification | Central login can lead to an application Supabase session; prove existing local IDs and response ownership survive linking |
+| B: direct central JWT trust | Supabase supports custom OIDC third-party authentication | Requires an explicitly configured trust integration, compatible claims and identity mapping; non-UUID subjects conflict with existing `auth.uid()` assumptions |
+| C: central issuer backed by Supabase OAuth server | Supabase can act as an OAuth/OIDC issuer | Possible implementation of central Identity, separate from choosing A/B for LunchVoice; provider ownership and deployment topology remain unapproved |
+
+Option A uses a configured provider, not a browser-generated session or a custom
+token minting shortcut. Its callback and issuer configuration must be demonstrated
+in staging. This project has not been configured or upgraded by the research.
+[Supabase custom OAuth/OIDC providers](https://supabase.com/docs/guides/auth/custom-oauth-providers).
+
+For option B, the documented requirements include HTTPS discovery, asymmetric
+JWT signing, a key ID, and a database role claim. `auth.uid()` casts the subject
+to UUID; a non-UUID external subject needs a different mapping. The documentation
+also says this custom third-party integration has no CLI config option. A local
+database test alone therefore cannot prove hosted integration readiness.
+[Supabase custom third-party OIDC](https://supabase.com/docs/guides/auth/third-party/custom-oidc).
+
+Option C documents authorization-code flow with PKCE and OIDC discovery. It is
+a candidate for the central service, not authorization to turn the operational
+MJCCv2 project into the global identity store. Compare its account lifecycle,
+domain support and operational ownership before selecting it.
+[Supabase OAuth server](https://supabase.com/docs/guides/auth/oauth-server).
+
+Use the verified Google subject as the upstream identifier; do not use email as
+the stable primary key. The central service must map that identity to its own
+verified personal ID and release only the approved identity fields to LunchVoice.
+[Google OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect).
+
+Supabase documents automatic and manual identity linking. The spike must examine
+actual linking behavior for this custom provider, verified/unverified email,
+existing OTP users, existing staff users, and conflicting accounts. Do not promise
+preserved UUIDs until those scenarios pass; conflicts require a reviewed recovery
+path rather than silent duplicate-account creation or unsafe merging.
+[Supabase identity linking](https://supabase.com/docs/guides/auth/auth-identity-linking).
+
+### Membership and RBAC: database state is the authority
+
+Propose a unique `(hub_id, account_id)` membership with explicit status, separate
+role assignments, and server-owned capability records. Maintain existing org IDs
+as Hub compatibility IDs. Do not implement Hub switching by editing `profiles.org_id`.
+For the first reviewed role model, propose additive grants across assigned custom
+roles, no explicit deny rules, and Owner-only transfer/deletion outside the grant
+catalog. This avoids undefined allow/deny precedence; D-02 still owns approval.
+
+Database grants and RLS policies are separate controls; test both. An authenticated
+database role does not imply accepted Hub membership. Anonymous Supabase sign-in
+also differs from a signed-out database request, so guest handling needs an explicit
+application context. Test direct table and RPC requests rather than only routes.
+[Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security).
+
+### Entitlements: serialize every slot-consuming write
+
+Propose a stable Hub policy row that every activation transaction locks before
+checking quotas and writing lifecycle state. Use consistent lock order, bounded
+transactions, and retry handling. A frontend count followed by a write is not
+atomic; a uniqueness constraint on response identity does not protect active slots.
+Postgres row locks last through the transaction; advisory locks only help if all
+participating write paths honor them. Prefer the explicit row convention first.
+[PostgreSQL locking](https://www.postgresql.org/docs/current/explicit-locking.html).
+
+This mechanism can enforce confirmed numeric caps before a payment provider is
+selected by using synthetic entitlement fixtures in development. It must not
+grant production plans or settle unknown Team/Plus limits. The initial prototype
+can prove activation policy without taking payments.
+
+### Platform changes to include in readiness checks
+
+The Supabase changelog was checked. An announced HTTP TLS cipher retirement begins
+November 10, 2026 at the earliest, near the proposed prototype milestone. Include
+supported-browser/device connectivity in staging acceptance; this is not evidence
+that any current LunchVoice user is affected.
+[TLS change notice](https://supabase.com/changelog/cbc-tls-ciphers-deprecated).
+
+The PostgreSQL minor-upgrade notice identifies conditional extension/operator
+compatibility work. Confirm the actual staging database version and extension
+inventory before replay; no production impact or need to reindex is inferred
+from the notice alone.
+[Database upgrade notice](https://supabase.com/changelog/postgres-15-19-17-11-breaking-changes).
+
+## Target system boundaries
 
 ```mermaid
 flowchart LR

@@ -20,7 +20,106 @@ Read [product requirements](PRODUCT_SPEC.md), [source audit](CURRENT_STATE_AUDIT
   migration/rollback impact, remaining blockers, and next action. Do not label a
   feature complete because a route or table exists.
 
-## Milestones
+## Core-first execution plan
+
+The founder requested research and planning for the top core on 2026-10-23.
+Prioritize **identity -> multi-Hub membership -> server permissions -> Campaign
+entitlements/activation**, with verification infrastructure first. Research and
+recommended identity alternatives are recorded in
+[ARCHITECTURE.md](ARCHITECTURE.md). No implementation or production change is
+claimed by this planning update; Claude retains implementation ownership.
+
+### First demonstrable outcome
+
+In an isolated test environment, one Google-backed central identity enters two
+Hubs, sees different assigned permissions in each, and activates a Survey-mode
+Campaign only when both the permission and approved entitlement/gate permit it.
+A user from the second Hub cannot read the first Hub's private data. Concurrent
+attempts cannot consume the same last slot. A mapped LionCafe fixture retains
+its original responses, points and orders.
+
+This is the first vertical slice, not the full v2 release. It uses synthetic
+entitlement fixtures and approved synthetic gate examples. Billing purchases,
+public analytics, and full page-building are later integrations, while their
+confirmed product requirements remain in scope for launch.
+
+### First five implementation PRs
+
+| Priority | Concrete change | Expected code area | Exit test | Dependency |
+| --- | --- | --- | --- | --- |
+| Core-0 | Add PR validation without release/deployment; fix heavy-check auth path; remediate dependency audit in its own reviewed change | `.github/workflows/`, `scripts/release-policy.mjs`, package files and test harness | PR runs brain/build and appropriate audit; no tag or deploy; test fixtures exercise two Hubs | No new product decision |
+| Core-1 | Prove central OIDC integration option A and legacy identity linking in staging | Login/auth client, approved identity service contract; configuration runbook | Verified central ID maps consistently; wrong issuer/audience/replay fail; existing IDs/data survive linking; conflict recovery documented | D-01; separately scoped identity-owner work and non-production configuration authority |
+| Core-2 | Add memberships and compatibility mapping; make Hub switching membership-based | Additive migrations, `src/auth/AuthProvider.tsx`, `src/org/OrgProvider.tsx`, RLS/RPC helpers | Same account accepted in two Hubs; pending membership denied; no cross-Hub reads; legacy IDs reconciled | Approved identity contract and membership semantics |
+| Core-3 | Add permission evaluation and protected Owner model; expose minimal role controls | Membership/role schema, policy layer, route guards and role UI | Starter fourth/Team seventh custom role denied; Owner outside quota; role escalation and cross-Hub grants denied; owner transfer atomic | D-02 and Core-2 |
+| Core-4 | Add Campaign envelope and atomic activation using synthetic entitlements | Campaign schema, policy/RPC layer, Content Central adapter | Starter 15 total/2 Survey and Team 5 Survey caps; last-slot race; integer participation boundaries; retry does not restart seasonal window | Approved D-04 algorithm; applicable D-06/D-08 policies |
+
+Use repository-standard migration creation and isolated database testing. Do not
+run the existing function-deployment hook or apply these proposed migrations to
+production. Core-1 may use a separate spike branch; retain only the approved
+implementation after the compatibility result is reviewed.
+
+### Contract packet to complete before Core-1
+
+The identity owner and Claude must record: service/repository owner, exact issuer,
+discovery/JWKS endpoints, client type, allowed callbacks per environment, stable
+personal-ID and email-verification claims, token lifetime/refresh/revocation,
+logout behavior, key rotation, and account-linking/recovery policy. Do not put
+client secrets in the packet. Record whether the deployed Supabase version and
+locked client library support the chosen provider flow; documentation availability
+does not prove this project's configuration.
+
+Demonstrate new Google user, existing OTP user, existing MJCC staff user, changed
+email with same subject, conflicting account, revoked access, expired token,
+second-Hub access, and provider outage. Keep the legacy path available under a
+tested transition plan; it must not restore revoked v2 administrative rights.
+
+### Proposed gate decision card for founder review
+
+Recommendation to make D-04 concrete, **not a confirmed product rule**:
+
+- Permit one initial Survey-mode Campaign for a newly eligible Hub.
+- Before each additional Survey activation, measure distinct eligible members
+  participating in the preceding Survey-mode Campaign. Snapshot eligible accepted
+  membership at that Campaign's activation; role targeting narrows that snapshot.
+- Measure from its activation through the next activation request, bounded by its
+  close time if closed. Count each eligible member once and exclude guests.
+- Never waive the gate by closing, reopening, deleting, or changing mode. Persist
+  the measurement record and still enforce concurrent active caps.
+- A zero-eligible-member Hub can use its initial allowance but cannot unlock
+  additional surveys until an explicitly approved bootstrap/re-snapshot rule is
+  met. Show this consequence during review: a zero-member snapshot cannot grow
+  merely because members join later.
+
+The founder must choose this, modify it (especially bootstrap behavior), or choose
+another algorithm before Core-4 exposes additional activations. Prototype the
+policy behind a versioned interface with fixtures; do not hard-code this proposal
+as if the threshold numbers already implied it. A changed policy must not
+retroactively reinterpret prior Campaign measurements without a migration rule.
+
+### What can proceed without another product decision
+
+Core-0, synthetic fixtures, source-level interface design, threat/denial scenarios,
+and the identity contract comparison can proceed within approved implementation
+scope. Membership and entitlement data contracts can be drafted with unresolved
+fields called out. Real purchases, additional-survey activation, owner transfer,
+and production identity cutover wait for their specific policies and authority.
+Campaign Plus pricing does not block the shared membership/permission foundation.
+
+### Proposed sequencing toward the milestones
+
+- **October 23-30:** finish review/contract packet; prioritize Core-0 and identity
+  spike readiness. This is a planning window, not an assertion work has begun.
+- **October 31-November 12:** aim for the two-Hub internal slice and public waitlist;
+  its November 12 milestone remains proposed. If identity proof slips, show a
+  clearly labeled fixture prototype rather than claim real central login works.
+- **After the prototype:** complete guest/anonymity, real billing/reservations,
+  remaining Campaign modes, Builder/community, analytics and discovery in the
+  roadmap dependency order; report capacity and estimates after the core spike.
+- **Before December 13:** stage the complete release and December MJCC rehearsal.
+  Reserve explicit time for reconciliation, rollback and defects. No evidence yet
+  establishes that the whole confirmed scope fits the target; reassess after Core-1.
+
+## Release milestones
 
 | Milestone | Timing | Exit evidence |
 | --- | --- | --- |
