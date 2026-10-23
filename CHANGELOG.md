@@ -6,6 +6,11 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Documentation
+
+- Added the authoritative LunchVoice v2 consumer Hub/Campaign product, architecture, commercial-policy, existing-vs-target gap and release acceptance specification in `docs/v2/PRODUCT_SPEC.md`. Updated both agent-brain files identically to delegate evidence-first implementation to Claude. This change is documentation only; no deployed application, database, billing or identity configuration was modified.
+
+
 ### Added
 
 - Added a signed KpnSolute CloudEvents receiver to the existing `menu-sync`
