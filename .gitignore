@@ -2,6 +2,8 @@ node_modules
 dist
 .env
 .env.local
+# Per-project MCP secrets (see .mcp.env.example); never commit.
+.mcp.env
 *.log
 .DS_Store
 .vite

@@ -8,6 +8,16 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added project-scoped MCP server setup (`scripts/mcp/`): the Supabase MCP server now starts through
+  `scripts/mcp/supabase.sh`, which loads secrets only from a gitignored, owner-only `.mcp.env` (never from the
+  global shell), is scoped to one project with `--project-ref`, starts **read-only** by default, and pins
+  `@supabase/mcp-server-supabase@0.13.0` instead of `@latest`. `.mcp.json`, `.cursor/mcp.json` and
+  `.vscode/mcp.json` call the wrapper and contain no secrets; `.vscode/mcp.json` now uses VS Code's documented
+  `servers` root (it previously used `mcpServers`). Also added a generic `with-env.sh` wrapper for future servers,
+  `doctor.sh` (checks the setup and confirms the project ref exists for the token using one read-only API request),
+  `.mcp.env.example`, a README, and 6 tests (`scripts/mcp.test.mjs`). `SUPABASE_ACCESS_TOKEN` was removed from
+  `.env.example` (it moves to `.mcp.env`). Render MCP is documented but not enabled: its HTTP transport needs an API
+  key in the process environment and no key scoping is documented. No secret, migration, resource or deployment.
 - Added a signed KpnSolute CloudEvents receiver to the existing `menu-sync`
   function for MJCC menu-day and menu-cycle events. It verifies Standard
   Webhooks signatures against the raw request body, enforces the tenant-to-org
