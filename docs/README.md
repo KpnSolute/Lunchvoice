@@ -32,6 +32,8 @@ scope or implementation. Review order: roadmap first.
 | [frontend/EXPERIENCE_PLAN.md](frontend/EXPERIENCE_PLAN.md) | Drafted; design artifacts **Pending** (designer's handoff not delivered) |
 | [archeture/STAGING_MANIFEST.md](archeture/STAGING_MANIFEST.md) | Drafted; cost estimates unverified at purchase time; nothing provisioned |
 | [backend/D01_IDENTITY_DECISION_PACKET.md](backend/D01_IDENTITY_DECISION_PACKET.md) | Drafted; options, costs and migration implications for founder approval |
+| [archeture/BACKEND_STACK_DECISION.md](archeture/BACKEND_STACK_DECISION.md) | Proposal (D-14): Postgres, FastAPI, Redis and Rust timing, agent delegation plan |
+| [backend/LEGACY_CLEANUP_PLAN.md](backend/LEGACY_CLEANUP_PLAN.md) | Proposal: what legacy database objects and Edge Functions can be removed and when |
 | [api/README.md](api/README.md) | **API reference**: v1 as deployed (verified against production 2026-10-23) and the planned v2 surface |
 
 ## Documentation structure

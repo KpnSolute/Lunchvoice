@@ -38,6 +38,11 @@ categories and the repository's decimal `X.X.X` release policy.
   replay cleanly on an empty database, and an isolated authorization verification was performed with results held
   privately. Documentation only; no production access, migration, secret, resource or deployment.
 
+- Added a backend stack proposal (D-14: PostgreSQL on Supabase, a FastAPI Python API as the front door for new v2 operations,
+  Redis and Rust deferred with explicit triggers, contract-first OpenAPI, agent delegation by module, frontend from generated
+  contracts) and a legacy cleanup plan (what was removed on 2026-10-23, which Edge Functions and database objects can go and
+  when, with the live-user dependencies called out). API reference updated for the hardened write rules. Documentation only.
+
 - Added the API reference (`docs/api/`): Edge Functions (endpoints, request/response, status codes, CORS, rate
   limits, configuration names), RPCs (signatures, behaviour, errors), the Data API (tables and views, read scoping,
   supported writes), inbound webhooks (Auth send-email hook, KpnSolute menu CloudEvents) and an index of the planned

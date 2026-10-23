@@ -87,5 +87,6 @@ They are part of the authorization model, not a data API; do not build client fe
 | `apply_kpnsolute_menu_event(...)` | `TABLE(duplicate, cycle_id, days_applied)` | Service role only; used by `menu-sync` for CloudEvents (idempotent per webhook/event) |
 | `handle_new_user()` | trigger on `auth.users` | Creates the profile at sign-up; org from sign-up metadata, defaulting to LionCafe |
 | `profiles_protect_privileged_columns()` | trigger on `profiles` | Rejects privileged-column changes by non-owner, non-service roles (2026-10-23) |
-| `process_ledger_entry()` | trigger | Present in production, **not in the repository** (see migration drift) |
-| `touch_updated_at()` | trigger | Present in production, **not in the repository** |
+| `touch_updated_at()` | trigger | Present in production, **not in the repository**; keeps `updated_at` current on menu and survey-template tables |
+
+`process_ledger_entry()` (a leftover from the upstream MJCCv1 inventory system) was dropped from production on 2026-10-23.

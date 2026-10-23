@@ -58,10 +58,16 @@ receive that role; `staff-status` demotes them when MJCC access is withdrawn.
 
 ## Supported API versus reachable API
 
-The Data API exposes every table the database grants to the API roles; row-level security decides what each
-caller can actually read or change. This reference documents the **supported** operations, the ones the app
-uses and that are intended to be stable. Other operations that happen to be reachable are not part of the API,
-may be removed without notice, and their enforcement is under review (roadmap item R-04).
+The Data API exposes the tables the database grants to the API roles; row-level security decides what each caller can
+actually read or change. This reference documents the **supported** operations, the ones the app uses and that are
+intended to be stable.
+
+**Write privileges in production (verified 2026-10-23, after the hardening migrations in PR #7 and #9):** `anon` may only
+insert `contract_requests`. `authenticated` may write only: `dish_ratings` (own rows), `voice_notes` (own notes; admins moderate),
+admin content tables (`sessions`, `survey_templates`, `survey_questions`, `store_items`, `menu_cycles`, `menu_cycle_days`, each also
+bound by an admin-only policy), `orders.status` and `orders.updated_at` (admins), `profiles.email` and `profiles.display_name`
+(own row), and `contract_requests` insert. `orders`, `responses`, `response_ratings`, `survey_answers` and `session_members` are
+**RPC-only**: they cannot be written directly. Anything outside this list is not part of the API.
 
 ## Keeping this reference current
 

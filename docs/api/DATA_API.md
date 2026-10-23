@@ -6,7 +6,8 @@ so the underlying tables' rules apply to whoever queries the view. Verified agai
 
 **Read scoping** is described in plain terms below. **Supported writes** lists the write operations the app uses and
 that this API supports; anything else reachable through the Data API is not part of the supported API (enforcement
-review: roadmap R-04). Points, responses and orders are written only through the RPCs in [RPC.md](RPC.md).
+review: roadmap R-04). Points, responses, ratings, answers, memberships and orders are written **only** through the RPCs in [RPC.md](RPC.md); direct writes
+to those tables are not granted (production, 2026-10-23).
 
 Legend: *member* = signed-in user whose profile is in the same org; *admin* = member with `role = 'admin'`.
 
