@@ -15,6 +15,21 @@ pass by **Nov 6**, the Dec 11 MJCC beta launches on Supabase's built-in Google p
 launch. This departs from V2-03's "central `auth.kpnsolute.com`" wording by explicit founder approval. **Still open:** approval of
 Option A as the target and spike scope, the identity-service owner, and the staff-account linking exclusion (section 8, items 1, 3, 4).
 
+### How sign-in would work (summary)
+
+1. The browser loads the SPA from Render (`lunchvoice.com/...`) and the user chooses **Sign in with Google**.
+2. The SPA asks **Supabase Auth** (the LunchVoice project) to start the login; Supabase redirects to the identity provider.
+3. **Option A:** the provider is the central issuer at `auth.kpnsolute.com` (a service still to be built), which in turn
+   signs the user in with **Google**. **Option D (approved fallback):** the provider is **Google directly**.
+4. Google proves the user's identity (`openid`, `email`, `profile`); in Option A the issuer maps it to a stable KpnSolute
+   personal ID and returns an OIDC ID token to Supabase.
+5. Supabase verifies the token, creates or links the user, and issues the normal Supabase session. From here the app works as
+   today: RLS uses `auth.uid()`; **membership and role tables decide what the user can do in each Hub**.
+6. Legacy email-OTP and the MJCC staff bridge keep working during the transition; staff accounts are not auto-linked.
+
+The Google OAuth client's redirect URI is Supabase's auth callback (Option D) or the issuer's callback (Option A); the issuer
+needs its own host (for example `auth.kpnsolute.com` on Cloudflare DNS) and a Render service or equivalent to run on.
+
 ## 1. What must be true (confirmed requirements)
 
 - Central KpnSolute Identity at `auth.kpnsolute.com`; Google OAuth/OIDC first, Apple later (V2-03).
