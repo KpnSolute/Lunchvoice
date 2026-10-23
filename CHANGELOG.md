@@ -29,6 +29,15 @@ categories and the repository's decimal `X.X.X` release policy.
   spec, Definition of Done, implementation plan, index and both agent brain files (kept identical)
   to match; the earlier December 13 target is superseded. Documentation only; no production change.
 
+- Recorded the founder's 2026-10-23 approvals in the roadmap (Dec 9 go/no-go with Dec 10 final checks, the
+  M1/M2 split with Options A and C kept as contingency, and the non-production CI/dependency/staging-manifest
+  work; the message's scope is flagged for explicit founder confirmation). Added the staging manifest with a
+  cost envelope read from public vendor pages (nothing purchased or provisioned; figures to be re-verified) and
+  the D-01 identity decision packet (options A-D, account-linking implications, contingency). Updated R-02 to R-05
+  status: PR #5 (CI checks) and PR #4 (dependency remediation) are open, the baseline migration was shown not to
+  replay cleanly on an empty database, and an isolated authorization verification was performed with results held
+  privately. Documentation only; no production access, migration, secret, resource or deployment.
+
 - Linked the founder-designated Claude Design manager in the frontend handoff and
   both agent brains. Recorded the observed screen gaps, current signature direction,
   stale animated SVG export and unresolved branding attribution, with required

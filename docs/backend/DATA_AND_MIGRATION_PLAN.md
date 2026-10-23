@@ -176,7 +176,7 @@ encode the Hub ID and generation and fail on mismatch. See the privacy plan for 
 | Risk | Mitigation |
 | --- | --- |
 | Deployed MJCCv2 differs from migration files | Read-only parity check with explicit authority before P2 on any real data |
-| `0001_baseline.sql` states it captures an existing live schema | Never replay baseline against production; use it only on clean databases |
+| `0001_baseline.sql` states it captures an existing live schema | Never replay baseline against production. **Verified locally 2026-10-23:** on an empty database it produces 25 errors (policies reference `is_admin()` before it is defined) and aborts under `ON_ERROR_STOP`; continuing past its errors, the 15 later migrations replay cleanly on stubbed platform roles and `auth`. The replay harness must tolerate or correct the baseline, or start from a captured schema dump; "replays cleanly" must not be claimed for the baseline |
 | Child rows may disagree with their parent's Hub (FKs do not enforce this) | Reconciliation queries check Hub agreement; v2 adds composite constraints or validation triggers so cross-Hub references are impossible |
 | Dual-write divergence | Parity report; flag-gated reads; alert on mismatch |
 | Postgres minor upgrade/extension drift | Confirm staging version and extension inventory before replay (architecture notes) |

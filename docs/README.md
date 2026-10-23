@@ -30,6 +30,8 @@ scope or implementation. Review order: roadmap first.
 | [backend/CAMPAIGN_AND_ENTITLEMENT_PLAN.md](backend/CAMPAIGN_AND_ENTITLEMENT_PLAN.md) | Drafted |
 | [backend/PRIVACY_AND_OPERATIONS_PLAN.md](backend/PRIVACY_AND_OPERATIONS_PLAN.md) | Drafted |
 | [frontend/EXPERIENCE_PLAN.md](frontend/EXPERIENCE_PLAN.md) | Drafted; design artifacts **Pending** (designer's handoff not delivered) |
+| [archeture/STAGING_MANIFEST.md](archeture/STAGING_MANIFEST.md) | Drafted; cost estimates unverified at purchase time; nothing provisioned |
+| [backend/D01_IDENTITY_DECISION_PACKET.md](backend/D01_IDENTITY_DECISION_PACKET.md) | Drafted; options, costs and migration implications for founder approval |
 
 ## Documentation structure
 
@@ -44,6 +46,7 @@ docs/
     API_AND_AUTHORIZATION_CONTRACTS.md
     CAMPAIGN_AND_ENTITLEMENT_PLAN.md
     PRIVACY_AND_OPERATIONS_PLAN.md
+    D01_IDENTITY_DECISION_PACKET.md
   frontend/
     README.md                 # UI workstreams and backend contracts
     EXPERIENCE_PLAN.md        # Flow inventory, states, evidence (proposal)
@@ -51,6 +54,7 @@ docs/
     README.md
     ARCHITECTURE.md           # Canonical target design and research
     RESOURCE_MAP.md           # Existing/required resources and verification
+    STAGING_MANIFEST.md       # Proposed non-production resources and costs
   v2/
     PRODUCT_SPEC.md
     CURRENT_STATE_AUDIT.md

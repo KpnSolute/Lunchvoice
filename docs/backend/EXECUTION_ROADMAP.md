@@ -35,6 +35,33 @@ as supplied):
 | Dec 14-22 | Stabilization, beta support and completion of remaining scope | Proposed |
 | **Dec 23 (Wed)** | **LunchVoice v2 main public release** | Founder-supplied; needs its own go/no-go (proposed Dec 21) and separate production authority |
 
+**Founder approvals recorded (message of 2026-10-23 ending "I approve", after a list of recommendations).**
+The message does not say which items "I approve" covers, so this plan reads it as covering all of the listed
+recommendations; **the founder should confirm that reading, especially for items 1 and 2.** Approved: (1) **Dec 9 as the go/no-go review with Dec 10 for final checks**; (2) the **M1/M2 split** below as the
+agreed delivery plan, with Options A and C retained as contingency; (3) preparing the **CI/checks PR, the
+dependency-fix PR and the staging manifest** within non-production scope; (4) **isolated verification** of the
+unverified authorization-baseline question before identity and membership work depends on it. **Not yet
+supplied:** the survey operator and launch-support owner; the survey's opening time, timezone, closing date,
+questionnaire, audience and anonymity requirement; the staging budget and resource owner. Production deployment,
+migrations and paid-resource creation remain unapproved.
+
+**M1 / M2 split** (recorded as approved on 2026-10-23 under the reading above; it replaces the three
+alternative plans as the delivery plan, which stay as contingency):
+
+| M1: Dec 11 MJCC beta | M2: Dec 23 public release |
+| --- | --- |
+| Central login and safe existing-account mapping | Public creator onboarding and billing |
+| MJCC Hub, membership, roles and Owner controls | Seasonal purchases and paid slug reservations |
+| Winter Survey creation, scheduling, QR/join links, responses, completion | Additional Campaign modes, including elections once their rules are approved |
+| Required guest/anonymity controls and privacy-safe results | Analytics embeds and discovery |
+| Branding, navigation and the pages MJCC actually needs | Expanded Builder features and remaining community pages |
+| Tested migration, recovery and operator procedures | Public-release hardening and support readiness |
+
+Shared foundations for M2 items are built **before** the beta; M2 items are released later, not started after
+Dec 12. MJCC recommendation (not yet approved): evolve the existing LionCafe organization into the MJCC Hub,
+preserving its users, history, points and links; create a separate Hub only for deliberate separation. This
+choice must be confirmed before migration work (D-12).
+
 Consequences: Dec 11 can no longer also be the first readiness review (the earlier plan
 used Dec 11 as the review date); the review moves to **Dec 9**. The roadmap window,
 originally requested as Oct 23-Dec 11, now covers **Oct 23-Dec 23** in two milestones:
@@ -174,6 +201,13 @@ section 8 explains why that is not a safe plan of record.
   with two-Hub synthetic fixtures; behavioural runner script.
 - Owner: Claude. Needs: Docker (present), Supabase CLI, Deno, GitHub Actions minutes.
 - Dates: Oct 26-Nov 3; 3-5 d; confidence medium.
+- **Status (2026-10-23): first slice in progress.** PR [#5](https://github.com/KpnSolute/Lunchvoice/pull/5) (stacked on #4) adds
+  the `pull_request` workflow, the `pr` policy mode, the corrected heavy-test selector, a bundle smoke check and
+  7 script tests; its first real GitHub run passed (2 checks). **Remaining (R-02b):** local Postgres replay and two-Hub
+  allow/deny/concurrency tests. Finding from local replay: `0001_baseline.sql` does **not** replay cleanly on an empty
+  database (25 errors; policies reference `is_admin()` before it is defined), so the harness must either tolerate the
+  baseline's known errors, as a live database effectively did, or use a captured schema dump; the 15 later migrations replay
+  cleanly on stubbed platform roles/`auth`. Also found: builds without `VITE_SUPABASE_*` are vacuous (see R-03/#4).
 - Decide: whether to enable branch protection requiring the new checks (Founder, Oct 30).
 - Accept: PR shows green run; a deliberately broken migration/policy fails; no workflow
   can push a tag from a non-`main` ref. Fallback: run the suite locally and attach logs
@@ -183,6 +217,10 @@ section 8 explains why that is not a safe plan of record.
 - Req: DoD OPS-1. Reuse: lockfile. Deliver (own PR): update `vite`, `nanoid`/`source-map-js`
   (transitive) and assess `react-router` 6.x advisories (fix may require the v7 migration).
 - Owner: Claude. Dates: Oct 26-30 (to Nov 4 if router major migration is needed); 1-3 d; confidence medium.
+- **Status (2026-10-23): PR [#4](https://github.com/KpnSolute/Lunchvoice/pull/4) open (lockfile only).** The three high advisories
+  are remediated (`npm audit --audit-level=high` exits 0 locally). Two moderate `react-router` advisories remain; their fix needs
+  React Router 7 (major), documented as residual risk with a call-site assessment. `test:heavy` was run locally on Node 22.22.1,
+  not yet on the CI-pinned 22.12.0. A preview smoke test is advisable before merging to `main`.
 - Decide: accept router v7 migration scope or document residual moderate risk (Founder, Oct 30).
 - Accept: `npm run test:heavy` passes in Node 22.12.0 CI; build and smoke routes unchanged.
 - Fallback: ship high fixes alone; list moderate advisories as residual with assessment.
@@ -197,7 +235,10 @@ section 8 explains why that is not a safe plan of record.
   needs separate explicit authority and is the founder/operator's decision.
 - Dates: Oct 27-Nov 3; 2-3 d; confidence medium. Status: **planned**. Verification status: **unverified**.
   The verification proposal is held privately (outside this repository); this public plan records neither
-  specifics nor any claim of production exposure.
+  specifics nor any claim of production exposure. **Update (2026-10-23):** an isolated local verification was performed on a
+  throwaway database built from the repository's migrations; its results and any candidate fix are held privately by the
+  founder. **Production status remains unverified**; no production probe was run. A broader review of write policies on other
+  tables (insert/update checks that bind only to the organization) is part of this item; details are kept out of this public repository.
 - Accept: direct PostgREST/RPC test suite shows denies in the isolated database; migrations replay cleanly.
 - Fallback: if no isolated database is available, deliver the test suite and a migration marked
   "unverified", and leave any read-only production inspection to the founder/operator.
@@ -209,6 +250,10 @@ section 8 explains why that is not a safe plan of record.
 - Owner: **Unassigned: database/hosting operator**; Claude drafts the manifest.
 - Needs: **paid-resource and credential authority from the founder** (not granted by this plan).
 - Dates: Oct 26-30; 1-2 d plus waiting; confidence **low** (external).
+- **Status (2026-10-23): manifest and cost estimate drafted** in [STAGING_MANIFEST.md](../archeture/STAGING_MANIFEST.md)
+  (14 resources, rough envelope about $10-$50 per month, proposed cap $50 per month for 3 months, all unpurchased and to be
+  re-verified), plus the [D-01 decision packet](D01_IDENTITY_DECISION_PACKET.md). **Awaiting founder:** budget cap, resource owners, Supabase
+  organization, domain/DNS owner, and written permission to create resources.
 - Decide: founder approval to provision by Oct 28. Blocks R-04, R-06, R-12, R-19.
 - Accept: manifest reviewed; staging reachable; no production credentials used.
 - Fallback: local Supabase CLI + Docker for all database work; identity and billing
