@@ -17,7 +17,17 @@ categories and the repository's decimal `X.X.X` release policy.
   source-backed audit findings (dependency advisories, no PR checks, unprotected `main`, stale auth
   heavy-test path, platform-route collision). D-01 through D-12 remain undecided, D-12 (Winter Survey
   dates, operator, questionnaire, audience) stays open, and nothing is approved. No migration, secret,
-  resource, deployment or production probe was performed; AGENTS.md and CLAUDE.md are unchanged.
+  resource, deployment or production probe was performed.
+
+- Recorded the founder's relayed schedule update (2026-10-23): MJCC Hub and Winter Survey launch
+  December 11, 2026 as the first v2 beta (M1) and the v2 main public release is December 23, 2026 (M2),
+  with the readiness go/no-go recommended for December 9 and final checks December 10. The roadmap
+  window now spans October 23-December 23, adds R-26 (final checks/launch day) and R-27
+  (stabilization/main release), a milestone mapping proposal, M1/M2 decision dates, and a two-day
+  fallback-switch window after a December 9 no-go. The Winter Survey opening date is confirmed; its
+  time/timezone, closing, operator, questionnaire, audience and anonymity stay open (D-12). Updated the
+  spec, Definition of Done, implementation plan, index and both agent brain files (kept identical)
+  to match; the earlier December 13 target is superseded. Documentation only; no production change.
 
 - Linked the founder-designated Claude Design manager in the frontend handoff and
   both agent brains. Recorded the observed screen gaps, current signature direction,

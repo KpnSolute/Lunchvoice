@@ -183,7 +183,7 @@ Design artifact for every row is **Pending** (designer building) unless "prior r
 
 | ID | Flow and states | Route | API / data | Permission / entitlement | Item | Responsive / a11y specifics | Evidence | Design |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| F-46 | Winter Survey operator view: create from the approved questionnaire, schedule, live participation, close, results, **switch to legacy fallback** | within F-27..F-32 | as above + fallback runbook | operator role (to be named, D-12) | R-21 | Phone-friendly live counts; unmistakable fallback control | E2 E3 E4 E7 E8 | Pending (questionnaire/dates not provided; D-12 open) |
+| F-46 | Winter Survey operator view (needed for the **Dec 11** MJCC launch; must be accepted by the operator before the **Dec 9** review): create from the approved questionnaire, schedule, live participation, close, results, **switch to legacy fallback** | within F-27..F-32 | as above + fallback runbook | operator role (to be named, D-12) | R-21 | Phone-friendly live counts; unmistakable fallback control | E2 E3 E4 E7 E8 | Pending (questionnaire/dates not provided; D-12 open) |
 | F-47 | Email templates: waitlist confirmation, beta admission, invite, join approval, renewal and grace reminders, receipts | n/a | email provider (ACS verification unverified) | n/a | R-20 | Plain-text alternative; localized dates in America/New_York | E4 E5 | Pending (missing) |
 | F-48 | Printable QR poster | `/admin/campaigns/{id}/poster` | share token | `community.campaign.activate` | R-15 | Print stylesheet; contrast | E4 E5 | Pending (missing) |
 | F-49 | Themes: dark and high-contrast tokens | global | none | any | R-24 | Forced-colors outline on raised controls | E4 E6 | Pending (missing) |
@@ -227,6 +227,12 @@ signature component (static and animated variants, reduced-motion safe). Existin
 - Name reservation UI shows term and the 25-calendar-day grace as separate states; timezone boundaries pending D-09.
 
 ## 9. Acceptance and delivery sequence
+
+**Milestones (founder message relayed 2026-10-23):** M1 = MJCC Hub and Winter Survey launch **Dec 11** (go/no-go
+recommended **Dec 9**, final checks Dec 10); M2 = v2 main public release **Dec 23**. Flows in steps 1-3 and 7 below
+are M1 candidates (what the Winter Survey and MJCC Hub need); steps 4-6 are M2 candidates unless the founder pulls them into M1
+([roadmap section 5.1](../backend/EXECUTION_ROADMAP.md#51-milestone-mapping-proposal-founder-decides-what-belongs-to-m1-versus-m2)).
+The designer's handoff is needed by **Nov 6** (shell, participation, operator flows) and **Nov 13** (all M1 flows).
 
 1. **Foundation (R-24):** tokens, `src/ui/` primitives, F-10..F-15, F-27 shell with mock contracts labelled Preview; E1, E4, E5-provisional.
 2. **Participation (R-14/R-15):** F-04, F-18..F-22; E2 against staging, E3, E4, E6, E7.

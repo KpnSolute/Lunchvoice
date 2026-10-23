@@ -21,39 +21,64 @@ visible. **Option B is my recommendation only; it is not an approved scope
 reduction**, and billing, reservations, elections and embeds are **not** approved
 deferrals. Section 8.1 gives the latest decision date and consequence for each.
 
+## 0. Schedule update (founder message, relayed 2026-10-23)
+
+Per the founder's message relayed on 2026-10-23 (no primary document was provided; recorded
+as supplied):
+
+| Date (2026, America/New_York) | Milestone | Status |
+| --- | --- | --- |
+| Nov 12 (Thu) | Waitlist / internal prototype | Still **proposed** |
+| **Dec 9 (Wed)** | **Launch-readiness go/no-go review** | Recommended in the same message (adopted in this plan; awaiting explicit founder confirmation) |
+| Dec 10 (Thu) | Final checks and necessary fixes only (change freeze for new features) | Recommended |
+| **Dec 11 (Fri)** | **MJCC Hub and Winter Survey launch: first operational v2 beta** | Founder-supplied; needs separate production authority |
+| Dec 14-22 | Stabilization, beta support and completion of remaining scope | Proposed |
+| **Dec 23 (Wed)** | **LunchVoice v2 main public release** | Founder-supplied; needs its own go/no-go (proposed Dec 21) and separate production authority |
+
+Consequences: Dec 11 can no longer also be the first readiness review (the earlier plan
+used Dec 11 as the review date); the review moves to **Dec 9**. The roadmap window,
+originally requested as Oct 23-Dec 11, now covers **Oct 23-Dec 23** in two milestones:
+**M1 = MJCC beta (Dec 11)** and **M2 = main public release (Dec 23)**. Which confirmed
+capabilities belong to M1 versus M2 is a **founder decision** (section 8); nothing is
+removed from v2. Dec 23 falls the week before Christmas and Dec 11 is a Friday, so
+support coverage after each launch is a stated risk (section 12).
+
 ## 1. Elapsed-time honesty
 
-- The window is **Oct 23 - Dec 11, 2026 inclusive** (50 calendar days). Today is day 1.
+- The window is **Oct 23 - Dec 23, 2026 inclusive** (62 calendar days). Today is day 1.
   No implementation has started; only audit and planning exist. Progress is never
   backdated. If implementation starts later than **Mon Oct 26**, re-run section 8
   (capacity) with the real start and shift every date by the slip; items on the
   critical path (section 7) cannot absorb slip without losing buffer.
-- Working days available from Oct 26 through Dec 11: **33** (Thanksgiving, Nov 26-27,
-  treated as non-working; Nov 11 treated as working). Oct 23 is used for planning only.
-- Calendar facts that matter: Nov 12 is a Thursday; **Dec 11 is a Friday; Dec 13 (the
-  earlier provisional launch target) is a Sunday**; US daylight saving time ends
-  Sunday Nov 1, so Nov 1 has 25 hours in America/New_York (relevant to scheduled
+- Working days from Oct 26 (Thanksgiving, Nov 26-27, treated as non-working; Nov 11
+  working): **31 through the Dec 9 review**, **33 through Dec 11**, **41 through Dec 23**.
+  Oct 23 is used for planning only. Dec 24-25 are not counted.
+- Calendar facts: Nov 12 is a Thursday; **Dec 9 is a Wednesday, Dec 11 a Friday, Dec 13
+  (the earlier provisional target) a Sunday, Dec 23 a Wednesday**; US daylight saving
+  time ends Sunday Nov 1, so Nov 1 has 25 hours in America/New_York (relevant to scheduled
   windows, see [Campaign plan](CAMPAIGN_AND_ENTITLEMENT_PLAN.md)).
 
 ## 2. Winter Survey: what is confirmed and what is not
 
-**MJCC Hub Winter Survey 2026** is the launch event. Repository search (source, SQL,
-changelog, docs) found **no** opening/closing date, operator, questionnaire,
-audience or fallback. All are unconfirmed and are decision **D-12**, due **Oct 30**.
+**MJCC Hub Winter Survey 2026** is the M1 launch event. Repository search (source, SQL,
+changelog, docs) found **no** survey details. The founder's relayed message (section 0)
+states the **opening date is confirmed: Friday, December 11, 2026**, the day MJCC launches
+its Hub and the Winter Survey. Everything else is still open under decision **D-12**.
 
 | Item to confirm | Current evidence | Who confirms | Needed by |
 | --- | --- | --- | --- |
-| Opening date/time + timezone | None. Dec 13 was provisional only | Founder / MJCC operator | Oct 30 |
+| Opening **date** | **Dec 11, 2026**, founder-supplied (relayed message; no primary document) | Founder | Confirmed |
+| Opening **time and timezone** | None | Founder / MJCC operator | Oct 30 |
 | Closing date/time | None | Founder / MJCC operator | Oct 30 |
 | Named operator (who runs it, who accepts rehearsal) | Unassigned | Founder | Oct 30 |
 | Questionnaire (question types, count, languages) | None; existing templates support rating, slider, yes/no, single/multi choice, text, NPS-like and flame/slider types | MJCC operator | Nov 6 |
 | Audience (existing LionCafe students only? staff? new accounts?) | None; drives guest/identity/anonymity design | Founder | Oct 30 |
-| Anonymity expectation for this survey | v1 stores student ID on responses (not anonymous to admins) | Founder | Nov 6 |
+| Anonymity requirement for this survey | v1 stores student ID on responses (not anonymous to admins) | Founder | Nov 6 |
+| Hub name/slug and its relationship to the existing LionCafe org (same Hub, or new MJCC Hub containing LionCafe dining features) | Spec says dining features remain LionCafe tenant features; MJCC Hub identity not specified | Founder | Oct 30 |
 | Fallback plan | **Proposed below** | Founder | Oct 30 |
 
-**D-12 stays open.** The opening date/time is not inferred from December 13 (the
-earlier provisional target, a Sunday) or from the December 11 readiness boundary. No
-survey date is recorded anywhere until the founder or MJCC operator supplies it.
+**D-12 stays open** (partially resolved: date only). The opening time is not inferred;
+the closing date is not inferred; and neither is derived from the earlier Dec 13 target.
 
 **Proposed fallback (Recommendation):** the existing LionCafe survey flow (templates,
 sessions, join code/QR, results, points) is present in source and keeps working
@@ -62,9 +87,10 @@ the legacy flow under the unchanged LionCafe URLs and cut over afterwards. This
 requires that no v2 migration step breaks the legacy session/response path before
 the survey closes (see data plan, "freeze window").
 
-If the survey opens before Dec 11, there is a conflict: the readiness review would
-fall after launch. Options in section 8: move the review earlier, run the legacy
-fallback, or move the survey.
+With the opening on Dec 11 and the go/no-go on **Dec 9**, a no-go leaves **two days**
+to switch to the legacy fallback. The fallback path therefore must be rehearsed and
+kept intact from the start (R-21) rather than assembled after a no-go. If the opening
+time turns out to be early on Dec 11, Dec 10 final checks must finish the day before.
 
 ## 3. Capacity and ownership assumptions
 
@@ -321,13 +347,32 @@ section 8 explains why that is not a safe plan of record.
 - Req: DoD OPS-6. Deliver: job runner choice and implementation (verify availability: pg_cron on this Supabase plan, or an external scheduler), alerts, restore drill, runbooks. Plan: [privacy and operations plan](PRIVACY_AND_OPERATIONS_PLAN.md).
 - Owner: **Unassigned: operator**; Claude drafts. Dates: Nov 16-Dec 4; 3-6 d; confidence low (resource unknown).
 
-**R-21 Winter Survey rehearsal and operator acceptance**
-- Req: DoD OPS-4. Deliver: end-to-end staging run by the named operator, including fallback switch. Dates: Dec 1-8; 3-5 d; confidence medium if D-12 is confirmed by Oct 30; otherwise **blocked**.
+**R-21 Winter Survey rehearsal and operator acceptance (M1)**
+- Req: DoD OPS-4. Deliver: end-to-end staging run by the named operator, including the fallback switch and the opening-time scenario. Dates: **Nov 30-Dec 7** (finish before the Dec 9 review); 3-5 d; confidence medium **only if** D-12 (time, closing, operator, questionnaire, audience, anonymity) is answered by Oct 30-Nov 6; otherwise **blocked**.
 
-**R-22 Hardening, accessibility/performance/privacy QA, release candidate, defect buffer**
-- Req: DoD OPS-5/6. Dates: Dec 2-10; 5-8 d. This is the only built-in buffer (about 7 working days) and it is spent by any slip upstream.
+**R-22 Hardening, accessibility/performance/privacy QA, release candidate, defect buffer (M1)**
+- Req: DoD OPS-5/6. Dates: **Dec 1-8**; 5-8 d. This is the only built-in buffer before the review (about 6 working days) and it is spent by any slip upstream.
 
-**R-23 Go/no-go review, Fri Dec 11** (0.5 d). Inputs: DoD evidence matrix (section 10), open risks, fallback readiness, production authority status. Output: dated decision. Production deployment and migration are **separate** authority and are not part of the readiness decision.
+**R-23 Launch-readiness go/no-go review, Wed Dec 9** (0.5 d). Inputs: DoD evidence matrix for the M1 scope (section 10), open risks, fallback readiness, production authority status. Output: dated decision. Production deployment and migration are **separate** authority and are not part of the readiness decision. A no-go switches the Winter Survey to the legacy flow.
+
+**R-26 Final checks, change freeze, launch day (M1)**
+- Dec 10 (Thu): final checks and necessary fixes only, no new features. Dec 11 (Fri): MJCC Hub and Winter Survey launch (v2 beta) under separate production authority; monitoring, fallback readiness, operator support, rollback runbook at hand. Effort 2-3 d; confidence medium. Owner: Claude + named operator (unassigned) + Founder (authority). Needs: D-12 answered; runbooks (R-20); support coverage over the weekend that follows.
+- Accept: opening-verification checklist passed; first responses reconcile; alerts quiet; fallback switch tested earlier (R-21).
+
+**R-27 Stabilization, remaining scope, main-release readiness (M2)**
+- Dec 14-22: beta support and fixes; complete the capabilities the founder assigns to M2 (section 8); M2 go/no-go proposed **Mon Dec 21**; **Dec 23 (Wed)** LunchVoice v2 main public release under separate production authority. Effort 3-5 d (excludes the M2 scope items themselves, which are R-12/R-13/R-15/R-16/R-17/R-18 work); confidence low-medium.
+- Accept: DoD evidence matrix for the full confirmed scope (or founder-approved exceptions); no unresolved high privacy/security defect; support coverage plan for Dec 23-Jan 4.
+
+### 5.1 Milestone mapping (proposal; founder decides what belongs to M1 versus M2)
+
+| Item | Proposed milestone | Note |
+| --- | --- | --- |
+| R-01..R-11, R-14, R-19..R-23, R-24, R-25, R-26 | **M1 (Dec 11)** | Foundation, identity, membership, roles/Owner, entitlements and activation, waitlist/beta admission, routing, anonymity boundary, migration rehearsal, operations, hardening |
+| R-15 Survey/poll/rating/feedback Campaigns, R-17 privacy-safe results, R-16 minimal MJCC Hub page | **M1** (parts) | Just what the Winter Survey and the MJCC Hub need; scope of each part to be agreed with the operator |
+| R-12 billing, R-13 reservations, R-15 elections and other Team-only modes, R-16 full Builder blocks, R-17 exports/embeds beyond M1 needs, R-18 discovery | **M2 (Dec 23)** candidates | Not approved as M2-only; each could be pulled into M1 at the cost of M1 risk. Entitlements for the MJCC Hub in M1 would be founder-issued manual grants (section 8.2) |
+| R-27 | **M2** | Stabilization and main release |
+
+Item dates in section 5 are the **M1-optimistic overlapped plan**. If an item is assigned to M2 its finish may slide as late as Dec 18, freeing capacity for M1 items.
 
 ## 6. Dated view
 
@@ -361,27 +406,39 @@ gantt
   section Release
   R-19 Migration rehearsal :r19, 2026-11-23, 2026-12-04
   R-20 Operations :r20, 2026-11-16, 2026-12-04
-  R-21 Winter Survey rehearsal :r21, 2026-12-01, 2026-12-08
-  R-22 QA and buffer :crit, r22, 2026-12-02, 2026-12-10
-  R-23 Go/no-go :milestone, r23, 2026-12-11, 0d
+  R-21 Winter Survey rehearsal :r21, 2026-11-30, 2026-12-07
+  R-22 QA and buffer :crit, r22, 2026-12-01, 2026-12-08
+  R-23 Go/no-go (Dec 9) :milestone, r23, 2026-12-09, 0d
+  R-26 Final checks (Dec 10) :r26, 2026-12-10, 1d
+  M1 MJCC beta launch (Dec 11) :milestone, m1, 2026-12-11, 0d
+  section M2 main release
+  R-27 Stabilize and finish M2 scope :r27, 2026-12-14, 2026-12-22
+  M2 go/no-go (proposed Dec 21) :milestone, m2g, 2026-12-21, 0d
+  M2 v2 main public release (Dec 23) :milestone, m2, 2026-12-23, 0d
 ```
+
+The chart shows the M1-optimistic plan; M2-candidate items (R-12, R-13, R-18 and parts of R-15/R-16/R-17) may slide to Dec 18 (section 5.1).
 
 Milestones: **Nov 12 (proposed)** waitlist plus internal prototype: waitlist (R-10 part 1),
 two-Hub fixture slice (R-07 + parts of R-08/R-09 against synthetic entitlements). Real
 central login by Nov 12 **only if** the R-06 spike passes by Nov 6; otherwise the
-prototype is shown as a labelled fixture prototype. **Dec 11** readiness gate. Launch
-follows the confirmed Winter Survey opening plus separate production authority.
+prototype is shown as a labelled fixture prototype. **Dec 9** readiness go/no-go,
+**Dec 10** final checks, **Dec 11** MJCC Hub and Winter Survey launch (v2 beta),
+**Dec 23** v2 main public release; each launch needs its own separate production authority.
 
 ## 7. Critical path
 
 Verification infrastructure and staging (R-02/R-05) -> identity spike (R-06) ->
 memberships (R-07) -> roles and Owner (R-08) -> entitlements and atomic activation
 (R-09) -> Campaign modes (R-15) -> analytics with privacy boundary (R-14/R-17) ->
-hardening (R-22) -> go/no-go. Longest chain, optimistic effort: 1+5+4+5+6+8+7+5 = **41
-working days**, versus **33** available even before the overlaps assumed in the
-dated plan. Overlap (starting the next item against the contract before the
-previous finishes) is what makes the dates above close, and it is the main risk.
-At high-end effort the same chain is 66 days.
+hardening (R-22) -> **Dec 9 go/no-go** -> Dec 10 checks -> **Dec 11 M1 launch**. The
+full chain (including Campaign modes at full R-15 size and full analytics) at optimistic
+effort is 1+5+4+5+6+8+7+5 = **41 working days**, versus **31** available through the
+Dec 9 review and 41 through Dec 23. Overlap (starting the next item against the contract before the
+previous finishes) is what makes the M1 dates close, and it is the main risk. At high-end
+effort the same chain is 66 days. The M1-only chain (R-15 and R-17 limited to what the
+Winter Survey needs, roughly 5+4 instead of 8+7 days) is about **35 days** optimistic,
+still above 31 before overlap, so M1 also depends on overlap and on decisions arriving on time.
 
 **Gating external dependencies (each can stop the chain):** staging approval
 (Oct 28), central Identity owner availability (Oct 28), D-01/D-04/D-02 decisions (Oct 30 / Nov 6), Google OAuth client, and a named Winter Survey operator.
@@ -390,42 +447,50 @@ At high-end effort the same chain is 66 days.
 
 | Quantity | Low | High |
 | --- | --- | --- |
-| Total effort, R-01..R-25 | 103.5 agent-days | 169.5 agent-days |
-| Productive days per lane (33 working days at 75%) | about 25 | about 25 |
-| Concurrent lanes needed to finish by Dec 11 | about 4-5 | about 7 (169.5 / 25) |
+| Total effort, R-01..R-27 (full confirmed scope) | 108.5 agent-days | 177.5 agent-days |
+| Rough effort of the proposed **M1 subset** (section 5.1; sub-splits are judgment calls) | 76.5 | 136.5 |
+| Productive days per lane through Dec 9 (31 working days at 75%) | about 23 | about 23 |
+| Productive days per lane through Dec 23 (41 working days at 75%) | about 31 | about 31 |
+| Concurrent lanes needed for the M1 subset by Dec 9 | about 3-4 | about 6 |
+| Concurrent lanes needed for full scope by Dec 23 | about 4 | about 6 |
 
 Lanes beyond three or four are unrealistic under the repository's rules (no overlapping
 file scopes, governing-agent review of all delegated output, founder review turnaround).
-**Conclusion: the full confirmed scope does not credibly fit by Dec 11 with zero
-slip.** The dated plan is the optimistic case with no meaningful buffer after R-22.
+**Conclusion:** the full confirmed scope in M1 (Dec 11) does not credibly fit. The M1
+subset fits only in the lower half of the estimate with 3-4 healthy lanes and decisions on
+time; the full scope by Dec 23 fits only at the low end. The dated plan is the optimistic case with little buffer.
 Probability is not computed; this is a judgment from the estimates above.
 
 Options (founder decision; **no feature is removed or deferred unless the founder
-approves it**). All three stay on the table; none is approved yet:
+approves it**). All three stay on the table; **none is approved yet**:
 
-| Option | What ships by Dec 11 | Candidate deferrals (**not approved**) | Risk |
+| Option | M1 (Dec 11, MJCC beta) | M2 (Dec 23, main public release) | Risk |
 | --- | --- | --- | --- |
-| **Option A: Full scope** | Everything in R-01..R-25 | None | Very high schedule risk; any slip hits Dec 11; needs about 4-7 concurrent lanes |
-| **Option B: Launch-critical first (my recommendation, not approved)** | Identity, multi-Hub memberships, roles/Owner, entitlements + atomic activation, Survey/poll/rating/feedback Campaigns, guest + anonymity boundary, waitlist and 50-owner cap, canonical routing with LionCafe compatibility, migration rehearsal, privacy-safe results | Live billing, name-reservation automation, elections and Team-only modes, full Builder blocks, embeds, discovery directory (each needs the decision in section 8.1) | Medium; deferred items would follow in a second wave |
-| **Option C: Date shift** | Full scope on a later date | Launch moves to the end of the first slipped milestone; legacy flow runs the Winter Survey | Winter Survey proceeds on v1; v2 cutover after |
+| **Option A: Full scope in M1** | Everything in R-01..R-26 | Stabilization only | Very high schedule risk; any slip hits Dec 11; needs about 6 lanes |
+| **Option B: Launch-critical first in M1, remainder to M2 (my recommendation, not approved)** | Identity, multi-Hub memberships, roles/Owner, entitlements + atomic activation (manual grants for MJCC), Survey-mode Campaigns with QR/code/schedule, anonymity boundary, waitlist and 50-owner cap, canonical routing with LionCafe compatibility, migration rehearsal, privacy-safe results, minimal MJCC Hub page | Candidates, each needing its decision in section 8.1: live billing, name reservations, elections and Team-only modes, full Builder blocks, exports/embeds, discovery directory | Medium; the Dec 23 main release then carries a large second wave in 8 working days plus parallel capacity |
+| **Option C: Date shift** | M1 and/or M2 move to the end of the first slipped milestone; the Winter Survey runs on the legacy flow | Later | Survey proceeds on v1; v2 cutover after; conflicts with the confirmed Dec 11 opening only if the survey itself moves |
 
 Whatever is chosen, the **Winter Survey fallback** (legacy LionCafe flow) stays available
-until the survey closes, and the full v2 scope remains the eventual target.
+until the survey closes, and the full v2 scope remains the target for the main release.
+Putting a capability in M2 is a **sequencing** decision inside the same release train, and
+still needs explicit founder approval; nothing here treats billing, reservations, elections or embeds as approved deferrals.
 
 ### 8.1 Candidate deferrals: latest decision dates and consequences
 
 "Latest decision date" is the last day the founder can decide and still leave the item
-inside the optimistic Dec 11 plan (derived from the dates and effort in section 5); after it,
-the item effectively slips unless scope elsewhere shrinks. These are engineering judgments.
+inside the plan (derived from the dates and effort in section 5); after it, the item
+effectively slips unless scope elsewhere shrinks. Two columns now: to land in **M1 (Dec 11,
+needs the earlier date)** and to land in **M2 (Dec 23; M2 work must finish by Dec 18, before
+the proposed Dec 21 review)**. These are engineering judgments, not approvals.
 
-| Candidate | Items | Needs to decide first | Latest decision date | If deferred, consequence | Mitigation (needs founder approval) |
-| --- | --- | --- | --- | --- | --- |
-| Live billing (subscriptions, seasonal checkout) | R-12 | D-06 provider, currency, tax; D-08 prices | **Nov 6** provider; **Nov 9** prices (R-12 needs 6-10 d from Nov 9) | No revenue path at launch; Starter/Team/Campaign cannot be bought; entitlement engine runs on manual grants | See 8.2 |
-| Name-reservation automation | R-13 | D-09 calendar rules; depends on R-12 | **Nov 9** (R-13 starts Nov 16) | Annual $25 reservation and 25-day grace unavailable; slug conflicts handled by founder review; V2-13/14 not met | Manual reservation list with explicit dates; the same state machine can be backfilled |
-| Elections (and other Team-only modes) | R-15 | D-08 election contract (procedures, vote editing, timing) | **Nov 13** (R-15 runs Nov 16-Dec 1) | Elections absent at launch; Team value proposition reduced; V2-19 not fully met | Ship Survey/poll/rating/feedback first; add elections as an approved contract lands |
-| Analytics embeds | R-17 | D-10 thresholds, retention, embed policy | **Nov 20** (R-17 runs Nov 18-Dec 2) | Hub pages cannot publish analytics; in-product charts and authorized exports remain; V2-21 publish part unmet | Authorized export plus in-product charts |
-| Discovery directory | R-18 | D-05 review/ranking; DNS for the host | **Nov 20** (R-18 runs Nov 23-Dec 1) | No `discovery.lunchvoice.com` listing; eligibility counter can still ship | Show eligibility state on the Hub card only |
-| Full Builder blocks | R-16 | D-11 | **Nov 9** | Fixed page layouts only; custom blocks later | Page structure and permissions still ship |
+| Candidate | Items | Needs to decide first | Latest to keep in M1 (Dec 11) | Latest to keep in M2 (Dec 23) | If it misses M1 or M2, consequence | Mitigation (needs founder approval) |
+| --- | --- | --- | --- | --- | --- | --- |
+| Live billing (subscriptions, seasonal checkout) | R-12 | D-06 provider, currency, tax; D-08 prices | **Nov 6** provider; **Nov 9** prices | **Nov 20** (billing then reservations chain needs about 17 working days from Nov 23 to Dec 18) | No revenue path; Starter/Team/Campaign cannot be bought; entitlement engine runs on manual grants | See 8.2 |
+| Name-reservation automation | R-13 | D-09 calendar rules; depends on R-12 | **Nov 9** | **Nov 20** (same chain as billing) | Annual $25 reservation and 25-day grace unavailable; slug conflicts handled by founder review; V2-13/14 not met | Manual reservation list with explicit dates; the same state machine can be backfilled |
+| Elections (and other Team-only modes) | R-15 | D-08 election contract (procedures, vote editing, timing) | **Nov 13** | **Dec 4** (3-5 d, finish by Dec 18) | Elections absent; Team value proposition reduced; V2-19 not fully met | Ship Survey/poll/rating/feedback first; add elections when an approved contract lands |
+| Analytics exports/embeds beyond M1 needs | R-17 | D-10 thresholds, retention, embed policy (D-10 thresholds are needed by **Nov 9** for any anonymous results anyway) | **Nov 20** | **Dec 4** | Hub pages cannot publish analytics; in-product charts and authorized exports remain; V2-21 publish part unmet | Authorized export plus in-product charts |
+| Discovery directory | R-18 | D-05 review/ranking; DNS for the host | **Nov 20** | **Dec 4** | No `discovery.lunchvoice.com` listing; eligibility counter can still ship | Show eligibility state on the Hub card only |
+| Full Builder blocks | R-16 | D-11 | **Nov 9** | **Nov 25** (7-11 d remaining from Dec 1) | Fixed page layouts only; custom blocks later | Page structure and permissions still ship |
 
 ### 8.2 How Hub creation and paid entitlements work if billing is postponed
 
@@ -454,7 +519,12 @@ deferred or manual; a browser redirect is never proof of payment because there i
 | Reservations | Nov 25 | R-13 boundary and race tests |
 | Builder/analytics | Dec 2 | R-16/R-17 acceptance runs |
 | Migration | Dec 4 | R-19 reconciliation report and rollback rehearsal |
-| Release | Dec 11 | DoD matrix, fallback readiness, open-risk review |
+| Operator acceptance | Dec 7 | R-21 rehearsal signed off by the named operator |
+| **M1 readiness go/no-go** | **Dec 9** | DoD matrix for the M1 scope, fallback readiness, open-risk review, production-authority status |
+| Final checks | Dec 10 | R-26: fixes only; freeze |
+| **M1 launch** | **Dec 11** | MJCC Hub and Winter Survey opening verification (separate production authority) |
+| M2 readiness go/no-go | Dec 21 (proposed) | DoD matrix for the full confirmed scope or founder-approved exceptions |
+| **M2 main public release** | **Dec 23** | Separate production authority; support coverage plan |
 
 ## 10. Definition of Done mapping
 
@@ -487,7 +557,10 @@ CMP = Campaigns, GST = guests/anonymity, COM = commercial/namespace, BLD = Build
 | OPS-4 | MJCC operator rehearsal | R-21 | Operator (unassigned) + Founder |
 | OPS-5 | Accessibility, privacy disclosures | R-22, R-24, R-25 | Claude; design manager via Codex |
 | OPS-6 | Performance, restore, alerts | R-20, R-22 | Operator (unassigned) |
-| OPS-7, OPS-8 | Founder risk review; separate production authority | R-23 | Founder |
+| OPS-7, OPS-8 | Founder risk review; separate production authority | R-23 (Dec 9, M1), R-27 (Dec 21, M2) | Founder |
+
+The DoD criteria apply at **each** release: M1 evidences the scope the founder approves for the MJCC beta;
+M2 evidences the full confirmed scope or founder-approved, explicitly listed exceptions.
 
 ## 11. Decision tracker (D-01 to D-12)
 
@@ -507,7 +580,7 @@ deadlines are to protect the critical path.
 | D-09 Namespace, reservation calendar | Nov 4 / Nov 9 | Calendar days in America/New_York with explicit instants | Store explicit UTC instants derived from an approved ET rule | Reservations deferred |
 | D-10 Thresholds, retention, export | Nov 9 | Minimum cohort size k (founder sets); retention periods | Pick k explicitly; never ship an arbitrary default | Embeds and exports deferred |
 | D-11 Page quotas | Nov 9 | Built-in pages free; custom pages count against 3 | As stated | Builder ships fixed layouts |
-| D-12 Legacy placement, Winter Survey details | Oct 30 | Section 2 | Legacy fallback retained | R-21 blocked; conflict unresolved |
+| D-12 Legacy placement, Winter Survey details | Oct 30 | Opening **date** confirmed (Dec 11, relayed); still open: opening time and timezone, closing date/time, operator, questionnaire, audience, anonymity requirement, MJCC Hub name/slug versus LionCafe (section 2) | Legacy fallback retained | R-21/R-26 blocked; fallback window after a Dec 9 no-go is two days |
 
 ## 12. Resource gaps and owners to assign
 
@@ -524,15 +597,24 @@ deadlines are to protect the critical path.
 | MJCC operator | Unnamed | Oct 30 |
 | Downloadable design handoff | Designer work underway (Codex liaison); not delivered; delivery date unknown | Needed Nov 6 (shell) / Nov 13 (all flows) |
 | Branding attribution decision (LunchVoice vs KpnSolute on platform surfaces) | Unresolved in the design chat | Nov 6 |
-| Discovery reviewer | Unnamed | Nov 13 |
+| Discovery reviewer | Unnamed | Nov 13 (M1) / Dec 4 (M2) |
+| Support and incident coverage after Dec 11 (Friday, weekend follows) and Dec 23 (week before Christmas) | No coverage plan or named owner | Dec 4 |
+| Production deployment authority for M1 and for M2 | Not granted; separate decision per launch | Dec 9 / Dec 21 |
 
-## 13. Go/no-go criteria (Dec 11)
+## 13. Go/no-go criteria
 
-**Go for launch readiness** requires: all Option-selected scope has passing evidence in
-section 10; fallback tested; reconciliation clean; no open high privacy/security
-defect; production authority obtained separately. **No-go** triggers: unreconciled data,
-unproven isolation between Hubs, an untested anonymity path in a released mode, or no
-named operator. If no-go, run the Winter Survey on the legacy flow and replan.
+**M1 readiness review, Dec 9.** **Go** requires: the founder-approved M1 scope has passing
+evidence in section 10; fallback tested (R-21); reconciliation clean; no open high
+privacy/security defect; named operator accepted the rehearsal; D-12 answers recorded;
+production authority obtained separately. **No-go** triggers: unreconciled data,
+unproven isolation between Hubs, an untested anonymity path in a released mode, no named
+operator, or unanswered D-12 items. If no-go, run the Winter Survey on the legacy flow on
+Dec 11 and replan; the two days between Dec 9 and Dec 11 are the only switch window.
+
+**M2 readiness review, Dec 21 (proposed).** Same standard applied to the full confirmed
+scope, or to founder-approved exceptions listed explicitly; plus support coverage for the
+holiday period. A no-go moves the main public release; it does not affect the M1 beta that
+is already live except through fixes.
 
 ## 14. Next implementation step after plan approval
 

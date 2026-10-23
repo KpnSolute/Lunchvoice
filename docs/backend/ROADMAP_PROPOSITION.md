@@ -1,5 +1,13 @@
 # Roadmap proposition and request to Claude
 
+> **Update 2026-10-23 (founder message, relayed):** MJCC Hub and Winter Survey launch
+> **December 11, 2026** (v2 beta, M1); v2 main public release **December 23, 2026** (M2);
+> readiness go/no-go recommended **December 9**, final checks **December 10**. The survey
+> opening date is confirmed; its time/timezone, closing, operator, questionnaire,
+> audience and anonymity remain open (D-12). December 13 is superseded. The text below is
+> the original request, kept as written; the current dates are in
+> [EXECUTION_ROADMAP.md](EXECUTION_ROADMAP.md#0-schedule-update-founder-message-relayed-2026-10-23).
+
 Requested by the founder on **October 23, 2026**. This is a planning assignment;
 the schedule below is a proposal to assess, not an approved delivery commitment.
 Use **America/New_York** for dates and event scheduling.

@@ -66,12 +66,15 @@ Keep confirmed product decisions in the v2 spec; link instead of duplicating rul
 
 ## Dates and authority
 
-The requested roadmap runs **October 23 through December 11, 2026**, using
-**America/New_York**. Launch aligns with the start of **MJCC Hub Winter Survey
-2026**, subject to acceptance and separate operational authorization. Its exact
-opening date/time is unconfirmed. December 13 was the earlier provisional target;
-do not present it as the confirmed survey opening. Claude must reconcile the
-event schedule and December 11 readiness boundary.
+The roadmap was requested for **October 23 through December 11, 2026** and now covers
+**October 23 through December 23, 2026** (America/New_York). Per the founder's relayed
+update (2026-10-23): **December 11** is the MJCC Hub and **MJCC Hub Winter Survey 2026**
+launch (first operational v2 beta, M1); **December 23** is the v2 main public release (M2);
+the readiness go/no-go is recommended for **December 9**, with **December 10** for final
+checks. The survey's opening **date** is confirmed; its opening time and timezone, closing,
+operator, questionnaire, audience and anonymity requirement remain open (D-12).
+December 13 is superseded. Each launch needs separate production authorization. See
+[backend/EXECUTION_ROADMAP.md](backend/EXECUTION_ROADMAP.md).
 
 These documents request Claude's next work. They do not claim that a Claude
 session has been contacted, started, or has accepted the assignment.

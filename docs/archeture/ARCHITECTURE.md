@@ -289,8 +289,8 @@ fields, and numerical suppression thresholds are D-10, not arbitrary defaults.
 4. Route legacy and v2 traffic through explicit compatibility behavior while
    migrating authentication. Never let a legacy login recreate broad admin rights
    after a v2 role revocation. Retire old paths only after signed-off parity.
-5. Rehearse MJCC Hub Winter Survey 2026 end to end in staging for the December 11
-   readiness review; confirm its actual opening before scheduling launch. Verify independent
+5. Rehearse MJCC Hub Winter Survey 2026 end to end in staging for the December 9
+   readiness review (launch December 11); confirm its opening time and timezone. Verify independent
    rollback of routing/auth/content without losing newly accepted responses.
 6. Produce a deployment/rollback runbook and obtain separate operational authority.
    No production migration, secret change, deployment, or destructive cleanup is

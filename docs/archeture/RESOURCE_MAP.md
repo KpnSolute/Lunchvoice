@@ -66,7 +66,8 @@ Identity contract -> account mapping -> accepted memberships -> permissions ->
 shared entitlements -> Campaign lifecycle -> privacy-safe analytics/publication.
 Builder can use reviewed mock contracts while backend planning proceeds.
 Billing/jobs/reservation clocks require integration evidence before sales/release.
-Staging, recovery and the event operator are December 11 readiness dependencies.
+Staging, recovery and the event operator are December 9 readiness-review dependencies
+(MJCC beta launch December 11; main public release December 23).
 
 Claude must assign a dated roadmap item to every unassigned owner, unknown
 environment, undecided provider and missing proof. Live verification is subject

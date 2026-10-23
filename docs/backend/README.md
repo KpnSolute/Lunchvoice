@@ -1,9 +1,12 @@
 # Backend planning: Claude starts here
 
 Continue LunchVoice v2 planning from source evidence. Develop backend contracts
-first, then create an executable roadmap for **October 23-December 11, 2026**.
-Launch aligns with **MJCC Hub Winter Survey 2026**; confirm its opening date/time
-and operator rather than assume the earlier December 13 target is its schedule.
+first, then create an executable roadmap (requested for October 23-December 11, 2026;
+now **October 23-December 23, 2026**). Per the founder's relayed update, **MJCC Hub and
+Winter Survey launch December 11** (v2 beta), **v2 main public release December 23**,
+readiness go/no-go recommended **December 9**. Confirm the survey's opening time and
+timezone, closing, operator, questionnaire, audience and anonymity (D-12); the earlier
+December 13 target is superseded.
 
 Read the [index](../README.md), [product spec](../v2/PRODUCT_SPEC.md),
 [comparison audit](../v2/CURRENT_STATE_AUDIT.md),
