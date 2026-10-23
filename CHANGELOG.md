@@ -8,6 +8,48 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Linked the founder-designated Claude Design manager in the frontend handoff and
+  both agent brains. Recorded the observed screen gaps, current signature direction,
+  stale animated SVG export and unresolved branding attribution, with required
+  artifact/version mapping and accessibility checks for Claude's experience plan.
+
+- Organized the Claude planning handoff with `docs/README.md`, backend-first
+  planning and roadmap proposition under `docs/backend/`, a frontend planning
+  guide under `docs/frontend/`, and canonical architecture/resource mapping under
+  `docs/archeture/`. Kept a v2 architecture pointer to preserve existing links.
+  The resource map distinguishes source-backed services (including Supabase,
+  Render, email and MJCC integration) from required/unselected resources.
+- Updated both agent brain files identically and aligned active planning guidance
+  to the founder's October 23-December 11, 2026 roadmap request. Launch aligns
+  with MJCC Hub Winter Survey 2026 opening; its exact date/time still needs
+  confirmation, and December 13 is recorded only as the earlier provisional target.
+  Claude is asked to continue planning first; no session dispatch, implementation,
+  resource provisioning, production change or deployment is claimed.
+
+- Researched the v2 core against current Google, Supabase, and PostgreSQL primary
+  documentation. Added a recommended OIDC federation spike, alternatives and
+  identity-linking constraints, plus a five-PR core plan for verification,
+  central identity, memberships, permissions, and atomic Campaign activation.
+  Included a founder-review gate proposal, staging evidence requirements and
+  milestone sequencing; no unresolved product policy was marked approved and
+  no implementation, migration, provider configuration or deployment was performed.
+
+- Added the authoritative LunchVoice v2 documentation suite under `docs/v2/`:
+  product specification, source-backed current-state audit at main `0dbc343`,
+  target architecture, implementation roadmap, and separate documentation/release
+  acceptance criteria. Incorporated the founder's supplemental decisions for
+  Hubs, central Google identity, multi-Hub membership, protected Owner/custom
+  roles, Campaign modes and gates, guest/anonymity controls, Hub Builder, analytics,
+  seasonal/subscription entitlements, annual name reservation, discovery and beta.
+  Recorded remaining decisions explicitly, including both Campaign Plus prices.
+- Updated identical agent brain files with v2 authority and Claude's implementation
+  handoff after review/approval; corrected the repository identifier while
+  preserving security, release, delegation, and production-operation governance.
+  This is documentation only: no source, dependency, migration, production secret,
+  function deployment, or runtime configuration change. The source audit records
+  three high and two moderate dependency entries reported on 2026-10-23 as existing
+  launch blockers, not a passing heavy release audit.
+
 - Added a signed KpnSolute CloudEvents receiver to the existing `menu-sync`
   function for MJCC menu-day and menu-cycle events. It verifies Standard
   Webhooks signatures against the raw request body, enforces the tenant-to-org
