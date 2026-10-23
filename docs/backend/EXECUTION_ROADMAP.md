@@ -50,6 +50,17 @@ supplied:** the survey operator and launch-support owner; the survey's opening t
 questionnaire, audience and anonymity requirement; the staging budget and resource owner. Production deployment,
 migrations and paid-resource creation remain unapproved.
 
+**Scope note (founder, 2026-10-23):** the production Supabase project is now named **LunchVoicev2** (formerly
+MJCCv2; the project reference is expected to be unchanged, unverified), and **v2 will not use the upstream MJCCv1
+inventory system yet**. Recorded consequences: (1) the v2 launch scope takes **no new dependency** on MJCCv1 or
+KpnCompute; (2) existing MJCCv1-backed code (the staff login bridge `staff-login`/`staff-sso`/`staff-status` and the
+`menu-sync` pull and signed-event paths) stays as **legacy** and is neither extended nor, yet, retired; (3) **open
+question for the founder:** whether "not using it yet" also means retiring the staff bridge for the beta. If the
+bridge is retired, MJCC staff and the Winter Survey operator need a replacement sign-in (Google plus an explicit
+founder-approved mapping of named staff to Hub roles), which changes R-06/R-07/R-19 and D-12; if only inventory
+and menu sync are paused, the bridge continues alongside Google sign-in with staff accounts excluded from automatic
+linking (D-01 packet). Menus entered through the existing workbook upload keep working either way.
+
 **M1 / M2 split** (recorded as approved on 2026-10-23 under the reading above; it replaces the three
 alternative plans as the delivery plan, which stay as contingency):
 

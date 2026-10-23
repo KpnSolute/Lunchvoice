@@ -38,6 +38,12 @@ categories and the repository's decimal `X.X.X` release policy.
   replay cleanly on an empty database, and an isolated authorization verification was performed with results held
   privately. Documentation only; no production access, migration, secret, resource or deployment.
 
+- Recorded two founder statements (2026-10-23): the production Supabase project is now named LunchVoicev2
+  (formerly MJCCv2) and v2 does not use the upstream MJCCv1 inventory system yet. Updated both agent brain files
+  (kept identical), the resource map and the roadmap; the existing MJCCv1-backed staff bridge and menu-sync code
+  remain legacy, and whether the staff bridge is retired for the beta is recorded as an open founder question.
+  Documentation only.
+
 - Recorded the founder's DNS facts (2026-10-23: `kpnsolute.com` on Cloudflare, `lunchvoice.com` on GoDaddy with a
   planned move to Cloudflare, hosting on Render) in the staging manifest and resource map, proposed staging hostnames
   under `kpnsolute.com` so no production DNS change is needed before launch, and added a plain-language sign-in

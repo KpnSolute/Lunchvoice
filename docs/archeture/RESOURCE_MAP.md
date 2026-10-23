@@ -10,8 +10,8 @@ owner is unselected. Nothing is provisioned by this map.
 | Resource | Evidence/status | Needed for v2 | Ownership and readiness evidence |
 | --- | --- | --- | --- |
 | GitHub `KpnSolute/Lunchvoice` | Existing repo; PR #2 contains this handoff | Reviewed branches, PR CI, migration history and releases | Maintainer; Claude planning/implementation; verify protection/checks |
-| Supabase MJCCv2 `qprfonxvthmaoxfixigk` | App target in `supabase/config.toml` and brain files | Postgres, Auth integration, RLS, functions, Realtime, additive v2 model | Project operator to confirm; deployed schema/grants/history still unverified |
-| Supabase MJCCv1 `mgvyylvmkxhhataavqjz` | Upstream staff/menu system in governance and functions | Compatibility during migration; not LunchVoice's deployment target | Upstream owner to confirm; supported API and transition proof |
+| Supabase LunchVoicev2 (renamed from MJCCv2 on 2026-10-23, founder-stated) `qprfonxvthmaoxfixigk` | App target in `supabase/config.toml` and brain files | Postgres, Auth integration, RLS, functions, Realtime, additive v2 model | Project operator to confirm; deployed schema/grants/history still unverified |
+| Supabase MJCCv1 `mgvyylvmkxhhataavqjz` (founder 2026-10-23: its inventory system is **not used by v2 yet**) | Upstream staff/menu system in governance and functions | Compatibility during migration; not LunchVoice's deployment target | Upstream owner to confirm; supported API and transition proof |
 | Render `lunch-line-survey` | `render.yaml`: static build, `dist`, SPA rewrite | Frontend hosting, staging/routing and rollback | Hosting operator to confirm; verify isolation, preview and live settings |
 | KpnCompute/MJCC | Staff bridge/menu code references `mjcc.kpnsolute.com` and configured API base | Existing staff/menu continuity | Service owner to confirm; handoff, grants and API compatibility tests |
 | KpnSolute Identity `auth.kpnsolute.com` | Required; integration absent from app | Verified personal ID, Google login, OIDC/session mapping; Apple later | Identity owner/repo/hosting TBD; issuer/JWKS/callback/linking proof |

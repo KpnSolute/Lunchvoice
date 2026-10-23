@@ -11,9 +11,13 @@ for dining feedback, menu planning, student rewards, and staff operations. It
 deploys as the Render static site `lunch-line-survey`.
 
 - GitHub: `KpnSolute/Lunchvoice`
-- Production Supabase: MJCCv2 (`qprfonxvthmaoxfixigk`)
-- MJCCv1 (`mgvyylvmkxhhataavqjz`) is an upstream staff/menu system, not this
-  repository's deployment target.
+- Production Supabase: LunchVoicev2 (`qprfonxvthmaoxfixigk`). The project was
+  renamed from MJCCv2 (founder, 2026-10-23); older text in this file may still
+  say MJCCv2. The project reference is expected to be unchanged (unverified).
+- MJCCv1 (`mgvyylvmkxhhataavqjz`) is an upstream staff/menu/inventory system, not
+  this repository's deployment target. Per the founder (2026-10-23), v2 does not
+  use the MJCCv1 inventory system yet; existing staff-bridge and menu-sync code
+  stays as legacy unless the founder says to retire it.
 - Local frontend: `npm run dev`
 - Architecture map: `graphify-out/wiki/index.md`
 - Product details: `README.md`, `PRODUCT.md`, and `DESIGN.md`
