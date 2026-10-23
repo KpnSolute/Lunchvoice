@@ -45,6 +45,18 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Fixed
 
+- Restricted self-service writes to `public.profiles` (migration
+  `20261023225534_restrict_profile_self_service_columns`, **applied to production on 2026-10-23** with the
+  founder's authorization through the project MCP server, then recorded here with the same version). API roles
+  (`anon`, `authenticated`) can no longer INSERT or UPDATE profile rows at table level; signed-in users may update
+  only `email` and `display_name` (the app's only client-side profile write, `src/routes/Login.tsx`). Production
+  already restricted UPDATE to those two columns, but that grant was never recorded in the migrations, so fresh
+  replays did not match; this codifies it. A `BEFORE UPDATE` trigger additionally rejects changes to privileged
+  columns (role, staff flag, points, streak, last survey date, org, MJCC username) by any role other than the
+  database owner roles and the service role. Profiles are still created by `handle_new_user()` (SECURITY DEFINER,
+  owned by `postgres`); points/streak changes still happen in SECURITY DEFINER RPCs; Edge Functions use the service
+  role. Verified on a throwaway database replay first, then in production via catalog checks (privileges, trigger,
+  unchanged profile counts).
 - Fixed the heavy-test selector in `scripts/release-policy.mjs`: it matched
   `src/contexts/Auth`, a directory that does not exist, so a commit touching only
   `src/auth/AuthProvider.tsx` or `src/org/OrgProvider.tsx` skipped the heavy release
