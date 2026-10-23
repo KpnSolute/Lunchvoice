@@ -11,9 +11,14 @@ for dining feedback, menu planning, student rewards, and staff operations. It
 deploys as the Render static site `lunch-line-survey`.
 
 - GitHub: `KpnSolute/Lunchvoice`
-- Production Supabase: MJCCv2 (`qprfonxvthmaoxfixigk`)
-- MJCCv1 (`mgvyylvmkxhhataavqjz`) is an upstream staff/menu system, not this
-  repository's deployment target.
+- Production Supabase: project `Lunchvoice` (ref `qprfonxvthmaoxfixigk`, region
+  us-west-2), verified 2026-10-23 through the project MCP server. The founder calls
+  it LunchVoicev2; it was formerly named MJCCv2, and older text in this file may
+  still say MJCCv2. Project MCP access is set up per `scripts/mcp/README.md`.
+- MJCCv1 (`mgvyylvmkxhhataavqjz`) is an upstream staff/menu/inventory system, not
+  this repository's deployment target. Per the founder (2026-10-23), v2 does not
+  use the MJCCv1 inventory system yet; existing staff-bridge and menu-sync code
+  stays as legacy unless the founder says to retire it.
 - Local frontend: `npm run dev`
 - Architecture map: `graphify-out/wiki/index.md`
 - Product details: `README.md`, `PRODUCT.md`, and `DESIGN.md`
@@ -59,10 +64,12 @@ does not prove access to that browser project.
 - At least 700 valid accepted members permits a discovery application, not
   automatic listing. Public waitlist precedes a maximum 50 beta Hub owners.
   November 12, 2026 remains a proposed prototype/waitlist milestone. Claude must
-  develop the October 23-December 11, 2026 execution roadmap using
-  `docs/backend/ROADMAP_PROPOSITION.md`. Launch aligns with the start of MJCC Hub
-  Winter Survey 2026, subject to the Definition of Done; confirm its opening date
-  and time. December 13 was the earlier provisional target, not a verified event date.
+  develop the execution roadmap using `docs/backend/ROADMAP_PROPOSITION.md`. Per the
+  founder's relayed update (2026-10-23): MJCC Hub and Winter Survey launch December 11,
+  2026 (first v2 beta) and the v2 main public release is December 23, 2026; the
+  readiness go/no-go is recommended for December 9. Winter Survey opening time and
+  timezone, closing, operator, questionnaire, audience and anonymity remain open
+  (D-12). December 13 is superseded. Each launch needs separate production authority.
 - Preserve MJCC/LionCafe and support its planned December Campaign through a
   non-destructive migration with reconciliation and rollback evidence.
 - Claude implements after specification review and approval. The documentation

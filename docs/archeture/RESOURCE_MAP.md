@@ -10,13 +10,13 @@ owner is unselected. Nothing is provisioned by this map.
 | Resource | Evidence/status | Needed for v2 | Ownership and readiness evidence |
 | --- | --- | --- | --- |
 | GitHub `KpnSolute/Lunchvoice` | Existing repo; PR #2 contains this handoff | Reviewed branches, PR CI, migration history and releases | Maintainer; Claude planning/implementation; verify protection/checks |
-| Supabase MJCCv2 `qprfonxvthmaoxfixigk` | App target in `supabase/config.toml` and brain files | Postgres, Auth integration, RLS, functions, Realtime, additive v2 model | Project operator to confirm; deployed schema/grants/history still unverified |
-| Supabase MJCCv1 `mgvyylvmkxhhataavqjz` | Upstream staff/menu system in governance and functions | Compatibility during migration; not LunchVoice's deployment target | Upstream owner to confirm; supported API and transition proof |
+| Supabase project `Lunchvoice` (founder calls it LunchVoicev2; formerly MJCCv2) `qprfonxvthmaoxfixigk`, us-west-2, ACTIVE_HEALTHY (verified 2026-10-23 via the project MCP server) | App target in `supabase/config.toml` and brain files | Postgres, Auth integration, RLS, functions, Realtime, additive v2 model | Project operator to confirm; deployed schema/grants/history still unverified |
+| Supabase MJCCv1 `mgvyylvmkxhhataavqjz` (founder 2026-10-23: its inventory system is **not used by v2 yet**) | Upstream staff/menu system in governance and functions | Compatibility during migration; not LunchVoice's deployment target | Upstream owner to confirm; supported API and transition proof |
 | Render `lunch-line-survey` | `render.yaml`: static build, `dist`, SPA rewrite | Frontend hosting, staging/routing and rollback | Hosting operator to confirm; verify isolation, preview and live settings |
 | KpnCompute/MJCC | Staff bridge/menu code references `mjcc.kpnsolute.com` and configured API base | Existing staff/menu continuity | Service owner to confirm; handoff, grants and API compatibility tests |
 | KpnSolute Identity `auth.kpnsolute.com` | Required; integration absent from app | Verified personal ID, Google login, OIDC/session mapping; Apple later | Identity owner/repo/hosting TBD; issuer/JWKS/callback/linking proof |
 | Google OAuth/OIDC client | Required for central identity | Clients, consent/branding, callbacks and identity claims | Identity owner; environment-specific configuration and login/revocation tests |
-| Domain/DNS/TLS | Current hosts/routing in source; live records uninspected | Hub path URLs, discovery/auth hosts, old-link compatibility | Provider/operator TBD; ownership, TLS, routing and callback evidence |
+| Domain/DNS/TLS | Current hosts/routing in source; live records uninspected | Hub path URLs, discovery/auth hosts, old-link compatibility | Founder-stated 2026-10-23 (not independently verified): `kpnsolute.com` DNS on Cloudflare; `lunchvoice.com` on GoDaddy with a planned move to Cloudflare; hosting on Render. Live records still uninspected; ownership, TLS, routing and callback evidence needed |
 | Azure Communication Services Email | `supabase/functions/send-email/index.ts` | Preserve OTP; decide invite/waitlist/renewal delivery | Email operator to confirm; verified sender, delivery/retry/error tests |
 | KpnSolute menu events | Signed receiver and receipt migration source; deployment unverified | Preserve menu projection and manual fallback | Producer/consumer owners to confirm; signature/replay/tenant tests |
 | Billing provider | Undecided; implementation absent | Subscriptions, seasonal purchases/extensions, annual renewals and reconciliation | Founder selects terms/provider; operator and sandbox lifecycle tests required |
@@ -66,7 +66,8 @@ Identity contract -> account mapping -> accepted memberships -> permissions ->
 shared entitlements -> Campaign lifecycle -> privacy-safe analytics/publication.
 Builder can use reviewed mock contracts while backend planning proceeds.
 Billing/jobs/reservation clocks require integration evidence before sales/release.
-Staging, recovery and the event operator are December 11 readiness dependencies.
+Staging, recovery and the event operator are December 9 readiness-review dependencies
+(MJCC beta launch December 11; main public release December 23).
 
 Claude must assign a dated roadmap item to every unassigned owner, unknown
 environment, undecided provider and missing proof. Live verification is subject

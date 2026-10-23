@@ -2,9 +2,14 @@
 
 Status: authoritative v2 target for review and approval; not shipped behavior.
 Product authority: founder. Implementation owner after approval: Claude.
-Recorded: 2026-10-23. Roadmap/readiness window: **October 23-December 11, 2026**.
-Launch aligns with the start of **MJCC Hub Winter Survey 2026**; exact opening
-date/time is unconfirmed. December 13 was the earlier provisional target.
+Recorded: 2026-10-23. **Schedule update (founder message relayed 2026-10-23):** MJCC Hub
+and **MJCC Hub Winter Survey 2026** launch on **December 11, 2026** as the first operational
+v2 beta; **LunchVoice v2 main public release is December 23, 2026**. The launch-readiness
+go/no-go is recommended for **December 9** with **December 10** for final checks. The
+Winter Survey opening date is confirmed; its opening time and timezone, closing date/time,
+operator, questionnaire, audience and anonymity requirement remain open (D-12).
+December 13 was the earlier provisional target and is superseded. See the
+[execution roadmap](../backend/EXECUTION_ROADMAP.md#0-schedule-update-founder-message-relayed-2026-10-23).
 
 ## Authority and reading order
 
@@ -46,6 +51,13 @@ without destructive migration. Exact Campaign date, operator, content, and
 legacy feature placement need D-12. Approval of this documentation is not
 permission to deploy or modify production.
 
+**Direction recorded 2026-10-23 (founder statement; not yet a numbered requirement).** LunchVoice is
+**consumer-first**: v2 does not rely on the native MJCC-specific integrations the product used before.
+For the tenant/Hub system, **connectors** are planned that let a Hub plug in its own APIs to drive surveys
+(a developer-facing feature). The founder indicated the LionCafe Hub needs this for its surveys at launch,
+but also described connectors as later work; timing and scope are an open question (proposed **D-13** in the
+[execution roadmap](../backend/EXECUTION_ROADMAP.md)). Nothing here approves a connector design.
+
 ## Confirmed entitlements and milestones
 
 | ID | Product/rule | Confirmed requirement |
@@ -65,7 +77,7 @@ permission to deploy or modify production.
 | V2-14 | Name grace | **25 calendar days from reservation expiration**, then cancel reservation and release exclusive slug claim |
 | V2-15 | Discovery | Hubs with **at least 700 valid members** may apply at `discovery.lunchvoice.com`; approval is not guaranteed |
 | V2-16 | Beta | Public waitlist first; maximum **50 beta Hub owners** |
-| V2-17 | Milestones | **November 12, 2026** proposed waitlist/internal prototype milestone; roadmap **October 23-December 11, 2026**; launch at **MJCC Hub Winter Survey 2026** opening, exact date/time TBD |
+| V2-17 | Milestones | **November 12, 2026** proposed waitlist/internal prototype milestone; **December 9** recommended readiness go/no-go; **December 10** final checks; **December 11, 2026** MJCC Hub and Winter Survey launch (v2 beta); **December 23, 2026** v2 main public release. Opening time/timezone TBD (D-12) |
 
 The 15-Campaign allowance and two-Survey cap are separate constraints. Team's
 total active Campaign cap, exact custom page allocation, advanced-mode matrix,
@@ -302,11 +314,13 @@ atomic. D-07 defines unique-owner counting, multiple owned Hubs, transfer effect
 invitations, re-entry, and beta pricing. Do not invent exemptions or free beta terms.
 
 November 12, 2026 is a **proposed** waitlist/internal prototype milestone.
-The founder's latest direction requests a roadmap through **December 11, 2026**
-and aligns launch with **MJCC Hub Winter Survey 2026** opening. December 13 is the
-earlier provisional target, not a confirmed survey date. Claude must confirm the
-event schedule and reconcile readiness with it. Preserve and rehearse this survey
-as an operational acceptance journey; dates do not waive migration safety.
+Per the founder's relayed update, **December 11, 2026** is the MJCC Hub and Winter
+Survey launch (first operational v2 beta, milestone M1) and **December 23, 2026** is the
+v2 main public release (M2). Readiness go/no-go is recommended for **December 9**
+(December 10 for final checks and fixes only). December 13 is superseded. Which confirmed
+capabilities ship in M1 versus M2 is a founder decision. Preserve and rehearse the Winter
+Survey as an operational acceptance journey; dates do not waive migration safety, and each
+launch needs separate production authority.
 
 ## Decision register
 

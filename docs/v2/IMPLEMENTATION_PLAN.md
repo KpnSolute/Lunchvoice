@@ -10,7 +10,12 @@ This is the **initial plan**, not Claude's completed dated roadmap. The founder'
 latest assignment is [ROADMAP_PROPOSITION.md](../backend/ROADMAP_PROPOSITION.md):
 Claude starts in [backend/README.md](../backend/README.md), plans October 23 through
 December 11, 2026, and aligns launch with MJCC Hub Winter Survey 2026 opening.
-The exact event start must be confirmed; the earlier December 13 target is provisional.
+**Update (founder message relayed 2026-10-23):** the MJCC Hub and Winter Survey launch
+is December 11 (v2 beta, M1), the v2 main public release is December 23 (M2), and the
+readiness go/no-go is recommended for December 9. The survey's opening time, closing,
+operator, questionnaire, audience and anonymity remain open (D-12). Dated plans are in
+[EXECUTION_ROADMAP.md](../backend/EXECUTION_ROADMAP.md); the milestone table below is the
+earlier proposal, superseded where the roadmap differs.
 
 ## Ownership and execution rules
 

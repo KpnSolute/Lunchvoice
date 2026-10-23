@@ -12,10 +12,13 @@ contracts only after review; a TBD must not be silently converted into a default
 - [ ] `docs/backend/`, `docs/frontend/`, and `docs/archeture/` contain the planning
   guides, canonical architecture and resource map; the index directs Claude to
   backend first. The initial plan is distinguished from Claude's requested dated
-  roadmap for October 23-December 11, 2026.
-- [ ] Launch is tied to MJCC Hub Winter Survey 2026 opening; its exact date/time
-  is explicitly unconfirmed until supplied. December 11 is a readiness boundary,
-  and the earlier December 13 target is not represented as a confirmed event date.
+  roadmap for October 23-December 23, 2026.
+- [ ] The MJCC Hub and Winter Survey launch (v2 beta) is December 11, 2026 and the v2
+  main public release is December 23, 2026 (founder message relayed 2026-10-23). The
+  readiness go/no-go is recommended for December 9 with December 10 for final checks. The
+  Winter Survey's opening time/timezone, closing, operator, questionnaire, audience and
+  anonymity requirement remain explicitly open (D-12) until supplied; the earlier
+  December 13 target is superseded and is not represented as an event date.
 - [ ] Founder-supplied supplemental decisions are incorporated; incomplete chat
   retrieval is disclosed rather than represented as a complete transcript.
 - [ ] Prices, 3/6 role slots, 3 Starter custom pages, 15 Starter active Campaigns,
@@ -183,8 +186,9 @@ Minimum gate fixtures (plus approved D-04 cases):
 - [ ] Agreed performance/freshness/load objectives are measured; backup/restore,
   job retry/reconciliation, alerts, support ownership and rollback runbooks exist.
 - [ ] Founder reviews unresolved risks and explicitly approves any deferred
-  confirmed scope. November 12 remains proposed; December 11 is the roadmap/readiness
-  boundary; launch follows the confirmed Winter Survey opening. The earlier
-  December 13 target is provisional. None of these dates waives acceptance criteria.
+  confirmed scope. November 12 remains proposed; December 9 is the recommended M1
+  readiness review, December 11 the MJCC beta launch and December 23 the main public
+  release (each with its own go/no-go and separate production authority). The earlier
+  December 13 target is superseded. None of these dates waives acceptance criteria.
 - [ ] Production migration/deployment authority is obtained separately. The
   documentation task itself has performed no production operation.

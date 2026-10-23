@@ -8,6 +8,63 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added the v2 execution-planning proposals (documentation only): a dated October 23-December 11, 2026
+  roadmap with critical path, capacity assumptions, three scope options (A full, B launch-critical-first
+  recommendation, C date shift) and candidate-deferral decision dates; data and migration, API and
+  authorization, Campaign and entitlement, and privacy and operations plans; and a frontend experience plan
+  mapping every flow to contracts, permissions, entitlements, responsive/accessibility requirements and
+  evidence, with design artifacts marked pending and questions for the design manager. Recorded
+  source-backed audit findings (dependency advisories, no PR checks, unprotected `main`, stale auth
+  heavy-test path, platform-route collision). D-01 through D-12 remain undecided, D-12 (Winter Survey
+  dates, operator, questionnaire, audience) stays open, and nothing is approved. No migration, secret,
+  resource, deployment or production probe was performed.
+
+- Recorded the founder's relayed schedule update (2026-10-23): MJCC Hub and Winter Survey launch
+  December 11, 2026 as the first v2 beta (M1) and the v2 main public release is December 23, 2026 (M2),
+  with the readiness go/no-go recommended for December 9 and final checks December 10. The roadmap
+  window now spans October 23-December 23, adds R-26 (final checks/launch day) and R-27
+  (stabilization/main release), a milestone mapping proposal, M1/M2 decision dates, and a two-day
+  fallback-switch window after a December 9 no-go. The Winter Survey opening date is confirmed; its
+  time/timezone, closing, operator, questionnaire, audience and anonymity stay open (D-12). Updated the
+  spec, Definition of Done, implementation plan, index and both agent brain files (kept identical)
+  to match; the earlier December 13 target is superseded. Documentation only; no production change.
+
+- Recorded the founder's 2026-10-23 approvals in the roadmap (Dec 9 go/no-go with Dec 10 final checks, the
+  M1/M2 split with Options A and C kept as contingency, and the non-production CI/dependency/staging-manifest
+  work; the message's scope is flagged for explicit founder confirmation). Added the staging manifest with a
+  cost envelope read from public vendor pages (nothing purchased or provisioned; figures to be re-verified) and
+  the D-01 identity decision packet (options A-D, account-linking implications, contingency). Updated R-02 to R-05
+  status: PR #5 (CI checks) and PR #4 (dependency remediation) are open, the baseline migration was shown not to
+  replay cleanly on an empty database, and an isolated authorization verification was performed with results held
+  privately. Documentation only; no production access, migration, secret, resource or deployment.
+
+- Corrected and verified project facts (2026-10-23): the production Supabase project's name is `Lunchvoice`
+  (ref `qprfonxvthmaoxfixigk`, us-west-2; the founder calls it LunchVoicev2), updated identically in both agent brain
+  files and the resource map. Recorded PR #4 and #5 as merged, the founder-authorized profile hardening migration
+  applied to production (file in PR #7), and a verified production migration-history drift table in the data plan.
+  Documentation only.
+
+- Recorded the founder's consumer-first direction (2026-10-23): v2 does not rely on the native MJCC-specific
+  integrations, and a developer-facing connector system (a Hub plugs in its own APIs to drive surveys) is planned,
+  with timing for the LionCafe launch unresolved. Added the direction note to the product spec, a proposed D-13
+  decision and an unscheduled R-28 item with an engineering sketch to the roadmap. Nothing is approved. Documentation only.
+
+- Recorded two founder statements (2026-10-23): the production Supabase project is now named LunchVoicev2
+  (formerly MJCCv2) and v2 does not use the upstream MJCCv1 inventory system yet. Updated both agent brain files
+  (kept identical), the resource map and the roadmap; the existing MJCCv1-backed staff bridge and menu-sync code
+  remain legacy, and whether the staff bridge is retired for the beta is recorded as an open founder question.
+  Documentation only.
+
+- Recorded the founder's DNS facts (2026-10-23: `kpnsolute.com` on Cloudflare, `lunchvoice.com` on GoDaddy with a
+  planned move to Cloudflare, hosting on Render) in the staging manifest and resource map, proposed staging hostnames
+  under `kpnsolute.com` so no production DNS change is needed before launch, and added a plain-language sign-in
+  flow to the D-01 packet. Documentation only.
+
+- Recorded three founder decisions (2026-10-23): a $50 per month staging cap, the founder as staging resource
+  owner (ownership only, not permission for Claude to create resources), and approval of D-01 Option D (Supabase's
+  built-in Google provider) as the contingency if the central issuer or staging spike is not ready by Nov 6. Updated
+  the staging manifest, D-01 packet and roadmap. Documentation only.
+
 - Linked the founder-designated Claude Design manager in the frontend handoff and
   both agent brains. Recorded the observed screen gaps, current signature direction,
   stale animated SVG export and unresolved branding attribution, with required
