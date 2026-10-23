@@ -674,6 +674,7 @@ deadlines are to protect the critical path.
 | D-11 Page quotas | Nov 9 | Built-in pages free; custom pages count against 3 | As stated | Builder ships fixed layouts |
 | D-12 Legacy placement, Winter Survey details | Oct 30 | Opening **date** confirmed (Dec 11, relayed); still open: opening time and timezone, closing date/time, operator, questionnaire, audience, anonymity requirement, MJCC Hub name/slug versus LionCafe (section 2) | Legacy fallback retained | R-21/R-26 blocked; fallback window after a Dec 9 no-go is two days |
 | D-13 (proposed) Connectors / developer API | Nov 6 | Needed for the LionCafe launch (M1) or later (M2)? Inbound only, or also outbound? Founder answers; sketch in R-28 | Inbound signed webhooks plus REST first, per-Hub scoped secrets; outbound later | Menus via workbook upload; connector slips to M2 |
+| D-14 (proposed) Backend stack: Postgres, Python/FastAPI API, Redis later, Rust not now; contract-first with OpenAPI | Oct 30 | Recommendation in [BACKEND_STACK_DECISION.md](../archeture/BACKEND_STACK_DECISION.md); alternative: TypeScript API or Supabase-native only | Postgres + FastAPI; Redis and Rust deferred; legacy flows unchanged until cutover | Scaffold and module delegation cannot start; modules default to Supabase RPC/Edge Functions |
 
 ## 12. Resource gaps and owners to assign
 
