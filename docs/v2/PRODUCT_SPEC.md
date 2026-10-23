@@ -2,7 +2,9 @@
 
 Status: authoritative v2 target for review and approval; not shipped behavior.
 Product authority: founder. Implementation owner after approval: Claude.
-Recorded: 2026-10-23. Consumer launch target: **December 13, 2026**.
+Recorded: 2026-10-23. Roadmap/readiness window: **October 23-December 11, 2026**.
+Launch aligns with the start of **MJCC Hub Winter Survey 2026**; exact opening
+date/time is unconfirmed. December 13 was the earlier provisional target.
 
 ## Authority and reading order
 
@@ -38,7 +40,8 @@ multiple Hubs. A membership is an accepted account-to-Hub relationship.
 
 Preserve Miami Job Corps / LionCafe as the first operational use case, including
 menus, surveys, response history, points/streaks, rewards, orders, and staff
-operations where applicable. Support the planned **December MJCC Campaign**
+operations where applicable. Support the planned **December MJCC Campaign**,
+named **MJCC Hub Winter Survey 2026** and serving as the launch event,
 without destructive migration. Exact Campaign date, operator, content, and
 legacy feature placement need D-12. Approval of this documentation is not
 permission to deploy or modify production.
@@ -62,7 +65,7 @@ permission to deploy or modify production.
 | V2-14 | Name grace | **25 calendar days from reservation expiration**, then cancel reservation and release exclusive slug claim |
 | V2-15 | Discovery | Hubs with **at least 700 valid members** may apply at `discovery.lunchvoice.com`; approval is not guaranteed |
 | V2-16 | Beta | Public waitlist first; maximum **50 beta Hub owners** |
-| V2-17 | Milestones | **November 12, 2026** proposed waitlist/internal prototype milestone; **December 13, 2026** target consumer launch |
+| V2-17 | Milestones | **November 12, 2026** proposed waitlist/internal prototype milestone; roadmap **October 23-December 11, 2026**; launch at **MJCC Hub Winter Survey 2026** opening, exact date/time TBD |
 
 The 15-Campaign allowance and two-Survey cap are separate constraints. Team's
 total active Campaign cap, exact custom page allocation, advanced-mode matrix,
@@ -299,9 +302,11 @@ atomic. D-07 defines unique-owner counting, multiple owned Hubs, transfer effect
 invitations, re-entry, and beta pricing. Do not invent exemptions or free beta terms.
 
 November 12, 2026 is a **proposed** waitlist/internal prototype milestone.
-December 13, 2026 is the consumer v2 launch **target**, conditional on all release
-criteria. Preserve and rehearse the December MJCC Campaign as an operational
-acceptance journey; the date goal is not authority to skip migration safety.
+The founder's latest direction requests a roadmap through **December 11, 2026**
+and aligns launch with **MJCC Hub Winter Survey 2026** opening. December 13 is the
+earlier provisional target, not a confirmed survey date. Claude must confirm the
+event schedule and reconcile readiness with it. Preserve and rehearse this survey
+as an operational acceptance journey; dates do not waive migration safety.
 
 ## Decision register
 

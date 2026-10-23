@@ -9,6 +9,13 @@ contracts only after review; a TBD must not be silently converted into a default
 
 - [ ] Five linked documents cover confirmed requirements, current-source evidence,
   target architecture, dependency-ordered roadmap, and measurable acceptance.
+- [ ] `docs/backend/`, `docs/frontend/`, and `docs/archeture/` contain the planning
+  guides, canonical architecture and resource map; the index directs Claude to
+  backend first. The initial plan is distinguished from Claude's requested dated
+  roadmap for October 23-December 11, 2026.
+- [ ] Launch is tied to MJCC Hub Winter Survey 2026 opening; its exact date/time
+  is explicitly unconfirmed until supplied. December 11 is a readiness boundary,
+  and the earlier December 13 target is not represented as a confirmed event date.
 - [ ] Founder-supplied supplemental decisions are incorporated; incomplete chat
   retrieval is disclosed rather than represented as a complete transcript.
 - [ ] Prices, 3/6 role slots, 3 Starter custom pages, 15 Starter active Campaigns,
@@ -176,7 +183,8 @@ Minimum gate fixtures (plus approved D-04 cases):
 - [ ] Agreed performance/freshness/load objectives are measured; backup/restore,
   job retry/reconciliation, alerts, support ownership and rollback runbooks exist.
 - [ ] Founder reviews unresolved risks and explicitly approves any deferred
-  confirmed scope. November 12 remains proposed and December 13 remains a target;
-  neither date waives acceptance criteria.
+  confirmed scope. November 12 remains proposed; December 11 is the roadmap/readiness
+  boundary; launch follows the confirmed Winter Survey opening. The earlier
+  December 13 target is provisional. None of these dates waives acceptance criteria.
 - [ ] Production migration/deployment authority is obtained separately. The
   documentation task itself has performed no production operation.

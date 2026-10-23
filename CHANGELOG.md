@@ -8,6 +8,19 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Organized the Claude planning handoff with `docs/README.md`, backend-first
+  planning and roadmap proposition under `docs/backend/`, a frontend planning
+  guide under `docs/frontend/`, and canonical architecture/resource mapping under
+  `docs/archeture/`. Kept a v2 architecture pointer to preserve existing links.
+  The resource map distinguishes source-backed services (including Supabase,
+  Render, email and MJCC integration) from required/unselected resources.
+- Updated both agent brain files identically and aligned active planning guidance
+  to the founder's October 23-December 11, 2026 roadmap request. Launch aligns
+  with MJCC Hub Winter Survey 2026 opening; its exact date/time still needs
+  confirmation, and December 13 is recorded only as the earlier provisional target.
+  Claude is asked to continue planning first; no session dispatch, implementation,
+  resource provisioning, production change or deployment is claimed.
+
 - Researched the v2 core against current Google, Supabase, and PostgreSQL primary
   documentation. Added a recommended OIDC federation spike, alternatives and
   identity-linking constraints, plus a five-PR core plan for verification,

@@ -6,6 +6,12 @@ This documentation branch does not implement features or authorize deployment.
 Read [product requirements](PRODUCT_SPEC.md), [source audit](CURRENT_STATE_AUDIT.md),
 [architecture](ARCHITECTURE.md), and [acceptance criteria](DEFINITION_OF_DONE.md).
 
+This is the **initial plan**, not Claude's completed dated roadmap. The founder's
+latest assignment is [ROADMAP_PROPOSITION.md](../backend/ROADMAP_PROPOSITION.md):
+Claude starts in [backend/README.md](../backend/README.md), plans October 23 through
+December 11, 2026, and aligns launch with MJCC Hub Winter Survey 2026 opening.
+The exact event start must be confirmed; the earlier December 13 target is provisional.
+
 ## Ownership and execution rules
 
 - Founder approves product decisions, unresolved D-01 through D-12, scope changes,
@@ -115,7 +121,7 @@ Campaign Plus pricing does not block the shared membership/permission foundation
 - **After the prototype:** complete guest/anonymity, real billing/reservations,
   remaining Campaign modes, Builder/community, analytics and discovery in the
   roadmap dependency order; report capacity and estimates after the core spike.
-- **Before December 13:** stage the complete release and December MJCC rehearsal.
+- **By December 11:** target the readiness review and MJCC Winter Survey rehearsal.
   Reserve explicit time for reconciliation, rollback and defects. No evidence yet
   establishes that the whole confirmed scope fits the target; reassess after Core-1.
 
@@ -126,8 +132,8 @@ Campaign Plus pricing does not block the shared membership/permission foundation
 | Specification approval | Before dependent implementation | Confirmed scope accepted; blocking decisions resolved or explicitly sequenced |
 | Public waitlist/internal prototype | **November 12, 2026 proposed** | Waitlist available, internal Hub/Campaign prototype demonstrated; not a promised public beta release |
 | Controlled beta | Before consumer launch; date TBD | No more than 50 admitted Hub owners; identity, isolation, commercial and guest/privacy paths verified |
-| MJCC Campaign readiness | Before its December event; exact date TBD | Named operator rehearses legacy-compatible Campaign; data reconciliation and fallback demonstrated |
-| Consumer v2 launch | **December 13, 2026 target** | All applicable release gates pass and separate production approval is granted |
+| Readiness review | **December 11, 2026 roadmap boundary** | Named operator rehearses MJCC Hub Winter Survey 2026; data reconciliation, fallback and required evidence reviewed |
+| Consumer v2 launch | **Start of MJCC Hub Winter Survey 2026; opening date/time TBD** | Event schedule confirmed, all release gates pass and separate production approval granted; earlier December 13 target remains provisional |
 
 These dates are goals, not estimates of completed engineering. If a gate cannot
 be met, report the affected capability and revised options to the founder; do not
@@ -194,8 +200,10 @@ of the numeric thresholds alone is not approval of an arbitrary algorithm.
 
 ## Handoff and blockers
 
-This phase delivers exactly five v2 documents, identical governance updates, and
-CHANGELOG on `docs/lunchvoice-v2-spec`, with a PR targeting `main`. No manual version
+This phase delivers the v2 specification/audit/initial plan/DoD, canonical
+architecture and resource map, backend-first planning assignment, frontend guide,
+identical governance updates and CHANGELOG on `docs/lunchvoice-v2-spec`, with a PR
+targeting `main`. No manual version
 tag, production changes, runtime code, dependency updates, or new migrations are
 included. The PR description records the commit, check results, and live PR URL.
 
@@ -204,7 +212,8 @@ implementation; missing v2 domains; three high/two moderate dependency entries
 reported by the audit; missing behavioral/PR CI coverage; and unverified deployed
 migration state, staging proof, and December MJCC Campaign details.
 
-Claude's next action after review/approval: read both brain files and the newest
-changelog, confirm main and PR status, refresh the audit against any changed source,
-resolve P0 decisions with the founder, then begin P1 on a new implementation branch.
+Claude's next action: read both brain files and the newest changelog, confirm main
+and PR status, start in `docs/backend/README.md`, refresh the audit, and produce
+the dated roadmap requested in `docs/backend/ROADMAP_PROPOSITION.md`. Resolve P0
+decisions with the founder; implementation follows plan review/approval.
 The existing spec branch is documentation, not permission to run deployment hooks.

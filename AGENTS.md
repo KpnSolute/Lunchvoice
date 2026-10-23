@@ -20,7 +20,11 @@ deploys as the Render static site `lunch-line-survey`.
 
 ## LunchVoice v2 Product Authority and Handoff
 
-The authoritative v2 target is the reviewed suite in `docs/v2/`:
+Start at `docs/README.md`; Claude continues planning in `docs/backend/README.md`
+before frontend planning. Backend docs belong in `docs/backend/`, frontend docs
+in `docs/frontend/`, and cross-system architecture/resources in `docs/archeture/`.
+The canonical design is `docs/archeture/ARCHITECTURE.md`; its resource inventory
+is `docs/archeture/RESOURCE_MAP.md`. The authoritative v2 target includes `docs/v2/`:
 `PRODUCT_SPEC.md`, `CURRENT_STATE_AUDIT.md`, `ARCHITECTURE.md`,
 `IMPLEMENTATION_PLAN.md`, and `DEFINITION_OF_DONE.md`. Read it before v2 work.
 The product spec records confirmed founder decisions; architecture proposals and
@@ -48,8 +52,11 @@ current system and compatibility obligations, not the complete v2 vision.
   from expiry before release. Slug reuse must never transfer private Hub data.
 - At least 700 valid accepted members permits a discovery application, not
   automatic listing. Public waitlist precedes a maximum 50 beta Hub owners.
-  November 12, 2026 is a proposed prototype/waitlist milestone; December 13, 2026
-  is the consumer launch target, subject to the v2 Definition of Done.
+  November 12, 2026 remains a proposed prototype/waitlist milestone. Claude must
+  develop the October 23-December 11, 2026 execution roadmap using
+  `docs/backend/ROADMAP_PROPOSITION.md`. Launch aligns with the start of MJCC Hub
+  Winter Survey 2026, subject to the Definition of Done; confirm its opening date
+  and time. December 13 was the earlier provisional target, not a verified event date.
 - Preserve MJCC/LionCafe and support its planned December Campaign through a
   non-destructive migration with reconciliation and rollback evidence.
 - Claude implements after specification review and approval. The documentation
