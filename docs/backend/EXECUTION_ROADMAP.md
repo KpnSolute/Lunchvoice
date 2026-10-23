@@ -36,8 +36,13 @@ as supplied):
 | **Dec 23 (Wed)** | **LunchVoice v2 main public release** | Founder-supplied; needs its own go/no-go (proposed Dec 21) and separate production authority |
 
 **Founder approvals recorded (message of 2026-10-23 ending "I approve", after a list of recommendations).**
-The message does not say which items "I approve" covers, so this plan reads it as covering all of the listed
-recommendations; **the founder should confirm that reading, especially for items 1 and 2.** Approved: (1) **Dec 9 as the go/no-go review with Dec 10 for final checks**; (2) the **M1/M2 split** below as the
+The message does not say which items "I approve" covers, so this plan read it as covering all of the listed
+recommendations and asked for confirmation. **The founder replied "confirmed" (2026-10-23) to a five-part
+confirmation request.** That settles the first part: the approval covers the Dec 9 go/no-go, the Dec 10 final
+checks, the M1/M2 split and the non-production work below. The other four parts of that request (whether to
+run the read-only production check, the staging budget cap and resource owners, the D-01 contingency Option D,
+and the Winter Survey time/timezone/closing/operator/questionnaire/audience/anonymity) need specific answers;
+a bare "confirmed" is **not** recorded as supplying them, so they remain open until stated. Approved: (1) **Dec 9 as the go/no-go review with Dec 10 for final checks**; (2) the **M1/M2 split** below as the
 agreed delivery plan, with Options A and C retained as contingency; (3) preparing the **CI/checks PR, the
 dependency-fix PR and the staging manifest** within non-production scope; (4) **isolated verification** of the
 unverified authorization-baseline question before identity and membership work depends on it. **Not yet
