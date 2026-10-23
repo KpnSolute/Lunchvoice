@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { filesNeedHeavyTests } from "./release-patterns.mjs";
 
 const git = (...args) =>
   execFileSync("git", args, { encoding: "utf8" }).trim();
@@ -33,9 +34,7 @@ function changedFiles(commit) {
 
 function needsHeavyTests(version, files) {
   if (releaseClass(version) !== "normal") return true;
-  return files.some((file) =>
-    /^(package(-lock)?\.json|render\.yaml|supabase\/(migrations|functions)\/|src\/(contexts\/Auth|lib\/supabase)|\.github\/workflows\/)/.test(file),
-  );
+  return filesNeedHeavyTests(files);
 }
 
 const tags = git("tag", "--merged", "HEAD", "--list", "v[0-9]*.[0-9]*.[0-9]*", "--sort=-version:refname")
@@ -63,7 +62,28 @@ if (process.argv[2] === "check") {
     const tag = `v${version.join(".")}`;
     console.log([commit, tag, releaseClass(version), needsHeavyTests(version, changedFiles(commit))].join("\t"));
   }
+} else if (process.argv[2] === "pr") {
+  // Pull-request mode: `node scripts/release-policy.mjs pr <base-sha-or-ref>`.
+  // Evaluates the whole PR (merge-base..HEAD). Prints tab-separated key/value
+  // lines so workflows can parse them. It never creates tags or releases.
+  const base = process.argv[3];
+  if (!base) {
+    console.error("Usage: node scripts/release-policy.mjs pr <base-sha-or-ref>");
+    process.exit(2);
+  }
+  const files = git("diff", "--name-only", `${base}...HEAD`).split(/\r?\n/).filter(Boolean);
+  const changelog = files.includes("CHANGELOG.md");
+  console.log(`files\t${files.length}`);
+  console.log(`changelog\t${changelog}`);
+  console.log(`heavy\t${filesNeedHeavyTests(files)}`);
+  if (files.length === 0) {
+    console.error("PR has no changed files relative to the base.");
+    process.exitCode = 1;
+  } else if (!changelog) {
+    console.error("PR does not update CHANGELOG.md (required under [Unreleased] for every change).");
+    process.exitCode = 1;
+  }
 } else {
-  console.error("Usage: node scripts/release-policy.mjs <check|plan>");
+  console.error("Usage: node scripts/release-policy.mjs <check|plan|pr>");
   process.exit(2);
 }
