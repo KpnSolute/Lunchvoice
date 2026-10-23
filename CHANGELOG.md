@@ -45,6 +45,22 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Fixed
 
+- Restricted direct client writes to RPC-owned tables and removed an orphaned function (migrations
+  `20261023234117_restrict_client_write_paths` and `20261023234120_drop_orphan_ledger_function`, **applied to
+  production on 2026-10-23** with the founder's authorization through the project MCP server, then recorded here
+  with the same versions). `orders`, `responses`, `response_ratings`, `survey_answers` and `session_members` can
+  no longer be inserted, updated or deleted directly by `anon`/`authenticated`: rows are created only by the
+  SECURITY DEFINER RPCs `redeem_item`, `submit_response`, `join_session` and `join_available_session`, which run as
+  the table owner and are unaffected; the old org-only insert policies were dropped. Admins can still change an
+  order's `status`/`updated_at` (column-limited grant). `dish_ratings` insert/update policies now also require
+  `student_id = auth.uid()`. Signed-out (`anon`) callers lost all write privileges on organization data except the
+  public service-request insert on `contract_requests`; `orgs` is no longer writable by signed-in users; deletes on
+  profiles and updates/deletes on contract requests were revoked. Dropped `public.process_ledger_entry()`, a leftover
+  from the upstream MJCCv1 inventory system that referenced a nonexistent `items` table and had zero dependents.
+  Verified first on a throwaway database replay (app paths: redeem, join, submit, dish rating, voice note, admin
+  content, order status), then in production by catalog queries; row counts unchanged. A live student and staff
+  sign-in after the change is still to be exercised.
+
 - Restricted self-service writes to `public.profiles` (migration
   `20261023225534_restrict_profile_self_service_columns`, **applied to production on 2026-10-23** with the
   founder's authorization through the project MCP server, then recorded here with the same version). API roles
