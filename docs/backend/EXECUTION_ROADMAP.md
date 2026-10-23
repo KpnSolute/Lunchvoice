@@ -61,6 +61,14 @@ founder-approved mapping of named staff to Hub roles), which changes R-06/R-07/R
 and menu sync are paused, the bridge continues alongside Google sign-in with staff accounts excluded from automatic
 linking (D-01 packet). Menus entered through the existing workbook upload keep working either way.
 
+**Direction note (founder, 2026-10-23): consumer-first, connectors later.** LunchVoice no longer relies on the
+native MJCC-specific integrations it had before (the staff bridge and menu-sync paths stay legacy, see the scope
+note above). A **developer-facing connector system** is planned: a Hub plugs in its own APIs to drive surveys.
+The founder said it is needed for the LionCafe Hub's surveys at launch **and** described it as later work, so
+timing is open (**proposed D-13**, item R-28). Until answered, the plan assumes **no connector in M1** and that
+LionCafe's Winter Survey is built in the product (templates, QR/join, results) with menus entered through the
+existing workbook upload.
+
 **M1 / M2 split** (recorded as approved on 2026-10-23 under the reading above; it replaces the three
 alternative plans as the delivery plan, which stay as contingency):
 
@@ -427,6 +435,22 @@ section 8 explains why that is not a safe plan of record.
 - Dec 14-22: beta support and fixes; complete the capabilities the founder assigns to M2 (section 8); M2 go/no-go proposed **Mon Dec 21**; **Dec 23 (Wed)** LunchVoice v2 main public release under separate production authority. Effort 3-5 d (excludes the M2 scope items themselves, which are R-12/R-13/R-15/R-16/R-17/R-18 work); confidence low-medium.
 - Accept: DoD evidence matrix for the full confirmed scope (or founder-approved exceptions); no unresolved high privacy/security defect; support coverage plan for Dec 23-Jan 4.
 
+**R-28 Hub connectors / developer API (proposed, unscheduled; excluded from the effort totals until D-13 is decided)**
+- Req: founder direction 2026-10-23 (not yet a V2-xx requirement). Idea: a Hub owner registers an external API or
+  webhook source that can create or update survey content (for example menu items or question sets) or trigger
+  Campaigns, replacing the MJCC-specific menu bridge with a generic mechanism.
+- Reuse: the signed-event pattern in `supabase/functions/_shared/kpnsoluteWebhooks.ts` (Standard Webhooks verification),
+  the event-receipt/idempotency discipline in `20260804170000_kpnsolute_event_receipts.sql`, and Content Central's
+  template/session model. Do not reuse MJCCv1/KpnCompute-specific code paths.
+- Sketch (engineering recommendation, not approved): per-Hub connector records with scoped, revocable secrets (stored
+  hashed), inbound signed webhooks plus an authenticated REST endpoint, capability `admin.integrations.manage`, plan gating
+  (D-06/D-08), rate limits, an audit log, and a hard rule that connectors never read anonymous responses or respondent
+  identity. Outbound pull connectors (LunchVoice calling a customer API) are a later step because they need SSRF and
+  secret-handling review.
+- Rough effort if a minimal inbound connector is wanted for M1: 5-10 agent-days, confidence low; M2: the fuller developer
+  feature. Needs D-13, R-08 (capabilities), R-09 (entitlements), R-14 (privacy boundary).
+- Decide: D-13 by **Nov 6** to fit M1; later means M2. Fallback: menus via workbook upload and manual survey creation.
+
 ### 5.1 Milestone mapping (proposal; founder decides what belongs to M1 versus M2)
 
 | Item | Proposed milestone | Note |
@@ -645,6 +669,7 @@ deadlines are to protect the critical path.
 | D-10 Thresholds, retention, export | Nov 9 | Minimum cohort size k (founder sets); retention periods | Pick k explicitly; never ship an arbitrary default | Embeds and exports deferred |
 | D-11 Page quotas | Nov 9 | Built-in pages free; custom pages count against 3 | As stated | Builder ships fixed layouts |
 | D-12 Legacy placement, Winter Survey details | Oct 30 | Opening **date** confirmed (Dec 11, relayed); still open: opening time and timezone, closing date/time, operator, questionnaire, audience, anonymity requirement, MJCC Hub name/slug versus LionCafe (section 2) | Legacy fallback retained | R-21/R-26 blocked; fallback window after a Dec 9 no-go is two days |
+| D-13 (proposed) Connectors / developer API | Nov 6 | Needed for the LionCafe launch (M1) or later (M2)? Inbound only, or also outbound? Founder answers; sketch in R-28 | Inbound signed webhooks plus REST first, per-Hub scoped secrets; outbound later | Menus via workbook upload; connector slips to M2 |
 
 ## 12. Resource gaps and owners to assign
 

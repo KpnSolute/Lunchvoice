@@ -38,6 +38,11 @@ categories and the repository's decimal `X.X.X` release policy.
   replay cleanly on an empty database, and an isolated authorization verification was performed with results held
   privately. Documentation only; no production access, migration, secret, resource or deployment.
 
+- Recorded the founder's consumer-first direction (2026-10-23): v2 does not rely on the native MJCC-specific
+  integrations, and a developer-facing connector system (a Hub plugs in its own APIs to drive surveys) is planned,
+  with timing for the LionCafe launch unresolved. Added the direction note to the product spec, a proposed D-13
+  decision and an unscheduled R-28 item with an engineering sketch to the roadmap. Nothing is approved. Documentation only.
+
 - Recorded two founder statements (2026-10-23): the production Supabase project is now named LunchVoicev2
   (formerly MJCCv2) and v2 does not use the upstream MJCCv1 inventory system yet. Updated both agent brain files
   (kept identical), the resource map and the roadmap; the existing MJCCv1-backed staff bridge and menu-sync code

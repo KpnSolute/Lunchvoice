@@ -51,6 +51,13 @@ without destructive migration. Exact Campaign date, operator, content, and
 legacy feature placement need D-12. Approval of this documentation is not
 permission to deploy or modify production.
 
+**Direction recorded 2026-10-23 (founder statement; not yet a numbered requirement).** LunchVoice is
+**consumer-first**: v2 does not rely on the native MJCC-specific integrations the product used before.
+For the tenant/Hub system, **connectors** are planned that let a Hub plug in its own APIs to drive surveys
+(a developer-facing feature). The founder indicated the LionCafe Hub needs this for its surveys at launch,
+but also described connectors as later work; timing and scope are an open question (proposed **D-13** in the
+[execution roadmap](../backend/EXECUTION_ROADMAP.md)). Nothing here approves a connector design.
+
 ## Confirmed entitlements and milestones
 
 | ID | Product/rule | Confirmed requirement |
