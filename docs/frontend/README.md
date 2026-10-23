@@ -19,7 +19,9 @@ and [roadmap proposition](../backend/ROADMAP_PROPOSITION.md).
 Claude should create `docs/frontend/EXPERIENCE_PLAN.md` with screen inventory,
 navigation, reusable components, API dependencies, permissions, accessibility,
 loading/empty/error states, responsive behavior and acceptance evidence. That is
-a requested next deliverable, not completed work.
+a requested deliverable. A first draft now exists as a proposal in
+[EXPERIENCE_PLAN.md](EXPERIENCE_PLAN.md); its design artifacts remain **pending**
+because the design manager's downloadable handoff is not yet delivered.
 
 ## Design manager and handoff source
 

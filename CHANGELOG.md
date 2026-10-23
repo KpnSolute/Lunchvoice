@@ -8,6 +8,17 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added the v2 execution-planning proposals (documentation only): a dated October 23-December 11, 2026
+  roadmap with critical path, capacity assumptions, three scope options (A full, B launch-critical-first
+  recommendation, C date shift) and candidate-deferral decision dates; data and migration, API and
+  authorization, Campaign and entitlement, and privacy and operations plans; and a frontend experience plan
+  mapping every flow to contracts, permissions, entitlements, responsive/accessibility requirements and
+  evidence, with design artifacts marked pending and questions for the design manager. Recorded
+  source-backed audit findings (dependency advisories, no PR checks, unprotected `main`, stale auth
+  heavy-test path, platform-route collision). D-01 through D-12 remain undecided, D-12 (Winter Survey
+  dates, operator, questionnaire, audience) stays open, and nothing is approved. No migration, secret,
+  resource, deployment or production probe was performed; AGENTS.md and CLAUDE.md are unchanged.
+
 - Linked the founder-designated Claude Design manager in the frontend handoff and
   both agent brains. Recorded the observed screen gaps, current signature direction,
   stale animated SVG export and unresolved branding attribution, with required

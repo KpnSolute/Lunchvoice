@@ -30,8 +30,8 @@ The [roadmap proposition](ROADMAP_PROPOSITION.md) is the concrete assignment.
 
 ## Requested next outputs
 
-Claude should create these documents here as planning progresses. They are
-requested deliverables, not files claimed to exist already:
+Claude created these documents on 2026-10-23 as **proposals for founder review**
+(not approved scope or implementation). Keep them current as decisions land:
 
 | Output | Required content |
 | --- | --- |

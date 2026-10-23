@@ -17,6 +17,20 @@ or proof of production readiness.
    [roadmap proposition](backend/ROADMAP_PROPOSITION.md) to develop the dated
    execution roadmap. Coordinate with [frontend/README.md](frontend/README.md).
 
+## Execution-planning deliverables (proposal, 2026-10-23)
+
+Created by Claude's planning pass; all are proposals for founder review, not approved
+scope or implementation. Review order: roadmap first.
+
+| Deliverable | Status |
+| --- | --- |
+| [backend/EXECUTION_ROADMAP.md](backend/EXECUTION_ROADMAP.md) | Drafted: dated items R-01..R-25, critical path, three scope options, decision tracker |
+| [backend/DATA_AND_MIGRATION_PLAN.md](backend/DATA_AND_MIGRATION_PLAN.md) | Drafted |
+| [backend/API_AND_AUTHORIZATION_CONTRACTS.md](backend/API_AND_AUTHORIZATION_CONTRACTS.md) | Drafted |
+| [backend/CAMPAIGN_AND_ENTITLEMENT_PLAN.md](backend/CAMPAIGN_AND_ENTITLEMENT_PLAN.md) | Drafted |
+| [backend/PRIVACY_AND_OPERATIONS_PLAN.md](backend/PRIVACY_AND_OPERATIONS_PLAN.md) | Drafted |
+| [frontend/EXPERIENCE_PLAN.md](frontend/EXPERIENCE_PLAN.md) | Drafted; design artifacts **Pending** (designer's handoff not delivered) |
+
 ## Documentation structure
 
 ```text
@@ -25,8 +39,14 @@ docs/
   backend/
     README.md                 # Claude starts here
     ROADMAP_PROPOSITION.md    # October 23-December 11 roadmap request
+    EXECUTION_ROADMAP.md      # Dated roadmap, options, decisions (proposal)
+    DATA_AND_MIGRATION_PLAN.md
+    API_AND_AUTHORIZATION_CONTRACTS.md
+    CAMPAIGN_AND_ENTITLEMENT_PLAN.md
+    PRIVACY_AND_OPERATIONS_PLAN.md
   frontend/
     README.md                 # UI workstreams and backend contracts
+    EXPERIENCE_PLAN.md        # Flow inventory, states, evidence (proposal)
   archeture/
     README.md
     ARCHITECTURE.md           # Canonical target design and research
