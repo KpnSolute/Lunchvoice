@@ -8,6 +8,21 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added pull-request validation (`.github/workflows/pr-checks.yml`). Previously the only
+  workflow ran on pushes to `main`, so a PR could merge with no automated checks. The new
+  workflow runs on `pull_request`, has read-only permissions and no secrets, and cannot tag,
+  release, deploy or push. It runs `check:brain`, new script tests (`node --test scripts/*.test.mjs`),
+  the production build, a bundle smoke check, and Deno tests for
+  `supabase/functions/_shared/`; it requires a `CHANGELOG.md` update in every PR and runs
+  `npm audit --audit-level=high` when the PR touches dependency, auth, org, migration,
+  function, workflow or hook paths. Builds now use placeholder (non-secret)
+  `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`: without them `src/lib/supabase.ts` throws
+  at load and the bundler drops the whole app, so a green build proved little;
+  `scripts/check-bundle.mjs` now fails if the bundle lacks the app and Supabase client.
+  Added `release-policy.mjs pr <base>` mode and npm scripts `test:pr`, `test:scripts`,
+  `check:bundle`. `test:light`, `test:heavy` and `version-release.yml` are unchanged.
+  Branch protection (making these checks required) is a separate founder decision; no
+  repository setting was changed.
 - Added project-scoped MCP server setup (`scripts/mcp/`): the Supabase MCP server now starts through
   `scripts/mcp/supabase.sh`, which loads secrets only from a gitignored, owner-only `.mcp.env` (never from the
   global shell), is scoped to one project with `--project-ref`, starts **read-only** by default, and pins
@@ -42,6 +57,12 @@ categories and the repository's decimal `X.X.X` release policy.
   owned by `postgres`); points/streak changes still happen in SECURITY DEFINER RPCs; Edge Functions use the service
   role. Verified on a throwaway database replay first, then in production via catalog checks (privileges, trigger,
   unchanged profile counts).
+- Fixed the heavy-test selector in `scripts/release-policy.mjs`: it matched
+  `src/contexts/Auth`, a directory that does not exist, so a commit touching only
+  `src/auth/AuthProvider.tsx` or `src/org/OrgProvider.tsx` skipped the heavy release
+  gate. The patterns now live in `scripts/release-patterns.mjs` (covering `src/auth/`,
+  `src/org/`, `src/lib/supabase`, `supabase/config.toml`, `.githooks/` and the release
+  scripts besides the earlier paths) with regression tests.
 
 - Remediated the three high-severity dependency advisories reported by `npm audit`
   on 2026-10-23 (`vite` 8.1.3 -> 8.3.5, `nanoid` 3.3.17 -> 3.3.20, `source-map-js`

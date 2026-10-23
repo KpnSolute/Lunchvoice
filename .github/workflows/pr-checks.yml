@@ -1,0 +1,72 @@
+name: PR checks
+
+# Validation only. This workflow must never tag, release, deploy, or push:
+# it has read-only repository permissions, uses no secrets, and does not use
+# `pull_request_target`. The version/tag pipeline stays in version-release.yml
+# and runs only for pushes to main.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Brain, changelog, tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Placeholder, non-secret values. Without them the app throws at module
+      # load and the bundler drops the whole app, so the build would "pass"
+      # while proving almost nothing (scripts/check-bundle.mjs enforces this).
+      VITE_SUPABASE_URL: https://placeholder.example.invalid
+      VITE_SUPABASE_ANON_KEY: placeholder-anon-key-not-a-secret
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+          cache: npm
+
+      - name: Install exact dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+
+      - name: Changelog requirement and heavy-test selection
+        id: policy
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          node scripts/release-policy.mjs pr "$BASE_SHA" | tee "$RUNNER_TEMP/policy.tsv"
+          awk -F '\t' '$1 == "heavy" { print "heavy=" $2 }' "$RUNNER_TEMP/policy.tsv" >> "$GITHUB_OUTPUT"
+
+      - name: Brain consistency, script tests, build, bundle smoke check
+        run: npm run test:pr
+
+      - name: Security audit (dependency, auth, migration, function, workflow or hook changes)
+        if: steps.policy.outputs.heavy == 'true'
+        run: npm audit --audit-level=high
+
+  edge-functions:
+    name: Edge function unit tests (Deno)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: 2.9.6
+
+      - name: Run Deno tests for shared edge-function code
+        run: deno test --no-prompt supabase/functions/_shared/
