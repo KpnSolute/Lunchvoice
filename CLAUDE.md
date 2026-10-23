@@ -32,6 +32,12 @@ the D-01 through D-12 decision register must not be treated as approved defaults
 Legacy product documents and the architecture contracts below describe the
 current system and compatibility obligations, not the complete v2 vision.
 
+The founder-designated visual design manager is the Claude Design project linked
+in `docs/frontend/README.md`. Consult it in authenticated Chrome for screen and
+asset handoffs; reconcile its prototypes against the product spec and record
+missing screens, stale exports and unresolved branding decisions. WSL access alone
+does not prove access to that browser project.
+
 - V2 is a consumer community and feedback platform: customizable Hubs and
   Campaigns, central `auth.kpnsolute.com` Google identity (Apple later), one
   account across multiple Hubs, free participant accounts, fine-grained roles,

@@ -8,6 +8,11 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Linked the founder-designated Claude Design manager in the frontend handoff and
+  both agent brains. Recorded the observed screen gaps, current signature direction,
+  stale animated SVG export and unresolved branding attribution, with required
+  artifact/version mapping and accessibility checks for Claude's experience plan.
+
 - Organized the Claude planning handoff with `docs/README.md`, backend-first
   planning and roadmap proposition under `docs/backend/`, a frontend planning
   guide under `docs/frontend/`, and canonical architecture/resource mapping under
