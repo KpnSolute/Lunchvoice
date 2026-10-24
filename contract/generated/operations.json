@@ -707,7 +707,7 @@
     "id": "lv_analytics_query",
     "kind": "rpc-v2",
     "module": "analytics",
-    "status": "proposed",
+    "status": "implemented-nonprod",
     "milestone": "M1",
     "path": "/rest/v1/rpc/lv_analytics_query",
     "auth": "user",
@@ -719,14 +719,15 @@
       "community.analytics.view"
     ],
     "decisions": [
-      "D-10"
+      "D-10",
+      "D-12"
     ]
   },
   {
     "id": "lv_analytics_export",
     "kind": "rpc-v2",
     "module": "analytics",
-    "status": "proposed",
+    "status": "blocked-decision",
     "milestone": "M2",
     "path": "/rest/v1/rpc/lv_analytics_export",
     "auth": "user",
@@ -745,7 +746,7 @@
     "id": "lv_analytics_embed_create",
     "kind": "rpc-v2",
     "module": "analytics",
-    "status": "proposed",
+    "status": "blocked-decision",
     "milestone": "M2",
     "path": "/rest/v1/rpc/lv_analytics_embed_create",
     "auth": "user",
@@ -763,7 +764,7 @@
     "id": "lv_analytics_embed_revoke",
     "kind": "rpc-v2",
     "module": "analytics",
-    "status": "proposed",
+    "status": "blocked-decision",
     "milestone": "M2",
     "path": "/rest/v1/rpc/lv_analytics_embed_revoke",
     "auth": "user",
@@ -773,7 +774,9 @@
     "capabilities": [
       "community.analytics.publish"
     ],
-    "decisions": []
+    "decisions": [
+      "D-10"
+    ]
   },
   {
     "id": "lv_page_list",

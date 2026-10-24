@@ -1,57 +1,133 @@
 {
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Privacy-safe aggregates. The applied example uses a TEST-ONLY cohort value; the real threshold is undecided (D-10).",
   "items": [
     {
-      "name": "analytics.undecided",
+      "name": "analytics.suppressed-example",
       "schema": "AnalyticsResult",
       "data": {
         "campaign_id": "00000000-0000-4000-8004-000000000006",
-        "metric": "participation",
-        "total_participants": null,
-        "groups": [],
-        "freshness_at": "2026-11-09T15:00:00Z",
-        "policy": {
-          "status": "undecided",
-          "min_cohort": null
-        }
-      },
-      "description": "Anonymous Campaign before D-10: no groups, policy undecided."
-    },
-    {
-      "name": "analytics.applied-fixture-only",
-      "schema": "AnalyticsResult",
-      "data": {
-        "campaign_id": "00000000-0000-4000-8004-000000000003",
         "metric": "answer_distribution",
-        "total_participants": 8,
+        "question_id": "00000000-0000-4000-8005-000000000002",
+        "population": "Distinct accepted Hub members who submitted (member) and distinct guest grants that submitted (guest), counted separately and never added together. Responses are final answers only.",
+        "window": {
+          "from": "2026-11-02T15:00:00Z",
+          "to": "2026-11-16T15:00:00Z"
+        },
+        "freshness_at": "2026-11-16T15:00:00Z",
+        "participants": {
+          "member": {
+            "n": 12,
+            "suppressed": false,
+            "reason": null
+          },
+          "guest": {
+            "n": 0,
+            "suppressed": false,
+            "reason": null
+          }
+        },
         "groups": [
           {
             "key": "Option A",
-            "n": 5,
+            "audience": "member",
+            "n": 7,
             "suppressed": false,
-            "value": 0.625
+            "reason": null,
+            "value": 0.5833
           },
           {
             "key": "Option B",
+            "audience": "member",
             "n": null,
             "suppressed": true,
+            "reason": "complementary",
             "value": null
           },
           {
             "key": "Option C",
+            "audience": "member",
             "n": null,
             "suppressed": true,
+            "reason": "below_min_cohort",
             "value": null
           }
         ],
-        "freshness_at": "2026-11-09T15:00:00Z",
         "policy": {
           "status": "applied",
-          "min_cohort": 3
+          "min_cohort": 3,
+          "complementary_suppression": true
         }
       },
-      "description": "Shows suppressed groups. min_cohort is a synthetic test value, not a policy."
+      "description": "ILLUSTRATIVE policy (cohort 3, complementary suppression on). Suppressed values are null with a reason, never 0."
+    },
+    {
+      "name": "analytics.below-minimum-example",
+      "schema": "AnalyticsResult",
+      "data": {
+        "campaign_id": "00000000-0000-4000-8004-000000000006",
+        "metric": "participation",
+        "question_id": null,
+        "population": "Distinct accepted Hub members who submitted (member) and distinct guest grants that submitted (guest), counted separately and never added together. Responses are final answers only.",
+        "window": {
+          "from": "2026-11-02T15:00:00Z",
+          "to": "2026-11-16T15:00:00Z"
+        },
+        "freshness_at": "2026-11-16T15:00:00Z",
+        "participants": {
+          "member": {
+            "n": null,
+            "suppressed": true,
+            "reason": "below_min_participants"
+          },
+          "guest": {
+            "n": 0,
+            "suppressed": false,
+            "reason": null
+          }
+        },
+        "groups": [],
+        "policy": {
+          "status": "applied",
+          "min_cohort": 3,
+          "complementary_suppression": true
+        }
+      },
+      "description": "Too few participants: the member total itself is withheld (null), not shown as 0."
+    },
+    {
+      "name": "analytics.identified-example",
+      "schema": "AnalyticsResult",
+      "data": {
+        "campaign_id": "00000000-0000-4000-8004-000000000003",
+        "metric": "participation",
+        "question_id": null,
+        "population": "Distinct accepted Hub members who submitted (member) and distinct guest grants that submitted (guest), counted separately and never added together. Responses are final answers only.",
+        "window": {
+          "from": "2026-11-02T15:00:00Z",
+          "to": null
+        },
+        "freshness_at": "2026-11-09T15:00:00Z",
+        "participants": {
+          "member": {
+            "n": 8,
+            "suppressed": false,
+            "reason": null
+          },
+          "guest": {
+            "n": 0,
+            "suppressed": false,
+            "reason": null
+          }
+        },
+        "groups": [],
+        "policy": {
+          "status": "not_required",
+          "min_cohort": null,
+          "complementary_suppression": null
+        }
+      },
+      "description": "Non-anonymous Campaign without guests: no privacy policy required."
     }
   ]
 }

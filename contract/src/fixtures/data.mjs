@@ -143,27 +143,49 @@ export const receipt = { id: RECEIPT.first, campaign_id: CAMPAIGN.active, duplic
 /** Illustrative only: what a receipt looks like once SOME reward policy has been decided. The amount is a placeholder, not a policy. */
 export const receiptRecordedExample = { ...receipt, points: 1, reward_state: "recorded" };
 
-/** Test-only cohort value used to show the suppressed rendering. The real threshold is undecided (D-10). */
+/** Test-only cohort value used to show suppressed rendering. The real thresholds and controls are undecided (D-10). */
 export const FIXTURE_ONLY_MIN_COHORT = 3;
+const window = { from: T.base, to: T.end };
+const population = "Distinct accepted Hub members who submitted (member) and distinct guest grants that submitted (guest), counted separately and never added together. Responses are final answers only.";
 export const analytics = {
-  undecided: {
+  /** Anonymous Campaign, illustrative policy (cohort 3, complementary suppression on): one cell suppressed by size, the smallest remaining one withheld so it cannot be derived from the total. */
+  suppressedExample: {
+    campaign_id: CAMPAIGN.anonymousActive,
+    metric: "answer_distribution",
+    question_id: QUESTION.choice,
+    population,
+    window,
+    freshness_at: T.end,
+    participants: { member: { n: 12, suppressed: false, reason: null }, guest: { n: 0, suppressed: false, reason: null } },
+    groups: [
+      { key: "Option A", audience: "member", n: 7, suppressed: false, reason: null, value: 0.5833 },
+      { key: "Option B", audience: "member", n: null, suppressed: true, reason: "complementary", value: null },
+      { key: "Option C", audience: "member", n: null, suppressed: true, reason: "below_min_cohort", value: null },
+    ],
+    policy: { status: "applied", min_cohort: FIXTURE_ONLY_MIN_COHORT, complementary_suppression: true },
+  },
+  /** Anonymous Campaign with fewer participants than the (illustrative) minimum: nothing is shown, and nothing is shown as zero. */
+  belowMinimumExample: {
     campaign_id: CAMPAIGN.anonymousActive,
     metric: "participation",
-    total_participants: null,
+    question_id: null,
+    population,
+    window,
+    freshness_at: T.end,
+    participants: { member: { n: null, suppressed: true, reason: "below_min_participants" }, guest: { n: 0, suppressed: false, reason: null } },
     groups: [],
-    freshness_at: T.later,
-    policy: { status: "undecided", min_cohort: null },
+    policy: { status: "applied", min_cohort: FIXTURE_ONLY_MIN_COHORT, complementary_suppression: true },
   },
-  appliedFixtureOnly: {
+  /** Identified (non-anonymous) Campaign without guests: no privacy policy is required and exact counts are shown. */
+  identifiedExample: {
     campaign_id: CAMPAIGN.active,
-    metric: "answer_distribution",
-    total_participants: 8,
-    groups: [
-      { key: "Option A", n: 5, suppressed: false, value: 0.625 },
-      { key: "Option B", n: null, suppressed: true, value: null },
-      { key: "Option C", n: null, suppressed: true, value: null },
-    ],
+    metric: "participation",
+    question_id: null,
+    population,
+    window: { from: T.base, to: null },
     freshness_at: T.later,
-    policy: { status: "applied", min_cohort: FIXTURE_ONLY_MIN_COHORT },
+    participants: { member: { n: 8, suppressed: false, reason: null }, guest: { n: 0, suppressed: false, reason: null } },
+    groups: [],
+    policy: { status: "not_required", min_cohort: null, complementary_suppression: null },
   },
 };

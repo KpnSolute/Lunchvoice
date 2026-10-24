@@ -2,3 +2,4 @@
 20261024000200_v2_roles_capabilities_owner_transfer.sql
 20261024000300_v2_entitlements_campaign_lifecycle.sql
 20261024000400_v2_participation_receipts.sql
+20261024000500_v2_privacy_safe_analytics.sql

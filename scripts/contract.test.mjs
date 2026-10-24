@@ -54,12 +54,30 @@ test("no fixture sets an unlimited limit or an invented policy value", () => {
   assert.deepEqual(team.undecided, ["pages", "active_total"]);
 });
 
-test("anonymous analytics default to an undecided policy with no groups", () => {
-  const item = JSON.parse(files["fixtures/analytics.json"]).items.find((i) => i.name === "analytics.undecided").data;
-  assert.equal(item.policy.status, "undecided");
-  assert.equal(item.policy.min_cohort, null);
-  assert.deepEqual(item.groups, []);
+test("analytics fixtures never show suppressed or withheld data as zero, and keep members and guests apart", () => {
+  const items = JSON.parse(files["fixtures/analytics.json"]).items;
+  assert.ok(items.length >= 3);
+  for (const { name, data } of items) {
+    for (const g of data.groups) {
+      if (g.suppressed) assert.ok(g.n === null && g.value === null && g.reason, `${name}: suppressed group must be null with a reason`);
+      else assert.ok(Number.isInteger(g.n), `${name}: shown group has an integer n`);
+    }
+    for (const side of Object.values(data.participants)) if (side.suppressed) assert.ok(side.n === null && side.reason, `${name}: suppressed total must be null with a reason`);
+    assert.deepEqual(Object.keys(data.participants).sort(), ["guest", "member"], `${name}: member and guest are separate`);
+    assert.ok(!("total_participants" in data), `${name}: no combined total`);
+  }
+  const anonymous = items.find((i) => i.name === "analytics.suppressed-example").data;
+  assert.equal(anonymous.policy.status, "applied");
 });
+
+test("the analytics operation has exactly the restricted query shape and no export path is implemented", () => {
+  const op = operations.find((o) => o.id === "lv_analytics_query");
+  assert.deepEqual(Object.keys(schemas[op.request].properties).sort(), ["campaign_id", "metric", "question_id"]);
+  for (const id of ["lv_analytics_export", "lv_analytics_embed_create", "lv_analytics_embed_revoke"]) {
+    assert.equal(operations.find((o) => o.id === id).status, "blocked-decision", id);
+  }
+});
+
 
 test("validator rejects wrong types, extra properties, missing fields and bad formats", () => {
   const c = schemas;

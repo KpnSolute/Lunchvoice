@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "LunchVoice API",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "description": "Machine-readable contract for LunchVoice. v2 operations are Postgres functions behind PostgREST RPC returning a 200 envelope; legacy operations are the live v1 surface. Per-operation x-status says whether it exists: implemented (production), implemented-nonprod, proposed, blocked-decision. A null limit means undecided, never unlimited."
   },
   "servers": [
@@ -3251,7 +3251,8 @@
           "P-17",
           "P-18",
           "P-19",
-          "P-21"
+          "P-21",
+          "P-30"
         ],
         "security": [
           {
@@ -3897,12 +3898,12 @@
     "/rest/v1/rpc/lv_analytics_query": {
       "post": {
         "operationId": "lv_analytics_query",
-        "summary": "Privacy-safe aggregates for a Campaign. Groups below the minimum cohort are suppressed.",
+        "summary": "Privacy-safe aggregates for one Campaign: participation, per-question completion, or one question's answer distribution. Member and guest populations are separate; suppressed values are null, never 0.",
         "tags": [
           "analytics"
         ],
         "x-module": "analytics",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-32",
@@ -3912,22 +3913,33 @@
           "community.analytics.view"
         ],
         "x-decisions": [
-          "D-10"
+          "D-10",
+          "D-12"
         ],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-28",
+          "P-29",
+          "P-30",
+          "P-31",
+          "P-32",
+          "P-33",
+          "P-34"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
-        "description": "Anonymous Campaigns return lv_policy_undecided until the minimum cohort (D-10) is set; no default is invented.",
+        "description": "Anonymous Campaigns (and any Campaign with guest responses) return lv_policy_undecided with details.missing until THREE policy values are set: analytics.min_cohort, analytics.min_participants and analytics.disclosure_controls; a threshold alone does not settle D-10. Even then they are served only after the Campaign has finished (reason live_anonymous_results_restricted) and only for one population size: the first release freezes the participant counts and later changes make the results unavailable (reason population_changed_after_release), which blocks differencing between releases (P-28 to P-30). Query shapes are deliberately restricted: no filters, cross-tabulations, time slices or free text; text and ranking questions return lv_policy_undecided. Draft and scheduled Campaigns are lv_lifecycle_invalid. Identified (non-anonymous) Campaigns without guests need no privacy policy and may be read live (policy.status not_required). A cell with 0 < n < min_cohort is suppressed; suppressed or withheld values are null with suppressed = true and a reason, never 0; a real zero is 0. Every call is logged. There is no export or embed path.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
           "lv_forbidden",
           "lv_not_found",
+          "lv_lifecycle_invalid",
+          "lv_invalid_input",
           "lv_policy_undecided"
         ],
         "responses": {
@@ -3996,7 +4008,7 @@
           "analytics"
         ],
         "x-module": "analytics",
-        "x-status": "proposed",
+        "x-status": "blocked-decision",
         "x-milestone": "M2",
         "x-flows": [
           "F-33"
@@ -4009,13 +4021,16 @@
           "D-10"
         ],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-35"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
+        "description": "Blocked: retention, export format and small-group rules (D-10) are undecided. No export path exists, and none will be added before they are decided.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
@@ -4090,7 +4105,7 @@
           "analytics"
         ],
         "x-module": "analytics",
-        "x-status": "proposed",
+        "x-status": "blocked-decision",
         "x-milestone": "M2",
         "x-flows": [
           "F-33"
@@ -4102,7 +4117,9 @@
           "D-10"
         ],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-35"
+        ],
         "security": [
           {
             "apikey": [],
@@ -4183,7 +4200,7 @@
           "analytics"
         ],
         "x-module": "analytics",
-        "x-status": "proposed",
+        "x-status": "blocked-decision",
         "x-milestone": "M2",
         "x-flows": [
           "F-33"
@@ -4191,9 +4208,13 @@
         "x-capabilities": [
           "community.analytics.publish"
         ],
-        "x-decisions": [],
+        "x-decisions": [
+          "D-10"
+        ],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-35"
+        ],
         "security": [
           {
             "apikey": [],
@@ -8263,12 +8284,9 @@
           "metric"
         ]
       },
-      "AnalyticsGroup": {
+      "AnalyticsCount": {
         "type": "object",
         "properties": {
-          "key": {
-            "type": "string"
-          },
           "n": {
             "type": [
               "integer",
@@ -8279,18 +8297,68 @@
           "suppressed": {
             "type": "boolean"
           },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why n is null: below_min_participants. Null when shown."
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "n",
+          "suppressed",
+          "reason"
+        ]
+      },
+      "AnalyticsGroup": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Question id (completion), option label or rating value (answer_distribution)."
+          },
+          "audience": {
+            "type": "string",
+            "enum": [
+              "member",
+              "guest"
+            ]
+          },
+          "n": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "null when suppressed. A shown 0 is a real zero."
+          },
+          "suppressed": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "below_min_cohort, complementary or below_min_participants when suppressed."
+          },
           "value": {
             "type": [
               "number",
               "null"
-            ]
+            ],
+            "description": "Share of that audience's participants, 4 decimals; null when suppressed."
           }
         },
         "additionalProperties": false,
         "required": [
           "key",
+          "audience",
           "n",
           "suppressed",
+          "reason",
           "value"
         ]
       },
@@ -8303,21 +8371,74 @@
           "metric": {
             "$ref": "#/components/schemas/AnalyticsMetric"
           },
-          "total_participants": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "minimum": 0
+          "question_id": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "population": {
+            "type": "string",
+            "description": "Plain-language definition of who is counted. Display it next to the numbers."
+          },
+          "window": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Timestamp"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "to": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Timestamp"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "from",
+              "to"
+            ]
+          },
+          "freshness_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "participants": {
+            "type": "object",
+            "properties": {
+              "member": {
+                "$ref": "#/components/schemas/AnalyticsCount"
+              },
+              "guest": {
+                "$ref": "#/components/schemas/AnalyticsCount"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "member",
+              "guest"
+            ]
           },
           "groups": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AnalyticsGroup"
             }
-          },
-          "freshness_at": {
-            "$ref": "#/components/schemas/Timestamp"
           },
           "policy": {
             "type": "object",
@@ -8326,7 +8447,7 @@
                 "type": "string",
                 "enum": [
                   "applied",
-                  "undecided"
+                  "not_required"
                 ]
               },
               "min_cohort": {
@@ -8334,14 +8455,21 @@
                   "integer",
                   "null"
                 ],
-                "minimum": 1,
-                "description": "null until decision D-10 sets the threshold. No default is invented."
+                "minimum": 2,
+                "description": "The cell threshold in force when status is applied; null when not_required."
+              },
+              "complementary_suppression": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               }
             },
             "additionalProperties": false,
             "required": [
               "status",
-              "min_cohort"
+              "min_cohort",
+              "complementary_suppression"
             ]
           }
         },
@@ -8349,9 +8477,12 @@
         "required": [
           "campaign_id",
           "metric",
-          "total_participants",
-          "groups",
+          "question_id",
+          "population",
+          "window",
           "freshness_at",
+          "participants",
+          "groups",
           "policy"
         ]
       },
@@ -10001,6 +10132,92 @@
         "lv_campaign_resolve"
       ],
       "summary": "Join-code resolution has no rate limiting or lockout, and private-Hub codes resolve only for accepted members. Abuse limits for public codes are undecided."
+    },
+    {
+      "id": "P-28",
+      "decisions": [
+        "D-10"
+      ],
+      "operations": [
+        "lv_analytics_query"
+      ],
+      "summary": "Anonymous (and guest-bearing) analytics need THREE undecided policy values before anything is shown: a cell threshold (analytics.min_cohort), a minimum participant total (analytics.min_participants) and the disclosure controls (analytics.disclosure_controls). Approving a number alone does not settle D-10; the other controls, retention and export rules remain open."
+    },
+    {
+      "id": "P-29",
+      "decisions": [
+        "D-10",
+        "D-12"
+      ],
+      "operations": [
+        "lv_analytics_query"
+      ],
+      "summary": "Anonymous results are served only after the Campaign has finished, never live, to stop a trickle of new responses revealing individual answers. Whether live anonymous results should ever be shown is undecided."
+    },
+    {
+      "id": "P-30",
+      "decisions": [
+        "D-10"
+      ],
+      "operations": [
+        "lv_analytics_query",
+        "lv_campaign_activate"
+      ],
+      "summary": "Single release: the first release of sensitive results freezes the participant counts; if responses change afterwards (for example after a reopening) the results become unavailable rather than risk differencing between two releases. How repeat releases, corrections and late responses should work is undecided."
+    },
+    {
+      "id": "P-31",
+      "decisions": [
+        "D-10"
+      ],
+      "operations": [
+        "lv_analytics_query"
+      ],
+      "summary": "Restricted query shapes: one Campaign, one metric, optionally one question. No filters, no cross-tabulation, no time slicing, no per-response timestamps, no free-text or ranking results. These stay closed until small-group disclosure rules for each shape are approved."
+    },
+    {
+      "id": "P-32",
+      "decisions": [
+        "D-10"
+      ],
+      "operations": [
+        "lv_analytics_query"
+      ],
+      "summary": "Complementary suppression is a configurable control, not a decided rule: when set, a single suppressed cell in a partitioning distribution also withholds the smallest remaining cell. Whether to also round, bucket or hide totals is undecided."
+    },
+    {
+      "id": "P-33",
+      "decisions": [
+        "D-10",
+        "D-03"
+      ],
+      "operations": [
+        "lv_analytics_query"
+      ],
+      "summary": "Members and guests are separate populations with separate thresholds and are never combined into one number. Whether guest results may be shown to the Hub at all is undecided."
+    },
+    {
+      "id": "P-34",
+      "decisions": [
+        "D-10"
+      ],
+      "operations": [
+        "lv_analytics_query"
+      ],
+      "summary": "Identified (non-anonymous) Campaigns without guests are shown with exact counts and no privacy policy, because the Hub already holds who answered. Whether identified aggregates need any minimum is undecided."
+    },
+    {
+      "id": "P-35",
+      "decisions": [
+        "D-06",
+        "D-10"
+      ],
+      "operations": [
+        "lv_analytics_export",
+        "lv_analytics_embed_create",
+        "lv_analytics_embed_revoke"
+      ],
+      "summary": "Export and embed are blocked: no operation exports or embeds results, raw or aggregate, until retention, format and small-group rules are decided and an entitlement is defined."
     }
   ]
 }

@@ -134,3 +134,58 @@ begin
 end $$;
 create or replace function t.q1() returns jsonb language sql immutable as $$
   select '[{"type":"rating","prompt":"How was it?","required":true},{"type":"single_choice","prompt":"Pick","options":["A","B"]}]'::jsonb $$;
+
+-- Shared participation fixtures (moved from 11_participation.sql).
+-- A published Campaign with seven questions (ids stored as <label>.q1 .. q7). anonymous per argument.
+create function t.pubcamp(p_label text, p_hub uuid, p_anon boolean, p_publish boolean default true) returns uuid language plpgsql security definer as $$
+declare v uuid; n int; qid uuid; r jsonb;
+begin
+  insert into lv_private.campaigns (hub_id, title, join_code, anonymous) values (p_hub, p_label, lv_private.new_join_code(), p_anon) returning id into v;
+  for n in 1..7 loop
+    qid := gen_random_uuid();
+    perform t.put(p_label || '.q' || n, qid::text);
+    insert into lv_private.campaign_questions (id, campaign_id, position, type, prompt, required, options, scale_min, scale_max)
+    values (qid, v, n,
+      (array['rating','single_choice','multi_choice','yes_no','text','ranking','slider'])[n],
+      'Question ' || n, n in (1, 2),
+      case n when 2 then '["A","B","C"]'::jsonb when 3 then '["x","y","z"]'::jsonb when 6 then '["r1","r2","r3"]'::jsonb else '[]'::jsonb end,
+      case n when 7 then 0 else 1 end, case n when 7 then 10 else 5 end);
+  end loop;
+  perform t.put(p_label || '.id', v::text);
+  if p_publish then
+    r := lv_private.activate_campaign(v, (select owner_account_id from lv_private.hubs where id = p_hub), gen_random_uuid(), 'manual');
+    if not (r->>'ok')::boolean then raise exception 'fixture activation failed: %', r; end if;
+  end if;
+  return v;
+end $$;
+create function t.a(p_label text, p_n int, p_value jsonb) returns jsonb language sql stable as $$
+  select jsonb_build_object('question_id', t.get(p_label || '.q' || p_n), 'value', p_value) $$;
+create function t.good(p_label text) returns jsonb language sql stable as $$
+  select jsonb_build_array(t.a(p_label, 1, '4'), t.a(p_label, 2, '"B"'), t.a(p_label, 3, '["x","z"]'), t.a(p_label, 4, 'true'),
+    t.a(p_label, 5, '"fine"'), t.a(p_label, 6, '["r2","r1","r3"]'), t.a(p_label, 7, '7')) $$;
+
+
+-- p_n new accepted members, each submitting rating 3 and the given single-choice option, for each entry of p_counts
+-- ({"A": 7, "B": 4}). Optional guests (needs guest_access = link) each use their own grant.
+create or replace function t.fill(p_label text, p_hub uuid, p_counts jsonb, p_guests int default 0) returns void language plpgsql security definer as $$
+declare
+  v_camp uuid := t.id(p_label || '.id'); k text; n int; i int; acc uuid; r jsonb; g uuid;
+begin
+  for k, n in select key, value::int from jsonb_each_text(p_counts) loop
+    for i in 1..n loop
+      acc := gen_random_uuid();
+      insert into lv_private.accounts (id, display_name) values (acc, 'Fill ' || left(acc::text, 8));
+      insert into lv_private.hub_memberships (hub_id, account_id, status, source, joined_at) values (p_hub, acc, 'accepted', 'v2', now());
+      r := lv_private.submit_core(v_camp, acc, null, jsonb_build_array(t.a(p_label, 1, '3'), t.a(p_label, 2, to_jsonb(k))), gen_random_uuid());
+      if not (r->>'ok')::boolean then raise exception 'fill failed: %', r; end if;
+    end loop;
+  end loop;
+  for i in 1..p_guests loop
+    g := gen_random_uuid();
+    insert into lv_private.campaign_guest_grants (id, campaign_id, token_hash) values (g, v_camp, 'h-' || g::text);
+    r := lv_private.submit_guest(g, jsonb_build_array(t.a(p_label, 1, '3'), t.a(p_label, 2, '"A"')), gen_random_uuid());
+    if not (r->>'ok')::boolean then raise exception 'guest fill failed: %', r; end if;
+  end loop;
+end $$;
+create or replace function t.finish(p_label text) returns void language sql security definer as $$
+  update lv_private.campaigns set state = 'closed', closed_at = now() where id = t.id(p_label || '.id') $$;

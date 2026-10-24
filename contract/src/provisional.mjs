@@ -171,4 +171,52 @@ export const PROVISIONAL = [
     summary: "Join-code resolution has no rate limiting or lockout, and private-Hub codes resolve only for accepted members. Abuse limits for public codes are undecided.",
     ops: ["lv_campaign_resolve"],
   },
+  {
+    id: "P-28",
+    decisions: ["D-10"],
+    summary: "Anonymous (and guest-bearing) analytics need THREE undecided policy values before anything is shown: a cell threshold (analytics.min_cohort), a minimum participant total (analytics.min_participants) and the disclosure controls (analytics.disclosure_controls). Approving a number alone does not settle D-10; the other controls, retention and export rules remain open.",
+    ops: ["lv_analytics_query"],
+  },
+  {
+    id: "P-29",
+    decisions: ["D-10", "D-12"],
+    summary: "Anonymous results are served only after the Campaign has finished, never live, to stop a trickle of new responses revealing individual answers. Whether live anonymous results should ever be shown is undecided.",
+    ops: ["lv_analytics_query"],
+  },
+  {
+    id: "P-30",
+    decisions: ["D-10"],
+    summary: "Single release: the first release of sensitive results freezes the participant counts; if responses change afterwards (for example after a reopening) the results become unavailable rather than risk differencing between two releases. How repeat releases, corrections and late responses should work is undecided.",
+    ops: ["lv_analytics_query", "lv_campaign_activate"],
+  },
+  {
+    id: "P-31",
+    decisions: ["D-10"],
+    summary: "Restricted query shapes: one Campaign, one metric, optionally one question. No filters, no cross-tabulation, no time slicing, no per-response timestamps, no free-text or ranking results. These stay closed until small-group disclosure rules for each shape are approved.",
+    ops: ["lv_analytics_query"],
+  },
+  {
+    id: "P-32",
+    decisions: ["D-10"],
+    summary: "Complementary suppression is a configurable control, not a decided rule: when set, a single suppressed cell in a partitioning distribution also withholds the smallest remaining cell. Whether to also round, bucket or hide totals is undecided.",
+    ops: ["lv_analytics_query"],
+  },
+  {
+    id: "P-33",
+    decisions: ["D-10", "D-03"],
+    summary: "Members and guests are separate populations with separate thresholds and are never combined into one number. Whether guest results may be shown to the Hub at all is undecided.",
+    ops: ["lv_analytics_query"],
+  },
+  {
+    id: "P-34",
+    decisions: ["D-10"],
+    summary: "Identified (non-anonymous) Campaigns without guests are shown with exact counts and no privacy policy, because the Hub already holds who answered. Whether identified aggregates need any minimum is undecided.",
+    ops: ["lv_analytics_query"],
+  },
+  {
+    id: "P-35",
+    decisions: ["D-06", "D-10"],
+    summary: "Export and embed are blocked: no operation exports or embeds results, raw or aggregate, until retention, format and small-group rules are decided and an entitlement is defined.",
+    ops: ["lv_analytics_export", "lv_analytics_embed_create", "lv_analytics_embed_revoke"],
+  },
 ];

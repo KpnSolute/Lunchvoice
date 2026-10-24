@@ -64,8 +64,9 @@ export const fixtureFiles = {
   "analytics.json": {
     description: "Privacy-safe aggregates. The applied example uses a TEST-ONLY cohort value; the real threshold is undecided (D-10).",
     items: [
-      named("analytics.undecided", "AnalyticsResult", analytics.undecided, "Anonymous Campaign before D-10: no groups, policy undecided."),
-      named("analytics.applied-fixture-only", "AnalyticsResult", analytics.appliedFixtureOnly, "Shows suppressed groups. min_cohort is a synthetic test value, not a policy."),
+      named("analytics.suppressed-example", "AnalyticsResult", analytics.suppressedExample, "ILLUSTRATIVE policy (cohort 3, complementary suppression on). Suppressed values are null with a reason, never 0."),
+      named("analytics.below-minimum-example", "AnalyticsResult", analytics.belowMinimumExample, "Too few participants: the member total itself is withheld (null), not shown as 0."),
+      named("analytics.identified-example", "AnalyticsResult", analytics.identifiedExample, "Non-anonymous Campaign without guests: no privacy policy required."),
     ],
   },
   "gate-cases.json": {
@@ -155,8 +156,13 @@ export const examples = [
   { operationId: "lv_submit_response", name: "not-a-member", request: { campaign_id: CAMPAIGN.active, idempotency_key: KEY.b, answers: [] }, response: fail("lv_not_found", "Not found.", undefined, 62) },
   { operationId: "lv_submit_response", name: "closed-by-time", request: { campaign_id: CAMPAIGN.expired, idempotency_key: KEY.b, answers: [] }, response: fail("lv_lifecycle_invalid", "This Campaign has closed.", { reason: "closed_by_time", state: "expired" }, 63) },
   { operationId: "lv_my_receipts", name: "one", request: {}, response: ok({ receipts: [receipt] }, 34) },
-  { operationId: "lv_analytics_query", name: "undecided", request: { campaign_id: CAMPAIGN.anonymousActive, metric: "participation" }, response: fail("lv_policy_undecided", "Anonymous results are not available until the privacy policy is set.", undefined, 35) },
-  { operationId: "lv_analytics_query", name: "applied-fixture-only", request: { campaign_id: CAMPAIGN.active, metric: "answer_distribution", question_id: QUESTION.choice }, response: ok(analytics.appliedFixtureOnly, 36) },
+  { operationId: "lv_analytics_query", name: "policy-pending", request: { campaign_id: CAMPAIGN.anonymousActive, metric: "participation" }, response: fail("lv_policy_undecided", "Anonymous results are not available until the privacy policy is set.", { reason: "policy_pending", missing: ["analytics.min_cohort", "analytics.min_participants", "analytics.disclosure_controls"], decision: "D-10" }, 35) },
+  { operationId: "lv_analytics_query", name: "live-anonymous-restricted", request: { campaign_id: CAMPAIGN.anonymousActive, metric: "participation" }, response: fail("lv_policy_undecided", "Anonymous results are available only after the Campaign has finished.", { reason: "live_anonymous_results_restricted", decision: "D-10" }, 36) },
+  { operationId: "lv_analytics_query", name: "population-changed", request: { campaign_id: CAMPAIGN.closed, metric: "participation" }, response: fail("lv_policy_undecided", "These results can no longer be shown because responses changed after they were first released.", { reason: "population_changed_after_release", decision: "D-10" }, 64) },
+  { operationId: "lv_analytics_query", name: "text-question", request: { campaign_id: CAMPAIGN.active, metric: "answer_distribution", question_id: QUESTION.text }, response: fail("lv_policy_undecided", "Results for that question type are not available yet.", { reason: "question_type_not_available", type: "text", decision: "D-10" }, 65) },
+  { operationId: "lv_analytics_query", name: "suppressed-example", request: { campaign_id: CAMPAIGN.anonymousActive, metric: "answer_distribution", question_id: QUESTION.choice }, response: ok(analytics.suppressedExample, 37) },
+  { operationId: "lv_analytics_query", name: "below-minimum", request: { campaign_id: CAMPAIGN.anonymousActive, metric: "participation" }, response: ok(analytics.belowMinimumExample, 66) },
+  { operationId: "lv_analytics_query", name: "identified", request: { campaign_id: CAMPAIGN.active, metric: "participation" }, response: ok(analytics.identifiedExample, 67) },
 ];
 
 export { id };

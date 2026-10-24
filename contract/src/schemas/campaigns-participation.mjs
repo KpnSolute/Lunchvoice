@@ -120,21 +120,32 @@ export const campaignSchemas = {
 
   AnalyticsMetric: enm(["participation", "completion", "answer_distribution"]),
   AnalyticsQuery: obj({ campaign_id: ref("Uuid"), metric: ref("AnalyticsMetric"), question_id: ref("Uuid") }, ["question_id"]),
-  AnalyticsGroup: obj({
-    key: str(),
+  AnalyticsCount: obj({
     n: nullable(int({ minimum: 0 })),
     suppressed: bool(),
-    value: nullable(num()),
+    reason: nullable(str({ description: "Why n is null: below_min_participants. Null when shown." })),
+  }),
+  AnalyticsGroup: obj({
+    key: str({ description: "Question id (completion), option label or rating value (answer_distribution)." }),
+    audience: enm(["member", "guest"]),
+    n: nullable(int({ minimum: 0, description: "null when suppressed. A shown 0 is a real zero." })),
+    suppressed: bool(),
+    reason: nullable(str({ description: "below_min_cohort, complementary or below_min_participants when suppressed." })),
+    value: nullable(num({ description: "Share of that audience's participants, 4 decimals; null when suppressed." })),
   }),
   AnalyticsResult: obj({
     campaign_id: ref("Uuid"),
     metric: ref("AnalyticsMetric"),
-    total_participants: nullable(int({ minimum: 0 })),
-    groups: arr(ref("AnalyticsGroup")),
+    question_id: nullable(ref("Uuid")),
+    population: str({ description: "Plain-language definition of who is counted. Display it next to the numbers." }),
+    window: obj({ from: nullable(ref("Timestamp")), to: nullable(ref("Timestamp")) }),
     freshness_at: ref("Timestamp"),
+    participants: obj({ member: ref("AnalyticsCount"), guest: ref("AnalyticsCount") }),
+    groups: arr(ref("AnalyticsGroup")),
     policy: obj({
-      status: enm(["applied", "undecided"]),
-      min_cohort: nullable(int({ minimum: 1, description: "null until decision D-10 sets the threshold. No default is invented." })),
+      status: enm(["applied", "not_required"]),
+      min_cohort: nullable(int({ minimum: 2, description: "The cell threshold in force when status is applied; null when not_required." })),
+      complementary_suppression: nullable(bool()),
     }),
   }),
 };

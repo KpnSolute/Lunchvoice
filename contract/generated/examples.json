@@ -1,5 +1,5 @@
 {
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Request/response pairs for mock adapters and contract tests. Synthetic data only.",
   "examples": [
     {
@@ -1506,7 +1506,7 @@
     },
     {
       "operationId": "lv_analytics_query",
-      "name": "undecided",
+      "name": "policy-pending",
       "request": {
         "campaign_id": "00000000-0000-4000-8004-000000000006",
         "metric": "participation"
@@ -1515,52 +1515,229 @@
         "ok": false,
         "error": {
           "code": "lv_policy_undecided",
-          "message": "Anonymous results are not available until the privacy policy is set."
+          "message": "Anonymous results are not available until the privacy policy is set.",
+          "details": {
+            "reason": "policy_pending",
+            "missing": [
+              "analytics.min_cohort",
+              "analytics.min_participants",
+              "analytics.disclosure_controls"
+            ],
+            "decision": "D-10"
+          }
         },
         "request_id": "req_0035"
       }
     },
     {
       "operationId": "lv_analytics_query",
-      "name": "applied-fixture-only",
+      "name": "live-anonymous-restricted",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000006",
+        "metric": "participation"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_policy_undecided",
+          "message": "Anonymous results are available only after the Campaign has finished.",
+          "details": {
+            "reason": "live_anonymous_results_restricted",
+            "decision": "D-10"
+          }
+        },
+        "request_id": "req_0036"
+      }
+    },
+    {
+      "operationId": "lv_analytics_query",
+      "name": "population-changed",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000004",
+        "metric": "participation"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_policy_undecided",
+          "message": "These results can no longer be shown because responses changed after they were first released.",
+          "details": {
+            "reason": "population_changed_after_release",
+            "decision": "D-10"
+          }
+        },
+        "request_id": "req_0064"
+      }
+    },
+    {
+      "operationId": "lv_analytics_query",
+      "name": "text-question",
       "request": {
         "campaign_id": "00000000-0000-4000-8004-000000000003",
+        "metric": "answer_distribution",
+        "question_id": "00000000-0000-4000-8005-000000000003"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_policy_undecided",
+          "message": "Results for that question type are not available yet.",
+          "details": {
+            "reason": "question_type_not_available",
+            "type": "text",
+            "decision": "D-10"
+          }
+        },
+        "request_id": "req_0065"
+      }
+    },
+    {
+      "operationId": "lv_analytics_query",
+      "name": "suppressed-example",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000006",
         "metric": "answer_distribution",
         "question_id": "00000000-0000-4000-8005-000000000002"
       },
       "response": {
         "ok": true,
         "data": {
-          "campaign_id": "00000000-0000-4000-8004-000000000003",
+          "campaign_id": "00000000-0000-4000-8004-000000000006",
           "metric": "answer_distribution",
-          "total_participants": 8,
+          "question_id": "00000000-0000-4000-8005-000000000002",
+          "population": "Distinct accepted Hub members who submitted (member) and distinct guest grants that submitted (guest), counted separately and never added together. Responses are final answers only.",
+          "window": {
+            "from": "2026-11-02T15:00:00Z",
+            "to": "2026-11-16T15:00:00Z"
+          },
+          "freshness_at": "2026-11-16T15:00:00Z",
+          "participants": {
+            "member": {
+              "n": 12,
+              "suppressed": false,
+              "reason": null
+            },
+            "guest": {
+              "n": 0,
+              "suppressed": false,
+              "reason": null
+            }
+          },
           "groups": [
             {
               "key": "Option A",
-              "n": 5,
+              "audience": "member",
+              "n": 7,
               "suppressed": false,
-              "value": 0.625
+              "reason": null,
+              "value": 0.5833
             },
             {
               "key": "Option B",
+              "audience": "member",
               "n": null,
               "suppressed": true,
+              "reason": "complementary",
               "value": null
             },
             {
               "key": "Option C",
+              "audience": "member",
               "n": null,
               "suppressed": true,
+              "reason": "below_min_cohort",
               "value": null
             }
           ],
-          "freshness_at": "2026-11-09T15:00:00Z",
           "policy": {
             "status": "applied",
-            "min_cohort": 3
+            "min_cohort": 3,
+            "complementary_suppression": true
           }
         },
-        "request_id": "req_0036"
+        "request_id": "req_0037"
+      }
+    },
+    {
+      "operationId": "lv_analytics_query",
+      "name": "below-minimum",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000006",
+        "metric": "participation"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "campaign_id": "00000000-0000-4000-8004-000000000006",
+          "metric": "participation",
+          "question_id": null,
+          "population": "Distinct accepted Hub members who submitted (member) and distinct guest grants that submitted (guest), counted separately and never added together. Responses are final answers only.",
+          "window": {
+            "from": "2026-11-02T15:00:00Z",
+            "to": "2026-11-16T15:00:00Z"
+          },
+          "freshness_at": "2026-11-16T15:00:00Z",
+          "participants": {
+            "member": {
+              "n": null,
+              "suppressed": true,
+              "reason": "below_min_participants"
+            },
+            "guest": {
+              "n": 0,
+              "suppressed": false,
+              "reason": null
+            }
+          },
+          "groups": [],
+          "policy": {
+            "status": "applied",
+            "min_cohort": 3,
+            "complementary_suppression": true
+          }
+        },
+        "request_id": "req_0066"
+      }
+    },
+    {
+      "operationId": "lv_analytics_query",
+      "name": "identified",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000003",
+        "metric": "participation"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "campaign_id": "00000000-0000-4000-8004-000000000003",
+          "metric": "participation",
+          "question_id": null,
+          "population": "Distinct accepted Hub members who submitted (member) and distinct guest grants that submitted (guest), counted separately and never added together. Responses are final answers only.",
+          "window": {
+            "from": "2026-11-02T15:00:00Z",
+            "to": null
+          },
+          "freshness_at": "2026-11-09T15:00:00Z",
+          "participants": {
+            "member": {
+              "n": 8,
+              "suppressed": false,
+              "reason": null
+            },
+            "guest": {
+              "n": 0,
+              "suppressed": false,
+              "reason": null
+            }
+          },
+          "groups": [],
+          "policy": {
+            "status": "not_required",
+            "min_cohort": null,
+            "complementary_suppression": null
+          }
+        },
+        "request_id": "req_0067"
       }
     }
   ]

@@ -480,22 +480,40 @@ export type AnalyticsQuery = {
   question_id?: Uuid;
 };
 
-export type AnalyticsGroup = {
-  key: string;
+export type AnalyticsCount = {
   n: number | null;
   suppressed: boolean;
+  reason: string | null;
+};
+
+export type AnalyticsGroup = {
+  key: string;
+  audience: "member" | "guest";
+  n: number | null;
+  suppressed: boolean;
+  reason: string | null;
   value: number | null;
 };
 
 export type AnalyticsResult = {
   campaign_id: Uuid;
   metric: AnalyticsMetric;
-  total_participants: number | null;
-  groups: AnalyticsGroup[];
+  question_id: Uuid | null;
+  population: string;
+  window: {
+    from: Timestamp | null;
+    to: Timestamp | null;
+  };
   freshness_at: Timestamp;
+  participants: {
+    member: AnalyticsCount;
+    guest: AnalyticsCount;
+  };
+  groups: AnalyticsGroup[];
   policy: {
-    status: "applied" | "undecided";
+    status: "applied" | "not_required";
     min_cohort: number | null;
+    complementary_suppression: boolean | null;
   };
 };
 
@@ -815,10 +833,10 @@ export interface OperationMap {
   lv_campaign_resolve: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_resolve"; request: CampaignResolveRequest; result: LvResult<CampaignResolveResult> };
   lv_submit_response: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_submit_response"; request: SubmitResponseRequest; result: LvResult<Receipt> };
   lv_my_receipts: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_my_receipts"; request: undefined; result: LvResult<ReceiptList> };
-  lv_analytics_query: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_analytics_query"; request: AnalyticsQuery; result: LvResult<AnalyticsResult> };
-  lv_analytics_export: { kind: "rpc-v2"; status: "proposed"; milestone: "M2"; path: "/rest/v1/rpc/lv_analytics_export"; request: ExportRequest; result: LvResult<ExportResult> };
-  lv_analytics_embed_create: { kind: "rpc-v2"; status: "proposed"; milestone: "M2"; path: "/rest/v1/rpc/lv_analytics_embed_create"; request: EmbedRequest; result: LvResult<EmbedResult> };
-  lv_analytics_embed_revoke: { kind: "rpc-v2"; status: "proposed"; milestone: "M2"; path: "/rest/v1/rpc/lv_analytics_embed_revoke"; request: EmbedRef; result: LvResult<BoolResult> };
+  lv_analytics_query: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_analytics_query"; request: AnalyticsQuery; result: LvResult<AnalyticsResult> };
+  lv_analytics_export: { kind: "rpc-v2"; status: "blocked-decision"; milestone: "M2"; path: "/rest/v1/rpc/lv_analytics_export"; request: ExportRequest; result: LvResult<ExportResult> };
+  lv_analytics_embed_create: { kind: "rpc-v2"; status: "blocked-decision"; milestone: "M2"; path: "/rest/v1/rpc/lv_analytics_embed_create"; request: EmbedRequest; result: LvResult<EmbedResult> };
+  lv_analytics_embed_revoke: { kind: "rpc-v2"; status: "blocked-decision"; milestone: "M2"; path: "/rest/v1/rpc/lv_analytics_embed_revoke"; request: EmbedRef; result: LvResult<BoolResult> };
   lv_page_list: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_page_list"; request: HubRef; result: LvResult<PageList> };
   lv_page_save_draft: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_page_save_draft"; request: PageDraftRequest; result: LvResult<Page> };
   lv_page_publish: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_page_publish"; request: PageRef; result: LvResult<Page> };

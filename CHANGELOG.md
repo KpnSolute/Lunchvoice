@@ -8,6 +8,15 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added v2 privacy-safe analytics (migration `20261024000500_v2_privacy_safe_analytics.sql`, **not applied to production**, stacked on the
+  participation migration) and `lv_analytics_query` (contract v0.6.0, `implemented-nonprod`; export and embed stay `blocked-decision`). It is the only
+  reader of answers and returns aggregates only. Anonymous (or guest-bearing) Campaigns return nothing until THREE separate privacy policy values
+  are set (cell threshold, minimum participants, disclosure controls); even then results are served only after the Campaign has finished and only for
+  the participant counts frozen at first release (later changes make them unavailable, blocking differencing). Query shapes are restricted (no
+  filters, cross-tabs, time slices, free text, ranking, per-response timestamps). Cells with 0 < n < threshold are suppressed, with optional
+  complementary suppression for partitioning distributions; withheld values are `null` with a reason, never 0; real zeros are 0; members and guests
+  are separate populations that are never added. Every request is logged; there is no export path. 750 database checks (new: analytics 58, a
+  participation helper set, and a race for simultaneous first releases); eight mutations are caught. Provisional register P-28 to P-35.
 - Added v2 participation and receipts (migration `20261024000400_v2_participation_receipts.sql`, **not applied to production**,
   stacked on the entitlements migration) and three `lv_*` RPCs (contract v0.5.0, `implemented-nonprod`): `lv_campaign_resolve`,
   `lv_submit_response`, `lv_my_receipts`. Submissions are bound to the Campaign's immutable published question revision (questions are

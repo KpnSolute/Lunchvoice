@@ -281,3 +281,30 @@ as_user "${MEMBERS[1]}" "select coalesce(public.lv_submit_response('$C4', '[{\"q
 wait
 check "expiry race: the waiting submission is refused because the closing time passed while it waited" "select '$(tr -d ' \n' < "$OUT/p18.out")' = 'closed_by_time'"
 check "expiry race: nothing was written for the refused submission" "select (select count(*) from lv_private.campaign_participation where campaign_id = '$C4') = 0 and (select count(*) from lv_private.campaign_answers where campaign_id = '$C4') = 0"
+
+
+echo "-- race 19: six analysts request the first release of the same anonymous results at once"
+closeall
+C5=$(P -c "with c as (insert into lv_private.campaigns (hub_id, title, join_code, anonymous) values ('$A', 'Anonymous release race', lv_private.new_join_code(), true) returning id), q as (insert into lv_private.campaign_questions (campaign_id, position, type, prompt, required) select id, 1, 'rating', 'Q', true from c) select id from c")
+P -c "select lv_private.activate_campaign('$C5', '$OWN', gen_random_uuid(), 'manual')->>'ok'" >/dev/null
+P -c "update lv_private.policy set value = '3'::jsonb where key = 'analytics.min_cohort'" >/dev/null
+P -c "update lv_private.policy set value = '5'::jsonb where key = 'analytics.min_participants'" >/dev/null
+P -c "update lv_private.policy set value = '{\"complementary_suppression\": true}'::jsonb where key = 'analytics.disclosure_controls'" >/dev/null
+Q5=$(qid "$C5")
+ACCS=$(P -c "with a as (insert into lv_private.accounts (id, display_name) select gen_random_uuid(), 'cc' from generate_series(1, 7) returning id), m as (insert into lv_private.hub_memberships (hub_id, account_id, status, source) select '$A', id, 'accepted', 'v2' from a returning account_id) select account_id from m")
+for acc in $ACCS; do
+  P -c "select lv_private.submit_core('$C5', '$acc', null, '[{\"question_id\":\"$Q5\",\"value\":3}]'::jsonb, gen_random_uuid())->>'ok'" >/dev/null
+done
+P -c "update lv_private.campaigns set state = 'closed', closed_at = now() where id = '$C5'" >/dev/null
+for i in 1 2 3 4 5 6; do
+  as_user "$OWN" "select public.lv_analytics_query('$C5', 'participation')->'data'->'participants'->'member'->>'n'" >"$OUT/an.$i" 2>&1 &
+done
+wait
+check "simultaneous first releases: every analyst saw the same exact total (7)" "select $(cat "$OUT"/an.* | grep -c '^7$') = 6"
+check "simultaneous first releases: exactly one release record" "select (select count(*) from lv_private.analytics_releases where campaign_id = '$C5') = 1"
+P -c "update lv_private.campaigns set state = 'active', closed_at = null where id = '$C5'" >/dev/null
+LATE=$(P -c "with a as (insert into lv_private.accounts (id, display_name) values (gen_random_uuid(), 'late') returning id), m as (insert into lv_private.hub_memberships (hub_id, account_id, status, source) select '$A', id, 'accepted', 'v2' from a returning account_id) select account_id from m")
+P -c "select lv_private.submit_core('$C5', '$LATE', null, '[{\"question_id\":\"$Q5\",\"value\":3}]'::jsonb, gen_random_uuid())->>'ok'" >/dev/null
+P -c "update lv_private.campaigns set state = 'closed', closed_at = now() where id = '$C5'" >/dev/null
+as_user "$OWN" "select coalesce(public.lv_analytics_query('$C5', 'participation')->'error'->'details'->>'reason', 'shown')" >"$OUT/an.late" 2>&1
+check "a response after the first release makes the results unavailable (no differencing)" "select '$(tr -d ' \n' < "$OUT/an.late")' = 'population_changed_after_release'"
