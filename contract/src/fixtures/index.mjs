@@ -100,6 +100,7 @@ export const examples = [
   { operationId: "lv_hub_public", name: "found", request: { slug: "synthetic-one" }, response: ok(hubPublic.one, 3) },
   { operationId: "lv_hub_public", name: "not-found", request: { slug: "no-such-hub" }, response: fail("lv_not_found", "Not found.", undefined, 4) },
   { operationId: "lv_join_hub", name: "pending", request: { hub_id: HUB.two }, response: ok({ status: "pending" }, 5) },
+  { operationId: "lv_join_hub", name: "invite-code-unsupported", request: { hub_id: HUB.two, invite_code: "ABC123" }, response: fail("lv_policy_undecided", "Invite codes are not supported yet.", { reason: "invite_code_unsupported" }, 42) },
   { operationId: "lv_join_hub", name: "invite-required", request: { hub_id: HUB.two }, response: fail("lv_forbidden", "An invite code is required.", undefined, 6) },
   { operationId: "lv_decide_join", name: "accept", request: { hub_id: HUB.two, account_id: ACCOUNT.priya, decision: "accept" }, response: ok({ hub_id: HUB.two, account_id: ACCOUNT.priya, status: "accepted" }, 7) },
   { operationId: "lv_hub_public", name: "private-count-hidden", request: { slug: "synthetic-two" }, response: ok(hubPublic.twoAsPending, 40) },

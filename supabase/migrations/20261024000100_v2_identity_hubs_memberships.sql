@@ -50,7 +50,7 @@ create table lv_private.hub_memberships (
   hub_id uuid not null references lv_private.hubs (id) on delete restrict,
   account_id uuid not null references lv_private.accounts (id) on delete restrict,
   status text not null check (status in ('accepted', 'pending', 'invited', 'suspended', 'left', 'removed')),
-  source text not null default 'v2' check (source in ('v2', 'legacy_backfill', 'legacy_signup')),
+  source text not null default 'v2' check (source in ('v2', 'legacy_backfill', 'legacy_signup', 'legacy_repair')),
   joined_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -354,6 +354,58 @@ begin
 end;
 $$;
 
+-- Idempotent repair for gaps left by a missed signup mirror (the profiles trigger only warns on error).
+-- Creates missing accounts/identities and a membership ONLY for legacy members of this organization who have no
+-- membership row at all. It never touches an existing row (so suspended, removed, left and invited people are
+-- untouched), never gives access to anyone outside the organization, and never sets or changes the Owner.
+-- Requires the Hub to exist. Safe to run repeatedly and concurrently with the backfill (same advisory lock).
+create function lv_private.repair_org_hub(p_org_id uuid) returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  v_accounts int; v_identities int; v_members int;
+begin
+  if not exists (select 1 from lv_private.hubs h where h.id = p_org_id) then
+    raise exception 'Hub % does not exist; run the backfill first', p_org_id;
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended('lv_backfill:' || p_org_id::text, 0));
+
+  with ins as (
+    insert into lv_private.accounts (id, display_name)
+    select p.id, coalesce(nullif(btrim(p.display_name), ''), nullif(btrim(split_part(p.email, '@', 1)), ''), 'Member')
+    from public.profiles p
+    where p.org_id = p_org_id
+      and not exists (select 1 from lv_private.account_identities i where i.auth_user_id = p.id)
+      and not exists (select 1 from lv_private.accounts a where a.id = p.id)
+    returning 1)
+  select count(*) into v_accounts from ins;
+
+  with ins as (
+    insert into lv_private.account_identities (auth_user_id, account_id, provider)
+    select p.id, p.id, 'legacy'
+    from public.profiles p
+    where p.org_id = p_org_id
+      and exists (select 1 from lv_private.accounts a where a.id = p.id)
+      and not exists (select 1 from lv_private.account_identities i where i.auth_user_id = p.id)
+    returning 1)
+  select count(*) into v_identities from ins;
+
+  with ins as (
+    insert into lv_private.hub_memberships (hub_id, account_id, status, source, joined_at)
+    select p_org_id, i.account_id, 'accepted', 'legacy_repair', p.created_at
+    from public.profiles p
+    join lv_private.account_identities i on i.auth_user_id = p.id
+    where p.org_id = p_org_id
+      and not exists (select 1 from lv_private.hub_memberships m where m.hub_id = p_org_id and m.account_id = i.account_id)
+    on conflict on constraint hub_memberships_pkey do nothing
+    returning 1)
+  select count(*) into v_members from ins;
+
+  return jsonb_build_object('org_id', p_org_id, 'accounts_created', v_accounts,
+    'identities_created', v_identities, 'memberships_created', v_members);
+end;
+$$;
+
 -- Read-only reconciliation: what exists on each side, and every gap.
 create function lv_private.reconcile_org_hub(p_org_id uuid) returns jsonb
 language sql stable security definer set search_path = ''
@@ -472,6 +524,13 @@ declare
 begin
   if auth.uid() is null then return lv_private.fail('lv_unauthenticated', 'Sign in to continue.'); end if;
   if hub_id is null then return lv_private.fail('lv_invalid_input', 'hub_id is required.'); end if;
+  -- Code redemption does not exist yet. A supplied code is refused loudly instead of being ignored, so a caller
+  -- never believes a code worked. Account-bound invitations (status 'invited') are a different mechanism and
+  -- are accepted by calling this function WITHOUT a code. Checked before any lookup or write: no side effects.
+  if invite_code is not null and btrim(invite_code) <> '' then
+    return lv_private.fail('lv_policy_undecided', 'Invite codes are not supported yet.',
+      jsonb_build_object('reason', 'invite_code_unsupported'));
+  end if;
   select h.id, h.membership_mode into r from lv_private.hubs h where h.id = lv_join_hub.hub_id;
   if not found then return lv_private.fail('lv_not_found', 'Not found.'); end if;
 

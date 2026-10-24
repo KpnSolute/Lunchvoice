@@ -53,10 +53,11 @@ export const hubOps = [
     summary: "Join, or apply to join, a Hub according to its membership mode.",
     request: "JoinHubRequest",
     data: "JoinHubResult",
-    errors: ["lv_unauthenticated", "lv_not_found", "lv_forbidden", "lv_conflict", "lv_invalid_input"],
+    errors: ["lv_unauthenticated", "lv_not_found", "lv_forbidden", "lv_conflict", "lv_invalid_input", "lv_policy_undecided"],
     auth: "user",
     idempotent: true,
-    note: "Repeating the call returns the existing status. Invite-only Hubs admit only accounts that already have an invitation; invite_code is accepted but not yet honoured (provisional). Suspended and removed accounts get lv_forbidden.",
+    decisions: ["D-05"],
+    note: "Repeating the call returns the existing status. Invite-only Hubs admit only accounts that already have an invitation; A supplied invite_code is refused with lv_policy_undecided and details.reason = invite_code_unsupported, even for an invited account (P-05); account-bound invitations are accepted by calling without a code. Suspended and removed accounts get lv_forbidden.",
   }),
   v2({
     id: "lv_decide_join",

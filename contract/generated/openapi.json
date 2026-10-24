@@ -75,6 +75,9 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [
+          "P-06"
+        ],
         "security": [
           {
             "apikey": [],
@@ -152,6 +155,7 @@
           "D-10"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -238,6 +242,10 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "anon",
+        "x-provisional": [
+          "P-03",
+          "P-04"
+        ],
         "security": [
           {
             "apikey": []
@@ -321,22 +329,30 @@
           "F-07"
         ],
         "x-capabilities": [],
-        "x-decisions": [],
+        "x-decisions": [
+          "D-05"
+        ],
         "x-auth": "user",
+        "x-provisional": [
+          "P-02",
+          "P-04",
+          "P-05"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
-        "description": "Repeating the call returns the existing status. Invite-only Hubs admit only accounts that already have an invitation; invite_code is accepted but not yet honoured (provisional). Suspended and removed accounts get lv_forbidden.",
+        "description": "Repeating the call returns the existing status. Invite-only Hubs admit only accounts that already have an invitation; A supplied invite_code is refused with lv_policy_undecided and details.reason = invite_code_unsupported, even for an invited account (P-05); account-bound invitations are accepted by calling without a code. Suspended and removed accounts get lv_forbidden.",
         "x-idempotent": true,
         "x-errors": [
           "lv_unauthenticated",
           "lv_not_found",
           "lv_forbidden",
           "lv_conflict",
-          "lv_invalid_input"
+          "lv_invalid_input",
+          "lv_policy_undecided"
         ],
         "responses": {
           "200": {
@@ -414,6 +430,9 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [
+          "P-01"
+        ],
         "security": [
           {
             "apikey": [],
@@ -503,6 +522,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -591,6 +611,9 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [
+          "P-02"
+        ],
         "security": [
           {
             "apikey": [],
@@ -682,6 +705,7 @@
           "D-05"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -773,6 +797,10 @@
           "D-05"
         ],
         "x-auth": "anon",
+        "x-provisional": [
+          "P-03",
+          "P-06"
+        ],
         "security": [
           {
             "apikey": []
@@ -859,6 +887,7 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -947,6 +976,7 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -1038,6 +1068,7 @@
           "D-10"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -1131,6 +1162,7 @@
           "D-09"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -1222,6 +1254,7 @@
           "D-02"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -1299,6 +1332,7 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -1390,6 +1424,7 @@
           "D-06"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -1483,6 +1518,7 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -1572,6 +1608,7 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -1660,6 +1697,7 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -1750,6 +1788,7 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -1839,6 +1878,7 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -1928,6 +1968,7 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -2015,6 +2056,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -2104,6 +2146,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -2192,6 +2235,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -2284,6 +2328,7 @@
           "D-06"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -2376,6 +2421,7 @@
           "D-04"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -2467,6 +2513,7 @@
           "D-07"
         ],
         "x-auth": "service",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -2559,6 +2606,7 @@
           "D-08"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -2651,6 +2699,7 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -2740,6 +2789,7 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -2828,6 +2878,7 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -2917,6 +2968,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -3008,6 +3060,7 @@
           "D-12"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -3105,6 +3158,7 @@
           "D-08"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -3201,6 +3255,7 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -3292,6 +3347,7 @@
           "D-03"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -3382,6 +3438,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "anon",
+        "x-provisional": [],
         "security": [
           {
             "apikey": []
@@ -3473,6 +3530,7 @@
           "D-10"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -3566,6 +3624,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -3645,6 +3704,7 @@
           "D-10"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -3738,6 +3798,7 @@
           "D-10"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -3830,6 +3891,7 @@
           "D-10"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -3920,6 +3982,7 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -4010,6 +4073,7 @@
           "D-11"
         ],
         "x-auth": "anon",
+        "x-provisional": [],
         "security": [
           {
             "apikey": []
@@ -4099,6 +4163,7 @@
           "D-11"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -4193,6 +4258,7 @@
           "D-11"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -4282,6 +4348,7 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -4369,6 +4436,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -4455,6 +4523,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -4545,6 +4614,7 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -4632,6 +4702,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "anon",
+        "x-provisional": [],
         "security": [
           {
             "apikey": []
@@ -4719,6 +4790,7 @@
           "D-07"
         ],
         "x-auth": "service",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -4808,6 +4880,7 @@
           "D-05"
         ],
         "x-auth": "anon",
+        "x-provisional": [],
         "security": [
           {
             "apikey": []
@@ -4895,6 +4968,7 @@
           "D-05"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -4989,6 +5063,7 @@
           "D-08"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -5081,6 +5156,7 @@
           "D-09"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -5170,6 +5246,7 @@
           "D-13"
         ],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -5257,6 +5334,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "anon",
+        "x-provisional": [],
         "security": [
           {
             "apikey": []
@@ -5399,6 +5477,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "anon",
+        "x-provisional": [],
         "security": [
           {
             "apikey": []
@@ -5492,6 +5571,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "anon",
+        "x-provisional": [],
         "security": [
           {
             "apikey": []
@@ -5666,6 +5746,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -5750,6 +5831,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -5860,6 +5942,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -5906,6 +5989,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -5953,6 +6037,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -6000,6 +6085,7 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
+        "x-provisional": [],
         "security": [
           {
             "apikey": [],
@@ -9253,5 +9339,72 @@
       "operations": [],
       "client": "design tokens only"
     }
-  }
+  },
+  "x-provisional-register": [
+    {
+      "id": "P-01",
+      "decisions": [
+        "D-05"
+      ],
+      "operations": [
+        "lv_decide_join"
+      ],
+      "summary": "Rejecting a pending application deletes it (the audit trail keeps the event), so the person may apply again immediately. No cool-down, reason or block list."
+    },
+    {
+      "id": "P-02",
+      "decisions": [
+        "D-05"
+      ],
+      "operations": [
+        "lv_join_hub",
+        "lv_remove_member"
+      ],
+      "summary": "A removed member cannot rejoin by themselves (lv_forbidden). Whether removal is permanent, time-limited or reversible by an admin is undecided; there is no reinstate operation."
+    },
+    {
+      "id": "P-03",
+      "decisions": [
+        "D-09"
+      ],
+      "operations": [
+        "lv_hub_public",
+        "lv_member_count"
+      ],
+      "summary": "The existence, name and join mode of a private Hub are visible to anyone who knows its slug (needed for the private-Hub gate). Its member count is hidden from non-members."
+    },
+    {
+      "id": "P-04",
+      "decisions": [
+        "D-05",
+        "D-09"
+      ],
+      "operations": [
+        "lv_hub_public",
+        "lv_join_hub"
+      ],
+      "summary": "Membership defaults: a Hub created by the backfill is private and invite-only. These are database column defaults, not MJCC's settings, and must be set explicitly for every real Hub before launch."
+    },
+    {
+      "id": "P-05",
+      "decisions": [
+        "D-05"
+      ],
+      "operations": [
+        "lv_join_hub"
+      ],
+      "summary": "Invite codes are unsupported: a supplied code is refused with lv_policy_undecided (details.reason = invite_code_unsupported), even for an account that holds an account-bound invitation. Account-bound invitations (status invited) are accepted by calling lv_join_hub without a code. Code generation, redemption, expiry and revocation are undecided."
+    },
+    {
+      "id": "P-06",
+      "decisions": [
+        "D-05"
+      ],
+      "operations": [
+        "lv_my_context",
+        "lv_member_count"
+      ],
+      "summary": "Every legacy member of an organization becomes an accepted member of its Hub (backfill, signup mirror, repair), including students who have never used v2. Whether legacy accounts count as valid members for gates and discovery is undecided."
+    }
+  ]
 }

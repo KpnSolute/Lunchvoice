@@ -112,7 +112,13 @@ select t.check('owner cannot leave', t.code(public.lv_leave_hub(t.org_b())) = 'l
 -- ---- invite-only Hub (A)
 select t.as_user(t.u(24));
 select t.check('invite-only without invitation is forbidden', t.code(public.lv_join_hub(t.org_a())) = 'lv_forbidden');
-select t.check('invite code alone does not bypass (not implemented)', t.code(public.lv_join_hub(t.org_a(), 'LETMEIN')) = 'lv_forbidden');
+select t.check('a supplied invite code is rejected explicitly (invite-only Hub)', t.code(public.lv_join_hub(t.org_a(), 'LETMEIN')) = 'lv_policy_undecided');
+select t.check('the rejection says why (machine-readable reason)', public.lv_join_hub(t.org_a(), 'LETMEIN')->'error'->'details'->>'reason' = 'invite_code_unsupported');
+select t.check('a supplied invite code is rejected on an approval Hub too', t.code(public.lv_join_hub(t.org_b(), 'LETMEIN')) = 'lv_policy_undecided');
+select t.check('a blank invite code is treated as no code', t.code(public.lv_join_hub(t.org_b(), '   ')) = 'ok');
+select t.as_pg();
+select t.check('a rejected code leaves no membership behind', not exists (select 1 from lv_private.hub_memberships where hub_id = t.org_a() and account_id = t.u(24)));
+select t.as_user(t.u(24));
 select t.as_pg();
 insert into lv_private.hub_memberships (hub_id, account_id, status) values (t.org_a(), t.u(24), 'invited');
 select t.as_user(t.u(24));
@@ -121,7 +127,11 @@ select t.check('invited cannot see the private count', t.code(public.lv_member_c
 select t.as_pg();
 select t.check('invited is not an accepted member', (select count(*) from lv_private.hub_memberships where hub_id = t.org_a() and status = 'accepted') = 6);
 select t.as_user(t.u(24));
-select t.check('invited accepts', public.lv_join_hub(t.org_a())->'data'->>'status' = 'accepted');
+select t.check('account-bound invitation: a code is still rejected (different mechanism)', t.code(public.lv_join_hub(t.org_a(), 'ANYCODE')) = 'lv_policy_undecided');
+select t.as_pg();
+select t.check('...and the invitation is untouched by the rejected code', (select status from lv_private.hub_memberships where hub_id = t.org_a() and account_id = t.u(24)) = 'invited');
+select t.as_user(t.u(24));
+select t.check('account-bound invitation accepted WITHOUT a code', public.lv_join_hub(t.org_a())->'data'->>'status' = 'accepted');
 
 -- ---- authorization inside Hub A: only the Owner (roles do not exist yet); legacy admin gets nothing
 select t.as_user(t.u(1));

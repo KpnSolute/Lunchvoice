@@ -105,6 +105,25 @@
     },
     {
       "operationId": "lv_join_hub",
+      "name": "invite-code-unsupported",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000002",
+        "invite_code": "ABC123"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_policy_undecided",
+          "message": "Invite codes are not supported yet.",
+          "details": {
+            "reason": "invite_code_unsupported"
+          }
+        },
+        "request_id": "req_0042"
+      }
+    },
+    {
+      "operationId": "lv_join_hub",
       "name": "invite-required",
       "request": {
         "hub_id": "00000000-0000-4000-8001-000000000002"

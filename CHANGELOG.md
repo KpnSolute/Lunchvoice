@@ -22,6 +22,12 @@ categories and the repository's decimal `X.X.X` release policy.
   cross-Hub isolation, pending/invited/suspended handling, counts, direct API denial, Owner protection, concurrency
   (parallel backfills, joins, decisions, first-use account creation) and rollback; three deliberate mutations are
   caught. Contract v0.2.0: `HubPublic.member_count` is now nullable (private Hub, non-member).
+  Hardening in the same PR: a supplied `invite_code` is refused (`lv_policy_undecided`, `invite_code_unsupported`)
+  instead of being ignored, while account-bound invitations keep working; rejection/re-application, removed-member
+  rejoining, private-Hub discoverability, membership defaults, invite handling and automatic legacy membership are
+  registered as provisional (`contract/src/provisional.mjs`, `x-provisional`, generated `PROVISIONAL.md`), not approved
+  policy; `lv_private.repair_org_hub` is an idempotent repair for anything the signup mirror missed (never touches an
+  existing membership row, never grants access outside the organization, never changes the Owner).
 - Added the versioned LunchVoice API contract (`contract/`, v0.1.0): authored in dependency-free JS
   (`contract/src`), emitted as OpenAPI 3.1 (`openapi.json`), TypeScript types, an operation index,
   request/response examples and deterministic synthetic fixtures under `contract/generated/`. It covers 67

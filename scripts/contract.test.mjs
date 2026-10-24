@@ -100,3 +100,14 @@ test("operations with a migration are not marked proposed", () => {
     if (new RegExp(`function public\\.${op.id}\\(`).test(sql)) assert.equal(op.status, "implemented-nonprod", op.id);
   }
 });
+
+test("provisional choices are registered, tied to a decision, and surfaced on the operations they affect", () => {
+  const register = doc["x-provisional-register"];
+  assert.ok(register.length > 0);
+  for (const entry of register) {
+    assert.ok(entry.decisions.length > 0, entry.id);
+    for (const id of entry.operations) assert.ok(doc.paths[`/rest/v1/rpc/${id}`].post["x-provisional"].includes(entry.id), `${id} must list ${entry.id}`);
+  }
+  assert.ok(files["PROVISIONAL.md"].includes("not approved production policy"));
+  assert.ok(doc.paths["/rest/v1/rpc/lv_join_hub"].post["x-provisional"].includes("P-05"));
+});

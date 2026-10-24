@@ -61,7 +61,9 @@
       "F-07"
     ],
     "capabilities": [],
-    "decisions": []
+    "decisions": [
+      "D-05"
+    ]
   },
   {
     "id": "lv_decide_join",

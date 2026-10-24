@@ -84,9 +84,17 @@ PostgREST and the same schemas could be served by another runtime later. FastAPI
 Stripe webhook receiver, identity brokering, scheduled jobs and connector ingress, not a requirement; those
 pieces could also be Edge Functions or database jobs. Work that does not depend on the choice continues.
 
+## Provisional choices
+
+Some implemented behaviour is a placeholder, not approved policy. Each is registered in
+`contract/src/provisional.mjs`, shown per operation as `x-provisional`, and listed in
+`contract/generated/PROVISIONAL.md` with the open decision it depends on. Merging code that implements one does not
+approve it; the decision must be recorded in the decision register before it reaches production. Do not present these
+to users as settled rules.
+
 ## Contract changes
 
 | Version | Change | Frontend impact |
 | --- | --- | --- |
-| 0.2.0 | `HubPublic.member_count` is now `number \| null` (null when the Hub is private and the caller is not an accepted member; previously always a number). Nine identity/Hub/membership operations move to `implemented-nonprod`. `lv_decide_join` can return `lv_invalid_input` and no longer lists `lv_hub_mismatch`; `lv_suspend_member` can return `lv_conflict`; `lv_remove_member` no longer lists `lv_hub_mismatch`. Capability `community.moderate` was renamed `community.comments.moderate` (0.1.0 to 0.2.0 pre-release rename). | Handle a null member count. Membership `roles` and `capabilities` are empty arrays until the roles migration lands; `Context.pending` is always present; `GateStatus.policy_version` is required. |
+| 0.2.0 | A supplied `invite_code` on `lv_join_hub` is refused with `lv_policy_undecided` and `details.reason = "invite_code_unsupported"` (it was silently ignored in the first draft); account-bound invitations still work without a code. Provisional choices are now registered (`x-provisional`). `HubPublic.member_count` is now `number \| null` (null when the Hub is private and the caller is not an accepted member; previously always a number). Nine identity/Hub/membership operations move to `implemented-nonprod`. `lv_decide_join` can return `lv_invalid_input` and no longer lists `lv_hub_mismatch`; `lv_suspend_member` can return `lv_conflict`; `lv_remove_member` no longer lists `lv_hub_mismatch`. Capability `community.moderate` was renamed `community.comments.moderate` (0.1.0 to 0.2.0 pre-release rename). | Handle a null member count. Membership `roles` and `capabilities` are empty arrays until the roles migration lands; `Context.pending` is always present; `GateStatus.policy_version` is required. |
 | 0.1.0 | Initial contract. | |
