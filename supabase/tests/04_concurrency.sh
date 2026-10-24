@@ -7,8 +7,10 @@ OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
 
 P() { docker exec -i "$NAME" psql -U postgres -d "$DB" -X -q -At -v ON_ERROR_STOP=1 "$@"; }
-check() { # name, "select <boolean expression>"
-  P -c "insert into t.results (file, name, ok) select '04_concurrency', \$n\$$1\$n\$, coalesce(($2), false)" >/dev/null
+check() { # name, "select <boolean expression>". A check that errors is recorded as a FAILURE, never skipped.
+  if ! P -c "insert into t.results (file, name, ok) select '04_concurrency', \$n\$$1\$n\$, coalesce(($2), false)" >/dev/null 2>"$OUT/check.err"; then
+    P -c "insert into t.results (file, name, ok, detail) values ('04_concurrency', \$n\$$1\$n\$, false, \$d\$check errored: $(tr -d "'" < "$OUT/check.err" | head -c 200)\$d\$)" >/dev/null
+  fi
 }
 as_user() { # uid, sql  (one fresh connection, runs as the API role)
   P -c "set role authenticated" -c "set request.jwt.claim.sub = '$1'" -c "$2"
@@ -82,3 +84,65 @@ done
 wait
 check "Owner is never suspended under concurrent attempts" "select (select status from lv_private.hub_memberships where hub_id='$B' and account_id='$(U 11)') = 'accepted'"
 check "every attempt on the Owner was refused" "select $(cat "$OUT"/o.* | grep -c '^lv_forbidden$') = 6"
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Roles and ownership. Fixture: Hub A (LionCafe) already backfilled with Owner u2; synthetic Starter grant (3 slots).
+# ---------------------------------------------------------------------------------------------------------------
+P -c "insert into lv_private.entitlement_grants (hub_id, plan_code, source) values ('$A', 'starter', 'synthetic')" >/dev/null
+P -c "update lv_private.policy set value = '{\"max_age_seconds\": 300, \"methods\": [\"oauth\"]}'::jsonb where key = 'owner_transfer.reauth'" >/dev/null
+P -c "update lv_private.policy set value = '3600'::jsonb where key = 'owner_transfer.offer_ttl_seconds'" >/dev/null
+claims() { # uid -> JWT claims with a fresh oauth amr entry
+  printf '{"sub":"%s","amr":[{"method":"oauth","timestamp":%s}]}' "$1" "$(date +%s)"
+}
+as_authed() { # uid, sql
+  P -c "set role authenticated" -c "set request.jwt.claim.sub = '$1'" -c "set request.jwt.claims = '$(claims "$1")'" -c "$2"
+}
+
+echo "-- race 7: eight concurrent creations for the LAST free role slot (Starter has 3)"
+as_user "$(U 2)" "select public.lv_role_create('$A', 'Existing One', null, '{}')->>'ok'" >/dev/null
+as_user "$(U 2)" "select public.lv_role_create('$A', 'Existing Two', null, '{}')->>'ok'" >/dev/null
+for i in $(seq 1 8); do
+  as_user "$(U 2)" "select coalesce(public.lv_role_create('$A', 'Racer $i', null, '{}')->'error'->>'code', 'ok')" >"$OUT/r.$i" 2>&1 &
+done
+wait
+check "last-slot race: exactly one creation succeeds" "select $(cat "$OUT"/r.* | grep -c '^ok$') = 1"
+check "last-slot race: the other seven are lv_quota_exceeded" "select $(cat "$OUT"/r.* | grep -c '^lv_quota_exceeded$') = 7"
+check "last-slot race: never more than 3 roles exist" "select (select count(*) from lv_private.roles where hub_id = '$A') = 3"
+
+echo "-- race 8: assigning a role while the member is suspended, five of each at once"
+RID=$(P -c "select id from lv_private.roles where hub_id='$A' order by name limit 1")
+for i in 1 2 3 4 5; do
+  as_user "$(U 2)" "select public.lv_role_assign('$RID', '$(U 3)')->>'ok'" >"$OUT/as.$i" 2>&1 &
+  as_user "$(U 2)" "select public.lv_suspend_member('$A', '$(U 3)')->>'ok'" >"$OUT/su.$i" 2>&1 &
+done
+wait
+check "assign/suspend race: no role assignment survives for a non-accepted member" "select not exists (select 1 from lv_private.role_assignments ra join lv_private.hub_memberships m on m.hub_id = ra.hub_id and m.account_id = ra.account_id where m.status <> 'accepted')"
+check "assign/suspend race: the member ends suspended" "select (select status from lv_private.hub_memberships where hub_id='$A' and account_id='$(U 3)') = 'suspended'"
+P -c "update lv_private.hub_memberships set status = 'accepted' where hub_id='$A' and account_id='$(U 3)'" >/dev/null
+
+echo "-- race 9: competing ownership offers (4 to u3, 4 to u4, started at once by the Owner)"
+for i in 1 2 3 4; do
+  as_authed "$(U 2)" "select coalesce(public.lv_owner_transfer_start('$A', '$(U 3)')->'error'->>'code', 'ok')" >"$OUT/ts3.$i" 2>&1 &
+  as_authed "$(U 2)" "select coalesce(public.lv_owner_transfer_start('$A', '$(U 4)')->'error'->>'code', 'ok')" >"$OUT/ts4.$i" 2>&1 &
+done
+wait
+check "competing offers: exactly one start succeeded" "select $(cat "$OUT"/ts3.* "$OUT"/ts4.* | grep -c '^ok$') = 1"
+check "competing offers: exactly one pending offer exists" "select (select count(*) from lv_private.owner_transfer_offers where hub_id='$A' and status='pending') = 1"
+check "competing offers: the losers were lv_conflict" "select $(cat "$OUT"/ts3.* "$OUT"/ts4.* | grep -c '^lv_conflict$') = 7"
+
+echo "-- race 10: accept (x5) racing cancel (x3) on the one open offer"
+OFFER=$(P -c "select id from lv_private.owner_transfer_offers where hub_id='$A' and status='pending'")
+TO=$(P -c "select to_account_id from lv_private.owner_transfer_offers where id='$OFFER'")
+for i in 1 2 3 4 5; do
+  as_authed "$TO" "select coalesce(public.lv_owner_transfer_accept('$OFFER')->'error'->>'code', 'ok')" >"$OUT/ac.$i" 2>&1 &
+done
+for i in 1 2 3; do
+  as_authed "$(U 2)" "select coalesce(public.lv_owner_transfer_cancel('$OFFER')->'error'->>'code', 'ok')" >"$OUT/ca.$i" 2>&1 &
+done
+wait
+check "accept/cancel race: exactly one Owner afterwards" "select (select count(*) from lv_private.hub_memberships m where m.hub_id='$A' and lv_private.is_owner('$A', m.account_id)) = 1"
+check "accept/cancel race: the offer is accepted or cancelled, never both, never open" "select (select status from lv_private.owner_transfer_offers where id='$OFFER') in ('accepted','cancelled')"
+check "accept/cancel race: ownership agrees with the offer outcome" "select ((select status from lv_private.owner_transfer_offers where id='$OFFER') = 'accepted') = ((select owner_account_id from lv_private.hubs where id='$A') = '$TO')"
+check "accept/cancel race: at most one swap happened" "select (select count(*) from lv_private.owner_transfer_offers where hub_id='$A' and status='accepted') <= 1"
+check "accept/cancel race: the swap left no authorization token behind" "select (select count(*) from lv_private.owner_change_tokens) = 0"

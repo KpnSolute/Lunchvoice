@@ -45,4 +45,46 @@ export const PROVISIONAL = [
     summary: "Every legacy member of an organization becomes an accepted member of its Hub (backfill, signup mirror, repair), including students who have never used v2. Whether legacy accounts count as valid members for gates and discovery is undecided.",
     ops: ["lv_my_context", "lv_member_count"],
   },
+  {
+    id: "P-07",
+    decisions: ["D-02"],
+    summary: "Delegation: nobody can grant a capability they do not hold, and a non-Owner can edit, assign, unassign or delete a role only if they hold every capability that role carries. The founder has not decided how far role managers may reach (for example whether they may manage peers or lesser roles they only partly cover).",
+    ops: ["lv_role_create", "lv_role_update", "lv_role_delete", "lv_role_assign", "lv_role_unassign", "lv_role_set_capability"],
+  },
+  {
+    id: "P-08",
+    decisions: ["D-02"],
+    summary: "Enabling a whole capability category on a role requires holding every capability in it; there is no partial group grant. Disabling a category needs only authority over the role.",
+    ops: ["lv_role_set_group"],
+  },
+  {
+    id: "P-09",
+    decisions: ["D-02"],
+    summary: "A non-Owner can remove or suspend only a member whose capabilities are within their own. Whether peers or lesser roles may act on each other is undecided.",
+    ops: ["lv_remove_member", "lv_suspend_member"],
+  },
+  {
+    id: "P-10",
+    decisions: ["D-02"],
+    summary: "A member may hold several roles. Role assignments are dropped automatically when a membership stops being accepted (suspended, removed, left) and do not return on reinstatement. The Owner holds no roles (authority is direct); becoming Owner dissolves existing assignments.",
+    ops: ["lv_role_assign", "lv_suspend_member", "lv_remove_member", "lv_leave_hub", "lv_owner_transfer_accept", "lv_my_context"],
+  },
+  {
+    id: "P-11",
+    decisions: ["D-01", "D-02"],
+    summary: "Owner transfer reauthentication (required method and maximum age) and offer lifetime are UNDECIDED and unset in the database, so lv_owner_transfer_start/accept fail closed with lv_policy_undecided. When set, the database checks the amr claim of the access token; that does not prove the Google or central-identity reauthentication flow, which is a separate integration (D-01) with its own verification.",
+    ops: ["lv_owner_transfer_start", "lv_owner_transfer_accept"],
+  },
+  {
+    id: "P-12",
+    decisions: ["D-06"],
+    summary: "Custom role slots (Starter 3, Team 6, Owner excluded) are confirmed numbers, but they are read from entitlement grants and no real grant exists: a Hub without an active grant cannot create roles, a plan whose allowance is undecided (campaign plans, manual) answers lv_policy_undecided, and what happens when a downgrade leaves more roles than slots is undefined.",
+    ops: ["lv_role_create", "lv_role_list"],
+  },
+  {
+    id: "P-13",
+    decisions: ["D-02"],
+    summary: "The capability vocabulary (27 ids in Administration, Hub Appearance & Structure, Community & Campaigns) is a proposal. `community.moderate` was renamed `community.comments.moderate`. Ids may change before launch; the roles migration seeds them from a table, not code.",
+    ops: ["lv_capability_catalog", "lv_role_create", "lv_role_set_capability", "lv_role_set_group"],
+  },
 ];

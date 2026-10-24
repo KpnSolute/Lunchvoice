@@ -1,4 +1,4 @@
-# LunchVoice API contract (v0.2.0)
+# LunchVoice API contract (v0.3.0)
 
 Machine-readable contract for the backend, reconciled with all 49 frontend flows (F-01..F-49 in
 `docs/frontend/EXPERIENCE_PLAN.md`). Authored in `contract/src` (dependency-free JavaScript), emitted to
@@ -41,10 +41,12 @@ Error codes: `lv_unauthenticated`, `lv_forbidden`, `lv_not_member`, `lv_not_foun
 | `proposed` | Specified here, not built. Use a labelled mock adapter. |
 | `blocked-decision` | Cannot be built until the decisions in `x-decisions` are made (D-xx in `docs/archeture`). Show a "not available yet" state. |
 
-At v0.2.0 nine operations are `implemented-nonprod` (identity, Hub and membership: `lv_my_context`, `lv_hub_public`,
-`lv_member_count`, `lv_join_hub`, `lv_decide_join`, `lv_leave_hub`, `lv_remove_member`, `lv_suspend_member`,
-`lv_members_list`). They exist in migration `20261024000100` and are tested in a throwaway database; **none is applied to
-production**, so the real endpoints do not exist yet. Everything else is `proposed` or `blocked-decision`. A mock
+At v0.3.0 twenty-one operations are `implemented-nonprod`: identity, Hub and membership (migration `20261024000100`: `lv_my_context`,
+`lv_hub_public`, `lv_member_count`, `lv_join_hub`, `lv_decide_join`, `lv_leave_hub`, `lv_remove_member`, `lv_suspend_member`,
+`lv_members_list`) and roles, capabilities and Owner transfer (migration `20261024000200`: `lv_capability_catalog`, `lv_role_list`,
+`lv_role_create`, `lv_role_update`, `lv_role_delete`, `lv_role_assign`, `lv_role_unassign`, `lv_role_set_capability`,
+`lv_role_set_group`, `lv_owner_transfer_start`, `lv_owner_transfer_accept`, `lv_owner_transfer_cancel`). They are tested in a throwaway
+database; **none is applied to production**, so the real endpoints do not exist yet. Everything else is `proposed` or `blocked-decision`. A mock
 adapter must be visibly labelled and must never act as a production auth bypass.
 
 ### Capabilities, entitlements, undecided values
@@ -84,6 +86,15 @@ PostgREST and the same schemas could be served by another runtime later. FastAPI
 Stripe webhook receiver, identity brokering, scheduled jobs and connector ingress, not a requirement; those
 pieces could also be Edge Functions or database jobs. Work that does not depend on the choice continues.
 
+## Owner transfer and reauthentication
+
+`lv_owner_transfer_start` and `lv_owner_transfer_accept` fail closed with `lv_policy_undecided` until the founder sets the
+reauthentication requirement and offer lifetime (P-11). When set, they require a recently authenticated access token from BOTH the
+Owner and the recipient; if it is missing or stale the answer is `lv_forbidden` with `details.reason = "reauthentication_required"`.
+The UI must then send the person through sign-in again and retry with the new token. The database only checks the token's `amr`
+claim; whether Google or the central identity really forces a fresh sign-in (D-01) is a separate integration that no database test
+proves. Roles never grant Owner transfer or Hub deletion; they are outside the capability catalog.
+
 ## Provisional choices
 
 Some implemented behaviour is a placeholder, not approved policy. Each is registered in
@@ -96,5 +107,6 @@ to users as settled rules.
 
 | Version | Change | Frontend impact |
 | --- | --- | --- |
+| 0.3.0 | Twelve role, capability and Owner-transfer operations move to `implemented-nonprod`. `Membership.roles` and `Membership.capabilities` and `MemberRecord.roles` are now populated (the Owner's `capabilities` lists every delegable capability). New error details: `reason = cannot_grant_unheld_capability` (with `missing`), `role_exceeds_your_authority`, `target_exceeds_your_authority`, `reauthentication_required`. `lv_role_assign` and `lv_role_unassign` no longer list `lv_hub_mismatch`. `lv_role_update`: null leaves a field unchanged, an empty icon clears it. `lv_owner_transfer_start/accept` can return `lv_policy_undecided`. Provisional choices P-07 to P-13 registered. | Render custom roles, the three category toggles (Administration, Hub Appearance & Structure, Community & Campaigns) and slot usage from `lv_role_list`; show "not available yet" for Owner transfer until the policy is set; handle `reauthentication_required` by re-signing in; keep Owner transfer and Hub deletion out of any permission toggle UI. |
 | 0.2.0 | A supplied `invite_code` on `lv_join_hub` is refused with `lv_policy_undecided` and `details.reason = "invite_code_unsupported"` (it was silently ignored in the first draft); account-bound invitations still work without a code. Provisional choices are now registered (`x-provisional`). `HubPublic.member_count` is now `number \| null` (null when the Hub is private and the caller is not an accepted member; previously always a number). Nine identity/Hub/membership operations move to `implemented-nonprod`. `lv_decide_join` can return `lv_invalid_input` and no longer lists `lv_hub_mismatch`; `lv_suspend_member` can return `lv_conflict`; `lv_remove_member` no longer lists `lv_hub_mismatch`. Capability `community.moderate` was renamed `community.comments.moderate` (0.1.0 to 0.2.0 pre-release rename). | Handle a null member count. Membership `roles` and `capabilities` are empty arrays until the roles migration lands; `Context.pending` is always present; `GateStatus.policy_version` is required. |
 | 0.1.0 | Initial contract. | |

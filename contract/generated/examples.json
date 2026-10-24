@@ -1,5 +1,5 @@
 {
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Request/response pairs for mock adapters and contract tests. Synthetic data only.",
   "examples": [
     {
@@ -501,6 +501,205 @@
           "message": "Only the Owner can transfer ownership."
         },
         "request_id": "req_0015"
+      }
+    },
+    {
+      "operationId": "lv_role_create",
+      "name": "no-entitlement",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "name": "Moderator",
+        "capabilities": []
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_entitlement_missing",
+          "message": "This Hub has no plan that includes custom roles."
+        },
+        "request_id": "req_0043"
+      }
+    },
+    {
+      "operationId": "lv_role_create",
+      "name": "cannot-grant-unheld",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "name": "Escalate",
+        "capabilities": [
+          "community.campaign.activate"
+        ]
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_forbidden",
+          "message": "You cannot grant authority you do not hold.",
+          "details": {
+            "reason": "cannot_grant_unheld_capability",
+            "missing": [
+              "community.campaign.activate"
+            ]
+          }
+        },
+        "request_id": "req_0044"
+      }
+    },
+    {
+      "operationId": "lv_role_create",
+      "name": "ungrantable",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "name": "Nope",
+        "capabilities": [
+          "hub.delete"
+        ]
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_invalid_input",
+          "message": "Some capabilities cannot be granted.",
+          "details": {
+            "ungrantable": [
+              "hub.delete"
+            ]
+          }
+        },
+        "request_id": "req_0045"
+      }
+    },
+    {
+      "operationId": "lv_role_assign",
+      "name": "exceeds-authority",
+      "request": {
+        "role_id": "00000000-0000-4000-8003-000000000001",
+        "account_id": "00000000-0000-4000-8002-000000000003"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_forbidden",
+          "message": "You cannot grant authority you do not hold.",
+          "details": {
+            "reason": "role_exceeds_your_authority"
+          }
+        },
+        "request_id": "req_0046"
+      }
+    },
+    {
+      "operationId": "lv_role_set_group",
+      "name": "enable-category",
+      "request": {
+        "role_id": "00000000-0000-4000-8003-000000000001",
+        "category": "community",
+        "enabled": true
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "id": "00000000-0000-4000-8003-000000000001",
+          "hub_id": "00000000-0000-4000-8001-000000000001",
+          "name": "Surveyor",
+          "icon": "clipboard",
+          "capabilities": [
+            "community.campaign.draft",
+            "community.campaign.activate",
+            "community.campaign.close",
+            "community.analytics.view"
+          ],
+          "assigned_count": 1
+        },
+        "request_id": "req_0047"
+      }
+    },
+    {
+      "operationId": "lv_owner_transfer_start",
+      "name": "policy-undecided",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "to_account_id": "00000000-0000-4000-8002-000000000002"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_policy_undecided",
+          "message": "Ownership transfer is not available until its policy is set.",
+          "details": {
+            "missing": [
+              "owner_transfer.reauth",
+              "owner_transfer.offer_ttl_seconds"
+            ]
+          }
+        },
+        "request_id": "req_0048"
+      }
+    },
+    {
+      "operationId": "lv_owner_transfer_start",
+      "name": "reauthentication-required",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "to_account_id": "00000000-0000-4000-8002-000000000002"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_forbidden",
+          "message": "Sign in again to confirm this change.",
+          "details": {
+            "reason": "reauthentication_required"
+          }
+        },
+        "request_id": "req_0049"
+      }
+    },
+    {
+      "operationId": "lv_owner_transfer_accept",
+      "name": "accepted",
+      "request": {
+        "offer_id": "00000000-0000-4000-8007-000000000001"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "hub_id": "00000000-0000-4000-8001-000000000001",
+          "owner_account_id": "00000000-0000-4000-8002-000000000002"
+        },
+        "request_id": "req_0050"
+      }
+    },
+    {
+      "operationId": "lv_owner_transfer_accept",
+      "name": "stale",
+      "request": {
+        "offer_id": "00000000-0000-4000-8007-000000000001"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_lifecycle_invalid",
+          "message": "The Owner has changed since this offer was made.",
+          "details": {
+            "status": "superseded"
+          }
+        },
+        "request_id": "req_0051"
+      }
+    },
+    {
+      "operationId": "lv_owner_transfer_cancel",
+      "name": "declined",
+      "request": {
+        "offer_id": "00000000-0000-4000-8007-000000000001"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "done": true
+        },
+        "request_id": "req_0052"
       }
     },
     {
