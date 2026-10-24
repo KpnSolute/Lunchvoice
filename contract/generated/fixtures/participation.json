@@ -1,0 +1,43 @@
+{
+  "version": "0.1.0",
+  "description": "Receipts.",
+  "items": [
+    {
+      "name": "receipt.first",
+      "schema": "Receipt",
+      "data": {
+        "id": "00000000-0000-4000-8006-000000000001",
+        "campaign_id": "00000000-0000-4000-8004-000000000003",
+        "duplicate": false,
+        "points": 50,
+        "submitted_at": "2026-11-09T15:00:00Z"
+      }
+    },
+    {
+      "name": "receipt.duplicate",
+      "schema": "Receipt",
+      "data": {
+        "id": "00000000-0000-4000-8006-000000000001",
+        "campaign_id": "00000000-0000-4000-8004-000000000003",
+        "duplicate": true,
+        "points": 50,
+        "submitted_at": "2026-11-09T15:00:00Z"
+      }
+    },
+    {
+      "name": "receipt-list",
+      "schema": "ReceiptList",
+      "data": {
+        "receipts": [
+          {
+            "id": "00000000-0000-4000-8006-000000000001",
+            "campaign_id": "00000000-0000-4000-8004-000000000003",
+            "duplicate": false,
+            "points": 50,
+            "submitted_at": "2026-11-09T15:00:00Z"
+          }
+        ]
+      }
+    }
+  ]
+}

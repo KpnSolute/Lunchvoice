@@ -1,0 +1,224 @@
+{
+  "version": "0.1.0",
+  "description": "Capability catalog and custom roles.",
+  "items": [
+    {
+      "name": "capability-catalog",
+      "schema": "CapabilityCatalog",
+      "data": {
+        "capabilities": [
+          {
+            "id": "admin.settings.edit",
+            "category": "administration",
+            "delegable": true
+          },
+          {
+            "id": "admin.members.admit",
+            "category": "administration",
+            "delegable": true
+          },
+          {
+            "id": "admin.members.remove",
+            "category": "administration",
+            "delegable": true
+          },
+          {
+            "id": "admin.members.suspend",
+            "category": "administration",
+            "delegable": true
+          },
+          {
+            "id": "admin.directory.visibility",
+            "category": "administration",
+            "delegable": true
+          },
+          {
+            "id": "admin.roles.manage",
+            "category": "administration",
+            "delegable": true
+          },
+          {
+            "id": "admin.billing.view",
+            "category": "administration",
+            "delegable": true
+          },
+          {
+            "id": "admin.billing.manage",
+            "category": "administration",
+            "delegable": true
+          },
+          {
+            "id": "admin.slug.renew",
+            "category": "administration",
+            "delegable": true
+          },
+          {
+            "id": "admin.discovery.apply",
+            "category": "administration",
+            "delegable": true
+          },
+          {
+            "id": "structure.branding.edit",
+            "category": "structure",
+            "delegable": true
+          },
+          {
+            "id": "structure.navigation.edit",
+            "category": "structure",
+            "delegable": true
+          },
+          {
+            "id": "structure.pages.edit",
+            "category": "structure",
+            "delegable": true
+          },
+          {
+            "id": "structure.pages.publish",
+            "category": "structure",
+            "delegable": true
+          },
+          {
+            "id": "structure.pages.audience",
+            "category": "structure",
+            "delegable": true
+          },
+          {
+            "id": "structure.currency.edit",
+            "category": "structure",
+            "delegable": true
+          },
+          {
+            "id": "community.campaign.draft",
+            "category": "community",
+            "delegable": true
+          },
+          {
+            "id": "community.campaign.activate",
+            "category": "community",
+            "delegable": true
+          },
+          {
+            "id": "community.campaign.close",
+            "category": "community",
+            "delegable": true
+          },
+          {
+            "id": "community.campaign.audience",
+            "category": "community",
+            "delegable": true
+          },
+          {
+            "id": "community.comments.moderate",
+            "category": "community",
+            "delegable": true
+          },
+          {
+            "id": "community.analytics.view",
+            "category": "community",
+            "delegable": true
+          },
+          {
+            "id": "community.analytics.export",
+            "category": "community",
+            "delegable": true
+          },
+          {
+            "id": "community.analytics.publish",
+            "category": "community",
+            "delegable": true
+          },
+          {
+            "id": "community.shop.manage",
+            "category": "community",
+            "delegable": true
+          },
+          {
+            "id": "community.newsroom.manage",
+            "category": "community",
+            "delegable": true
+          },
+          {
+            "id": "community.leaderboard.manage",
+            "category": "community",
+            "delegable": true
+          }
+        ],
+        "owner_only": [
+          "hub.delete",
+          "hub.transfer_ownership"
+        ]
+      },
+      "description": "Proposed vocabulary (decision D-02)."
+    },
+    {
+      "name": "role.surveyor",
+      "schema": "Role",
+      "data": {
+        "id": "00000000-0000-4000-8003-000000000001",
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "name": "Surveyor",
+        "icon": "clipboard",
+        "capabilities": [
+          "community.campaign.draft",
+          "community.campaign.activate",
+          "community.campaign.close",
+          "community.analytics.view"
+        ],
+        "assigned_count": 1
+      }
+    },
+    {
+      "name": "role.moderator",
+      "schema": "Role",
+      "data": {
+        "id": "00000000-0000-4000-8003-000000000002",
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "name": "Moderator",
+        "icon": "shield",
+        "capabilities": [
+          "community.comments.moderate",
+          "admin.members.admit"
+        ],
+        "assigned_count": 0
+      }
+    },
+    {
+      "name": "role-list.hub-one",
+      "schema": "RoleList",
+      "data": {
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "roles": [
+          {
+            "id": "00000000-0000-4000-8003-000000000001",
+            "hub_id": "00000000-0000-4000-8001-000000000001",
+            "name": "Surveyor",
+            "icon": "clipboard",
+            "capabilities": [
+              "community.campaign.draft",
+              "community.campaign.activate",
+              "community.campaign.close",
+              "community.analytics.view"
+            ],
+            "assigned_count": 1
+          },
+          {
+            "id": "00000000-0000-4000-8003-000000000002",
+            "hub_id": "00000000-0000-4000-8001-000000000001",
+            "name": "Moderator",
+            "icon": "shield",
+            "capabilities": [
+              "community.comments.moderate",
+              "admin.members.admit"
+            ],
+            "assigned_count": 0
+          }
+        ],
+        "slots": {
+          "used": 2,
+          "limit": 3
+        }
+      },
+      "description": "Starter: 3 custom role slots; Owner does not consume one."
+    }
+  ]
+}

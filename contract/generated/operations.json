@@ -1,0 +1,1103 @@
+[
+  {
+    "id": "lv_my_context",
+    "kind": "rpc-v2",
+    "module": "identity",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_my_context",
+    "auth": "user",
+    "flows": [
+      "F-06",
+      "F-13",
+      "F-14",
+      "F-15",
+      "F-17",
+      "F-27"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "lv_account_export_request",
+    "kind": "rpc-v2",
+    "module": "identity",
+    "status": "blocked-decision",
+    "milestone": "M2",
+    "path": "/rest/v1/rpc/lv_account_export_request",
+    "auth": "user",
+    "flows": [
+      "F-16"
+    ],
+    "capabilities": [],
+    "decisions": [
+      "D-10"
+    ]
+  },
+  {
+    "id": "lv_hub_public",
+    "kind": "rpc-v2",
+    "module": "hubs",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_hub_public",
+    "auth": "anon",
+    "flows": [
+      "F-06",
+      "F-09"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "lv_join_hub",
+    "kind": "rpc-v2",
+    "module": "hubs",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_join_hub",
+    "auth": "user",
+    "flows": [
+      "F-07"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "lv_decide_join",
+    "kind": "rpc-v2",
+    "module": "hubs",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_decide_join",
+    "auth": "user",
+    "flows": [
+      "F-34"
+    ],
+    "capabilities": [
+      "admin.members.admit"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_leave_hub",
+    "kind": "rpc-v2",
+    "module": "hubs",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_leave_hub",
+    "auth": "user",
+    "flows": [
+      "F-14"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "lv_remove_member",
+    "kind": "rpc-v2",
+    "module": "hubs",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_remove_member",
+    "auth": "user",
+    "flows": [
+      "F-34"
+    ],
+    "capabilities": [
+      "admin.members.remove"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_suspend_member",
+    "kind": "rpc-v2",
+    "module": "hubs",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_suspend_member",
+    "auth": "user",
+    "flows": [
+      "F-34"
+    ],
+    "capabilities": [
+      "admin.members.suspend"
+    ],
+    "decisions": [
+      "D-05"
+    ]
+  },
+  {
+    "id": "lv_member_count",
+    "kind": "rpc-v2",
+    "module": "hubs",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_member_count",
+    "auth": "anon",
+    "flows": [
+      "F-06",
+      "F-43"
+    ],
+    "capabilities": [],
+    "decisions": [
+      "D-05"
+    ]
+  },
+  {
+    "id": "lv_members_list",
+    "kind": "rpc-v2",
+    "module": "hubs",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_members_list",
+    "auth": "user",
+    "flows": [
+      "F-34"
+    ],
+    "capabilities": [
+      "admin.members.admit"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_hub_settings_update",
+    "kind": "rpc-v2",
+    "module": "hubs",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_hub_settings_update",
+    "auth": "user",
+    "flows": [
+      "F-44"
+    ],
+    "capabilities": [
+      "admin.settings.edit"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_hub_delete",
+    "kind": "rpc-v2",
+    "module": "hubs",
+    "status": "blocked-decision",
+    "milestone": "M2",
+    "path": "/rest/v1/rpc/lv_hub_delete",
+    "auth": "user",
+    "flows": [
+      "F-44"
+    ],
+    "capabilities": [],
+    "decisions": [
+      "D-10"
+    ]
+  },
+  {
+    "id": "lv_hub_create",
+    "kind": "rpc-v2",
+    "module": "hubs",
+    "status": "blocked-decision",
+    "milestone": "M2",
+    "path": "/rest/v1/rpc/lv_hub_create",
+    "auth": "user",
+    "flows": [
+      "F-26"
+    ],
+    "capabilities": [],
+    "decisions": [
+      "D-06",
+      "D-07",
+      "D-09"
+    ]
+  },
+  {
+    "id": "lv_capability_catalog",
+    "kind": "rpc-v2",
+    "module": "roles",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_capability_catalog",
+    "auth": "user",
+    "flows": [
+      "F-35"
+    ],
+    "capabilities": [],
+    "decisions": [
+      "D-02"
+    ]
+  },
+  {
+    "id": "lv_role_list",
+    "kind": "rpc-v2",
+    "module": "roles",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_role_list",
+    "auth": "user",
+    "flows": [
+      "F-35"
+    ],
+    "capabilities": [
+      "admin.roles.manage"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_role_create",
+    "kind": "rpc-v2",
+    "module": "roles",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_role_create",
+    "auth": "user",
+    "flows": [
+      "F-35"
+    ],
+    "capabilities": [
+      "admin.roles.manage"
+    ],
+    "decisions": [
+      "D-02",
+      "D-06"
+    ]
+  },
+  {
+    "id": "lv_role_update",
+    "kind": "rpc-v2",
+    "module": "roles",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_role_update",
+    "auth": "user",
+    "flows": [
+      "F-35"
+    ],
+    "capabilities": [
+      "admin.roles.manage"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_role_delete",
+    "kind": "rpc-v2",
+    "module": "roles",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_role_delete",
+    "auth": "user",
+    "flows": [
+      "F-35"
+    ],
+    "capabilities": [
+      "admin.roles.manage"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_role_assign",
+    "kind": "rpc-v2",
+    "module": "roles",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_role_assign",
+    "auth": "user",
+    "flows": [
+      "F-35"
+    ],
+    "capabilities": [
+      "admin.roles.manage"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_role_unassign",
+    "kind": "rpc-v2",
+    "module": "roles",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_role_unassign",
+    "auth": "user",
+    "flows": [
+      "F-35"
+    ],
+    "capabilities": [
+      "admin.roles.manage"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_role_set_capability",
+    "kind": "rpc-v2",
+    "module": "roles",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_role_set_capability",
+    "auth": "user",
+    "flows": [
+      "F-35"
+    ],
+    "capabilities": [
+      "admin.roles.manage"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_role_set_group",
+    "kind": "rpc-v2",
+    "module": "roles",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_role_set_group",
+    "auth": "user",
+    "flows": [
+      "F-35"
+    ],
+    "capabilities": [
+      "admin.roles.manage"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_owner_transfer_start",
+    "kind": "rpc-v2",
+    "module": "roles",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_owner_transfer_start",
+    "auth": "user",
+    "flows": [
+      "F-35"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "lv_owner_transfer_accept",
+    "kind": "rpc-v2",
+    "module": "roles",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_owner_transfer_accept",
+    "auth": "user",
+    "flows": [
+      "F-35"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "lv_owner_transfer_cancel",
+    "kind": "rpc-v2",
+    "module": "roles",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_owner_transfer_cancel",
+    "auth": "user",
+    "flows": [
+      "F-35"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "lv_entitlements",
+    "kind": "rpc-v2",
+    "module": "entitlements",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_entitlements",
+    "auth": "user",
+    "flows": [
+      "F-02",
+      "F-26",
+      "F-27",
+      "F-41"
+    ],
+    "capabilities": [],
+    "decisions": [
+      "D-06"
+    ]
+  },
+  {
+    "id": "lv_gate_status",
+    "kind": "rpc-v2",
+    "module": "entitlements",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_gate_status",
+    "auth": "user",
+    "flows": [
+      "F-27",
+      "F-31",
+      "F-46"
+    ],
+    "capabilities": [
+      "community.campaign.activate"
+    ],
+    "decisions": [
+      "D-04"
+    ]
+  },
+  {
+    "id": "lv_grant_manual",
+    "kind": "rpc-v2",
+    "module": "entitlements",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_grant_manual",
+    "auth": "service",
+    "flows": [
+      "F-41"
+    ],
+    "capabilities": [],
+    "decisions": [
+      "D-06",
+      "D-07"
+    ]
+  },
+  {
+    "id": "lv_campaign_create",
+    "kind": "rpc-v2",
+    "module": "campaigns",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_campaign_create",
+    "auth": "user",
+    "flows": [
+      "F-28"
+    ],
+    "capabilities": [
+      "community.campaign.draft"
+    ],
+    "decisions": [
+      "D-08"
+    ]
+  },
+  {
+    "id": "lv_campaign_list",
+    "kind": "rpc-v2",
+    "module": "campaigns",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_campaign_list",
+    "auth": "user",
+    "flows": [
+      "F-27",
+      "F-28",
+      "F-46"
+    ],
+    "capabilities": [
+      "community.campaign.draft"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_campaign_get",
+    "kind": "rpc-v2",
+    "module": "campaigns",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_campaign_get",
+    "auth": "user",
+    "flows": [
+      "F-30",
+      "F-48"
+    ],
+    "capabilities": [
+      "community.campaign.draft"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_campaign_update",
+    "kind": "rpc-v2",
+    "module": "campaigns",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_campaign_update",
+    "auth": "user",
+    "flows": [
+      "F-29"
+    ],
+    "capabilities": [
+      "community.campaign.draft"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_campaign_questions",
+    "kind": "rpc-v2",
+    "module": "campaigns",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_campaign_questions",
+    "auth": "user",
+    "flows": [
+      "F-19",
+      "F-29"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "lv_campaign_schedule",
+    "kind": "rpc-v2",
+    "module": "campaigns",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_campaign_schedule",
+    "auth": "user",
+    "flows": [
+      "F-30"
+    ],
+    "capabilities": [
+      "community.campaign.activate"
+    ],
+    "decisions": [
+      "D-12"
+    ]
+  },
+  {
+    "id": "lv_campaign_activate",
+    "kind": "rpc-v2",
+    "module": "campaigns",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_campaign_activate",
+    "auth": "user",
+    "flows": [
+      "F-30",
+      "F-31",
+      "F-46"
+    ],
+    "capabilities": [
+      "community.campaign.activate"
+    ],
+    "decisions": [
+      "D-04",
+      "D-06",
+      "D-08"
+    ]
+  },
+  {
+    "id": "lv_campaign_close",
+    "kind": "rpc-v2",
+    "module": "campaigns",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_campaign_close",
+    "auth": "user",
+    "flows": [
+      "F-30",
+      "F-46"
+    ],
+    "capabilities": [
+      "community.campaign.close"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_campaign_share_create",
+    "kind": "rpc-v2",
+    "module": "campaigns",
+    "status": "blocked-decision",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_campaign_share_create",
+    "auth": "user",
+    "flows": [
+      "F-30"
+    ],
+    "capabilities": [
+      "community.campaign.audience"
+    ],
+    "decisions": [
+      "D-03"
+    ]
+  },
+  {
+    "id": "lv_campaign_resolve",
+    "kind": "rpc-v2",
+    "module": "participation",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_campaign_resolve",
+    "auth": "anon",
+    "flows": [
+      "F-04",
+      "F-18",
+      "F-22"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "lv_submit_response",
+    "kind": "rpc-v2",
+    "module": "participation",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_submit_response",
+    "auth": "user",
+    "flows": [
+      "F-19",
+      "F-21"
+    ],
+    "capabilities": [],
+    "decisions": [
+      "D-03",
+      "D-10"
+    ]
+  },
+  {
+    "id": "lv_my_receipts",
+    "kind": "rpc-v2",
+    "module": "participation",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_my_receipts",
+    "auth": "user",
+    "flows": [
+      "F-15",
+      "F-21"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "lv_analytics_query",
+    "kind": "rpc-v2",
+    "module": "analytics",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_analytics_query",
+    "auth": "user",
+    "flows": [
+      "F-32",
+      "F-46"
+    ],
+    "capabilities": [
+      "community.analytics.view"
+    ],
+    "decisions": [
+      "D-10"
+    ]
+  },
+  {
+    "id": "lv_analytics_export",
+    "kind": "rpc-v2",
+    "module": "analytics",
+    "status": "proposed",
+    "milestone": "M2",
+    "path": "/rest/v1/rpc/lv_analytics_export",
+    "auth": "user",
+    "flows": [
+      "F-33"
+    ],
+    "capabilities": [
+      "community.analytics.export"
+    ],
+    "decisions": [
+      "D-06",
+      "D-10"
+    ]
+  },
+  {
+    "id": "lv_analytics_embed_create",
+    "kind": "rpc-v2",
+    "module": "analytics",
+    "status": "proposed",
+    "milestone": "M2",
+    "path": "/rest/v1/rpc/lv_analytics_embed_create",
+    "auth": "user",
+    "flows": [
+      "F-33"
+    ],
+    "capabilities": [
+      "community.analytics.publish"
+    ],
+    "decisions": [
+      "D-10"
+    ]
+  },
+  {
+    "id": "lv_analytics_embed_revoke",
+    "kind": "rpc-v2",
+    "module": "analytics",
+    "status": "proposed",
+    "milestone": "M2",
+    "path": "/rest/v1/rpc/lv_analytics_embed_revoke",
+    "auth": "user",
+    "flows": [
+      "F-33"
+    ],
+    "capabilities": [
+      "community.analytics.publish"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_page_list",
+    "kind": "rpc-v2",
+    "module": "pages",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_page_list",
+    "auth": "anon",
+    "flows": [
+      "F-24",
+      "F-36",
+      "F-37"
+    ],
+    "capabilities": [],
+    "decisions": [
+      "D-11"
+    ]
+  },
+  {
+    "id": "lv_page_save_draft",
+    "kind": "rpc-v2",
+    "module": "pages",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_page_save_draft",
+    "auth": "user",
+    "flows": [
+      "F-36",
+      "F-37"
+    ],
+    "capabilities": [
+      "structure.pages.edit"
+    ],
+    "decisions": [
+      "D-11"
+    ]
+  },
+  {
+    "id": "lv_page_publish",
+    "kind": "rpc-v2",
+    "module": "pages",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_page_publish",
+    "auth": "user",
+    "flows": [
+      "F-36",
+      "F-37"
+    ],
+    "capabilities": [
+      "structure.pages.publish"
+    ],
+    "decisions": [
+      "D-11"
+    ]
+  },
+  {
+    "id": "lv_branding_update",
+    "kind": "rpc-v2",
+    "module": "pages",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_branding_update",
+    "auth": "user",
+    "flows": [
+      "F-38"
+    ],
+    "capabilities": [
+      "structure.branding.edit"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_leaderboard",
+    "kind": "rpc-v2",
+    "module": "pages",
+    "status": "proposed",
+    "milestone": "M2",
+    "path": "/rest/v1/rpc/lv_leaderboard",
+    "auth": "user",
+    "flows": [
+      "F-23"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "lv_comment_create",
+    "kind": "rpc-v2",
+    "module": "pages",
+    "status": "proposed",
+    "milestone": "M2",
+    "path": "/rest/v1/rpc/lv_comment_create",
+    "auth": "user",
+    "flows": [
+      "F-24"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "lv_comment_moderate",
+    "kind": "rpc-v2",
+    "module": "pages",
+    "status": "proposed",
+    "milestone": "M2",
+    "path": "/rest/v1/rpc/lv_comment_moderate",
+    "auth": "user",
+    "flows": [
+      "F-40"
+    ],
+    "capabilities": [
+      "community.comments.moderate"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_waitlist_join",
+    "kind": "rpc-v2",
+    "module": "growth",
+    "status": "proposed",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_waitlist_join",
+    "auth": "anon",
+    "flows": [
+      "F-01",
+      "F-03"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "lv_beta_admit",
+    "kind": "rpc-v2",
+    "module": "growth",
+    "status": "blocked-decision",
+    "milestone": "M2",
+    "path": "/rest/v1/rpc/lv_beta_admit",
+    "auth": "service",
+    "flows": [
+      "F-26",
+      "F-45"
+    ],
+    "capabilities": [],
+    "decisions": [
+      "D-07"
+    ]
+  },
+  {
+    "id": "lv_discovery_list",
+    "kind": "rpc-v2",
+    "module": "growth",
+    "status": "proposed",
+    "milestone": "M2",
+    "path": "/rest/v1/rpc/lv_discovery_list",
+    "auth": "anon",
+    "flows": [
+      "F-05"
+    ],
+    "capabilities": [],
+    "decisions": [
+      "D-05"
+    ]
+  },
+  {
+    "id": "lv_discovery_apply",
+    "kind": "rpc-v2",
+    "module": "growth",
+    "status": "proposed",
+    "milestone": "M2",
+    "path": "/rest/v1/rpc/lv_discovery_apply",
+    "auth": "user",
+    "flows": [
+      "F-43"
+    ],
+    "capabilities": [
+      "admin.discovery.apply"
+    ],
+    "decisions": [
+      "D-05"
+    ]
+  },
+  {
+    "id": "lv_checkout_create",
+    "kind": "rpc-v2",
+    "module": "billing",
+    "status": "blocked-decision",
+    "milestone": "M2",
+    "path": "/rest/v1/rpc/lv_checkout_create",
+    "auth": "user",
+    "flows": [
+      "F-02",
+      "F-41",
+      "F-42"
+    ],
+    "capabilities": [
+      "admin.billing.manage"
+    ],
+    "decisions": [
+      "D-06",
+      "D-08"
+    ]
+  },
+  {
+    "id": "lv_slug_claim",
+    "kind": "rpc-v2",
+    "module": "billing",
+    "status": "blocked-decision",
+    "milestone": "M2",
+    "path": "/rest/v1/rpc/lv_slug_claim",
+    "auth": "user",
+    "flows": [
+      "F-26"
+    ],
+    "capabilities": [
+      "admin.slug.renew"
+    ],
+    "decisions": [
+      "D-09"
+    ]
+  },
+  {
+    "id": "lv_connector_register",
+    "kind": "rpc-v2",
+    "module": "connectors",
+    "status": "blocked-decision",
+    "milestone": "TBD",
+    "path": "/rest/v1/rpc/lv_connector_register",
+    "auth": "user",
+    "flows": [],
+    "capabilities": [
+      "admin.settings.edit"
+    ],
+    "decisions": [
+      "D-13"
+    ]
+  },
+  {
+    "id": "login-start",
+    "kind": "edge",
+    "module": "legacy",
+    "status": "implemented",
+    "milestone": "legacy",
+    "path": "/functions/v1/login-start",
+    "auth": "anon",
+    "flows": [
+      "F-12"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "staff-sso",
+    "kind": "edge",
+    "module": "legacy",
+    "status": "implemented",
+    "milestone": "legacy",
+    "path": "/functions/v1/staff-sso",
+    "auth": "anon",
+    "flows": [
+      "F-12"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "staff-login",
+    "kind": "edge",
+    "module": "legacy",
+    "status": "implemented",
+    "milestone": "legacy",
+    "path": "/functions/v1/staff-login",
+    "auth": "anon",
+    "flows": [
+      "F-12"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "staff-status",
+    "kind": "edge",
+    "module": "legacy",
+    "status": "implemented",
+    "milestone": "legacy",
+    "path": "/functions/v1/staff-status",
+    "auth": "user",
+    "flows": [
+      "F-12",
+      "F-17"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "menu-sync",
+    "kind": "edge",
+    "module": "legacy",
+    "status": "implemented",
+    "milestone": "legacy",
+    "path": "/functions/v1/menu-sync",
+    "auth": "user",
+    "flows": [
+      "F-25"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "join_session",
+    "kind": "rpc-legacy",
+    "module": "legacy",
+    "status": "implemented",
+    "milestone": "legacy",
+    "path": "/rest/v1/rpc/join_session",
+    "auth": "user",
+    "flows": [
+      "F-04"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "join_available_session",
+    "kind": "rpc-legacy",
+    "module": "legacy",
+    "status": "implemented",
+    "milestone": "legacy",
+    "path": "/rest/v1/rpc/join_available_session",
+    "auth": "user",
+    "flows": [
+      "F-04"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "submit_response",
+    "kind": "rpc-legacy",
+    "module": "legacy",
+    "status": "implemented",
+    "milestone": "legacy",
+    "path": "/rest/v1/rpc/submit_response",
+    "auth": "user",
+    "flows": [
+      "F-19",
+      "F-21"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "redeem_item",
+    "kind": "rpc-legacy",
+    "module": "legacy",
+    "status": "implemented",
+    "milestone": "legacy",
+    "path": "/rest/v1/rpc/redeem_item",
+    "auth": "user",
+    "flows": [
+      "F-23"
+    ],
+    "capabilities": [],
+    "decisions": []
+  }
+]

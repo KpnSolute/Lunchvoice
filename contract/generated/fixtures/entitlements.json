@@ -1,0 +1,188 @@
+{
+  "version": "0.1.0",
+  "description": "Synthetic entitlements. A null limit means the policy is undecided; it is never unlimited.",
+  "items": [
+    {
+      "name": "entitlements.starter",
+      "schema": "Entitlements",
+      "data": {
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "plan_code": "starter",
+        "grants": [
+          {
+            "source": "synthetic",
+            "plan_code": "starter",
+            "valid_from": "2026-11-02T15:00:00Z",
+            "valid_to": null
+          }
+        ],
+        "limits": {
+          "roles": {
+            "used": 2,
+            "limit": 3
+          },
+          "pages": {
+            "used": 1,
+            "limit": 3
+          },
+          "active_total": {
+            "used": 3,
+            "limit": 15
+          },
+          "active_survey": {
+            "used": 1,
+            "limit": 2
+          }
+        },
+        "undecided": []
+      }
+    },
+    {
+      "name": "entitlements.team-with-undecided",
+      "schema": "Entitlements",
+      "data": {
+        "hub_id": "00000000-0000-4000-8001-000000000002",
+        "plan_code": "team",
+        "grants": [
+          {
+            "source": "synthetic",
+            "plan_code": "team",
+            "valid_from": "2026-11-02T15:00:00Z",
+            "valid_to": null
+          }
+        ],
+        "limits": {
+          "roles": {
+            "used": 0,
+            "limit": 6
+          },
+          "pages": {
+            "used": 0,
+            "limit": null
+          },
+          "active_total": {
+            "used": 0,
+            "limit": null
+          },
+          "active_survey": {
+            "used": 0,
+            "limit": 5
+          }
+        },
+        "undecided": [
+          "pages",
+          "active_total"
+        ]
+      },
+      "description": "Team totals for pages and active Campaigns are undecided (D-06)."
+    },
+    {
+      "name": "gate.starter-100-50-unmet",
+      "schema": "GateStatus",
+      "data": {
+        "scope": "Synthetic fixture: eligible accepted members and unique responders in the illustrative window",
+        "numerator": 50,
+        "denominator": 100,
+        "met": false,
+        "next_action": "More unique eligible members need to participate.",
+        "policy_version": "gate-policy-fixture-v1"
+      }
+    },
+    {
+      "name": "gate.starter-100-51-met",
+      "schema": "GateStatus",
+      "data": {
+        "scope": "Synthetic fixture: eligible accepted members and unique responders in the illustrative window",
+        "numerator": 51,
+        "denominator": 100,
+        "met": true,
+        "next_action": "Participation condition met. Quotas and entitlement are still checked by the server.",
+        "policy_version": "gate-policy-fixture-v1"
+      }
+    },
+    {
+      "name": "gate.team-100-19-unmet",
+      "schema": "GateStatus",
+      "data": {
+        "scope": "Synthetic fixture: eligible accepted members and unique responders in the illustrative window",
+        "numerator": 19,
+        "denominator": 100,
+        "met": false,
+        "next_action": "More unique eligible members need to participate.",
+        "policy_version": "gate-policy-fixture-v1"
+      }
+    },
+    {
+      "name": "gate.team-100-20-met",
+      "schema": "GateStatus",
+      "data": {
+        "scope": "Synthetic fixture: eligible accepted members and unique responders in the illustrative window",
+        "numerator": 20,
+        "denominator": 100,
+        "met": true,
+        "next_action": "Participation condition met. Quotas and entitlement are still checked by the server.",
+        "policy_version": "gate-policy-fixture-v1"
+      }
+    },
+    {
+      "name": "gate.starter-3-1-unmet",
+      "schema": "GateStatus",
+      "data": {
+        "scope": "Synthetic fixture: eligible accepted members and unique responders in the illustrative window",
+        "numerator": 1,
+        "denominator": 3,
+        "met": false,
+        "next_action": "More unique eligible members need to participate.",
+        "policy_version": "gate-policy-fixture-v1"
+      }
+    },
+    {
+      "name": "gate.starter-3-2-met",
+      "schema": "GateStatus",
+      "data": {
+        "scope": "Synthetic fixture: eligible accepted members and unique responders in the illustrative window",
+        "numerator": 2,
+        "denominator": 3,
+        "met": true,
+        "next_action": "Participation condition met. Quotas and entitlement are still checked by the server.",
+        "policy_version": "gate-policy-fixture-v1"
+      }
+    },
+    {
+      "name": "gate.team-3-0-unmet",
+      "schema": "GateStatus",
+      "data": {
+        "scope": "Synthetic fixture: eligible accepted members and unique responders in the illustrative window",
+        "numerator": 0,
+        "denominator": 3,
+        "met": false,
+        "next_action": "More unique eligible members need to participate.",
+        "policy_version": "gate-policy-fixture-v1"
+      }
+    },
+    {
+      "name": "gate.team-3-1-met",
+      "schema": "GateStatus",
+      "data": {
+        "scope": "Synthetic fixture: eligible accepted members and unique responders in the illustrative window",
+        "numerator": 1,
+        "denominator": 3,
+        "met": true,
+        "next_action": "Participation condition met. Quotas and entitlement are still checked by the server.",
+        "policy_version": "gate-policy-fixture-v1"
+      }
+    },
+    {
+      "name": "gate.zero-members-undecided",
+      "schema": "GateStatus",
+      "data": {
+        "scope": "Synthetic fixture: eligible accepted members and unique responders in the illustrative window",
+        "numerator": 0,
+        "denominator": 0,
+        "met": null,
+        "next_action": "Bootstrap policy pending. Activation of additional surveys is unavailable.",
+        "policy_version": "gate-policy-fixture-v1"
+      }
+    }
+  ]
+}

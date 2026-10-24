@@ -1,0 +1,178 @@
+{
+  "version": "0.1.0",
+  "description": "One failure envelope per error code.",
+  "items": [
+    {
+      "name": "error.lv_unauthenticated",
+      "schema": "LvFail",
+      "data": {
+        "ok": false,
+        "error": {
+          "code": "lv_unauthenticated",
+          "message": "Sign in to continue."
+        },
+        "request_id": "req_0100"
+      }
+    },
+    {
+      "name": "error.lv_forbidden",
+      "schema": "LvFail",
+      "data": {
+        "ok": false,
+        "error": {
+          "code": "lv_forbidden",
+          "message": "You do not have permission to do that."
+        },
+        "request_id": "req_0101"
+      }
+    },
+    {
+      "name": "error.lv_not_member",
+      "schema": "LvFail",
+      "data": {
+        "ok": false,
+        "error": {
+          "code": "lv_not_member",
+          "message": "You are not a member of this Hub."
+        },
+        "request_id": "req_0102"
+      }
+    },
+    {
+      "name": "error.lv_not_found",
+      "schema": "LvFail",
+      "data": {
+        "ok": false,
+        "error": {
+          "code": "lv_not_found",
+          "message": "Not found."
+        },
+        "request_id": "req_0103"
+      }
+    },
+    {
+      "name": "error.lv_hub_mismatch",
+      "schema": "LvFail",
+      "data": {
+        "ok": false,
+        "error": {
+          "code": "lv_hub_mismatch",
+          "message": "That item belongs to a different Hub."
+        },
+        "request_id": "req_0104"
+      }
+    },
+    {
+      "name": "error.lv_quota_exceeded",
+      "schema": "LvFail",
+      "data": {
+        "ok": false,
+        "error": {
+          "code": "lv_quota_exceeded",
+          "message": "A limit has been reached.",
+          "details": {
+            "limit": 3,
+            "used": 3
+          }
+        },
+        "request_id": "req_0105"
+      }
+    },
+    {
+      "name": "error.lv_gate_unmet",
+      "schema": "LvFail",
+      "data": {
+        "ok": false,
+        "error": {
+          "code": "lv_gate_unmet",
+          "message": "Participation requirement not met.",
+          "details": {
+            "numerator": 50,
+            "denominator": 100
+          }
+        },
+        "request_id": "req_0106"
+      }
+    },
+    {
+      "name": "error.lv_entitlement_missing",
+      "schema": "LvFail",
+      "data": {
+        "ok": false,
+        "error": {
+          "code": "lv_entitlement_missing",
+          "message": "This Hub's plan does not include that."
+        },
+        "request_id": "req_0107"
+      }
+    },
+    {
+      "name": "error.lv_lifecycle_invalid",
+      "schema": "LvFail",
+      "data": {
+        "ok": false,
+        "error": {
+          "code": "lv_lifecycle_invalid",
+          "message": "That is not allowed in the current state."
+        },
+        "request_id": "req_0108"
+      }
+    },
+    {
+      "name": "error.lv_conflict",
+      "schema": "LvFail",
+      "data": {
+        "ok": false,
+        "error": {
+          "code": "lv_conflict",
+          "message": "The data changed; reload and try again."
+        },
+        "request_id": "req_0109"
+      }
+    },
+    {
+      "name": "error.lv_policy_undecided",
+      "schema": "LvFail",
+      "data": {
+        "ok": false,
+        "error": {
+          "code": "lv_policy_undecided",
+          "message": "This is not available yet."
+        },
+        "request_id": "req_0110"
+      }
+    },
+    {
+      "name": "error.lv_rate_limited",
+      "schema": "LvFail",
+      "data": {
+        "ok": false,
+        "error": {
+          "code": "lv_rate_limited",
+          "message": "Too many requests; try again shortly.",
+          "details": {
+            "retry_after_seconds": 60
+          }
+        },
+        "request_id": "req_0111"
+      }
+    },
+    {
+      "name": "error.lv_invalid_input",
+      "schema": "LvFail",
+      "data": {
+        "ok": false,
+        "error": {
+          "code": "lv_invalid_input",
+          "message": "Check the highlighted fields.",
+          "details": {
+            "fields": [
+              "title"
+            ]
+          }
+        },
+        "request_id": "req_0112"
+      }
+    }
+  ]
+}
