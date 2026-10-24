@@ -47,6 +47,30 @@ export const campaignSchemas = {
     replay: bool(),
   }),
 
+  Blocker: obj(
+    {
+      code: ref("ErrorCode"),
+      message: str(),
+      details: any("Same shape as Error.details for that code, for example {limit_name, limit, used} for lv_quota_exceeded or {missing: [...]} for lv_policy_undecided."),
+    },
+    ["details"],
+  ),
+  GateState: obj({
+    applies: nullable(bool()),
+    met: nullable(bool()),
+    numerator: nullable(int({ minimum: 0 })),
+    denominator: nullable(int({ minimum: 0 })),
+    missing: arr(str(), { description: "Policy keys that are undecided; when non-empty the other fields are null (fail closed)." }),
+  }),
+  ActivationStatus: obj({
+    campaign_id: ref("Uuid"),
+    state: ref("CampaignState"),
+    can_activate: bool(),
+    blockers: arr(ref("Blocker"), { description: "Every reason activation would fail now, in the order the server checks them. Empty when can_activate is true." }),
+    quota: obj({ active_total: ref("Slots"), active_survey: ref("Slots") }),
+    gate: nullable(ref("GateState")),
+  }),
+
   QuestionType: enm(["rating", "text", "single_choice", "multi_choice", "yes_no", "flame", "slider", "nps", "ranking"], {
     description:
       "rating, text, single_choice, multi_choice, yes_no, flame and slider exist in production today (survey_questions_type_check). nps and ranking are v2 additions (M2 unless the Winter Survey questionnaire needs them; D-12).",

@@ -146,3 +146,72 @@ check "accept/cancel race: the offer is accepted or cancelled, never both, never
 check "accept/cancel race: ownership agrees with the offer outcome" "select ((select status from lv_private.owner_transfer_offers where id='$OFFER') = 'accepted') = ((select owner_account_id from lv_private.hubs where id='$A') = '$TO')"
 check "accept/cancel race: at most one swap happened" "select (select count(*) from lv_private.owner_transfer_offers where hub_id='$A' and status='accepted') <= 1"
 check "accept/cancel race: the swap left no authorization token behind" "select (select count(*) from lv_private.owner_change_tokens) = 0"
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Campaign activation. Hub A (Owner u2) holds the synthetic Starter grant: 2 survey slots. SYNTHETIC policy values.
+# ---------------------------------------------------------------------------------------------------------------
+P -c "update lv_private.policy set value = '[\"active\"]'::jsonb where key = 'quota.consuming_states'" >/dev/null
+P -c "update lv_private.policy set value = '{\"window_days\": 30}'::jsonb where key = 'gate.measurement'" >/dev/null
+P -c "update lv_private.policy set value = '{\"sources\": [\"v2\",\"legacy_backfill\",\"legacy_signup\",\"legacy_repair\"]}'::jsonb where key = 'gate.eligible_population'" >/dev/null
+P -c "update lv_private.policy set value = '{\"min_other_active_surveys\": 100}'::jsonb where key = 'gate.applies_to'" >/dev/null
+P -c "update lv_private.policy set value = '{\"zero_members\": \"unmet\"}'::jsonb where key = 'gate.bootstrap'" >/dev/null
+# Ownership may have moved in the accept-versus-cancel race above; act as whoever owns Hub A now.
+OWN=$(P -c "select owner_account_id from lv_private.hubs where id='$A'")
+mkdraft() { # title -> id
+  P -c "with c as (insert into lv_private.campaigns (hub_id, title, join_code) values ('$A', '$1', lv_private.new_join_code()) returning id), q as (insert into lv_private.campaign_questions (campaign_id, position, type, prompt) select id, 1, 'rating', 'Q' from c) select id from c"
+}
+closeall() { P -c "update lv_private.campaigns set state = 'closed' where hub_id = '$A' and state in ('active', 'scheduled')" >/dev/null; }
+activesurveys() { P -c "select count(*) from lv_private.campaigns where hub_id = '$A' and mode = 'survey' and state = 'active' and (closes_at is null or closes_at > now())"; }
+
+echo "-- race 11: eight drafts race for the last of two survey slots"
+closeall
+D0=$(mkdraft "Slot holder")
+as_user "$OWN" "select public.lv_campaign_activate('$D0', gen_random_uuid())->>'ok'" >/dev/null
+for i in $(seq 1 8); do ids[$i]=$(mkdraft "Racer $i"); done
+for i in $(seq 1 8); do
+  as_user "$OWN" "select coalesce(public.lv_campaign_activate('${ids[$i]}', gen_random_uuid())->'error'->>'code', 'ok')" >"$OUT/a.$i" 2>&1 &
+done
+wait
+check "last survey slot: exactly one activation wins" "select $(cat "$OUT"/a.* | grep -c '^ok$') = 1"
+check "last survey slot: the other seven are lv_quota_exceeded" "select $(cat "$OUT"/a.* | grep -c '^lv_quota_exceeded$') = 7"
+check "last survey slot: never more than 2 active surveys" "select $(activesurveys) = 2"
+
+echo "-- race 12: eight identical retries (same idempotency key) of one activation"
+closeall
+D1=$(mkdraft "Retried")
+KEY=$(P -c "select gen_random_uuid()")
+for i in $(seq 1 8); do
+  as_user "$OWN" "select public.lv_campaign_activate('$D1', '$KEY')->'data'->>'replay'" >"$OUT/rt.$i" 2>&1 &
+done
+wait
+check "retries: exactly one performed the activation (replay=false)" "select $(cat "$OUT"/rt.* | grep -c '^false$') = 1"
+check "retries: the other seven replayed the first result" "select $(cat "$OUT"/rt.* | grep -c '^true$') = 7"
+check "retries: one activation record and one active Campaign" "select (select count(*) from lv_private.campaign_activations where campaign_id = '$D1') = 1 and (select state from lv_private.campaigns where id = '$D1') = 'active'"
+
+echo "-- race 13: the scheduler and three manual activations race for the last slot"
+closeall
+D2=$(mkdraft "Slot holder two")
+as_user "$OWN" "select public.lv_campaign_activate('$D2', gen_random_uuid())->>'ok'" >/dev/null
+SCH=$(mkdraft "Scheduled racer")
+P -c "update lv_private.campaigns set state = 'scheduled', opens_at = now() - interval '1 minute', scheduled_by = '$OWN' where id = '$SCH'" >/dev/null
+for i in 1 2 3; do ids[$i]=$(mkdraft "Manual racer $i"); done
+P -c "select (lv_private.run_scheduled_activations()->>'activated')" >"$OUT/sch.out" 2>&1 &
+for i in 1 2 3; do
+  as_user "$OWN" "select coalesce(public.lv_campaign_activate('${ids[$i]}', gen_random_uuid())->'error'->>'code', 'ok')" >"$OUT/m.$i" 2>&1 &
+done
+wait
+check "scheduler vs manual: never more than 2 active surveys" "select $(activesurveys) = 2"
+check "scheduler vs manual: exactly one of the four took the slot" "select $(( $(cat "$OUT"/m.* | grep -c '^ok$') + $(cat "$OUT/sch.out" | tr -d ' \n') )) = 1"
+
+echo "-- race 14: closing and reopening the same Campaign concurrently"
+closeall
+D3=$(mkdraft "Flapper")
+as_user "$OWN" "select public.lv_campaign_activate('$D3', gen_random_uuid())->>'ok'" >/dev/null
+for i in 1 2 3 4; do
+  as_user "$OWN" "select public.lv_campaign_close('$D3')->>'ok'" >"$OUT/cl.$i" 2>&1 &
+  as_user "$OWN" "select coalesce(public.lv_campaign_activate('$D3', gen_random_uuid())->'error'->>'code', 'ok')" >"$OUT/ro.$i" 2>&1 &
+done
+wait
+check "close/reopen race: the Campaign is in exactly one coherent state" "select (select state from lv_private.campaigns where id = '$D3') in ('active', 'closed')"
+check "close/reopen race: never more than 2 active surveys and participation untouched" "select $(activesurveys) <= 2"

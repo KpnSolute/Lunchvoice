@@ -8,6 +8,19 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added v2 entitlement limits and the Campaign lifecycle (migration `20261024000300_v2_entitlements_campaign_lifecycle.sql`,
+  **not applied to production**, stacked on the roles migration) and eleven `lv_*` RPCs (contract v0.4.0, `implemented-nonprod`), including
+  the new read-only `lv_campaign_activation_status` that gives the UI server-derived blockers, quota and gate state. Campaigns move draft,
+  scheduled, active, closed, expired; manual activation, reopening and scheduled activation all run one function under a Hub-level lock that
+  checks permission, lifecycle, entitlement, quota and gate in order; retries replay the first result; a past closing time reads as expired
+  immediately and frees the slot. Limits are the confirmed numbers (Starter 15 active / 2 surveys, Team 5 surveys) from entitlement grants,
+  Team pages and totals stay NULL and fail closed, and a beta/manual grant defines no limits (no free paid tier). The gate compares exact
+  integers (Starter strictly above 50%, Team at least 20%) over distinct eligible accepted members; guests and repeat responses cannot add.
+  Five unresolved rules (which states use a slot, gate window, eligible population, which survey it first applies to, empty-population
+  bootstrap) live in `lv_private.policy`, are UNSET by the migration, and make activation return `lv_policy_undecided` with the missing keys;
+  tests use clearly synthetic values. No grant is created. Operator jobs `expire_due_campaigns` and `run_scheduled_activations` exist but no
+  scheduler is configured. 553 database checks (new: campaigns 90, gate 49, four activation races: last survey slot, identical retries,
+  scheduler versus manual, close/reopen); eight mutations are caught. Provisional register P-14 to P-19.
 - Added v2 custom roles, capabilities and Owner transfer (migration `20261024000200_v2_roles_capabilities_owner_transfer.sql`,
   **not applied to production**, stacked on the identity/Hub migration) and twelve `lv_*` RPCs (contract v0.3.0, `implemented-nonprod`).
   27 proposed capabilities in three categories (Administration, Hub Appearance & Structure, Community & Campaigns) with individual and

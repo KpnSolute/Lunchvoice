@@ -1,5 +1,5 @@
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Reference cases for the participation gate (integer arithmetic, no rounding). met=null means the bootstrap rule is undecided.",
   "cases": [
     {

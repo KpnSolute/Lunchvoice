@@ -8,6 +8,9 @@ select t.as_user(t.u(2));
 select public.lv_role_create(t.org_a(), 'Moderator', null, array['admin.members.admit']);
 select public.lv_role_assign(t.q($$select id from lv_private.roles where hub_id = t.org_a()$$)::uuid, t.u(3));
 select t.as_pg();
+insert into lv_private.campaigns (hub_id, title, join_code) values (t.org_a(), 'Rollback fixture', 'RB2345');
+insert into lv_private.campaign_participation (campaign_id, hub_id, account_id) select c.id, t.org_a(), t.u(3) from lv_private.campaigns c where c.join_code = 'RB2345';
 select t.check('precondition: v2 data, a role and an assignment exist before rollback',
-  (select count(*) from lv_private.hub_memberships) = 6 and t.q('select count(*) from lv_private.role_assignments') = '1');
+  (select count(*) from lv_private.hub_memberships) = 6 and t.q('select count(*) from lv_private.role_assignments') = '1'
+  and t.q('select count(*) from lv_private.campaign_participation') = '1');
 commit;

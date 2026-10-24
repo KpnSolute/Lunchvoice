@@ -371,6 +371,32 @@ export type ActivationResult = {
   replay: boolean;
 };
 
+export type Blocker = {
+  code: ErrorCode;
+  message: string;
+  details?: unknown;
+};
+
+export type GateState = {
+  applies: boolean | null;
+  met: boolean | null;
+  numerator: number | null;
+  denominator: number | null;
+  missing: string[];
+};
+
+export type ActivationStatus = {
+  campaign_id: Uuid;
+  state: CampaignState;
+  can_activate: boolean;
+  blockers: Blocker[];
+  quota: {
+    active_total: Slots;
+    active_survey: Slots;
+  };
+  gate: GateState | null;
+};
+
 export type QuestionType = "rating" | "text" | "single_choice" | "multi_choice" | "yes_no" | "flame" | "slider" | "nps" | "ranking";
 
 export type Question = {
@@ -772,17 +798,18 @@ export interface OperationMap {
   lv_owner_transfer_start: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_owner_transfer_start"; request: OwnerTransferStart; result: LvResult<OwnerTransferOffer> };
   lv_owner_transfer_accept: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_owner_transfer_accept"; request: OwnerTransferRef; result: LvResult<OwnerTransferResult> };
   lv_owner_transfer_cancel: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_owner_transfer_cancel"; request: OwnerTransferRef; result: LvResult<BoolResult> };
-  lv_entitlements: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_entitlements"; request: HubRef; result: LvResult<Entitlements> };
-  lv_gate_status: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_gate_status"; request: GateStatusRequest; result: LvResult<GateStatus> };
+  lv_entitlements: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_entitlements"; request: HubRef; result: LvResult<Entitlements> };
+  lv_gate_status: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_gate_status"; request: GateStatusRequest; result: LvResult<GateStatus> };
   lv_grant_manual: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_grant_manual"; request: ManualGrantRequest; result: LvResult<Entitlements> };
-  lv_campaign_create: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_create"; request: CampaignCreateRequest; result: LvResult<Campaign> };
-  lv_campaign_list: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_list"; request: CampaignListRequest; result: LvResult<CampaignList> };
-  lv_campaign_get: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_get"; request: CampaignRef; result: LvResult<Campaign> };
-  lv_campaign_update: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_update"; request: CampaignUpdateRequest; result: LvResult<Campaign> };
-  lv_campaign_questions: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_questions"; request: CampaignRef; result: LvResult<QuestionSet> };
-  lv_campaign_schedule: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_schedule"; request: CampaignScheduleRequest; result: LvResult<Campaign> };
-  lv_campaign_activate: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_activate"; request: ActivateRequest; result: LvResult<ActivationResult> };
-  lv_campaign_close: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_close"; request: CampaignRef; result: LvResult<Campaign> };
+  lv_campaign_create: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_create"; request: CampaignCreateRequest; result: LvResult<Campaign> };
+  lv_campaign_list: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_list"; request: CampaignListRequest; result: LvResult<CampaignList> };
+  lv_campaign_get: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_get"; request: CampaignRef; result: LvResult<Campaign> };
+  lv_campaign_update: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_update"; request: CampaignUpdateRequest; result: LvResult<Campaign> };
+  lv_campaign_questions: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_questions"; request: CampaignRef; result: LvResult<QuestionSet> };
+  lv_campaign_schedule: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_schedule"; request: CampaignScheduleRequest; result: LvResult<Campaign> };
+  lv_campaign_activate: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_activate"; request: ActivateRequest; result: LvResult<ActivationResult> };
+  lv_campaign_activation_status: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_activation_status"; request: CampaignRef; result: LvResult<ActivationStatus> };
+  lv_campaign_close: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_close"; request: CampaignRef; result: LvResult<Campaign> };
   lv_campaign_share_create: { kind: "rpc-v2"; status: "blocked-decision"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_share_create"; request: ShareRequest; result: LvResult<ShareResult> };
   lv_campaign_resolve: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_resolve"; request: CampaignResolveRequest; result: LvResult<CampaignResolveResult> };
   lv_submit_response: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_submit_response"; request: SubmitResponseRequest; result: LvResult<Receipt> };

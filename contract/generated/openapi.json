@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "LunchVoice API",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "description": "Machine-readable contract for LunchVoice. v2 operations are Postgres functions behind PostgREST RPC returning a 200 envelope; legacy operations are the live v1 surface. Per-operation x-status says whether it exists: implemented (production), implemented-nonprod, proposed, blocked-decision. A null limit means undecided, never unlimited."
   },
   "servers": [
@@ -2365,12 +2365,12 @@
     "/rest/v1/rpc/lv_entitlements": {
       "post": {
         "operationId": "lv_entitlements",
-        "summary": "Effective plan, grants and limit usage for a Hub. A null limit means the policy is undecided, never unlimited.",
+        "summary": "Effective plan, active grants and limit usage for a Hub. A null limit means the policy is undecided, never unlimited. A Hub with no active grant has plan_code null and no grants.",
         "tags": [
           "entitlements"
         ],
         "x-module": "entitlements",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-02",
@@ -2378,12 +2378,19 @@
           "F-27",
           "F-41"
         ],
-        "x-capabilities": [],
+        "x-capabilities": [
+          "admin.billing.view"
+        ],
         "x-decisions": [
-          "D-06"
+          "D-06",
+          "D-07"
         ],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-14",
+          "P-17",
+          "P-18"
+        ],
         "security": [
           {
             "apikey": [],
@@ -2394,7 +2401,8 @@
         "x-errors": [
           "lv_unauthenticated",
           "lv_forbidden",
-          "lv_not_found"
+          "lv_not_found",
+          "lv_invalid_input"
         ],
         "responses": {
           "200": {
@@ -2462,7 +2470,7 @@
           "entitlements"
         ],
         "x-module": "entitlements",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-27",
@@ -2473,23 +2481,31 @@
           "community.campaign.activate"
         ],
         "x-decisions": [
-          "D-04"
+          "D-04",
+          "D-05",
+          "D-06"
         ],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-15",
+          "P-16",
+          "P-18"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
-        "description": "Integer comparisons: Starter 2R > M, Team 5R >= M, M > 0. M = 0 returns lv_policy_undecided until a bootstrap rule is approved.",
+        "description": "Integer comparisons: Starter strictly more than 50% (2R > M), Team at least 20% (5R >= M), R = distinct eligible accepted members who took part (guests and repeat responses cannot add), M = eligible accepted members. Fails closed with lv_policy_undecided and details.missing when any of these is undecided: gate.measurement (window), gate.eligible_population, gate.applies_to, quota.consuming_states, gate.rule_for_plan (the plan has no decided rule) or gate.bootstrap (only when M = 0) (P-15, P-16). met is true with a \"no requirement\" next_action when the gate does not apply to the next survey. policy_version is \"provisional-\" plus a hash of the policy values.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
           "lv_forbidden",
           "lv_not_found",
-          "lv_policy_undecided"
+          "lv_policy_undecided",
+          "lv_entitlement_missing",
+          "lv_invalid_input"
         ],
         "responses": {
           "200": {
@@ -2649,7 +2665,7 @@
           "campaigns"
         ],
         "x-module": "campaigns",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-28"
@@ -2658,16 +2674,20 @@
           "community.campaign.draft"
         ],
         "x-decisions": [
+          "D-03",
           "D-08"
         ],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-19"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
+        "description": "survey is the only available mode (others return lv_policy_undecided, details.decision = D-08); guest_access link returns lv_policy_undecided (D-03). Drafts need no entitlement; the join code (6 characters) is generated now. anonymous is stored but its analytics are policy-pending (D-10).",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
@@ -2742,7 +2762,7 @@
           "campaigns"
         ],
         "x-module": "campaigns",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-27",
@@ -2761,11 +2781,13 @@
             "userJwt": []
           }
         ],
+        "description": "Visible to anyone holding community.campaign.draft, .activate or .close. A Campaign past its closing time is listed as expired even before the expiry job persists it.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
           "lv_forbidden",
-          "lv_not_found"
+          "lv_not_found",
+          "lv_invalid_input"
         ],
         "responses": {
           "200": {
@@ -2833,7 +2855,7 @@
           "campaigns"
         ],
         "x-module": "campaigns",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-30",
@@ -2851,6 +2873,7 @@
             "userJwt": []
           }
         ],
+        "description": "Visible to anyone holding community.campaign.draft, .activate or .close.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
@@ -2923,7 +2946,7 @@
           "campaigns"
         ],
         "x-module": "campaigns",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-29"
@@ -2933,13 +2956,16 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-19"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
+        "description": "Draft only (lv_lifecycle_invalid, details.reason = not_a_draft). Passing questions replaces the whole set and increments the revision; omitted fields are unchanged. required defaults to false; scale defaults to 1..5.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
@@ -3014,7 +3040,7 @@
           "campaigns"
         ],
         "x-module": "campaigns",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-19",
@@ -3030,6 +3056,7 @@
             "userJwt": []
           }
         ],
+        "description": "Editors (community.campaign.draft) see any state. Other accepted members see the questions only while the Campaign is active (otherwise lv_lifecycle_invalid). Guests and non-members are not served yet.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
@@ -3103,7 +3130,7 @@
           "campaigns"
         ],
         "x-module": "campaigns",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-30"
@@ -3115,14 +3142,16 @@
           "D-12"
         ],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-19"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
-        "description": "The Winter Survey times are not defined anywhere in this contract (D-12).",
+        "description": "Draft or scheduled only. Times are timestamps with offset; nothing here defines the Winter Survey time or timezone (D-12). Scheduling reserves nothing: entitlement, quota, gate and lifecycle are checked again when the Campaign opens (P-19). The person who scheduled it must still hold community.campaign.activate at that moment.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
@@ -3197,7 +3226,7 @@
           "campaigns"
         ],
         "x-module": "campaigns",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-30",
@@ -3210,17 +3239,25 @@
         "x-decisions": [
           "D-04",
           "D-06",
-          "D-08"
+          "D-08",
+          "D-12"
         ],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-14",
+          "P-15",
+          "P-16",
+          "P-17",
+          "P-18",
+          "P-19"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
-        "description": "A retry with the same idempotency_key returns the first result with replay=true and never restarts a clock. Also used for reopen.",
+        "description": "One atomic path under a Hub-level lock for manual activation, reopening a closed Campaign and scheduled activation: permission, lifecycle, entitlement, quota, gate, in that order. A retry with the same idempotency_key (same actor) returns the first result with replay=true and never restarts a clock; another actor with that key gets lv_conflict; a NEW key on an already active Campaign is lv_lifecycle_invalid (reason already_active). Failures carry details: quota {limit_name, limit, used}; gate {numerator, denominator, plan}; policy {reason, missing}; lifecycle {reason, state}. Responses are never touched by closing, expiry or reopening.",
         "x-idempotent": true,
         "x-errors": [
           "lv_unauthenticated",
@@ -3231,7 +3268,8 @@
           "lv_entitlement_missing",
           "lv_lifecycle_invalid",
           "lv_policy_undecided",
-          "lv_conflict"
+          "lv_conflict",
+          "lv_invalid_input"
         ],
         "responses": {
           "200": {
@@ -3291,6 +3329,104 @@
         }
       }
     },
+    "/rest/v1/rpc/lv_campaign_activation_status": {
+      "post": {
+        "operationId": "lv_campaign_activation_status",
+        "summary": "Server-derived answer to \"can this Campaign be activated now, and if not why\": every blocker in priority order plus the quota and gate state to display.",
+        "tags": [
+          "campaigns"
+        ],
+        "x-module": "campaigns",
+        "x-status": "implemented-nonprod",
+        "x-milestone": "M1",
+        "x-flows": [
+          "F-30",
+          "F-31",
+          "F-46"
+        ],
+        "x-capabilities": [
+          "community.campaign.activate"
+        ],
+        "x-decisions": [
+          "D-04",
+          "D-06"
+        ],
+        "x-auth": "user",
+        "x-provisional": [
+          "P-14",
+          "P-15"
+        ],
+        "security": [
+          {
+            "apikey": [],
+            "userJwt": []
+          }
+        ],
+        "description": "Read-only and computed by the same function that enforces activation, so it cannot disagree with lv_campaign_activate. The UI displays it; it is never the enforcement authority (activation re-checks everything).",
+        "x-idempotent": false,
+        "x-errors": [
+          "lv_unauthenticated",
+          "lv_forbidden",
+          "lv_not_found"
+        ],
+        "responses": {
+          "200": {
+            "description": "Envelope: success, or a failure with a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "const": true
+                        },
+                        "data": {
+                          "$ref": "#/components/schemas/ActivationStatus"
+                        },
+                        "request_id": {
+                          "$ref": "#/components/schemas/RequestId"
+                        }
+                      },
+                      "required": [
+                        "ok",
+                        "data",
+                        "request_id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "$ref": "#/components/schemas/LvFail"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Transport or gateway error (PostgREST).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostgrestError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignRef"
+              }
+            }
+          }
+        }
+      }
+    },
     "/rest/v1/rpc/lv_campaign_close": {
       "post": {
         "operationId": "lv_campaign_close",
@@ -3299,7 +3435,7 @@
           "campaigns"
         ],
         "x-module": "campaigns",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-30",
@@ -3310,13 +3446,16 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-19"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
+        "description": "Active to closed; closing a closed or expired Campaign returns it unchanged; a draft or scheduled one is lv_lifecycle_invalid. Participation records are untouched.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
@@ -7657,6 +7796,127 @@
           "replay"
         ]
       },
+      "Blocker": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "description": "Same shape as Error.details for that code, for example {limit_name, limit, used} for lv_quota_exceeded or {missing: [...]} for lv_policy_undecided."
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "GateState": {
+        "type": "object",
+        "properties": {
+          "applies": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "met": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "numerator": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "denominator": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Policy keys that are undecided; when non-empty the other fields are null (fail closed)."
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "applies",
+          "met",
+          "numerator",
+          "denominator",
+          "missing"
+        ]
+      },
+      "ActivationStatus": {
+        "type": "object",
+        "properties": {
+          "campaign_id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "state": {
+            "$ref": "#/components/schemas/CampaignState"
+          },
+          "can_activate": {
+            "type": "boolean"
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Blocker"
+            },
+            "description": "Every reason activation would fail now, in the order the server checks them. Empty when can_activate is true."
+          },
+          "quota": {
+            "type": "object",
+            "properties": {
+              "active_total": {
+                "$ref": "#/components/schemas/Slots"
+              },
+              "active_survey": {
+                "$ref": "#/components/schemas/Slots"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "active_total",
+              "active_survey"
+            ]
+          },
+          "gate": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GateState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "campaign_id",
+          "state",
+          "can_activate",
+          "blockers",
+          "quota",
+          "gate"
+        ]
+      },
       "QuestionType": {
         "type": "string",
         "enum": [
@@ -9248,14 +9508,16 @@
         "lv_campaign_get",
         "lv_campaign_share_create",
         "lv_campaign_activate",
-        "lv_campaign_close"
+        "lv_campaign_close",
+        "lv_campaign_activation_status"
       ]
     },
     "F-31": {
       "name": "Activation",
       "operations": [
         "lv_campaign_activate",
-        "lv_gate_status"
+        "lv_gate_status",
+        "lv_campaign_activation_status"
       ]
     },
     "F-32": {
@@ -9373,7 +9635,8 @@
         "lv_gate_status",
         "lv_campaign_activate",
         "lv_campaign_close",
-        "lv_analytics_query"
+        "lv_analytics_query",
+        "lv_campaign_activation_status"
       ],
       "client": "fallback runbook switch is operational, not an API"
     },
@@ -9547,6 +9810,81 @@
         "lv_role_set_group"
       ],
       "summary": "The capability vocabulary (27 ids in Administration, Hub Appearance & Structure, Community & Campaigns) is a proposal. `community.moderate` was renamed `community.comments.moderate`. Ids may change before launch; the roles migration seeds them from a table, not code."
+    },
+    {
+      "id": "P-14",
+      "decisions": [
+        "D-06"
+      ],
+      "operations": [
+        "lv_campaign_activate",
+        "lv_campaign_activation_status",
+        "lv_entitlements"
+      ],
+      "summary": "Which Campaign states consume an active-Campaign slot is UNDECIDED (only active? also scheduled?). Activation fails closed (lv_policy_undecided, missing quota.consuming_states) until set. The `used` numbers shown in lv_entitlements and lv_campaign_activation_status count Campaigns that are currently active only."
+    },
+    {
+      "id": "P-15",
+      "decisions": [
+        "D-04",
+        "D-05"
+      ],
+      "operations": [
+        "lv_gate_status",
+        "lv_campaign_activate",
+        "lv_campaign_activation_status"
+      ],
+      "summary": "The participation gate's measurement window, eligible population, and which survey it first applies to (for example the second active survey) are UNDECIDED and unset. Only the comparisons are confirmed (Starter strictly above 50%, Team at least 20%, unique eligible accepted members, exact integers). Test values are illustrative and not policy."
+    },
+    {
+      "id": "P-16",
+      "decisions": [
+        "D-04"
+      ],
+      "operations": [
+        "lv_gate_status",
+        "lv_campaign_activate"
+      ],
+      "summary": "Gate result when the eligible population is empty (bootstrap) is UNDECIDED; it fails closed with missing gate.bootstrap rather than defaulting to met or unmet."
+    },
+    {
+      "id": "P-17",
+      "decisions": [
+        "D-06"
+      ],
+      "operations": [
+        "lv_entitlements",
+        "lv_campaign_activate"
+      ],
+      "summary": "Team page and active-Campaign totals are UNDECIDED and stay null (never unlimited). Because activation needs a decided total, a Team-only Hub cannot activate any Campaign until D-06 sets it."
+    },
+    {
+      "id": "P-18",
+      "decisions": [
+        "D-06",
+        "D-07"
+      ],
+      "operations": [
+        "lv_entitlements",
+        "lv_campaign_activate",
+        "lv_gate_status"
+      ],
+      "summary": "Beta, manual and Campaign-plan grants carry no decided limits, so they activate nothing: beta access is not assumed to be a free paid tier. A Hub with no active grant gets lv_entitlement_missing."
+    },
+    {
+      "id": "P-19",
+      "decisions": [
+        "D-08",
+        "D-12"
+      ],
+      "operations": [
+        "lv_campaign_create",
+        "lv_campaign_update",
+        "lv_campaign_schedule",
+        "lv_campaign_activate",
+        "lv_campaign_close"
+      ],
+      "summary": "Lifecycle rules chosen for testability: only drafts are editable; a Campaign expires when its closing time passes and cannot be reopened; a closed one can reopen until then; scheduling reserves nothing and every check is repeated when it opens; the scheduler must still hold the capability. Only survey mode exists. Nothing defines the Winter Survey opening time, timezone, closing, operator, questionnaire, audience or anonymity (D-12). The job that runs scheduled activations and expiry is an operator function with no scheduler configured."
     }
   ]
 }

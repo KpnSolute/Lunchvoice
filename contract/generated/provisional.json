@@ -1,5 +1,5 @@
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Provisional implementation choices. NOT approved production policy.",
   "items": [
     {
@@ -152,6 +152,81 @@
         "lv_role_create",
         "lv_role_set_capability",
         "lv_role_set_group"
+      ]
+    },
+    {
+      "id": "P-14",
+      "decisions": [
+        "D-06"
+      ],
+      "summary": "Which Campaign states consume an active-Campaign slot is UNDECIDED (only active? also scheduled?). Activation fails closed (lv_policy_undecided, missing quota.consuming_states) until set. The `used` numbers shown in lv_entitlements and lv_campaign_activation_status count Campaigns that are currently active only.",
+      "ops": [
+        "lv_campaign_activate",
+        "lv_campaign_activation_status",
+        "lv_entitlements"
+      ]
+    },
+    {
+      "id": "P-15",
+      "decisions": [
+        "D-04",
+        "D-05"
+      ],
+      "summary": "The participation gate's measurement window, eligible population, and which survey it first applies to (for example the second active survey) are UNDECIDED and unset. Only the comparisons are confirmed (Starter strictly above 50%, Team at least 20%, unique eligible accepted members, exact integers). Test values are illustrative and not policy.",
+      "ops": [
+        "lv_gate_status",
+        "lv_campaign_activate",
+        "lv_campaign_activation_status"
+      ]
+    },
+    {
+      "id": "P-16",
+      "decisions": [
+        "D-04"
+      ],
+      "summary": "Gate result when the eligible population is empty (bootstrap) is UNDECIDED; it fails closed with missing gate.bootstrap rather than defaulting to met or unmet.",
+      "ops": [
+        "lv_gate_status",
+        "lv_campaign_activate"
+      ]
+    },
+    {
+      "id": "P-17",
+      "decisions": [
+        "D-06"
+      ],
+      "summary": "Team page and active-Campaign totals are UNDECIDED and stay null (never unlimited). Because activation needs a decided total, a Team-only Hub cannot activate any Campaign until D-06 sets it.",
+      "ops": [
+        "lv_entitlements",
+        "lv_campaign_activate"
+      ]
+    },
+    {
+      "id": "P-18",
+      "decisions": [
+        "D-06",
+        "D-07"
+      ],
+      "summary": "Beta, manual and Campaign-plan grants carry no decided limits, so they activate nothing: beta access is not assumed to be a free paid tier. A Hub with no active grant gets lv_entitlement_missing.",
+      "ops": [
+        "lv_entitlements",
+        "lv_campaign_activate",
+        "lv_gate_status"
+      ]
+    },
+    {
+      "id": "P-19",
+      "decisions": [
+        "D-08",
+        "D-12"
+      ],
+      "summary": "Lifecycle rules chosen for testability: only drafts are editable; a Campaign expires when its closing time passes and cannot be reopened; a closed one can reopen until then; scheduling reserves nothing and every check is repeated when it opens; the scheduler must still hold the capability. Only survey mode exists. Nothing defines the Winter Survey opening time, timezone, closing, operator, questionnaire, audience or anonymity (D-12). The job that runs scheduled activations and expiry is an operator function with no scheduler configured.",
+      "ops": [
+        "lv_campaign_create",
+        "lv_campaign_update",
+        "lv_campaign_schedule",
+        "lv_campaign_activate",
+        "lv_campaign_close"
       ]
     }
   ]

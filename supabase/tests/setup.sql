@@ -123,3 +123,14 @@ begin
   execute p_sql into r;
   return r;
 end $$;
+
+-- Creates a draft Campaign with one question, regardless of the caller's role (test fixtures only).
+create or replace function t.draft(p_hub uuid, p_title text) returns uuid language plpgsql security definer as $$
+declare v uuid;
+begin
+  insert into lv_private.campaigns (hub_id, title, join_code) values (p_hub, p_title, lv_private.new_join_code()) returning id into v;
+  insert into lv_private.campaign_questions (campaign_id, position, type, prompt) values (v, 1, 'rating', 'Q1');
+  return v;
+end $$;
+create or replace function t.q1() returns jsonb language sql immutable as $$
+  select '[{"type":"rating","prompt":"How was it?","required":true},{"type":"single_choice","prompt":"Pick","options":["A","B"]}]'::jsonb $$;

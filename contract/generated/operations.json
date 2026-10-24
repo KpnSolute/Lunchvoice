@@ -411,7 +411,7 @@
     "id": "lv_entitlements",
     "kind": "rpc-v2",
     "module": "entitlements",
-    "status": "proposed",
+    "status": "implemented-nonprod",
     "milestone": "M1",
     "path": "/rest/v1/rpc/lv_entitlements",
     "auth": "user",
@@ -421,16 +421,19 @@
       "F-27",
       "F-41"
     ],
-    "capabilities": [],
+    "capabilities": [
+      "admin.billing.view"
+    ],
     "decisions": [
-      "D-06"
+      "D-06",
+      "D-07"
     ]
   },
   {
     "id": "lv_gate_status",
     "kind": "rpc-v2",
     "module": "entitlements",
-    "status": "proposed",
+    "status": "implemented-nonprod",
     "milestone": "M1",
     "path": "/rest/v1/rpc/lv_gate_status",
     "auth": "user",
@@ -443,7 +446,9 @@
       "community.campaign.activate"
     ],
     "decisions": [
-      "D-04"
+      "D-04",
+      "D-05",
+      "D-06"
     ]
   },
   {
@@ -467,7 +472,7 @@
     "id": "lv_campaign_create",
     "kind": "rpc-v2",
     "module": "campaigns",
-    "status": "proposed",
+    "status": "implemented-nonprod",
     "milestone": "M1",
     "path": "/rest/v1/rpc/lv_campaign_create",
     "auth": "user",
@@ -478,6 +483,7 @@
       "community.campaign.draft"
     ],
     "decisions": [
+      "D-03",
       "D-08"
     ]
   },
@@ -485,7 +491,7 @@
     "id": "lv_campaign_list",
     "kind": "rpc-v2",
     "module": "campaigns",
-    "status": "proposed",
+    "status": "implemented-nonprod",
     "milestone": "M1",
     "path": "/rest/v1/rpc/lv_campaign_list",
     "auth": "user",
@@ -503,7 +509,7 @@
     "id": "lv_campaign_get",
     "kind": "rpc-v2",
     "module": "campaigns",
-    "status": "proposed",
+    "status": "implemented-nonprod",
     "milestone": "M1",
     "path": "/rest/v1/rpc/lv_campaign_get",
     "auth": "user",
@@ -520,7 +526,7 @@
     "id": "lv_campaign_update",
     "kind": "rpc-v2",
     "module": "campaigns",
-    "status": "proposed",
+    "status": "implemented-nonprod",
     "milestone": "M1",
     "path": "/rest/v1/rpc/lv_campaign_update",
     "auth": "user",
@@ -536,7 +542,7 @@
     "id": "lv_campaign_questions",
     "kind": "rpc-v2",
     "module": "campaigns",
-    "status": "proposed",
+    "status": "implemented-nonprod",
     "milestone": "M1",
     "path": "/rest/v1/rpc/lv_campaign_questions",
     "auth": "user",
@@ -551,7 +557,7 @@
     "id": "lv_campaign_schedule",
     "kind": "rpc-v2",
     "module": "campaigns",
-    "status": "proposed",
+    "status": "implemented-nonprod",
     "milestone": "M1",
     "path": "/rest/v1/rpc/lv_campaign_schedule",
     "auth": "user",
@@ -569,7 +575,7 @@
     "id": "lv_campaign_activate",
     "kind": "rpc-v2",
     "module": "campaigns",
-    "status": "proposed",
+    "status": "implemented-nonprod",
     "milestone": "M1",
     "path": "/rest/v1/rpc/lv_campaign_activate",
     "auth": "user",
@@ -584,14 +590,36 @@
     "decisions": [
       "D-04",
       "D-06",
-      "D-08"
+      "D-08",
+      "D-12"
+    ]
+  },
+  {
+    "id": "lv_campaign_activation_status",
+    "kind": "rpc-v2",
+    "module": "campaigns",
+    "status": "implemented-nonprod",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_campaign_activation_status",
+    "auth": "user",
+    "flows": [
+      "F-30",
+      "F-31",
+      "F-46"
+    ],
+    "capabilities": [
+      "community.campaign.activate"
+    ],
+    "decisions": [
+      "D-04",
+      "D-06"
     ]
   },
   {
     "id": "lv_campaign_close",
     "kind": "rpc-v2",
     "module": "campaigns",
-    "status": "proposed",
+    "status": "implemented-nonprod",
     "milestone": "M1",
     "path": "/rest/v1/rpc/lv_campaign_close",
     "auth": "user",

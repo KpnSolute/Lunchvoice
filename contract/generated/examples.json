@@ -1,5 +1,5 @@
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Request/response pairs for mock adapters and contract tests. Synthetic data only.",
   "examples": [
     {
@@ -1019,8 +1019,9 @@
         "ok": false,
         "error": {
           "code": "lv_quota_exceeded",
-          "message": "Active survey limit reached.",
+          "message": "All active survey slots are in use.",
           "details": {
+            "limit_name": "active_survey",
             "limit": 2,
             "used": 2
           }
@@ -1042,10 +1043,220 @@
           "message": "Participation requirement not met.",
           "details": {
             "numerator": 50,
-            "denominator": 100
+            "denominator": 100,
+            "plan": "starter"
           }
         },
         "request_id": "req_0027"
+      }
+    },
+    {
+      "operationId": "lv_campaign_activate",
+      "name": "policy-pending",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000001",
+        "idempotency_key": "00000000-0000-4000-8008-000000000003"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_policy_undecided",
+          "message": "The participation requirement is not decided yet.",
+          "details": {
+            "reason": "policy_pending",
+            "missing": [
+              "gate.measurement",
+              "gate.eligible_population"
+            ]
+          }
+        },
+        "request_id": "req_0053"
+      }
+    },
+    {
+      "operationId": "lv_campaign_activate",
+      "name": "no-entitlement",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000001",
+        "idempotency_key": "00000000-0000-4000-8008-000000000003"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_entitlement_missing",
+          "message": "This Hub has no plan that includes Campaigns."
+        },
+        "request_id": "req_0054"
+      }
+    },
+    {
+      "operationId": "lv_campaign_activate",
+      "name": "already-active",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000003",
+        "idempotency_key": "00000000-0000-4000-8008-000000000002"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_lifecycle_invalid",
+          "message": "This Campaign is already active.",
+          "details": {
+            "reason": "already_active",
+            "state": "active"
+          }
+        },
+        "request_id": "req_0055"
+      }
+    },
+    {
+      "operationId": "lv_campaign_activation_status",
+      "name": "can-activate",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000001"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "campaign_id": "00000000-0000-4000-8004-000000000001",
+          "state": "draft",
+          "can_activate": true,
+          "blockers": [],
+          "quota": {
+            "active_total": {
+              "used": 3,
+              "limit": 15
+            },
+            "active_survey": {
+              "used": 1,
+              "limit": 2
+            }
+          },
+          "gate": {
+            "applies": false,
+            "met": true,
+            "numerator": 0,
+            "denominator": 100,
+            "missing": []
+          }
+        },
+        "request_id": "req_0056"
+      }
+    },
+    {
+      "operationId": "lv_campaign_activation_status",
+      "name": "gate-unmet",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000002"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "campaign_id": "00000000-0000-4000-8004-000000000002",
+          "state": "scheduled",
+          "can_activate": false,
+          "blockers": [
+            {
+              "code": "lv_gate_unmet",
+              "message": "Participation requirement not met.",
+              "details": {
+                "numerator": 50,
+                "denominator": 100,
+                "plan": "starter"
+              }
+            }
+          ],
+          "quota": {
+            "active_total": {
+              "used": 3,
+              "limit": 15
+            },
+            "active_survey": {
+              "used": 1,
+              "limit": 2
+            }
+          },
+          "gate": {
+            "applies": true,
+            "met": false,
+            "numerator": 50,
+            "denominator": 100,
+            "missing": []
+          }
+        },
+        "request_id": "req_0057"
+      }
+    },
+    {
+      "operationId": "lv_campaign_activation_status",
+      "name": "policy-pending",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000001"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "campaign_id": "00000000-0000-4000-8004-000000000001",
+          "state": "draft",
+          "can_activate": false,
+          "blockers": [
+            {
+              "code": "lv_policy_undecided",
+              "message": "The participation requirement is not decided yet.",
+              "details": {
+                "reason": "policy_pending",
+                "missing": [
+                  "gate.measurement"
+                ]
+              }
+            }
+          ],
+          "quota": {
+            "active_total": {
+              "used": 3,
+              "limit": 15
+            },
+            "active_survey": {
+              "used": 1,
+              "limit": 2
+            }
+          },
+          "gate": {
+            "applies": null,
+            "met": null,
+            "numerator": null,
+            "denominator": null,
+            "missing": [
+              "gate.measurement"
+            ]
+          }
+        },
+        "request_id": "req_0058"
+      }
+    },
+    {
+      "operationId": "lv_gate_status",
+      "name": "policy-pending",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "mode": "survey"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_policy_undecided",
+          "message": "The participation requirement is not decided yet.",
+          "details": {
+            "reason": "policy_pending",
+            "missing": [
+              "gate.measurement",
+              "gate.eligible_population",
+              "gate.applies_to",
+              "quota.consuming_states"
+            ]
+          }
+        },
+        "request_id": "req_0059"
       }
     },
     {

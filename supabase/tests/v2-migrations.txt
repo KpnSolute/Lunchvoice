@@ -1,2 +1,3 @@
 20261024000100_v2_identity_hubs_memberships.sql
 20261024000200_v2_roles_capabilities_owner_transfer.sql
+20261024000300_v2_entitlements_campaign_lifecycle.sql
