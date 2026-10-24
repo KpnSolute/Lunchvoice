@@ -55,7 +55,7 @@ export const context = {
 
 export const hubPublic = {
   one: { hub_id: HUB.one, slug: "synthetic-one", name: "Synthetic Hub One", visibility: "public", membership_mode: "approval", member_count: 40, viewer: { status: "none", can_join: true } },
-  twoAsPending: { hub_id: HUB.two, slug: "synthetic-two", name: "Synthetic Hub Two", visibility: "private", membership_mode: "invite_only", member_count: 12, viewer: { status: "pending", can_join: false } },
+  twoAsPending: { hub_id: HUB.two, slug: "synthetic-two", name: "Synthetic Hub Two", visibility: "private", membership_mode: "invite_only", member_count: null, viewer: { status: "pending", can_join: false } },
 };
 
 export const roles = {

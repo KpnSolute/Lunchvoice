@@ -70,3 +70,15 @@ jobs:
 
       - name: Run Deno tests for shared edge-function code
         run: deno test --no-prompt supabase/functions/_shared/
+
+  database:
+    name: Database tests (throwaway Postgres)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run v2 migration, backfill, authorization, concurrency and rollback tests
+        run: bash scripts/db-test.sh

@@ -14,6 +14,7 @@
     "check:bundle": "node scripts/check-bundle.mjs dist/assets",
     "contract:build": "node contract/build.mjs",
     "contract:check": "node contract/build.mjs --check",
+    "test:db": "bash scripts/db-test.sh",
     "test:scripts": "node --test scripts/*.test.mjs",
     "test:pr": "npm run check:brain && npm run contract:check && npm run test:scripts && npm run build && npm run check:bundle",
     "test:light": "npm run check:brain && npm run build",

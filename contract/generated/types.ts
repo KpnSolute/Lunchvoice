@@ -94,7 +94,7 @@ export type HubPublic = {
   name: string;
   visibility: HubVisibility;
   membership_mode: MembershipMode;
-  member_count: number;
+  member_count: number | null;
   viewer: {
     status: ViewerStatus;
     can_join: boolean;
@@ -747,16 +747,16 @@ export type LegacyString = string;
 export type LegacyInteger = number;
 
 export interface OperationMap {
-  lv_my_context: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_my_context"; request: undefined; result: LvResult<Context> };
+  lv_my_context: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_my_context"; request: undefined; result: LvResult<Context> };
   lv_account_export_request: { kind: "rpc-v2"; status: "blocked-decision"; milestone: "M2"; path: "/rest/v1/rpc/lv_account_export_request"; request: AccountExportRequest; result: LvResult<AccountExportResult> };
-  lv_hub_public: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_hub_public"; request: HubSlugRequest; result: LvResult<HubPublic> };
-  lv_join_hub: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_join_hub"; request: JoinHubRequest; result: LvResult<JoinHubResult> };
-  lv_decide_join: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_decide_join"; request: DecideJoinRequest; result: LvResult<MembershipChange> };
-  lv_leave_hub: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_leave_hub"; request: HubRef; result: LvResult<MembershipChange> };
-  lv_remove_member: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_remove_member"; request: MemberRef; result: LvResult<MembershipChange> };
-  lv_suspend_member: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_suspend_member"; request: MemberRef; result: LvResult<MembershipChange> };
-  lv_member_count: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_member_count"; request: HubRef; result: LvResult<MemberCount> };
-  lv_members_list: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_members_list"; request: HubRef; result: LvResult<MemberList> };
+  lv_hub_public: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_hub_public"; request: HubSlugRequest; result: LvResult<HubPublic> };
+  lv_join_hub: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_join_hub"; request: JoinHubRequest; result: LvResult<JoinHubResult> };
+  lv_decide_join: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_decide_join"; request: DecideJoinRequest; result: LvResult<MembershipChange> };
+  lv_leave_hub: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_leave_hub"; request: HubRef; result: LvResult<MembershipChange> };
+  lv_remove_member: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_remove_member"; request: MemberRef; result: LvResult<MembershipChange> };
+  lv_suspend_member: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_suspend_member"; request: MemberRef; result: LvResult<MembershipChange> };
+  lv_member_count: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_member_count"; request: HubRef; result: LvResult<MemberCount> };
+  lv_members_list: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_members_list"; request: HubRef; result: LvResult<MemberList> };
   lv_hub_settings_update: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_hub_settings_update"; request: HubSettingsUpdate; result: LvResult<HubSettings> };
   lv_hub_delete: { kind: "rpc-v2"; status: "blocked-decision"; milestone: "M2"; path: "/rest/v1/rpc/lv_hub_delete"; request: HubDeleteRequest; result: LvResult<BoolResult> };
   lv_hub_create: { kind: "rpc-v2"; status: "blocked-decision"; milestone: "M2"; path: "/rest/v1/rpc/lv_hub_create"; request: HubCreateRequest; result: LvResult<HubSettings> };
