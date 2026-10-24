@@ -149,6 +149,25 @@ select t.check('the database refuses a second response row for the same person a
 select t.check('the database refuses a second guest row for the same reference',
   t.raises(format($$insert into lv_private.campaign_participation (campaign_id, hub_id, guest_ref) values (%L, %L, 'guest-1')$$, t.id('c1'), t.id('h1')), '23505'));
 
+-- Structural invariant: a guest row can never carry, or be turned into, a member identity. Every attempt is
+-- rejected by the schema and the eligible-member numerator and denominator stay exactly as they were.
+select t.responders(t.id('h1'), t.id('c1'), 50);
+insert into lv_private.campaign_participation (campaign_id, hub_id, guest_ref) values (t.id('c1'), t.id('h1'), 'guest-target');
+create temp table before_guest as select (t.gate(t.id('h1'))->>'numerator')::int as n, (t.gate(t.id('h1'))->>'denominator')::int as d;
+grant all on before_guest to public;
+select t.check('spoof: a guest row that also names a member account is rejected',
+  t.raises(format($$insert into lv_private.campaign_participation (campaign_id, hub_id, account_id, guest_ref) select %L, %L, account_id, 'spoof-1' from lv_private.hub_memberships where hub_id = %L and status = 'accepted' limit 1$$, t.id('c1b'), t.id('h1'), t.id('h1')), '23514'));
+select t.check('spoof: a member row cannot be relabelled as a guest by dropping the account',
+  t.raises(format($$update lv_private.campaign_participation set account_id = null where campaign_id = %L$$, t.id('c1')), '23514'));
+select t.check('spoof: a guest row cannot be converted into a member row by setting an account',
+  (select t.raises(format($$update lv_private.campaign_participation set account_id = (select account_id from lv_private.hub_memberships where hub_id = %L and status = 'accepted' limit 1) where guest_ref = 'guest-target'$$, t.id('h1')), '23514')));
+select t.check('spoof: a guest row naming a non-member account is also rejected', t.raises(format($$insert into lv_private.campaign_participation (campaign_id, hub_id, account_id, guest_ref) values (%L, %L, %L, 'spoof-2')$$, t.id('c1b'), t.id('h1'), t.u(1)), '23514'));
+select t.check('after every rejected attempt the numerator and denominator are unchanged',
+  (select n from before_guest) = (t.gate(t.id('h1'))->>'numerator')::int and (select d from before_guest) = (t.gate(t.id('h1'))->>'denominator')::int);
+insert into lv_private.campaign_participation (campaign_id, hub_id, guest_ref) select t.id('c1b'), t.id('h1'), 'extra-guest-' || n from generate_series(1, 500) n;
+select t.check('500 more genuine guest rows still leave the numerator and denominator unchanged',
+  (select n from before_guest) = (t.gate(t.id('h1'))->>'numerator')::int and (select d from before_guest) = (t.gate(t.id('h1'))->>'denominator')::int);
+
 -- ---- eligibility: only currently eligible accepted members count (numerator and denominator)
 select t.responders(t.id('h1'), t.id('c1'), 51);
 update lv_private.hub_memberships set status = 'suspended' where hub_id = t.id('h1') and account_id = (select account_id from lv_private.campaign_participation where campaign_id = t.id('c1') order by account_id desc limit 1);

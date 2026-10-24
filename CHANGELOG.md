@@ -19,8 +19,10 @@ categories and the repository's decimal `X.X.X` release policy.
   Five unresolved rules (which states use a slot, gate window, eligible population, which survey it first applies to, empty-population
   bootstrap) live in `lv_private.policy`, are UNSET by the migration, and make activation return `lv_policy_undecided` with the missing keys;
   tests use clearly synthetic values. No grant is created. Operator jobs `expire_due_campaigns` and `run_scheduled_activations` exist but no
-  scheduler is configured. 553 database checks (new: campaigns 90, gate 49, four activation races: last survey slot, identical retries,
-  scheduler versus manual, close/reopen); eight mutations are caught. Provisional register P-14 to P-19.
+  scheduler is configured. 559 database checks (new: campaigns 90, gate 55, four activation races: last survey slot, identical retries,
+  scheduler versus manual, close/reopen); seven deliberate mutations are detected, and a structural invariant is demonstrated separately:
+  a guest row cannot carry or be converted into a member identity (every spoof attempt is rejected by the schema and the eligible-member
+  numerator and denominator stay unchanged, even after 500 more guest rows). Provisional register P-14 to P-19.
 - Added v2 custom roles, capabilities and Owner transfer (migration `20261024000200_v2_roles_capabilities_owner_transfer.sql`,
   **not applied to production**, stacked on the identity/Hub migration) and twelve `lv_*` RPCs (contract v0.3.0, `implemented-nonprod`).
   27 proposed capabilities in three categories (Administration, Hub Appearance & Structure, Community & Campaigns) with individual and
