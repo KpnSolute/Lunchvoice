@@ -1,4 +1,4 @@
-# LunchVoice API contract (v0.1.0)
+# LunchVoice API contract (v0.2.0)
 
 Machine-readable contract for the backend, reconciled with all 49 frontend flows (F-01..F-49 in
 `docs/frontend/EXPERIENCE_PLAN.md`). Authored in `contract/src` (dependency-free JavaScript), emitted to
@@ -41,8 +41,11 @@ Error codes: `lv_unauthenticated`, `lv_forbidden`, `lv_not_member`, `lv_not_foun
 | `proposed` | Specified here, not built. Use a labelled mock adapter. |
 | `blocked-decision` | Cannot be built until the decisions in `x-decisions` are made (D-xx in `docs/archeture`). Show a "not available yet" state. |
 
-At v0.1.0 **no v2 operation is implemented**; every `lv_*` operation is `proposed` or `blocked-decision`. A
-mock adapter must be visibly labelled and must never act as a production auth bypass.
+At v0.2.0 nine operations are `implemented-nonprod` (identity, Hub and membership: `lv_my_context`, `lv_hub_public`,
+`lv_member_count`, `lv_join_hub`, `lv_decide_join`, `lv_leave_hub`, `lv_remove_member`, `lv_suspend_member`,
+`lv_members_list`). They exist in migration `20261024000100` and are tested in a throwaway database; **none is applied to
+production**, so the real endpoints do not exist yet. Everything else is `proposed` or `blocked-decision`. A mock
+adapter must be visibly labelled and must never act as a production auth bypass.
 
 ### Capabilities, entitlements, undecided values
 
@@ -74,8 +77,16 @@ identity, hubs, roles, entitlements, campaigns, participation, analytics, pages,
 legacy. Each has its own `src/schemas/*.mjs` and `src/ops/*.mjs` pair so parallel work does not touch the same
 files.
 
-## What depends on the unapproved backend stack (D-14)
+## Backend stack (D-14)
 
-Nothing in this contract. Operations are Postgres functions behind PostgREST today, and the same schemas can be
-served by a FastAPI service later. A FastAPI service is only needed for Stripe webhooks, Google/central identity
-brokering, scheduled jobs, and connector ingress (week-two scope).
+D-14 is not approved. Nothing in this contract depends on it: the v2 operations are Postgres functions behind
+PostgREST and the same schemas could be served by another runtime later. FastAPI is a candidate runtime for the
+Stripe webhook receiver, identity brokering, scheduled jobs and connector ingress, not a requirement; those
+pieces could also be Edge Functions or database jobs. Work that does not depend on the choice continues.
+
+## Contract changes
+
+| Version | Change | Frontend impact |
+| --- | --- | --- |
+| 0.2.0 | `HubPublic.member_count` is now `number \| null` (null when the Hub is private and the caller is not an accepted member; previously always a number). Nine identity/Hub/membership operations move to `implemented-nonprod`. `lv_decide_join` can return `lv_invalid_input` and no longer lists `lv_hub_mismatch`; `lv_suspend_member` can return `lv_conflict`; `lv_remove_member` no longer lists `lv_hub_mismatch`. Capability `community.moderate` was renamed `community.comments.moderate` (0.1.0 to 0.2.0 pre-release rename). | Handle a null member count. Membership `roles` and `capabilities` are empty arrays until the roles migration lands; `Context.pending` is always present; `GateStatus.policy_version` is required. |
+| 0.1.0 | Initial contract. | |

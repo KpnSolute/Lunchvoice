@@ -8,6 +8,20 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added the v2 identity, Hub and membership foundation (migration `20261024000100_v2_identity_hubs_memberships.sql`,
+  **not applied to production**) and nine `lv_*` RPCs (contract v0.2.0, status `implemented-nonprod`). It is additive:
+  a private `lv_private` schema (accounts, account identities, Hubs, memberships, audit events; RLS on, no API
+  grants), the RPCs, and one `AFTER INSERT` trigger on `public.profiles` that mirrors new legacy users into v2 and can
+  never fail a signup. A Hub *is* its organization (`hubs.id = orgs.id`), so ids, slugs and deep links are preserved
+  and no duplicate Hub can exist; accounts take the legacy user's id and are never merged by email. The LionCafe to
+  MJCC Hub backfill is `lv_private.backfill_org_hub(org_id, owner_account_id)`: operator-run, one transaction, repeatable,
+  never overwrites suspensions or removals, never changes an Owner, and takes the Owner as a **required** input
+  (never inferred from email, role or "first admin"). Includes `reconcile_org_hub` and a rollback script
+  (`supabase/rollbacks/`). Only the Owner holds capabilities until the roles migration. New throwaway-Postgres test
+  harness (`npm run test:db`, `scripts/db-test.sh`, new CI job): 168 checks covering the backfill, allow/deny,
+  cross-Hub isolation, pending/invited/suspended handling, counts, direct API denial, Owner protection, concurrency
+  (parallel backfills, joins, decisions, first-use account creation) and rollback; three deliberate mutations are
+  caught. Contract v0.2.0: `HubPublic.member_count` is now nullable (private Hub, non-member).
 - Added the versioned LunchVoice API contract (`contract/`, v0.1.0): authored in dependency-free JS
   (`contract/src`), emitted as OpenAPI 3.1 (`openapi.json`), TypeScript types, an operation index,
   request/response examples and deterministic synthetic fixtures under `contract/generated/`. It covers 67

@@ -102,6 +102,8 @@ export const examples = [
   { operationId: "lv_join_hub", name: "pending", request: { hub_id: HUB.two }, response: ok({ status: "pending" }, 5) },
   { operationId: "lv_join_hub", name: "invite-required", request: { hub_id: HUB.two }, response: fail("lv_forbidden", "An invite code is required.", undefined, 6) },
   { operationId: "lv_decide_join", name: "accept", request: { hub_id: HUB.two, account_id: ACCOUNT.priya, decision: "accept" }, response: ok({ hub_id: HUB.two, account_id: ACCOUNT.priya, status: "accepted" }, 7) },
+  { operationId: "lv_hub_public", name: "private-count-hidden", request: { slug: "synthetic-two" }, response: ok(hubPublic.twoAsPending, 40) },
+  { operationId: "lv_member_count", name: "private-hub-hidden", request: { hub_id: HUB.two }, response: fail("lv_not_found", "Not found.", undefined, 41) },
   { operationId: "lv_member_count", name: "count", request: { hub_id: HUB.one }, response: ok({ hub_id: HUB.one, member_count: 40 }, 8) },
   { operationId: "lv_capability_catalog", name: "catalog", request: {}, response: ok(capabilityCatalog, 9) },
   { operationId: "lv_role_list", name: "two-roles", request: { hub_id: HUB.one }, response: ok({ hub_id: HUB.one, roles: [roles.surveyor, roles.moderator], slots: { used: 2, limit: 3 } }, 10) },

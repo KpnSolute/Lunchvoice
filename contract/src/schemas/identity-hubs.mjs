@@ -32,7 +32,7 @@ export const identityHubSchemas = {
     name: str(),
     visibility: ref("HubVisibility"),
     membership_mode: ref("MembershipMode"),
-    member_count: int({ minimum: 0, description: "Accepted members only. Pending, invited and guests never count." }),
+    member_count: nullable(int({ minimum: 0, description: "Accepted members only; pending, invited, suspended and guests never count. null when the Hub is private and the caller is not an accepted member." })),
     viewer: obj({ status: ref("ViewerStatus"), can_join: bool() }),
   }),
   HubSlugRequest: obj({ slug: ref("Slug") }),

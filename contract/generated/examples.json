@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Request/response pairs for mock adapters and contract tests. Synthetic data only.",
   "examples": [
     {
@@ -134,6 +134,44 @@
           "status": "accepted"
         },
         "request_id": "req_0007"
+      }
+    },
+    {
+      "operationId": "lv_hub_public",
+      "name": "private-count-hidden",
+      "request": {
+        "slug": "synthetic-two"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "hub_id": "00000000-0000-4000-8001-000000000002",
+          "slug": "synthetic-two",
+          "name": "Synthetic Hub Two",
+          "visibility": "private",
+          "membership_mode": "invite_only",
+          "member_count": null,
+          "viewer": {
+            "status": "pending",
+            "can_join": false
+          }
+        },
+        "request_id": "req_0040"
+      }
+    },
+    {
+      "operationId": "lv_member_count",
+      "name": "private-hub-hidden",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000002"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_not_found",
+          "message": "Not found."
+        },
+        "request_id": "req_0041"
       }
     },
     {

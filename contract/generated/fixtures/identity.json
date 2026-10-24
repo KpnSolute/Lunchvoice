@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Account contexts for synthetic personas (owner of Hub One; surveyor; pending applicant).",
   "items": [
     {
@@ -113,7 +113,7 @@
         "name": "Synthetic Hub Two",
         "visibility": "private",
         "membership_mode": "invite_only",
-        "member_count": 12,
+        "member_count": null,
         "viewer": {
           "status": "pending",
           "can_join": false

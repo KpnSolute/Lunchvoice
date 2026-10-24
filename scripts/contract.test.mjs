@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import test from "node:test";
 import { check, flowConsistency, generate, operations, schemas } from "../contract/src/assemble.mjs";
 import { gateCases, gateMet } from "../contract/src/fixtures/data.mjs";
@@ -76,4 +77,26 @@ test("a malformed envelope is rejected by the response schema", () => {
   const schema = doc.paths[op.path].post.responses[200].content["application/json"].schema;
   assert.ok(validate(schema, { ok: true, request_id: "r" }, schemas).length > 0);
   assert.ok(validate(schema, { ok: false, error: { code: "not_a_code", message: "x" }, request_id: "r" }, schemas).length > 0);
+});
+
+test("every implemented-nonprod operation exists in a migration with exactly the contract's argument names", () => {
+  const dir = new URL("../supabase/migrations/", import.meta.url);
+  const sql = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).map((f) => fs.readFileSync(new URL(f, dir), "utf8")).join("\n");
+  const functions = new Map();
+  for (const m of sql.matchAll(/create (?:or replace )?function public\.(\w+)\(([^)]*)\)/g)) {
+    functions.set(m[1], m[2].split(",").map((a) => a.trim().split(/\s+/)[0]).filter(Boolean).sort());
+  }
+  for (const op of operations.filter((o) => o.status === "implemented-nonprod")) {
+    assert.ok(functions.has(op.id), `${op.id} has no migration`);
+    const expected = op.request ? Object.keys(schemas[op.request].properties).sort() : [];
+    assert.deepEqual(functions.get(op.id), expected, `${op.id} argument names differ from the contract`);
+  }
+});
+
+test("operations with a migration are not marked proposed", () => {
+  const dir = new URL("../supabase/migrations/", import.meta.url);
+  const sql = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).map((f) => fs.readFileSync(new URL(f, dir), "utf8")).join("\n");
+  for (const op of operations.filter((o) => o.kind === "rpc-v2")) {
+    if (new RegExp(`function public\\.${op.id}\\(`).test(sql)) assert.equal(op.status, "implemented-nonprod", op.id);
+  }
 });

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "LunchVoice API",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Machine-readable contract for LunchVoice. v2 operations are Postgres functions behind PostgREST RPC returning a 200 envelope; legacy operations are the live v1 surface. Per-operation x-status says whether it exists: implemented (production), implemented-nonprod, proposed, blocked-decision. A null limit means undecided, never unlimited."
   },
   "servers": [
@@ -62,7 +62,7 @@
           "identity"
         ],
         "x-module": "identity",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-06",
@@ -81,7 +81,7 @@
             "userJwt": []
           }
         ],
-        "description": "Re-call after sign-in, Hub switch and on any lv_forbidden/lv_not_member to detect revoked access. Capabilities are advisory.",
+        "description": "Re-call after sign-in, Hub switch and on any lv_forbidden/lv_not_member to detect revoked access. Capabilities are advisory. Creates the caller's account on first use (never merged by email). roles and capabilities are empty until the roles migration lands.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated"
@@ -229,7 +229,7 @@
           "hubs"
         ],
         "x-module": "hubs",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-06",
@@ -243,7 +243,7 @@
             "apikey": []
           }
         ],
-        "description": "A released or unknown slug returns lv_not_found with no information about a previous owner.",
+        "description": "A released or unknown slug returns lv_not_found with no information about a previous owner. member_count is null unless the Hub is public or the caller is an accepted member. The existence of a private Hub is visible by slug (decision D-09).",
         "x-idempotent": false,
         "x-errors": [
           "lv_not_found",
@@ -315,7 +315,7 @@
           "hubs"
         ],
         "x-module": "hubs",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-07"
@@ -329,7 +329,7 @@
             "userJwt": []
           }
         ],
-        "description": "Repeating the call returns the existing status. Invite-only Hubs require a valid invite_code.",
+        "description": "Repeating the call returns the existing status. Invite-only Hubs admit only accounts that already have an invitation; invite_code is accepted but not yet honoured (provisional). Suspended and removed accounts get lv_forbidden.",
         "x-idempotent": true,
         "x-errors": [
           "lv_unauthenticated",
@@ -404,7 +404,7 @@
           "hubs"
         ],
         "x-module": "hubs",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-34"
@@ -420,13 +420,14 @@
             "userJwt": []
           }
         ],
+        "description": "Only a pending application can be decided (otherwise lv_conflict). Reject deletes the application so the person may re-apply (provisional). Until the roles migration lands only the Owner holds this capability.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
           "lv_forbidden",
           "lv_not_found",
-          "lv_hub_mismatch",
-          "lv_conflict"
+          "lv_conflict",
+          "lv_invalid_input"
         ],
         "responses": {
           "200": {
@@ -494,7 +495,7 @@
           "hubs"
         ],
         "x-module": "hubs",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-14"
@@ -580,7 +581,7 @@
           "hubs"
         ],
         "x-module": "hubs",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-34"
@@ -596,12 +597,12 @@
             "userJwt": []
           }
         ],
+        "description": "A removed member cannot rejoin (provisional).",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
           "lv_forbidden",
-          "lv_not_found",
-          "lv_hub_mismatch"
+          "lv_not_found"
         ],
         "responses": {
           "200": {
@@ -669,7 +670,7 @@
           "hubs"
         ],
         "x-module": "hubs",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-34"
@@ -687,12 +688,13 @@
             "userJwt": []
           }
         ],
+        "description": "Idempotent for an already suspended member; only an accepted member can be suspended. A suspended member cannot leave or rejoin.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
           "lv_forbidden",
           "lv_not_found",
-          "lv_hub_mismatch"
+          "lv_conflict"
         ],
         "responses": {
           "200": {
@@ -760,7 +762,7 @@
           "hubs"
         ],
         "x-module": "hubs",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-06",
@@ -776,6 +778,7 @@
             "apikey": []
           }
         ],
+        "description": "A private Hub answers lv_not_found to anyone who is not an accepted member, so its size is not disclosed.",
         "x-idempotent": false,
         "x-errors": [
           "lv_not_found"
@@ -846,7 +849,7 @@
           "hubs"
         ],
         "x-module": "hubs",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-34"
@@ -6390,9 +6393,12 @@
             "$ref": "#/components/schemas/MembershipMode"
           },
           "member_count": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "minimum": 0,
-            "description": "Accepted members only. Pending, invited and guests never count."
+            "description": "Accepted members only; pending, invited, suspended and guests never count. null when the Hub is private and the caller is not an accepted member."
           },
           "viewer": {
             "type": "object",
