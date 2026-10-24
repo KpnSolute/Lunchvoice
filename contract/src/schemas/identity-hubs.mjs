@@ -1,0 +1,66 @@
+import { arr, bool, cnst, enm, int, nullable, obj, ref, str } from "../lib.mjs";
+
+/** Accounts, context, Hubs and membership. */
+export const identityHubSchemas = {
+  Account: obj({ id: ref("Uuid"), display_name: str({ minLength: 1 }) }),
+  Membership: obj({
+    hub_id: ref("Uuid"),
+    slug: ref("Slug"),
+    name: str(),
+    status: cnst("accepted"),
+    roles: arr(ref("RoleRef")),
+    capabilities: arr(str(), { description: "Advisory list for UI hints. The server re-checks every action." }),
+    is_owner: bool(),
+  }),
+  PendingMembership: obj({
+    hub_id: ref("Uuid"),
+    slug: ref("Slug"),
+    name: str(),
+    status: enm(["pending", "invited"]),
+  }),
+  Context: obj({
+    account: ref("Account"),
+    memberships: arr(ref("Membership")),
+    pending: arr(ref("PendingMembership")),
+  }),
+  HubVisibility: enm(["public", "private"]),
+  MembershipMode: enm(["open", "approval", "invite_only"]),
+  ViewerStatus: enm(["none", "pending", "invited", "accepted", "suspended"]),
+  HubPublic: obj({
+    hub_id: ref("Uuid"),
+    slug: ref("Slug"),
+    name: str(),
+    visibility: ref("HubVisibility"),
+    membership_mode: ref("MembershipMode"),
+    member_count: int({ minimum: 0, description: "Accepted members only. Pending, invited and guests never count." }),
+    viewer: obj({ status: ref("ViewerStatus"), can_join: bool() }),
+  }),
+  HubSlugRequest: obj({ slug: ref("Slug") }),
+  JoinHubRequest: obj({ hub_id: ref("Uuid"), invite_code: str({ maxLength: 64 }) }, ["invite_code"]),
+  JoinHubResult: obj({ status: enm(["accepted", "pending"]) }),
+  DecideJoinRequest: obj({ hub_id: ref("Uuid"), account_id: ref("Uuid"), decision: enm(["accept", "reject"]) }),
+  MemberRef: obj({ hub_id: ref("Uuid"), account_id: ref("Uuid") }),
+  HubRef: obj({ hub_id: ref("Uuid") }),
+  MemberStatus: enm(["accepted", "pending", "invited", "suspended", "left", "removed"]),
+  MemberRecord: obj({
+    account_id: ref("Uuid"),
+    display_name: nullable(str()),
+    status: ref("MemberStatus"),
+    roles: arr(ref("RoleRef")),
+    joined_at: nullable(ref("Timestamp")),
+  }),
+  MemberList: obj({ hub_id: ref("Uuid"), members: arr(ref("MemberRecord")) }),
+  MemberCount: obj({ hub_id: ref("Uuid"), member_count: int({ minimum: 0 }) }),
+  MembershipChange: obj({ hub_id: ref("Uuid"), account_id: ref("Uuid"), status: ref("MemberStatus") }),
+  HubSettingsUpdate: obj(
+    { hub_id: ref("Uuid"), name: str({ minLength: 1, maxLength: 80 }), visibility: ref("HubVisibility"), membership_mode: ref("MembershipMode") },
+    ["name", "visibility", "membership_mode"],
+  ),
+  HubSettings: obj({
+    hub_id: ref("Uuid"),
+    name: str(),
+    visibility: ref("HubVisibility"),
+    membership_mode: ref("MembershipMode"),
+  }),
+  HubDeleteRequest: obj({ hub_id: ref("Uuid"), confirm_slug: ref("Slug") }),
+};

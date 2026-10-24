@@ -1,0 +1,57 @@
+{
+  "version": "0.1.0",
+  "description": "Privacy-safe aggregates. The applied example uses a TEST-ONLY cohort value; the real threshold is undecided (D-10).",
+  "items": [
+    {
+      "name": "analytics.undecided",
+      "schema": "AnalyticsResult",
+      "data": {
+        "campaign_id": "00000000-0000-4000-8004-000000000006",
+        "metric": "participation",
+        "total_participants": null,
+        "groups": [],
+        "freshness_at": "2026-11-09T15:00:00Z",
+        "policy": {
+          "status": "undecided",
+          "min_cohort": null
+        }
+      },
+      "description": "Anonymous Campaign before D-10: no groups, policy undecided."
+    },
+    {
+      "name": "analytics.applied-fixture-only",
+      "schema": "AnalyticsResult",
+      "data": {
+        "campaign_id": "00000000-0000-4000-8004-000000000003",
+        "metric": "answer_distribution",
+        "total_participants": 8,
+        "groups": [
+          {
+            "key": "Option A",
+            "n": 5,
+            "suppressed": false,
+            "value": 0.625
+          },
+          {
+            "key": "Option B",
+            "n": null,
+            "suppressed": true,
+            "value": null
+          },
+          {
+            "key": "Option C",
+            "n": null,
+            "suppressed": true,
+            "value": null
+          }
+        ],
+        "freshness_at": "2026-11-09T15:00:00Z",
+        "policy": {
+          "status": "applied",
+          "min_cohort": 3
+        }
+      },
+      "description": "Shows suppressed groups. min_cohort is a synthetic test value, not a policy."
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "version": "0.1.0",
+  "description": "Reference cases for the participation gate (integer arithmetic, no rounding). met=null means the bootstrap rule is undecided.",
+  "cases": [
+    {
+      "plan": "starter",
+      "eligible_members": 100,
+      "unique_responders": 50,
+      "met": false
+    },
+    {
+      "plan": "starter",
+      "eligible_members": 100,
+      "unique_responders": 51,
+      "met": true
+    },
+    {
+      "plan": "team",
+      "eligible_members": 100,
+      "unique_responders": 19,
+      "met": false
+    },
+    {
+      "plan": "team",
+      "eligible_members": 100,
+      "unique_responders": 20,
+      "met": true
+    },
+    {
+      "plan": "starter",
+      "eligible_members": 3,
+      "unique_responders": 1,
+      "met": false
+    },
+    {
+      "plan": "starter",
+      "eligible_members": 3,
+      "unique_responders": 2,
+      "met": true
+    },
+    {
+      "plan": "team",
+      "eligible_members": 3,
+      "unique_responders": 0,
+      "met": false
+    },
+    {
+      "plan": "team",
+      "eligible_members": 3,
+      "unique_responders": 1,
+      "met": true
+    },
+    {
+      "plan": "starter",
+      "eligible_members": 0,
+      "unique_responders": 0,
+      "met": null
+    },
+    {
+      "plan": "team",
+      "eligible_members": 0,
+      "unique_responders": 0,
+      "met": null
+    }
+  ]
+}

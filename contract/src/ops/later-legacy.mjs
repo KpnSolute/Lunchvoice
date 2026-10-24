@@ -1,0 +1,44 @@
+import { edge, legacyRpc, v2 } from "../ops-lib.mjs";
+
+/** Pages, growth, billing and connectors: proposed surface, mostly M2. Minimal shapes until their decisions land. */
+export const laterOps = [
+  v2({ id: "lv_page_list", module: "pages", status: "proposed", milestone: "M1", flows: ["F-24", "F-36", "F-37"], summary: "Pages of a Hub with slot usage.", request: "HubRef", data: "PageList", errors: ["lv_not_found", "lv_forbidden"], auth: "anon", decisions: ["D-11"] }),
+  v2({ id: "lv_page_save_draft", module: "pages", status: "proposed", milestone: "M1", flows: ["F-36", "F-37"], summary: "Create or update a page draft. Edit, publish and audience are separate capabilities.", request: "PageDraftRequest", data: "Page", errors: ["lv_unauthenticated", "lv_forbidden", "lv_not_found", "lv_quota_exceeded", "lv_policy_undecided", "lv_invalid_input"], auth: "user", capabilities: ["structure.pages.edit"], decisions: ["D-11"] }),
+  v2({ id: "lv_page_publish", module: "pages", status: "proposed", milestone: "M1", flows: ["F-36", "F-37"], summary: "Publish a page.", request: "PageRef", data: "Page", errors: ["lv_unauthenticated", "lv_forbidden", "lv_not_found", "lv_lifecycle_invalid"], auth: "user", capabilities: ["structure.pages.publish"], decisions: ["D-11"] }),
+  v2({ id: "lv_branding_update", module: "pages", status: "proposed", milestone: "M1", flows: ["F-38"], summary: "Hub brand colour (contrast-checked) and logo reference.", request: "BrandingUpdate", data: "HubSettings", errors: ["lv_unauthenticated", "lv_forbidden", "lv_not_found", "lv_invalid_input"], auth: "user", capabilities: ["structure.branding.edit"] }),
+  v2({ id: "lv_leaderboard", module: "pages", status: "proposed", milestone: "M2", flows: ["F-23"], summary: "Group participation leaderboard (individuals only if opted in).", request: "LeaderboardRequest", data: "Leaderboard", errors: ["lv_unauthenticated", "lv_not_member", "lv_not_found"], auth: "user" }),
+  v2({ id: "lv_comment_create", module: "pages", status: "proposed", milestone: "M2", flows: ["F-24"], summary: "Post a comment (pre-moderated).", request: "CommentCreateRequest", data: "Comment", errors: ["lv_unauthenticated", "lv_forbidden", "lv_not_found", "lv_rate_limited", "lv_invalid_input"], auth: "user" }),
+  v2({ id: "lv_comment_moderate", module: "pages", status: "proposed", milestone: "M2", flows: ["F-40"], summary: "Approve or reject a pending comment.", request: "CommentModerateRequest", data: "Comment", errors: ["lv_unauthenticated", "lv_forbidden", "lv_not_found"], auth: "user", capabilities: ["community.comments.moderate"] }),
+
+  v2({ id: "lv_waitlist_join", module: "growth", status: "proposed", milestone: "M1", flows: ["F-01", "F-03"], summary: "Join the public beta waitlist.", request: "WaitlistJoinRequest", data: "WaitlistJoinResult", errors: ["lv_rate_limited", "lv_invalid_input"], auth: "anon" }),
+  v2({ id: "lv_beta_admit", module: "growth", status: "blocked-decision", milestone: "M2", flows: ["F-26", "F-45"], summary: "Admit a waitlisted owner under an atomic cap (at most 50 beta Hub owners).", request: "BetaAdmitRequest", data: "BetaAdmitResult", errors: ["lv_forbidden", "lv_not_found", "lv_quota_exceeded", "lv_policy_undecided"], auth: "service", decisions: ["D-07"] }),
+  v2({ id: "lv_discovery_list", module: "growth", status: "proposed", milestone: "M2", flows: ["F-05"], summary: "Approved public Hubs for the discovery directory.", request: "DiscoveryListRequest", data: "DiscoveryList", errors: ["lv_rate_limited"], auth: "anon", decisions: ["D-05"] }),
+  v2({ id: "lv_discovery_apply", module: "growth", status: "proposed", milestone: "M2", flows: ["F-43"], summary: "Apply for discovery when the Hub has at least 700 accepted members (699 does not qualify).", request: "DiscoveryApplyRequest", data: "DiscoveryApplyResult", errors: ["lv_unauthenticated", "lv_forbidden", "lv_not_found", "lv_conflict"], auth: "user", capabilities: ["admin.discovery.apply"], decisions: ["D-05"] }),
+
+  v2({ id: "lv_checkout_create", module: "billing", status: "blocked-decision", milestone: "M2", flows: ["F-02", "F-41", "F-42"], summary: "Start a hosted checkout for an approved SKU. Campaign Plus has no purchasable SKU until its prices are approved.", request: "CheckoutRequest", data: "CheckoutResult", errors: ["lv_unauthenticated", "lv_forbidden", "lv_not_found", "lv_policy_undecided", "lv_invalid_input"], auth: "user", capabilities: ["admin.billing.manage"], decisions: ["D-06", "D-08"] }),
+  v2({ id: "lv_slug_claim", module: "billing", status: "blocked-decision", milestone: "M2", flows: ["F-26"], summary: "Claim or reserve a Hub slug (annual reservation with 25-day grace).", request: "SlugClaimRequest", data: "SlugClaimResult", errors: ["lv_unauthenticated", "lv_forbidden", "lv_conflict", "lv_policy_undecided"], auth: "user", capabilities: ["admin.slug.renew"], decisions: ["D-09"] }),
+
+  v2({ id: "lv_connector_register", module: "connectors", status: "blocked-decision", milestone: "TBD", flows: [], summary: "Register an inbound connector for a Hub (signed webhook source).", request: "ConnectorRegisterRequest", data: "ConnectorRegisterResult", errors: ["lv_unauthenticated", "lv_forbidden", "lv_entitlement_missing", "lv_policy_undecided"], auth: "user", capabilities: ["admin.settings.edit"], decisions: ["D-13"] }),
+];
+
+/** Legacy v1 surface, verified against production on 2026-10-23. Preserved until a separately authorized cutover. */
+export const legacyOps = [
+  edge({
+    id: "login-start",
+    flows: ["F-12"],
+    summary: "Classify a login identifier and send a student email code.",
+    request: "LoginStartRequest",
+    success: "LoginStartResult",
+    statuses: [400, 404, 429, 501, 502, 500],
+    auth: "anon",
+    note: "Rate limit 8 attempts per IP and identifier per 10 minutes (in memory per instance).",
+  }),
+  edge({ id: "staff-sso", flows: ["F-12"], summary: "Exchange an MJCC SSO code for a LunchVoice session token hash.", request: "StaffSsoRequest", success: "StaffSsoResult", statuses: [400, 403, 500], auth: "anon" }),
+  edge({ id: "staff-login", flows: ["F-12"], summary: "Legacy staff password sign-in through MJCCv1 (rollback path; not called by the app).", request: "StaffLoginRequest", success: "StaffLoginResult", statuses: [400, 401, 403, 404, 429, 501, 502, 500], auth: "anon" }),
+  edge({ id: "staff-status", flows: ["F-12", "F-17"], summary: "Revalidate a staff session against MJCC; demotes the profile when access is withdrawn.", request: null, success: "StaffStatusResult", statuses: [401, 403, 500], auth: "user" }),
+  edge({ id: "menu-sync", flows: ["F-25"], summary: "Sync the MJCC menu cycle or push rating aggregates (staff session or internal token).", request: "MenuSyncRequest", success: "MenuSyncResult", statuses: [400, 401, 403, 500], auth: "user" }),
+  legacyRpc({ id: "join_session", flows: ["F-04"], summary: "Join a survey session by code.", request: "JoinSessionRequest", success: "LegacyString", auth: "user" }),
+  legacyRpc({ id: "join_available_session", flows: ["F-04"], summary: "Join a session listed on the dashboard.", request: "JoinAvailableRequest", success: "LegacyString", auth: "user" }),
+  legacyRpc({ id: "submit_response", flows: ["F-19", "F-21"], summary: "Submit a survey response and receive the new points balance.", request: "LegacySubmitRequest", success: "LegacyInteger", auth: "user", note: "Responses store the student id: not anonymous." }),
+  legacyRpc({ id: "redeem_item", flows: ["F-23"], summary: "Spend points on a reward; the only supported way to create an order.", request: "RedeemItemRequest", success: "LegacyString", auth: "user" }),
+];

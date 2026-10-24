@@ -1,0 +1,1007 @@
+{
+  "version": "0.1.0",
+  "description": "Request/response pairs for mock adapters and contract tests. Synthetic data only.",
+  "examples": [
+    {
+      "operationId": "lv_my_context",
+      "name": "owner",
+      "request": {},
+      "response": {
+        "ok": true,
+        "data": {
+          "account": {
+            "id": "00000000-0000-4000-8002-000000000001",
+            "display_name": "Alex Rivera"
+          },
+          "memberships": [
+            {
+              "hub_id": "00000000-0000-4000-8001-000000000001",
+              "slug": "synthetic-one",
+              "name": "Synthetic Hub One",
+              "status": "accepted",
+              "roles": [],
+              "capabilities": [],
+              "is_owner": true
+            },
+            {
+              "hub_id": "00000000-0000-4000-8001-000000000002",
+              "slug": "synthetic-two",
+              "name": "Synthetic Hub Two",
+              "status": "accepted",
+              "roles": [],
+              "capabilities": [],
+              "is_owner": false
+            }
+          ],
+          "pending": []
+        },
+        "request_id": "req_0001"
+      }
+    },
+    {
+      "operationId": "lv_my_context",
+      "name": "unauthenticated",
+      "request": {},
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_unauthenticated",
+          "message": "Sign in to continue."
+        },
+        "request_id": "req_0002"
+      }
+    },
+    {
+      "operationId": "lv_hub_public",
+      "name": "found",
+      "request": {
+        "slug": "synthetic-one"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "hub_id": "00000000-0000-4000-8001-000000000001",
+          "slug": "synthetic-one",
+          "name": "Synthetic Hub One",
+          "visibility": "public",
+          "membership_mode": "approval",
+          "member_count": 40,
+          "viewer": {
+            "status": "none",
+            "can_join": true
+          }
+        },
+        "request_id": "req_0003"
+      }
+    },
+    {
+      "operationId": "lv_hub_public",
+      "name": "not-found",
+      "request": {
+        "slug": "no-such-hub"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_not_found",
+          "message": "Not found."
+        },
+        "request_id": "req_0004"
+      }
+    },
+    {
+      "operationId": "lv_join_hub",
+      "name": "pending",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000002"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "status": "pending"
+        },
+        "request_id": "req_0005"
+      }
+    },
+    {
+      "operationId": "lv_join_hub",
+      "name": "invite-required",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000002"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_forbidden",
+          "message": "An invite code is required."
+        },
+        "request_id": "req_0006"
+      }
+    },
+    {
+      "operationId": "lv_decide_join",
+      "name": "accept",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000002",
+        "account_id": "00000000-0000-4000-8002-000000000003",
+        "decision": "accept"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "hub_id": "00000000-0000-4000-8001-000000000002",
+          "account_id": "00000000-0000-4000-8002-000000000003",
+          "status": "accepted"
+        },
+        "request_id": "req_0007"
+      }
+    },
+    {
+      "operationId": "lv_member_count",
+      "name": "count",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "hub_id": "00000000-0000-4000-8001-000000000001",
+          "member_count": 40
+        },
+        "request_id": "req_0008"
+      }
+    },
+    {
+      "operationId": "lv_capability_catalog",
+      "name": "catalog",
+      "request": {},
+      "response": {
+        "ok": true,
+        "data": {
+          "capabilities": [
+            {
+              "id": "admin.settings.edit",
+              "category": "administration",
+              "delegable": true
+            },
+            {
+              "id": "admin.members.admit",
+              "category": "administration",
+              "delegable": true
+            },
+            {
+              "id": "admin.members.remove",
+              "category": "administration",
+              "delegable": true
+            },
+            {
+              "id": "admin.members.suspend",
+              "category": "administration",
+              "delegable": true
+            },
+            {
+              "id": "admin.directory.visibility",
+              "category": "administration",
+              "delegable": true
+            },
+            {
+              "id": "admin.roles.manage",
+              "category": "administration",
+              "delegable": true
+            },
+            {
+              "id": "admin.billing.view",
+              "category": "administration",
+              "delegable": true
+            },
+            {
+              "id": "admin.billing.manage",
+              "category": "administration",
+              "delegable": true
+            },
+            {
+              "id": "admin.slug.renew",
+              "category": "administration",
+              "delegable": true
+            },
+            {
+              "id": "admin.discovery.apply",
+              "category": "administration",
+              "delegable": true
+            },
+            {
+              "id": "structure.branding.edit",
+              "category": "structure",
+              "delegable": true
+            },
+            {
+              "id": "structure.navigation.edit",
+              "category": "structure",
+              "delegable": true
+            },
+            {
+              "id": "structure.pages.edit",
+              "category": "structure",
+              "delegable": true
+            },
+            {
+              "id": "structure.pages.publish",
+              "category": "structure",
+              "delegable": true
+            },
+            {
+              "id": "structure.pages.audience",
+              "category": "structure",
+              "delegable": true
+            },
+            {
+              "id": "structure.currency.edit",
+              "category": "structure",
+              "delegable": true
+            },
+            {
+              "id": "community.campaign.draft",
+              "category": "community",
+              "delegable": true
+            },
+            {
+              "id": "community.campaign.activate",
+              "category": "community",
+              "delegable": true
+            },
+            {
+              "id": "community.campaign.close",
+              "category": "community",
+              "delegable": true
+            },
+            {
+              "id": "community.campaign.audience",
+              "category": "community",
+              "delegable": true
+            },
+            {
+              "id": "community.comments.moderate",
+              "category": "community",
+              "delegable": true
+            },
+            {
+              "id": "community.analytics.view",
+              "category": "community",
+              "delegable": true
+            },
+            {
+              "id": "community.analytics.export",
+              "category": "community",
+              "delegable": true
+            },
+            {
+              "id": "community.analytics.publish",
+              "category": "community",
+              "delegable": true
+            },
+            {
+              "id": "community.shop.manage",
+              "category": "community",
+              "delegable": true
+            },
+            {
+              "id": "community.newsroom.manage",
+              "category": "community",
+              "delegable": true
+            },
+            {
+              "id": "community.leaderboard.manage",
+              "category": "community",
+              "delegable": true
+            }
+          ],
+          "owner_only": [
+            "hub.delete",
+            "hub.transfer_ownership"
+          ]
+        },
+        "request_id": "req_0009"
+      }
+    },
+    {
+      "operationId": "lv_role_list",
+      "name": "two-roles",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "hub_id": "00000000-0000-4000-8001-000000000001",
+          "roles": [
+            {
+              "id": "00000000-0000-4000-8003-000000000001",
+              "hub_id": "00000000-0000-4000-8001-000000000001",
+              "name": "Surveyor",
+              "icon": "clipboard",
+              "capabilities": [
+                "community.campaign.draft",
+                "community.campaign.activate",
+                "community.campaign.close",
+                "community.analytics.view"
+              ],
+              "assigned_count": 1
+            },
+            {
+              "id": "00000000-0000-4000-8003-000000000002",
+              "hub_id": "00000000-0000-4000-8001-000000000001",
+              "name": "Moderator",
+              "icon": "shield",
+              "capabilities": [
+                "community.comments.moderate",
+                "admin.members.admit"
+              ],
+              "assigned_count": 0
+            }
+          ],
+          "slots": {
+            "used": 2,
+            "limit": 3
+          }
+        },
+        "request_id": "req_0010"
+      }
+    },
+    {
+      "operationId": "lv_role_create",
+      "name": "ok",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "name": "Moderator",
+        "icon": "shield",
+        "capabilities": [
+          "community.comments.moderate"
+        ]
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "id": "00000000-0000-4000-8003-000000000002",
+          "hub_id": "00000000-0000-4000-8001-000000000001",
+          "name": "Moderator",
+          "icon": "shield",
+          "capabilities": [
+            "community.comments.moderate",
+            "admin.members.admit"
+          ],
+          "assigned_count": 0
+        },
+        "request_id": "req_0011"
+      }
+    },
+    {
+      "operationId": "lv_role_create",
+      "name": "slots-full",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "name": "Fourth",
+        "capabilities": []
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_quota_exceeded",
+          "message": "Role slots are full.",
+          "details": {
+            "limit": 3,
+            "used": 3
+          }
+        },
+        "request_id": "req_0012"
+      }
+    },
+    {
+      "operationId": "lv_role_assign",
+      "name": "ok",
+      "request": {
+        "role_id": "00000000-0000-4000-8003-000000000001",
+        "account_id": "00000000-0000-4000-8002-000000000002"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "hub_id": "00000000-0000-4000-8001-000000000001",
+          "account_id": "00000000-0000-4000-8002-000000000002",
+          "status": "accepted"
+        },
+        "request_id": "req_0013"
+      }
+    },
+    {
+      "operationId": "lv_owner_transfer_start",
+      "name": "offer",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "to_account_id": "00000000-0000-4000-8002-000000000002"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "offer_id": "00000000-0000-4000-8007-000000000001",
+          "hub_id": "00000000-0000-4000-8001-000000000001",
+          "to_account_id": "00000000-0000-4000-8002-000000000002",
+          "expires_at": "2026-11-09T15:00:00Z"
+        },
+        "request_id": "req_0014"
+      }
+    },
+    {
+      "operationId": "lv_owner_transfer_start",
+      "name": "not-owner",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "to_account_id": "00000000-0000-4000-8002-000000000002"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_forbidden",
+          "message": "Only the Owner can transfer ownership."
+        },
+        "request_id": "req_0015"
+      }
+    },
+    {
+      "operationId": "lv_entitlements",
+      "name": "starter",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "hub_id": "00000000-0000-4000-8001-000000000001",
+          "plan_code": "starter",
+          "grants": [
+            {
+              "source": "synthetic",
+              "plan_code": "starter",
+              "valid_from": "2026-11-02T15:00:00Z",
+              "valid_to": null
+            }
+          ],
+          "limits": {
+            "roles": {
+              "used": 2,
+              "limit": 3
+            },
+            "pages": {
+              "used": 1,
+              "limit": 3
+            },
+            "active_total": {
+              "used": 3,
+              "limit": 15
+            },
+            "active_survey": {
+              "used": 1,
+              "limit": 2
+            }
+          },
+          "undecided": []
+        },
+        "request_id": "req_0016"
+      }
+    },
+    {
+      "operationId": "lv_entitlements",
+      "name": "team-undecided",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000002"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "hub_id": "00000000-0000-4000-8001-000000000002",
+          "plan_code": "team",
+          "grants": [
+            {
+              "source": "synthetic",
+              "plan_code": "team",
+              "valid_from": "2026-11-02T15:00:00Z",
+              "valid_to": null
+            }
+          ],
+          "limits": {
+            "roles": {
+              "used": 0,
+              "limit": 6
+            },
+            "pages": {
+              "used": 0,
+              "limit": null
+            },
+            "active_total": {
+              "used": 0,
+              "limit": null
+            },
+            "active_survey": {
+              "used": 0,
+              "limit": 5
+            }
+          },
+          "undecided": [
+            "pages",
+            "active_total"
+          ]
+        },
+        "request_id": "req_0017"
+      }
+    },
+    {
+      "operationId": "lv_gate_status",
+      "name": "starter-unmet",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "mode": "survey"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "scope": "Synthetic fixture: eligible accepted members and unique responders in the illustrative window",
+          "numerator": 50,
+          "denominator": 100,
+          "met": false,
+          "next_action": "More unique eligible members need to participate.",
+          "policy_version": "gate-policy-fixture-v1"
+        },
+        "request_id": "req_0018"
+      }
+    },
+    {
+      "operationId": "lv_gate_status",
+      "name": "zero-members",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000002",
+        "mode": "survey"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_policy_undecided",
+          "message": "Bootstrap rule pending."
+        },
+        "request_id": "req_0019"
+      }
+    },
+    {
+      "operationId": "lv_campaign_create",
+      "name": "draft",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "mode": "survey",
+        "title": "Synthetic draft survey"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "id": "00000000-0000-4000-8004-000000000001",
+          "hub_id": "00000000-0000-4000-8001-000000000001",
+          "mode": "survey",
+          "state": "draft",
+          "title": "Synthetic draft survey",
+          "anonymous": false,
+          "guest_access": "off",
+          "opens_at": null,
+          "closes_at": null,
+          "activated_at": null,
+          "expires_at": null,
+          "legacy_session_id": null,
+          "join_code": null
+        },
+        "request_id": "req_0020"
+      }
+    },
+    {
+      "operationId": "lv_campaign_create",
+      "name": "mode-undecided",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "mode": "election",
+        "title": "Synthetic election"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_policy_undecided",
+          "message": "That mode is not available yet."
+        },
+        "request_id": "req_0021"
+      }
+    },
+    {
+      "operationId": "lv_campaign_list",
+      "name": "all",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "hub_id": "00000000-0000-4000-8001-000000000001",
+          "campaigns": [
+            {
+              "id": "00000000-0000-4000-8004-000000000001",
+              "hub_id": "00000000-0000-4000-8001-000000000001",
+              "mode": "survey",
+              "state": "draft",
+              "title": "Synthetic draft survey",
+              "anonymous": false,
+              "guest_access": "off",
+              "opens_at": null,
+              "closes_at": null,
+              "activated_at": null,
+              "expires_at": null,
+              "legacy_session_id": null,
+              "join_code": null
+            },
+            {
+              "id": "00000000-0000-4000-8004-000000000003",
+              "hub_id": "00000000-0000-4000-8001-000000000001",
+              "mode": "survey",
+              "state": "active",
+              "title": "Synthetic active survey",
+              "anonymous": false,
+              "guest_access": "off",
+              "opens_at": "2026-11-02T15:00:00Z",
+              "closes_at": "2026-11-16T15:00:00Z",
+              "activated_at": "2026-11-02T15:00:00Z",
+              "expires_at": null,
+              "legacy_session_id": null,
+              "join_code": "SYN123"
+            }
+          ]
+        },
+        "request_id": "req_0022"
+      }
+    },
+    {
+      "operationId": "lv_campaign_questions",
+      "name": "active",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000003"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "campaign_id": "00000000-0000-4000-8004-000000000003",
+          "revision": 1,
+          "questions": [
+            {
+              "id": "00000000-0000-4000-8005-000000000001",
+              "position": 1,
+              "type": "rating",
+              "prompt": "Synthetic question: how satisfied are you?",
+              "help_text": null,
+              "required": true,
+              "options": [],
+              "scale_min": 1,
+              "scale_max": 5
+            },
+            {
+              "id": "00000000-0000-4000-8005-000000000002",
+              "position": 2,
+              "type": "single_choice",
+              "prompt": "Synthetic question: pick one.",
+              "help_text": null,
+              "required": true,
+              "options": [
+                "Option A",
+                "Option B",
+                "Option C"
+              ],
+              "scale_min": 1,
+              "scale_max": 5
+            },
+            {
+              "id": "00000000-0000-4000-8005-000000000003",
+              "position": 3,
+              "type": "text",
+              "prompt": "Synthetic question: anything else?",
+              "help_text": "Leave out names and personal details.",
+              "required": false,
+              "options": [],
+              "scale_min": 1,
+              "scale_max": 5
+            }
+          ]
+        },
+        "request_id": "req_0023"
+      }
+    },
+    {
+      "operationId": "lv_campaign_activate",
+      "name": "ok",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000001",
+        "idempotency_key": "00000000-0000-4000-8008-000000000001"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "campaign_id": "00000000-0000-4000-8004-000000000001",
+          "state": "active",
+          "activated_at": "2026-11-02T15:00:00Z",
+          "expires_at": null,
+          "replay": false
+        },
+        "request_id": "req_0024"
+      }
+    },
+    {
+      "operationId": "lv_campaign_activate",
+      "name": "replay",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000001",
+        "idempotency_key": "00000000-0000-4000-8008-000000000001"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "campaign_id": "00000000-0000-4000-8004-000000000001",
+          "state": "active",
+          "activated_at": "2026-11-02T15:00:00Z",
+          "expires_at": null,
+          "replay": true
+        },
+        "request_id": "req_0025"
+      }
+    },
+    {
+      "operationId": "lv_campaign_activate",
+      "name": "quota",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000002",
+        "idempotency_key": "00000000-0000-4000-8008-000000000002"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_quota_exceeded",
+          "message": "Active survey limit reached.",
+          "details": {
+            "limit": 2,
+            "used": 2
+          }
+        },
+        "request_id": "req_0026"
+      }
+    },
+    {
+      "operationId": "lv_campaign_activate",
+      "name": "gate-unmet",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000002",
+        "idempotency_key": "00000000-0000-4000-8008-000000000003"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_gate_unmet",
+          "message": "Participation requirement not met.",
+          "details": {
+            "numerator": 50,
+            "denominator": 100
+          }
+        },
+        "request_id": "req_0027"
+      }
+    },
+    {
+      "operationId": "lv_campaign_close",
+      "name": "ok",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000003"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "id": "00000000-0000-4000-8004-000000000004",
+          "hub_id": "00000000-0000-4000-8001-000000000001",
+          "mode": "survey",
+          "state": "closed",
+          "title": "Synthetic closed survey",
+          "anonymous": false,
+          "guest_access": "off",
+          "opens_at": "2026-11-02T15:00:00Z",
+          "closes_at": "2026-11-09T15:00:00Z",
+          "activated_at": "2026-11-02T15:00:00Z",
+          "expires_at": null,
+          "legacy_session_id": null,
+          "join_code": null
+        },
+        "request_id": "req_0028"
+      }
+    },
+    {
+      "operationId": "lv_campaign_resolve",
+      "name": "found",
+      "request": {
+        "code": "SYN123"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "campaign_id": "00000000-0000-4000-8004-000000000003",
+          "hub_id": "00000000-0000-4000-8001-000000000001",
+          "hub_slug": "synthetic-one",
+          "title": "Synthetic active survey",
+          "state": "active",
+          "anonymous": false,
+          "requires_account": true
+        },
+        "request_id": "req_0029"
+      }
+    },
+    {
+      "operationId": "lv_campaign_resolve",
+      "name": "not-found",
+      "request": {
+        "code": "NOPE00"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_not_found",
+          "message": "No Campaign matches that code."
+        },
+        "request_id": "req_0030"
+      }
+    },
+    {
+      "operationId": "lv_submit_response",
+      "name": "ok",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000003",
+        "idempotency_key": "00000000-0000-4000-8008-000000000001",
+        "answers": [
+          {
+            "question_id": "00000000-0000-4000-8005-000000000001",
+            "value": 4
+          },
+          {
+            "question_id": "00000000-0000-4000-8005-000000000002",
+            "value": "Option A"
+          }
+        ]
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "id": "00000000-0000-4000-8006-000000000001",
+          "campaign_id": "00000000-0000-4000-8004-000000000003",
+          "duplicate": false,
+          "points": 50,
+          "submitted_at": "2026-11-09T15:00:00Z"
+        },
+        "request_id": "req_0031"
+      }
+    },
+    {
+      "operationId": "lv_submit_response",
+      "name": "duplicate",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000003",
+        "idempotency_key": "00000000-0000-4000-8008-000000000001",
+        "answers": [
+          {
+            "question_id": "00000000-0000-4000-8005-000000000001",
+            "value": 4
+          }
+        ]
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "id": "00000000-0000-4000-8006-000000000001",
+          "campaign_id": "00000000-0000-4000-8004-000000000003",
+          "duplicate": true,
+          "points": 50,
+          "submitted_at": "2026-11-09T15:00:00Z"
+        },
+        "request_id": "req_0032"
+      }
+    },
+    {
+      "operationId": "lv_submit_response",
+      "name": "closed",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000004",
+        "idempotency_key": "00000000-0000-4000-8008-000000000002",
+        "answers": []
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_lifecycle_invalid",
+          "message": "This Campaign is closed."
+        },
+        "request_id": "req_0033"
+      }
+    },
+    {
+      "operationId": "lv_my_receipts",
+      "name": "one",
+      "request": {},
+      "response": {
+        "ok": true,
+        "data": {
+          "receipts": [
+            {
+              "id": "00000000-0000-4000-8006-000000000001",
+              "campaign_id": "00000000-0000-4000-8004-000000000003",
+              "duplicate": false,
+              "points": 50,
+              "submitted_at": "2026-11-09T15:00:00Z"
+            }
+          ]
+        },
+        "request_id": "req_0034"
+      }
+    },
+    {
+      "operationId": "lv_analytics_query",
+      "name": "undecided",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000006",
+        "metric": "participation"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_policy_undecided",
+          "message": "Anonymous results are not available until the privacy policy is set."
+        },
+        "request_id": "req_0035"
+      }
+    },
+    {
+      "operationId": "lv_analytics_query",
+      "name": "applied-fixture-only",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000003",
+        "metric": "answer_distribution",
+        "question_id": "00000000-0000-4000-8005-000000000002"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "campaign_id": "00000000-0000-4000-8004-000000000003",
+          "metric": "answer_distribution",
+          "total_participants": 8,
+          "groups": [
+            {
+              "key": "Option A",
+              "n": 5,
+              "suppressed": false,
+              "value": 0.625
+            },
+            {
+              "key": "Option B",
+              "n": null,
+              "suppressed": true,
+              "value": null
+            },
+            {
+              "key": "Option C",
+              "n": null,
+              "suppressed": true,
+              "value": null
+            }
+          ],
+          "freshness_at": "2026-11-09T15:00:00Z",
+          "policy": {
+            "status": "applied",
+            "min_cohort": 3
+          }
+        },
+        "request_id": "req_0036"
+      }
+    }
+  ]
+}

@@ -1,0 +1,167 @@
+{
+  "version": "0.1.0",
+  "description": "One Campaign per lifecycle state, plus a question set.",
+  "items": [
+    {
+      "name": "campaign.draft",
+      "schema": "Campaign",
+      "data": {
+        "id": "00000000-0000-4000-8004-000000000001",
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "mode": "survey",
+        "state": "draft",
+        "title": "Synthetic draft survey",
+        "anonymous": false,
+        "guest_access": "off",
+        "opens_at": null,
+        "closes_at": null,
+        "activated_at": null,
+        "expires_at": null,
+        "legacy_session_id": null,
+        "join_code": null
+      }
+    },
+    {
+      "name": "campaign.scheduled",
+      "schema": "Campaign",
+      "data": {
+        "id": "00000000-0000-4000-8004-000000000002",
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "mode": "survey",
+        "state": "scheduled",
+        "title": "Synthetic scheduled survey",
+        "anonymous": false,
+        "guest_access": "off",
+        "opens_at": "2026-11-09T15:00:00Z",
+        "closes_at": "2026-11-16T15:00:00Z",
+        "activated_at": null,
+        "expires_at": null,
+        "legacy_session_id": null,
+        "join_code": null
+      }
+    },
+    {
+      "name": "campaign.active",
+      "schema": "Campaign",
+      "data": {
+        "id": "00000000-0000-4000-8004-000000000003",
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "mode": "survey",
+        "state": "active",
+        "title": "Synthetic active survey",
+        "anonymous": false,
+        "guest_access": "off",
+        "opens_at": "2026-11-02T15:00:00Z",
+        "closes_at": "2026-11-16T15:00:00Z",
+        "activated_at": "2026-11-02T15:00:00Z",
+        "expires_at": null,
+        "legacy_session_id": null,
+        "join_code": "SYN123"
+      }
+    },
+    {
+      "name": "campaign.closed",
+      "schema": "Campaign",
+      "data": {
+        "id": "00000000-0000-4000-8004-000000000004",
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "mode": "survey",
+        "state": "closed",
+        "title": "Synthetic closed survey",
+        "anonymous": false,
+        "guest_access": "off",
+        "opens_at": "2026-11-02T15:00:00Z",
+        "closes_at": "2026-11-09T15:00:00Z",
+        "activated_at": "2026-11-02T15:00:00Z",
+        "expires_at": null,
+        "legacy_session_id": null,
+        "join_code": null
+      }
+    },
+    {
+      "name": "campaign.expired",
+      "schema": "Campaign",
+      "data": {
+        "id": "00000000-0000-4000-8004-000000000005",
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "mode": "survey",
+        "state": "expired",
+        "title": "Synthetic expired survey",
+        "anonymous": false,
+        "guest_access": "off",
+        "opens_at": "2026-11-02T15:00:00Z",
+        "closes_at": "2026-11-09T15:00:00Z",
+        "activated_at": "2026-11-02T15:00:00Z",
+        "expires_at": "2026-11-09T15:00:00Z",
+        "legacy_session_id": null,
+        "join_code": null
+      }
+    },
+    {
+      "name": "campaign.anonymousActive",
+      "schema": "Campaign",
+      "data": {
+        "id": "00000000-0000-4000-8004-000000000006",
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "mode": "survey",
+        "state": "active",
+        "title": "Synthetic anonymous survey",
+        "anonymous": true,
+        "guest_access": "off",
+        "opens_at": "2026-11-02T15:00:00Z",
+        "closes_at": null,
+        "activated_at": "2026-11-02T15:00:00Z",
+        "expires_at": null,
+        "legacy_session_id": null,
+        "join_code": "ANON99"
+      }
+    },
+    {
+      "name": "question-set.active",
+      "schema": "QuestionSet",
+      "data": {
+        "campaign_id": "00000000-0000-4000-8004-000000000003",
+        "revision": 1,
+        "questions": [
+          {
+            "id": "00000000-0000-4000-8005-000000000001",
+            "position": 1,
+            "type": "rating",
+            "prompt": "Synthetic question: how satisfied are you?",
+            "help_text": null,
+            "required": true,
+            "options": [],
+            "scale_min": 1,
+            "scale_max": 5
+          },
+          {
+            "id": "00000000-0000-4000-8005-000000000002",
+            "position": 2,
+            "type": "single_choice",
+            "prompt": "Synthetic question: pick one.",
+            "help_text": null,
+            "required": true,
+            "options": [
+              "Option A",
+              "Option B",
+              "Option C"
+            ],
+            "scale_min": 1,
+            "scale_max": 5
+          },
+          {
+            "id": "00000000-0000-4000-8005-000000000003",
+            "position": 3,
+            "type": "text",
+            "prompt": "Synthetic question: anything else?",
+            "help_text": "Leave out names and personal details.",
+            "required": false,
+            "options": [],
+            "scale_min": 1,
+            "scale_max": 5
+          }
+        ]
+      }
+    }
+  ]
+}

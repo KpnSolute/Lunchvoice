@@ -8,6 +8,15 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added the versioned LunchVoice API contract (`contract/`, v0.1.0): authored in dependency-free JS
+  (`contract/src`), emitted as OpenAPI 3.1 (`openapi.json`), TypeScript types, an operation index,
+  request/response examples and deterministic synthetic fixtures under `contract/generated/`. It covers 67
+  operations (58 v2 `lv_*` RPCs plus the 9 live legacy operations) across 12 modules, reconciled both ways with
+  all 49 frontend flows. Every operation carries `x-status` (implemented, implemented-nonprod, proposed,
+  blocked-decision), milestone, capabilities and open decisions; no v2 operation is marked implemented. Undecided
+  policy values (Team totals, gate bootstrap, analytics suppression threshold, Plus prices) are `null`/
+  `lv_policy_undecided`, never invented. New `npm run contract:build` / `contract:check` (in `test:pr`) and
+  `scripts/contract.test.mjs`. No database, production or frontend change.
 - Added pull-request validation (`.github/workflows/pr-checks.yml`). Previously the only
   workflow ran on pushes to `main`, so a PR could merge with no automated checks. The new
   workflow runs on `pull_request`, has read-only permissions and no secrets, and cannot tag,

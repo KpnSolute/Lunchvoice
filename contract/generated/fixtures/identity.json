@@ -1,0 +1,124 @@
+{
+  "version": "0.1.0",
+  "description": "Account contexts for synthetic personas (owner of Hub One; surveyor; pending applicant).",
+  "items": [
+    {
+      "name": "context.alex-owner",
+      "schema": "Context",
+      "data": {
+        "account": {
+          "id": "00000000-0000-4000-8002-000000000001",
+          "display_name": "Alex Rivera"
+        },
+        "memberships": [
+          {
+            "hub_id": "00000000-0000-4000-8001-000000000001",
+            "slug": "synthetic-one",
+            "name": "Synthetic Hub One",
+            "status": "accepted",
+            "roles": [],
+            "capabilities": [],
+            "is_owner": true
+          },
+          {
+            "hub_id": "00000000-0000-4000-8001-000000000002",
+            "slug": "synthetic-two",
+            "name": "Synthetic Hub Two",
+            "status": "accepted",
+            "roles": [],
+            "capabilities": [],
+            "is_owner": false
+          }
+        ],
+        "pending": []
+      },
+      "description": "Owner of Hub One and plain member of Hub Two."
+    },
+    {
+      "name": "context.sam-surveyor",
+      "schema": "Context",
+      "data": {
+        "account": {
+          "id": "00000000-0000-4000-8002-000000000002",
+          "display_name": "Sam Lee"
+        },
+        "memberships": [
+          {
+            "hub_id": "00000000-0000-4000-8001-000000000001",
+            "slug": "synthetic-one",
+            "name": "Synthetic Hub One",
+            "status": "accepted",
+            "roles": [
+              {
+                "id": "00000000-0000-4000-8003-000000000001",
+                "name": "Surveyor",
+                "icon": "clipboard"
+              }
+            ],
+            "capabilities": [
+              "community.campaign.draft",
+              "community.campaign.activate",
+              "community.campaign.close",
+              "community.analytics.view"
+            ],
+            "is_owner": false
+          }
+        ],
+        "pending": []
+      },
+      "description": "Member of Hub One with a custom Surveyor role."
+    },
+    {
+      "name": "context.priya-pending",
+      "schema": "Context",
+      "data": {
+        "account": {
+          "id": "00000000-0000-4000-8002-000000000003",
+          "display_name": "Priya Shah"
+        },
+        "memberships": [],
+        "pending": [
+          {
+            "hub_id": "00000000-0000-4000-8001-000000000002",
+            "slug": "synthetic-two",
+            "name": "Synthetic Hub Two",
+            "status": "pending"
+          }
+        ]
+      },
+      "description": "No memberships; one pending application."
+    },
+    {
+      "name": "hub.one-public-visitor",
+      "schema": "HubPublic",
+      "data": {
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "slug": "synthetic-one",
+        "name": "Synthetic Hub One",
+        "visibility": "public",
+        "membership_mode": "approval",
+        "member_count": 40,
+        "viewer": {
+          "status": "none",
+          "can_join": true
+        }
+      }
+    },
+    {
+      "name": "hub.two-private-pending",
+      "schema": "HubPublic",
+      "data": {
+        "hub_id": "00000000-0000-4000-8001-000000000002",
+        "slug": "synthetic-two",
+        "name": "Synthetic Hub Two",
+        "visibility": "private",
+        "membership_mode": "invite_only",
+        "member_count": 12,
+        "viewer": {
+          "status": "pending",
+          "can_join": false
+        }
+      }
+    }
+  ]
+}
