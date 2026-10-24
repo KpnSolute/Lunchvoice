@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "LunchVoice API",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "description": "Machine-readable contract for LunchVoice. v2 operations are Postgres functions behind PostgREST RPC returning a 200 envelope; legacy operations are the live v1 surface. Per-operation x-status says whether it exists: implemented (production), implemented-nonprod, proposed, blocked-decision. A null limit means undecided, never unlimited."
   },
   "servers": [
@@ -2679,7 +2679,8 @@
         ],
         "x-auth": "user",
         "x-provisional": [
-          "P-19"
+          "P-19",
+          "P-22"
         ],
         "security": [
           {
@@ -3249,7 +3250,8 @@
           "P-16",
           "P-17",
           "P-18",
-          "P-19"
+          "P-19",
+          "P-21"
         ],
         "security": [
           {
@@ -3622,7 +3624,7 @@
           "participation"
         ],
         "x-module": "participation",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-04",
@@ -3630,21 +3632,25 @@
           "F-22"
         ],
         "x-capabilities": [],
-        "x-decisions": [],
+        "x-decisions": [
+          "D-03"
+        ],
         "x-auth": "anon",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-22",
+          "P-25",
+          "P-27"
+        ],
         "security": [
           {
             "apikey": []
           }
         ],
-        "description": "Forged, expired and wrong-Hub codes all return lv_not_found with no existence leak.",
+        "description": "Codes are case-insensitive. Drafts and scheduled Campaigns never resolve. A private Hub's Campaign resolves only for its accepted members; anyone else, including anon, gets lv_not_found (same as a wrong code). A public Hub's active, closed or expired Campaign resolves for anyone. requires_account is always true until guest proof is decided (P-22). There is no rate limiting yet (abuse limits undecided, P-27).",
         "x-idempotent": false,
         "x-errors": [
           "lv_not_found",
-          "lv_lifecycle_invalid",
-          "lv_forbidden",
-          "lv_rate_limited"
+          "lv_invalid_input"
         ],
         "responses": {
           "200": {
@@ -3712,7 +3718,7 @@
           "participation"
         ],
         "x-module": "participation",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-19",
@@ -3721,27 +3727,34 @@
         "x-capabilities": [],
         "x-decisions": [
           "D-03",
-          "D-10"
+          "D-08",
+          "D-10",
+          "D-12"
         ],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-20",
+          "P-21",
+          "P-22",
+          "P-23",
+          "P-24",
+          "P-25",
+          "P-26"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
-        "description": "A retry with the same idempotency_key or a second submission by the same participant returns the original receipt with duplicate=true.",
+        "description": "Members only: a non-member, a suspended/removed/pending member, a member of another Hub and an unknown Campaign all get the same lv_not_found. Bound to the Campaign's immutable published question revision; answers are validated server-side (unknown or duplicate question, missing required, number range, option membership, boolean, ranking, text length: lv_invalid_input with details.reason and question_id). Duplicates are decided by person, not by key: any second submission by the same person to the same Campaign, with any idempotency_key and any answers, returns the ORIGINAL receipt with duplicate=true and stores nothing; this also holds after close and after reopening (P-20, P-21). Not open: lv_lifecycle_invalid with details.reason not_active (state) or closed_by_time. Close and submit are serialized on the Campaign row; a submission is wholly accepted or wholly refused, and the closing time is re-read after any lock wait. Non-survey modes: lv_policy_undecided (D-08). Receipt.reward_state is unset unless a reward policy exists, and a recorded reward does not change any balance (P-24). Anonymous Campaigns store answers with no account and no link to the receipt (P-23).",
         "x-idempotent": true,
         "x-errors": [
           "lv_unauthenticated",
-          "lv_not_member",
-          "lv_forbidden",
           "lv_not_found",
           "lv_lifecycle_invalid",
           "lv_invalid_input",
-          "lv_conflict",
-          "lv_rate_limited"
+          "lv_policy_undecided"
         ],
         "responses": {
           "200": {
@@ -3809,7 +3822,7 @@
           "participation"
         ],
         "x-module": "participation",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-15",
@@ -3818,13 +3831,17 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-23",
+          "P-24"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
+        "description": "Only the caller's own receipts (member participation), newest first. No role, including the Owner, can list anyone else's. Guest receipts are not listed.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated"
@@ -8178,7 +8195,17 @@
               "integer",
               "null"
             ],
-            "minimum": 0
+            "minimum": 0,
+            "description": "null unless a reward policy exists. A recorded reward does not change any balance."
+          },
+          "reward_state": {
+            "type": "string",
+            "enum": [
+              "unset",
+              "recorded",
+              "not_applicable"
+            ],
+            "description": "unset: no reward policy has been decided (never 0). recorded: points recorded on the receipt by a decided policy. not_applicable: guests."
           },
           "submitted_at": {
             "$ref": "#/components/schemas/Timestamp"
@@ -8190,6 +8217,7 @@
           "campaign_id",
           "duplicate",
           "points",
+          "reward_state",
           "submitted_at"
         ]
       },
@@ -9885,6 +9913,94 @@
         "lv_campaign_close"
       ],
       "summary": "Lifecycle rules chosen for testability: only drafts are editable; a Campaign expires when its closing time passes and cannot be reopened; a closed one can reopen until then; scheduling reserves nothing and every check is repeated when it opens; the scheduler must still hold the capability. Only survey mode exists. Nothing defines the Winter Survey opening time, timezone, closing, operator, questionnaire, audience or anonymity (D-12). The job that runs scheduled activations and expiry is an operator function with no scheduler configured."
+    },
+    {
+      "id": "P-20",
+      "decisions": [
+        "D-05",
+        "D-12"
+      ],
+      "operations": [
+        "lv_submit_response"
+      ],
+      "summary": "Duplicate rule: one response per person per Campaign, decided by person and independent of the idempotency key. A second attempt (same key, new key, different answers) returns the ORIGINAL receipt with duplicate = true and stores nothing; the first answers win. Whether a person may ever resubmit or amend is undecided."
+    },
+    {
+      "id": "P-21",
+      "decisions": [
+        "D-12"
+      ],
+      "operations": [
+        "lv_submit_response",
+        "lv_campaign_activate"
+      ],
+      "summary": "Reopening a closed Campaign does NOT let a person who already responded respond again; people who had not responded may. Whether reopening should allow a new response is undecided and there is deliberately no code path for it."
+    },
+    {
+      "id": "P-22",
+      "decisions": [
+        "D-03"
+      ],
+      "operations": [
+        "lv_submit_response",
+        "lv_campaign_create",
+        "lv_campaign_resolve"
+      ],
+      "summary": "Guests: no public entry point exists. The storage and a scoped, revocable grant exist and are tested internally, but guest proof, how grants are issued, their lifespan and abuse limits are undecided, and guest_access = link cannot be set. Guests never become members, never get a reward and never see Hub data."
+    },
+    {
+      "id": "P-23",
+      "decisions": [
+        "D-10",
+        "D-12"
+      ],
+      "operations": [
+        "lv_submit_response",
+        "lv_my_receipts"
+      ],
+      "summary": "Anonymous Campaign storage: answers carry no account and no reference to the receipt, only a calendar date; database guards refuse to write either link. Residual risk: someone with direct database access (not the API roles) can still correlate rows through transaction metadata. Retention, who may have such access, and whether this meets the Winter Survey's anonymity promise are undecided."
+    },
+    {
+      "id": "P-24",
+      "decisions": [
+        "D-12"
+      ],
+      "operations": [
+        "lv_submit_response",
+        "lv_my_receipts"
+      ],
+      "summary": "Rewards: no points are invented. Receipts say reward_state unset (points null) until a reward policy is decided; a recorded reward is only a number on the receipt and changes no legacy or v2 balance. Applying rewards to the points ledger is undecided."
+    },
+    {
+      "id": "P-25",
+      "decisions": [
+        "D-12"
+      ],
+      "operations": [
+        "lv_submit_response",
+        "lv_campaign_resolve"
+      ],
+      "summary": "Audience: any accepted member of the Campaign's Hub may respond. Narrower audiences (roles, groups, invitations) are undecided and not implemented."
+    },
+    {
+      "id": "P-26",
+      "decisions": [
+        "D-12"
+      ],
+      "operations": [
+        "lv_submit_response"
+      ],
+      "summary": "Answer limits chosen for safety: at most 100 answers, text up to 2000 characters, optional questions may be left out, a required question needs a non-empty answer. The real questionnaire is undecided."
+    },
+    {
+      "id": "P-27",
+      "decisions": [
+        "D-03"
+      ],
+      "operations": [
+        "lv_campaign_resolve"
+      ],
+      "summary": "Join-code resolution has no rate limiting or lockout, and private-Hub codes resolve only for accepted members. Abuse limits for public codes are undecided."
     }
   ]
 }

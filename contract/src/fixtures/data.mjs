@@ -138,7 +138,10 @@ export const questionSet = {
   ],
 };
 
-export const receipt = { id: RECEIPT.first, campaign_id: CAMPAIGN.active, duplicate: false, points: 50, submitted_at: T.later };
+/** Reward policy is undecided (D-12): receipts carry reward_state "unset" and points null, never an invented amount. */
+export const receipt = { id: RECEIPT.first, campaign_id: CAMPAIGN.active, duplicate: false, points: null, reward_state: "unset", submitted_at: T.later };
+/** Illustrative only: what a receipt looks like once SOME reward policy has been decided. The amount is a placeholder, not a policy. */
+export const receiptRecordedExample = { ...receipt, points: 1, reward_state: "recorded" };
 
 /** Test-only cohort value used to show the suppressed rendering. The real threshold is undecided (D-10). */
 export const FIXTURE_ONLY_MIN_COHORT = 3;

@@ -8,6 +8,20 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added v2 participation and receipts (migration `20261024000400_v2_participation_receipts.sql`, **not applied to production**,
+  stacked on the entitlements migration) and three `lv_*` RPCs (contract v0.5.0, `implemented-nonprod`): `lv_campaign_resolve`,
+  `lv_submit_response`, `lv_my_receipts`. Submissions are bound to the Campaign's immutable published question revision (questions are
+  frozen by a database trigger once a Campaign leaves draft) and validated server-side (question ids, types, ranges, options, required
+  answers). One response per person per Campaign decided by person, not by idempotency key: any later attempt with any key returns the
+  original receipt. Lifecycle is enforced at submission time under the Campaign row lock with the closing time re-read after any lock
+  wait, so close/expiry racing a submission is wholly accepted or wholly refused. Identity-bearing eligibility/receipt records
+  (`campaign_participation`) are separate from answers (`campaign_answers`); for anonymous Campaigns the answers carry no account, no
+  reference to the receipt and only a date, with database guards that refuse either link, and no API role can read any of these tables
+  (a test shows no public function reads the answer tables and exactly one, `lv_my_receipts`, reads the ledger). Guests have no public
+  entry point (D-03); the scoped, revocable grant storage is tested internally. Guest rows can never be members (audience is derived
+  from the account). Rewards are never invented: `reward_state` is `unset` with `points` null unless a reward policy exists, and a
+  recorded reward changes no balance. 682 database checks (new: participation 104 and four races: twelve keys for one person, five at
+  once, close versus submit, closing time passing during a lock wait); nine mutations are caught. Provisional P-20 to P-27.
 - Added v2 entitlement limits and the Campaign lifecycle (migration `20261024000300_v2_entitlements_campaign_lifecycle.sql`,
   **not applied to production**, stacked on the roles migration) and eleven `lv_*` RPCs (contract v0.4.0, `implemented-nonprod`), including
   the new read-only `lv_campaign_activation_status` that gives the UI server-derived blockers, quota and gate state. Campaigns move draft,

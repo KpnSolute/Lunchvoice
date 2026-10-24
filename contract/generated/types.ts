@@ -464,6 +464,7 @@ export type Receipt = {
   campaign_id: Uuid;
   duplicate: boolean;
   points: number | null;
+  reward_state: "unset" | "recorded" | "not_applicable";
   submitted_at: Timestamp;
 };
 
@@ -811,9 +812,9 @@ export interface OperationMap {
   lv_campaign_activation_status: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_activation_status"; request: CampaignRef; result: LvResult<ActivationStatus> };
   lv_campaign_close: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_close"; request: CampaignRef; result: LvResult<Campaign> };
   lv_campaign_share_create: { kind: "rpc-v2"; status: "blocked-decision"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_share_create"; request: ShareRequest; result: LvResult<ShareResult> };
-  lv_campaign_resolve: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_resolve"; request: CampaignResolveRequest; result: LvResult<CampaignResolveResult> };
-  lv_submit_response: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_submit_response"; request: SubmitResponseRequest; result: LvResult<Receipt> };
-  lv_my_receipts: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_my_receipts"; request: undefined; result: LvResult<ReceiptList> };
+  lv_campaign_resolve: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_campaign_resolve"; request: CampaignResolveRequest; result: LvResult<CampaignResolveResult> };
+  lv_submit_response: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_submit_response"; request: SubmitResponseRequest; result: LvResult<Receipt> };
+  lv_my_receipts: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_my_receipts"; request: undefined; result: LvResult<ReceiptList> };
   lv_analytics_query: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_analytics_query"; request: AnalyticsQuery; result: LvResult<AnalyticsResult> };
   lv_analytics_export: { kind: "rpc-v2"; status: "proposed"; milestone: "M2"; path: "/rest/v1/rpc/lv_analytics_export"; request: ExportRequest; result: LvResult<ExportResult> };
   lv_analytics_embed_create: { kind: "rpc-v2"; status: "proposed"; milestone: "M2"; path: "/rest/v1/rpc/lv_analytics_embed_create"; request: EmbedRequest; result: LvResult<EmbedResult> };

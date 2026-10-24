@@ -55,7 +55,7 @@ while read -r f; do
 done < "$TESTS/v2-migrations.txt"
 
 # Independent copies so committing tests cannot disturb each other.
-docker exec "$NAME" psql -U postgres -d postgres -X -q -c "create database lv_cc template lv" -c "create database lv_rb template lv" -c "create database lv_rb2 template lv" -c "create database lv_rb3 template lv" || exit 2
+docker exec "$NAME" psql -U postgres -d postgres -X -q -c "create database lv_cc template lv" -c "create database lv_rb template lv" -c "create database lv_rb2 template lv" -c "create database lv_rb3 template lv" -c "create database lv_rb4 template lv" || exit 2
 
 echo "== sql tests"
 SQL_PASS=0; SQL_FAIL=0
@@ -77,6 +77,7 @@ DB=lv_cc bash "$TESTS/04_concurrency.sh" "$NAME" || FAILED=1
 D1="$ROLLBACKS/20261024000100_v2_identity_hubs_memberships.down.sql"
 D2="$ROLLBACKS/20261024000200_v2_roles_capabilities_owner_transfer.down.sql"
 D3="$ROLLBACKS/20261024000300_v2_entitlements_campaign_lifecycle.down.sql"
+D4="$ROLLBACKS/20261024000400_v2_participation_receipts.down.sql"
 rbtest() { # label, database, post file, down scripts...
   local label="$1" db="$2" post="$3"; shift 3
   echo "== rollback ($label)"
@@ -84,14 +85,15 @@ rbtest() { # label, database, post file, down scripts...
     echo "ERROR in rollback test: $label"; cat /tmp/lv-rb.$$; FAILED=1
   fi
 }
-rbtest "everything, in reverse order" lv_rb "$TESTS/05_rollback_post.sql" "$D3" "$D2" "$D1"
-rbtest "migrations 3 and 2; migration 1 must keep working" lv_rb2 "$TESTS/05b_rollback_roles_only_post.sql" "$D3" "$D2"
-rbtest "migration 3 only; migrations 1 and 2 must keep working" lv_rb3 "$TESTS/05c_rollback_campaigns_only_post.sql" "$D3"
+rbtest "everything, in reverse order" lv_rb "$TESTS/05_rollback_post.sql" "$D4" "$D3" "$D2" "$D1"
+rbtest "migrations 4, 3 and 2; migration 1 must keep working" lv_rb2 "$TESTS/05b_rollback_roles_only_post.sql" "$D4" "$D3" "$D2"
+rbtest "migrations 4 and 3; migrations 1 and 2 must keep working" lv_rb3 "$TESTS/05c_rollback_campaigns_only_post.sql" "$D4" "$D3"
+rbtest "migration 4 only; migrations 1 to 3 must keep working" lv_rb4 "$TESTS/05d_rollback_participation_only_post.sql" "$D4"
 rm -f /tmp/lv-rb.$$
 
 echo "== results"
 TOTAL=$((SQL_PASS + SQL_FAIL)); BAD=$SQL_FAIL
-for db in lv_cc lv_rb lv_rb2 lv_rb3; do
+for db in lv_cc lv_rb lv_rb2 lv_rb3 lv_rb4; do
   n=$(docker exec "$NAME" psql -U postgres -d $db -X -At -c "select count(*) from t.results")
   b=$(docker exec "$NAME" psql -U postgres -d $db -X -At -c "select count(*) from t.results where not ok")
   TOTAL=$((TOTAL + n)); BAD=$((BAD + b))

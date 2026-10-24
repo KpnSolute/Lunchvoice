@@ -1,5 +1,5 @@
 {
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Provisional implementation choices. NOT approved production policy.",
   "items": [
     {
@@ -227,6 +227,94 @@
         "lv_campaign_schedule",
         "lv_campaign_activate",
         "lv_campaign_close"
+      ]
+    },
+    {
+      "id": "P-20",
+      "decisions": [
+        "D-05",
+        "D-12"
+      ],
+      "summary": "Duplicate rule: one response per person per Campaign, decided by person and independent of the idempotency key. A second attempt (same key, new key, different answers) returns the ORIGINAL receipt with duplicate = true and stores nothing; the first answers win. Whether a person may ever resubmit or amend is undecided.",
+      "ops": [
+        "lv_submit_response"
+      ]
+    },
+    {
+      "id": "P-21",
+      "decisions": [
+        "D-12"
+      ],
+      "summary": "Reopening a closed Campaign does NOT let a person who already responded respond again; people who had not responded may. Whether reopening should allow a new response is undecided and there is deliberately no code path for it.",
+      "ops": [
+        "lv_submit_response",
+        "lv_campaign_activate"
+      ]
+    },
+    {
+      "id": "P-22",
+      "decisions": [
+        "D-03"
+      ],
+      "summary": "Guests: no public entry point exists. The storage and a scoped, revocable grant exist and are tested internally, but guest proof, how grants are issued, their lifespan and abuse limits are undecided, and guest_access = link cannot be set. Guests never become members, never get a reward and never see Hub data.",
+      "ops": [
+        "lv_submit_response",
+        "lv_campaign_create",
+        "lv_campaign_resolve"
+      ]
+    },
+    {
+      "id": "P-23",
+      "decisions": [
+        "D-10",
+        "D-12"
+      ],
+      "summary": "Anonymous Campaign storage: answers carry no account and no reference to the receipt, only a calendar date; database guards refuse to write either link. Residual risk: someone with direct database access (not the API roles) can still correlate rows through transaction metadata. Retention, who may have such access, and whether this meets the Winter Survey's anonymity promise are undecided.",
+      "ops": [
+        "lv_submit_response",
+        "lv_my_receipts"
+      ]
+    },
+    {
+      "id": "P-24",
+      "decisions": [
+        "D-12"
+      ],
+      "summary": "Rewards: no points are invented. Receipts say reward_state unset (points null) until a reward policy is decided; a recorded reward is only a number on the receipt and changes no legacy or v2 balance. Applying rewards to the points ledger is undecided.",
+      "ops": [
+        "lv_submit_response",
+        "lv_my_receipts"
+      ]
+    },
+    {
+      "id": "P-25",
+      "decisions": [
+        "D-12"
+      ],
+      "summary": "Audience: any accepted member of the Campaign's Hub may respond. Narrower audiences (roles, groups, invitations) are undecided and not implemented.",
+      "ops": [
+        "lv_submit_response",
+        "lv_campaign_resolve"
+      ]
+    },
+    {
+      "id": "P-26",
+      "decisions": [
+        "D-12"
+      ],
+      "summary": "Answer limits chosen for safety: at most 100 answers, text up to 2000 characters, optional questions may be left out, a required question needs a non-empty answer. The real questionnaire is undecided.",
+      "ops": [
+        "lv_submit_response"
+      ]
+    },
+    {
+      "id": "P-27",
+      "decisions": [
+        "D-03"
+      ],
+      "summary": "Join-code resolution has no rate limiting or lockout, and private-Hub codes resolve only for accepted members. Abuse limits for public codes are undecided.",
+      "ops": [
+        "lv_campaign_resolve"
       ]
     }
   ]

@@ -1,5 +1,5 @@
 {
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Request/response pairs for mock adapters and contract tests. Synthetic data only.",
   "examples": [
     {
@@ -1343,7 +1343,8 @@
           "id": "00000000-0000-4000-8006-000000000001",
           "campaign_id": "00000000-0000-4000-8004-000000000003",
           "duplicate": false,
-          "points": 50,
+          "points": null,
+          "reward_state": "unset",
           "submitted_at": "2026-11-09T15:00:00Z"
         },
         "request_id": "req_0031"
@@ -1368,7 +1369,8 @@
           "id": "00000000-0000-4000-8006-000000000001",
           "campaign_id": "00000000-0000-4000-8004-000000000003",
           "duplicate": true,
-          "points": 50,
+          "points": null,
+          "reward_state": "unset",
           "submitted_at": "2026-11-09T15:00:00Z"
         },
         "request_id": "req_0032"
@@ -1392,6 +1394,96 @@
       }
     },
     {
+      "operationId": "lv_submit_response",
+      "name": "invalid-answer",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000003",
+        "idempotency_key": "00000000-0000-4000-8008-000000000002",
+        "answers": [
+          {
+            "question_id": "00000000-0000-4000-8005-000000000001",
+            "value": 9
+          }
+        ]
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_invalid_input",
+          "message": "Check your answers.",
+          "details": {
+            "reason": "value_out_of_range",
+            "question_id": "00000000-0000-4000-8005-000000000001",
+            "min": 1,
+            "max": 5
+          }
+        },
+        "request_id": "req_0060"
+      }
+    },
+    {
+      "operationId": "lv_submit_response",
+      "name": "missing-required",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000003",
+        "idempotency_key": "00000000-0000-4000-8008-000000000002",
+        "answers": []
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_invalid_input",
+          "message": "Check your answers.",
+          "details": {
+            "reason": "required_question_unanswered",
+            "question_ids": [
+              "00000000-0000-4000-8005-000000000001",
+              "00000000-0000-4000-8005-000000000002"
+            ]
+          }
+        },
+        "request_id": "req_0061"
+      }
+    },
+    {
+      "operationId": "lv_submit_response",
+      "name": "not-a-member",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000003",
+        "idempotency_key": "00000000-0000-4000-8008-000000000002",
+        "answers": []
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_not_found",
+          "message": "Not found."
+        },
+        "request_id": "req_0062"
+      }
+    },
+    {
+      "operationId": "lv_submit_response",
+      "name": "closed-by-time",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000005",
+        "idempotency_key": "00000000-0000-4000-8008-000000000002",
+        "answers": []
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_lifecycle_invalid",
+          "message": "This Campaign has closed.",
+          "details": {
+            "reason": "closed_by_time",
+            "state": "expired"
+          }
+        },
+        "request_id": "req_0063"
+      }
+    },
+    {
       "operationId": "lv_my_receipts",
       "name": "one",
       "request": {},
@@ -1403,7 +1495,8 @@
               "id": "00000000-0000-4000-8006-000000000001",
               "campaign_id": "00000000-0000-4000-8004-000000000003",
               "duplicate": false,
-              "points": 50,
+              "points": null,
+              "reward_state": "unset",
               "submitted_at": "2026-11-09T15:00:00Z"
             }
           ]

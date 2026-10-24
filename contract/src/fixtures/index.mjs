@@ -1,6 +1,6 @@
 import {
   ACCOUNT, CAMPAIGN, HUB, KEY, OFFER, QUESTION, ROLE, T, analytics, campaigns, capabilityCatalog, context, entitlements, fail, gateCases,
-  gateStatus, hubPublic, id, ok, questionSet, receipt, roleRef, roles,
+  gateStatus, hubPublic, id, ok, questionSet, receipt, receiptRecordedExample, roleRef, roles,
 } from "./data.mjs";
 
 const named = (name, schema, data, description) => ({ name, schema, data, ...(description ? { description } : {}) });
@@ -56,6 +56,8 @@ export const fixtureFiles = {
     items: [
       named("receipt.first", "Receipt", receipt),
       named("receipt.duplicate", "Receipt", { ...receipt, duplicate: true }),
+      named("receipt.recorded-example", "Receipt", receiptRecordedExample, "Illustrative: a decided reward policy would record points here; the amount is a placeholder."),
+      named("receipt.guest", "Receipt", { ...receipt, reward_state: "not_applicable" }),
       named("receipt-list", "ReceiptList", { receipts: [receipt] }),
     ],
   },
@@ -148,6 +150,10 @@ export const examples = [
   { operationId: "lv_submit_response", name: "ok", request: { campaign_id: CAMPAIGN.active, idempotency_key: KEY.a, answers: [{ question_id: QUESTION.rating, value: 4 }, { question_id: QUESTION.choice, value: "Option A" }] }, response: ok(receipt, 31) },
   { operationId: "lv_submit_response", name: "duplicate", request: { campaign_id: CAMPAIGN.active, idempotency_key: KEY.a, answers: [{ question_id: QUESTION.rating, value: 4 }] }, response: ok({ ...receipt, duplicate: true }, 32) },
   { operationId: "lv_submit_response", name: "closed", request: { campaign_id: CAMPAIGN.closed, idempotency_key: KEY.b, answers: [] }, response: fail("lv_lifecycle_invalid", "This Campaign is closed.", undefined, 33) },
+  { operationId: "lv_submit_response", name: "invalid-answer", request: { campaign_id: CAMPAIGN.active, idempotency_key: KEY.b, answers: [{ question_id: QUESTION.rating, value: 9 }] }, response: fail("lv_invalid_input", "Check your answers.", { reason: "value_out_of_range", question_id: QUESTION.rating, min: 1, max: 5 }, 60) },
+  { operationId: "lv_submit_response", name: "missing-required", request: { campaign_id: CAMPAIGN.active, idempotency_key: KEY.b, answers: [] }, response: fail("lv_invalid_input", "Check your answers.", { reason: "required_question_unanswered", question_ids: [QUESTION.rating, QUESTION.choice] }, 61) },
+  { operationId: "lv_submit_response", name: "not-a-member", request: { campaign_id: CAMPAIGN.active, idempotency_key: KEY.b, answers: [] }, response: fail("lv_not_found", "Not found.", undefined, 62) },
+  { operationId: "lv_submit_response", name: "closed-by-time", request: { campaign_id: CAMPAIGN.expired, idempotency_key: KEY.b, answers: [] }, response: fail("lv_lifecycle_invalid", "This Campaign has closed.", { reason: "closed_by_time", state: "expired" }, 63) },
   { operationId: "lv_my_receipts", name: "one", request: {}, response: ok({ receipts: [receipt] }, 34) },
   { operationId: "lv_analytics_query", name: "undecided", request: { campaign_id: CAMPAIGN.anonymousActive, metric: "participation" }, response: fail("lv_policy_undecided", "Anonymous results are not available until the privacy policy is set.", undefined, 35) },
   { operationId: "lv_analytics_query", name: "applied-fixture-only", request: { campaign_id: CAMPAIGN.active, metric: "answer_distribution", question_id: QUESTION.choice }, response: ok(analytics.appliedFixtureOnly, 36) },

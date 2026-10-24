@@ -30,8 +30,11 @@ end $$;
 create function t.mk_campaign(p_hub uuid, p_state text default 'closed', p_questions boolean default false) returns uuid language plpgsql security definer as $$
 declare v uuid;
 begin
-  insert into lv_private.campaigns (hub_id, title, state, join_code, activated_at) values (p_hub, 'Fixture', p_state, lv_private.new_join_code(), now()) returning id into v;
+  insert into lv_private.campaigns (hub_id, title, join_code) values (p_hub, 'Fixture', lv_private.new_join_code()) returning id into v;
   if p_questions then insert into lv_private.campaign_questions (campaign_id, position, type, prompt) values (v, 1, 'rating', 'Q'); end if;
+  if p_state <> 'draft' then
+    update lv_private.campaigns set state = p_state, activated_at = now(), published_revision = question_revision where id = v;
+  end if;
   return v;
 end $$;
 

@@ -215,3 +215,69 @@ done
 wait
 check "close/reopen race: the Campaign is in exactly one coherent state" "select (select state from lv_private.campaigns where id = '$D3') in ('active', 'closed')"
 check "close/reopen race: never more than 2 active surveys and participation untouched" "select $(activesurveys) <= 2"
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Participation. Members are legacy accounts that are accepted in Hub A and are not its current Owner.
+# ---------------------------------------------------------------------------------------------------------------
+mapfile -t MEMBERS < <(P -c "select i.account_id from lv_private.account_identities i join lv_private.hub_memberships m on m.account_id = i.account_id and m.hub_id = '$A' and m.status = 'accepted' where i.auth_user_id = i.account_id and i.account_id <> '$OWN' order by i.account_id limit 5")
+check "participation fixture: at least three eligible members were found" "select ${#MEMBERS[@]} >= 3"
+pubsurvey() { # title [closes_in_seconds] -> campaign id (published, one required rating question 1..5)
+  local id
+  id=$(P -c "with c as (insert into lv_private.campaigns (hub_id, title, join_code) values ('$A', '$1', lv_private.new_join_code()) returning id), q as (insert into lv_private.campaign_questions (campaign_id, position, type, prompt, required) select id, 1, 'rating', 'Q', true from c) select id from c")
+  P -c "select lv_private.activate_campaign('$id', '$OWN', gen_random_uuid(), 'manual')->>'ok'" >/dev/null
+  echo "$id"
+}
+qid() { P -c "select id from lv_private.campaign_questions where campaign_id = '$1'"; }
+submit() { # uid campaign -> code or ok:duplicate:receipt
+  as_user "$1" "select coalesce(public.lv_submit_response('$2', '[{\"question_id\":\"$(qid "$2")\",\"value\":3}]'::jsonb, gen_random_uuid())->'error'->>'code', 'ok')"
+}
+
+echo "-- race 15: twelve simultaneous submissions by ONE person, each with a DIFFERENT idempotency key"
+closeall
+C1=$(pubsurvey "Same person")
+Q1=$(qid "$C1")
+for i in $(seq 1 12); do
+  as_user "${MEMBERS[0]}" "select public.lv_submit_response('$C1', '[{\"question_id\":\"$Q1\",\"value\":3}]'::jsonb, gen_random_uuid())->'data'->>'id' || ':' || (public.lv_submit_response('$C1', '[{\"question_id\":\"$Q1\",\"value\":3}]'::jsonb, gen_random_uuid())->'data'->>'duplicate')" >"$OUT/p15.$i" 2>&1 &
+done
+wait
+check "one person, twelve keys: exactly one participation row" "select (select count(*) from lv_private.campaign_participation where campaign_id = '$C1') = 1"
+check "one person, twelve keys: exactly one answer set" "select (select count(*) from lv_private.campaign_answers where campaign_id = '$C1') = 1"
+check "one person, twelve keys: every caller got the SAME receipt id" "select $(cut -d: -f1 "$OUT"/p15.* | sort -u | grep -c .) = 1"
+check "one person, twelve keys: no second reward is possible (one ledger row, points unchanged)" "select (select count(*) from lv_private.campaign_participation where campaign_id = '$C1' and reward_state = 'unset' and points is null) = 1"
+
+echo "-- race 16: five different members submit at once"
+closeall
+C2=$(pubsurvey "Five people")
+for i in 0 1 2 3 4; do
+  [ -n "${MEMBERS[$i]}" ] && submit "${MEMBERS[$i]}" "$C2" >"$OUT/p16.$i" 2>&1 &
+done
+wait
+N16=${#MEMBERS[@]}
+check "five members: every one got a receipt" "select $(cat "$OUT"/p16.* | grep -c '^ok$') = $N16"
+check "five members: ledger rows equal answer sets equal people" "select (select count(*) from lv_private.campaign_participation where campaign_id = '$C2') = $N16 and (select count(*) from lv_private.campaign_answers where campaign_id = '$C2') = $N16"
+
+echo "-- race 17: closing while five members submit"
+closeall
+C3=$(pubsurvey "Close race")
+for i in 0 1 2 3 4; do
+  [ -n "${MEMBERS[$i]}" ] && submit "${MEMBERS[$i]}" "$C3" >"$OUT/p17.$i" 2>&1 &
+done
+as_user "$OWN" "select public.lv_campaign_close('$C3')->>'ok'" >"$OUT/p17.close" 2>&1 &
+wait
+ACCEPTED=$(cat "$OUT"/p17.[0-9] | grep -c '^ok$')
+check "close vs submit: every accepted submission left exactly one ledger row and one answer set (atomic)" "select (select count(*) from lv_private.campaign_participation where campaign_id = '$C3') = $ACCEPTED and (select count(*) from lv_private.campaign_answers where campaign_id = '$C3') = $ACCEPTED"
+check "close vs submit: the rest were refused as not open, none half-written" "select $(cat "$OUT"/p17.[0-9] | grep -c '^lv_lifecycle_invalid$') = $(( ${#MEMBERS[@]} - ACCEPTED ))"
+check "close vs submit: the Campaign ends closed and the answers survived" "select (select state from lv_private.campaigns where id = '$C3') = 'closed'"
+
+echo "-- race 18: the closing time passes while a submission waits for the Campaign lock"
+closeall
+C4=$(pubsurvey "Expiry race")
+P -c "update lv_private.campaigns set opens_at = now() - interval '1 hour', closes_at = now() + interval '3 seconds' where id = '$C4'" >/dev/null
+Q4=$(qid "$C4")
+P -c "begin; select 1 from lv_private.campaigns where id = '$C4' for update; select pg_sleep(5); commit;" >/dev/null 2>&1 &
+sleep 1
+as_user "${MEMBERS[1]}" "select coalesce(public.lv_submit_response('$C4', '[{\"question_id\":\"$Q4\",\"value\":3}]'::jsonb, gen_random_uuid())->'error'->'details'->>'reason', 'accepted')" >"$OUT/p18.out" 2>&1
+wait
+check "expiry race: the waiting submission is refused because the closing time passed while it waited" "select '$(tr -d ' \n' < "$OUT/p18.out")' = 'closed_by_time'"
+check "expiry race: nothing was written for the refused submission" "select (select count(*) from lv_private.campaign_participation where campaign_id = '$C4') = 0 and (select count(*) from lv_private.campaign_answers where campaign_id = '$C4') = 0"

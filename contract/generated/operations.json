@@ -654,7 +654,7 @@
     "id": "lv_campaign_resolve",
     "kind": "rpc-v2",
     "module": "participation",
-    "status": "proposed",
+    "status": "implemented-nonprod",
     "milestone": "M1",
     "path": "/rest/v1/rpc/lv_campaign_resolve",
     "auth": "anon",
@@ -664,13 +664,15 @@
       "F-22"
     ],
     "capabilities": [],
-    "decisions": []
+    "decisions": [
+      "D-03"
+    ]
   },
   {
     "id": "lv_submit_response",
     "kind": "rpc-v2",
     "module": "participation",
-    "status": "proposed",
+    "status": "implemented-nonprod",
     "milestone": "M1",
     "path": "/rest/v1/rpc/lv_submit_response",
     "auth": "user",
@@ -681,14 +683,16 @@
     "capabilities": [],
     "decisions": [
       "D-03",
-      "D-10"
+      "D-08",
+      "D-10",
+      "D-12"
     ]
   },
   {
     "id": "lv_my_receipts",
     "kind": "rpc-v2",
     "module": "participation",
-    "status": "proposed",
+    "status": "implemented-nonprod",
     "milestone": "M1",
     "path": "/rest/v1/rpc/lv_my_receipts",
     "auth": "user",
