@@ -144,7 +144,7 @@ export const hubOps = [
   v2({
     id: "lv_hub_settings_update",
     module: "hubs",
-    status: "proposed",
+    status: "implemented-nonprod",
     milestone: "M1",
     flows: ["F-44"],
     summary: "Change Hub name, visibility and membership mode.",
@@ -153,7 +153,7 @@ export const hubOps = [
     errors: ["lv_unauthenticated", "lv_forbidden", "lv_not_found", "lv_invalid_input", "lv_conflict"],
     auth: "user",
     capabilities: ["admin.settings.edit"],
-    note: "Slug changes are not part of this operation (D-09).",
+    note: "Omitted fields are unchanged; at least one must be given. name is the Hub's v2 display name (1-80 characters, no control characters): it does not edit the legacy organization name, which keeps serving the legacy app. The slug never changes here (D-09). Every real change is audited (before and after). Setting no real MJCC values is deliberate: the Hub's name, visibility and join mode are founder decisions (P-04, P-39).",
   }),
   v2({
     id: "lv_hub_delete",

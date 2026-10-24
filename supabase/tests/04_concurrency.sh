@@ -308,3 +308,12 @@ P -c "select lv_private.submit_core('$C5', '$LATE', null, '[{\"question_id\":\"$
 P -c "update lv_private.campaigns set state = 'closed', closed_at = now() where id = '$C5'" >/dev/null
 as_user "$OWN" "select coalesce(public.lv_analytics_query('$C5', 'participation')->'error'->'details'->>'reason', 'shown')" >"$OUT/an.late" 2>&1
 check "a response after the first release makes the results unavailable (no differencing)" "select '$(tr -d ' \n' < "$OUT/an.late")' = 'population_changed_after_release'"
+
+
+echo "-- race 20: six concurrent Hub settings updates by the Owner"
+for i in 1 2 3 4 5 6; do
+  as_user "$OWN" "select public.lv_hub_settings_update('$A', 'Racing name $i', case when $i % 2 = 0 then 'public' else 'private' end)->>'ok'" >"$OUT/hs.$i" 2>&1 &
+done
+wait
+check "settings race: every update succeeded" "select $(cat "$OUT"/hs.* | grep -c '^true$') = 6"
+check "settings race: the Hub ends with one coherent name and the audit trail has one entry per real change" "select (select display_name from lv_private.hubs where id = '$A') like 'Racing name %' and (select count(*) from lv_private.hub_settings_events where hub_id = '$A') between 1 and 6"

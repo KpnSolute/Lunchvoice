@@ -1,5 +1,5 @@
 {
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Request/response pairs for mock adapters and contract tests. Synthetic data only.",
   "examples": [
     {
@@ -1481,6 +1481,122 @@
           }
         },
         "request_id": "req_0063"
+      }
+    },
+    {
+      "operationId": "lv_waitlist_join",
+      "name": "queued",
+      "request": {
+        "email": "person@example.invalid",
+        "intended_hub_name": "Synthetic club"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "status": "queued"
+        },
+        "request_id": "req_0070"
+      }
+    },
+    {
+      "operationId": "lv_waitlist_join",
+      "name": "closed",
+      "request": {
+        "email": "person@example.invalid"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "status": "closed"
+        },
+        "request_id": "req_0071"
+      }
+    },
+    {
+      "operationId": "lv_waitlist_join",
+      "name": "not-open-yet",
+      "request": {
+        "email": "person@example.invalid"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_policy_undecided",
+          "message": "The waitlist is not open yet.",
+          "details": {
+            "reason": "policy_pending",
+            "missing": [
+              "waitlist.open"
+            ]
+          }
+        },
+        "request_id": "req_0072"
+      }
+    },
+    {
+      "operationId": "lv_waitlist_join",
+      "name": "rate-limited",
+      "request": {
+        "email": "person@example.invalid"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_rate_limited",
+          "message": "Too many attempts. Try again later.",
+          "details": {
+            "retry_after_seconds": 3600
+          }
+        },
+        "request_id": "req_0073"
+      }
+    },
+    {
+      "operationId": "lv_waitlist_join",
+      "name": "invalid-email",
+      "request": {
+        "email": "nobody"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_invalid_input",
+          "message": "Enter a valid email address."
+        },
+        "request_id": "req_0074"
+      }
+    },
+    {
+      "operationId": "lv_hub_settings_update",
+      "name": "rename",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "name": "Synthetic Hub One renamed"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "hub_id": "00000000-0000-4000-8001-000000000001",
+          "name": "Synthetic Hub One renamed",
+          "visibility": "public",
+          "membership_mode": "approval"
+        },
+        "request_id": "req_0075"
+      }
+    },
+    {
+      "operationId": "lv_hub_settings_update",
+      "name": "nothing-to-change",
+      "request": {
+        "hub_id": "00000000-0000-4000-8001-000000000001"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_invalid_input",
+          "message": "Check the settings."
+        },
+        "request_id": "req_0076"
       }
     },
     {

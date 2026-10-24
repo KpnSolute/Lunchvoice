@@ -802,7 +802,7 @@ export interface OperationMap {
   lv_suspend_member: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_suspend_member"; request: MemberRef; result: LvResult<MembershipChange> };
   lv_member_count: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_member_count"; request: HubRef; result: LvResult<MemberCount> };
   lv_members_list: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_members_list"; request: HubRef; result: LvResult<MemberList> };
-  lv_hub_settings_update: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_hub_settings_update"; request: HubSettingsUpdate; result: LvResult<HubSettings> };
+  lv_hub_settings_update: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_hub_settings_update"; request: HubSettingsUpdate; result: LvResult<HubSettings> };
   lv_hub_delete: { kind: "rpc-v2"; status: "blocked-decision"; milestone: "M2"; path: "/rest/v1/rpc/lv_hub_delete"; request: HubDeleteRequest; result: LvResult<BoolResult> };
   lv_hub_create: { kind: "rpc-v2"; status: "blocked-decision"; milestone: "M2"; path: "/rest/v1/rpc/lv_hub_create"; request: HubCreateRequest; result: LvResult<HubSettings> };
   lv_capability_catalog: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_capability_catalog"; request: undefined; result: LvResult<CapabilityCatalog> };
@@ -844,7 +844,7 @@ export interface OperationMap {
   lv_leaderboard: { kind: "rpc-v2"; status: "proposed"; milestone: "M2"; path: "/rest/v1/rpc/lv_leaderboard"; request: LeaderboardRequest; result: LvResult<Leaderboard> };
   lv_comment_create: { kind: "rpc-v2"; status: "proposed"; milestone: "M2"; path: "/rest/v1/rpc/lv_comment_create"; request: CommentCreateRequest; result: LvResult<Comment> };
   lv_comment_moderate: { kind: "rpc-v2"; status: "proposed"; milestone: "M2"; path: "/rest/v1/rpc/lv_comment_moderate"; request: CommentModerateRequest; result: LvResult<Comment> };
-  lv_waitlist_join: { kind: "rpc-v2"; status: "proposed"; milestone: "M1"; path: "/rest/v1/rpc/lv_waitlist_join"; request: WaitlistJoinRequest; result: LvResult<WaitlistJoinResult> };
+  lv_waitlist_join: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_waitlist_join"; request: WaitlistJoinRequest; result: LvResult<WaitlistJoinResult> };
   lv_beta_admit: { kind: "rpc-v2"; status: "blocked-decision"; milestone: "M2"; path: "/rest/v1/rpc/lv_beta_admit"; request: BetaAdmitRequest; result: LvResult<BetaAdmitResult> };
   lv_discovery_list: { kind: "rpc-v2"; status: "proposed"; milestone: "M2"; path: "/rest/v1/rpc/lv_discovery_list"; request: DiscoveryListRequest; result: LvResult<DiscoveryList> };
   lv_discovery_apply: { kind: "rpc-v2"; status: "proposed"; milestone: "M2"; path: "/rest/v1/rpc/lv_discovery_apply"; request: DiscoveryApplyRequest; result: LvResult<DiscoveryApplyResult> };

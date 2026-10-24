@@ -219,4 +219,34 @@ export const PROVISIONAL = [
     summary: "Export and embed are blocked: no operation exports or embeds results, raw or aggregate, until retention, format and small-group rules are decided and an entitlement is defined.",
     ops: ["lv_analytics_export", "lv_analytics_embed_create", "lv_analytics_embed_revoke"],
   },
+  {
+    id: "P-36",
+    decisions: ["D-07"],
+    summary: "The public waitlist is closed until the founder opens it (policy waitlist.open unset -> lv_policy_undecided). When it opens, who may join and how many beta owners are admitted (at most 50, confirmed) are separate, unimplemented decisions.",
+    ops: ["lv_waitlist_join"],
+  },
+  {
+    id: "P-37",
+    decisions: ["D-07"],
+    summary: "Waitlist consent and legal copy are undecided: the operation records no consent flag, so the page must show founder-approved wording next to the form. Nothing here constitutes agreed terms.",
+    ops: ["lv_waitlist_join"],
+  },
+  {
+    id: "P-38",
+    decisions: ["D-10"],
+    summary: "Waitlist addresses are personal data held with no API access and no read-back operation. How long they are kept, who may export them, and how a person is removed are undecided; throttle-ledger rows older than 7 days can be deleted by an operator.",
+    ops: ["lv_waitlist_join"],
+  },
+  {
+    id: "P-39",
+    decisions: ["D-09"],
+    summary: "Waitlist throttle limits (5 per address per day, 30 per network address per hour) and the generic answer for repeat sign-ups are chosen for safety, not decided. The network address comes from the first x-forwarded-for entry, which a proxy configuration must set correctly.",
+    ops: ["lv_waitlist_join"],
+  },
+  {
+    id: "P-40",
+    decisions: ["D-09"],
+    summary: "A Hub's v2 display name is stored separately from the legacy organization name and never overwrites it. Who may rename, and the naming and reserved-word rules, are undecided (D-09); only length and control characters are checked.",
+    ops: ["lv_hub_settings_update", "lv_hub_public", "lv_my_context"],
+  },
 ];

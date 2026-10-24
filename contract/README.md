@@ -1,4 +1,4 @@
-# LunchVoice API contract (v0.6.0)
+# LunchVoice API contract (v0.7.0)
 
 Machine-readable contract for the backend, reconciled with all 49 frontend flows (F-01..F-49 in
 `docs/frontend/EXPERIENCE_PLAN.md`). Authored in `contract/src` (dependency-free JavaScript), emitted to
@@ -41,13 +41,13 @@ Error codes: `lv_unauthenticated`, `lv_forbidden`, `lv_not_member`, `lv_not_foun
 | `proposed` | Specified here, not built. Use a labelled mock adapter. |
 | `blocked-decision` | Cannot be built until the decisions in `x-decisions` are made (D-xx in `docs/archeture`). Show a "not available yet" state. |
 
-At v0.6.0 thirty-six operations are `implemented-nonprod`: identity, Hub and membership (migration `20261024000100`: `lv_my_context`,
+At v0.7.0 thirty-eight operations are `implemented-nonprod`: identity, Hub and membership (migration `20261024000100`: `lv_my_context`,
 `lv_hub_public`, `lv_member_count`, `lv_join_hub`, `lv_decide_join`, `lv_leave_hub`, `lv_remove_member`, `lv_suspend_member`,
 `lv_members_list`) and roles, capabilities and Owner transfer (migration `20261024000200`: `lv_capability_catalog`, `lv_role_list`,
 `lv_role_create`, `lv_role_update`, `lv_role_delete`, `lv_role_assign`, `lv_role_unassign`, `lv_role_set_capability`,
 `lv_role_set_group`, `lv_owner_transfer_start`, `lv_owner_transfer_accept`, `lv_owner_transfer_cancel`) and entitlements and the Campaign lifecycle
 (migration `20261024000300`: `lv_entitlements`, `lv_gate_status`, `lv_campaign_create`, `lv_campaign_list`, `lv_campaign_get`, `lv_campaign_update`,
-`lv_campaign_questions`, `lv_campaign_schedule`, `lv_campaign_activate`, `lv_campaign_close`, `lv_campaign_activation_status`) participation (migration `20261024000400`: `lv_campaign_resolve`, `lv_submit_response`, `lv_my_receipts`) and analytics (migration `20261024000500`: `lv_analytics_query`). They are tested in a throwaway
+`lv_campaign_questions`, `lv_campaign_schedule`, `lv_campaign_activate`, `lv_campaign_close`, `lv_campaign_activation_status`) participation (migration `20261024000400`: `lv_campaign_resolve`, `lv_submit_response`, `lv_my_receipts`) analytics (migration `20261024000500`: `lv_analytics_query`) and the public waitlist and Hub settings (migration `20261024000600`: `lv_waitlist_join`, `lv_hub_settings_update`). They are tested in a throwaway
 database; **none is applied to production**, so the real endpoints do not exist yet. Everything else is `proposed` or `blocked-decision`. A mock
 adapter must be visibly labelled and must never act as a production auth bypass.
 
@@ -121,6 +121,15 @@ order: permission, lifecycle, entitlement, quota, gate. Show what the server tel
   than that (see P-23 for what is still undecided).
 - Guests are not available: there is no guest entry point and `guest_access: link` is rejected until the guest proof is decided (D-03).
 
+## Waitlist and Hub settings
+
+- `lv_waitlist_join(email, intended_hub_name?)` works for signed-out visitors. It is **closed until the founder opens it**: while unset it answers `lv_policy_undecided`
+  (show "the waitlist opens soon", not an error), and a deliberately closed list answers `{status: "closed"}`. A new and a repeat sign-up look identical (`queued`) on purpose;
+  never tell a visitor "you are already on the list". `lv_rate_limited` carries `details.retry_after_seconds`. The wording shown beside the form (consent, privacy) is a founder decision
+  (P-37): do not invent it.
+- `lv_hub_settings_update(hub_id, name?, visibility?, membership_mode?)` changes the Hub's v2 display name, visibility and join mode (capability `admin.settings.edit`). The response is the
+  new settings, and `lv_hub_public` / `lv_my_context` reflect it immediately. The slug and the legacy organization name never change here.
+
 ## Analytics: what you may show
 
 `lv_analytics_query(campaign_id, metric, question_id?)` returns aggregates only (`participation`, `completion`, or one question's `answer_distribution`). There are no filters,
@@ -159,6 +168,7 @@ to users as settled rules.
 
 | Version | Change | Frontend impact |
 | --- | --- | --- |
+| 0.7.0 | `lv_waitlist_join` and `lv_hub_settings_update` are `implemented-nonprod`. `lv_waitlist_join` can return `lv_policy_undecided` (waitlist not opened), status `closed`, `lv_rate_limited` and `lv_invalid_input`; the status `duplicate` is never returned (no enumeration). Hub names in `lv_hub_public` and `lv_my_context` now come from the Hub's display name when set, else the organization name. Provisional P-36 to P-40. | Build the landing waitlist form against these states; do not claim whether an address is already registered; add a Hub settings form (name, visibility, join mode) gated by the `admin.settings.edit` capability. |
 | 0.6.0 | `lv_analytics_query` is `implemented-nonprod`. **Breaking shape change:** `AnalyticsResult` replaces `total_participants` with `participants: {member, guest}` (each `{n, suppressed, reason}`), adds `question_id`, `population`, `window`, `groups[].audience` and `groups[].reason`, and `policy.status` is now `applied` or `not_required` (it can no longer be `undecided`: undecided policy is an error). New schema `AnalyticsCount`. `lv_analytics_export`, `lv_analytics_embed_create`, `lv_analytics_embed_revoke` are `blocked-decision`. Provisional choices P-28 to P-35. | Rebuild the results view on `participants`, `groups[].audience/suppressed/reason`; render withheld values as withheld, never 0; handle the four `lv_policy_undecided` reasons as "not available yet" states; hide export/embed controls. |
 | 0.5.0 | Three operations move to `implemented-nonprod`: `lv_campaign_resolve`, `lv_submit_response`, `lv_my_receipts`. `Receipt` gains the required field `reward_state` (`unset` / `recorded` / `not_applicable`); `Receipt.points` is `null` while no reward policy exists (the old fixtures showed an invented 50). `lv_submit_response` errors are now `lv_unauthenticated`, `lv_not_found` (non-member, other-Hub member and unknown Campaign are indistinguishable), `lv_lifecycle_invalid` (`details.reason` `not_active` or `closed_by_time`), `lv_invalid_input` (`details.reason`, `question_id`), `lv_policy_undecided` (mode). `lv_campaign_resolve` errors are `lv_not_found` and `lv_invalid_input`. Provisional choices P-20 to P-27. | Add `reward_state` to receipt handling and never show points when it is `unset`; treat `duplicate: true` as success; map `details.reason` to field errors; show a closed/expired state on `lv_lifecycle_invalid`. |
 | 0.4.0 | Eleven operations move to `implemented-nonprod`: `lv_entitlements`, `lv_gate_status`, `lv_campaign_create/list/get/update/questions/schedule/activate/close`, plus the NEW `lv_campaign_activation_status` and schemas `ActivationStatus`, `Blocker`, `GateState`. `lv_gate_status` and `lv_campaign_activate` fail closed with `lv_policy_undecided` and `details.missing` until five policy keys are decided (P-14 to P-16). `lv_quota_exceeded.details` now always has `limit_name` (`active_total` or `active_survey`); `lv_gate_unmet.details` now includes `plan`. Provisional choices P-14 to P-19. `lv_grant_manual` stays `proposed`: no grant can be issued through the API. | Drive the Activate button, quota meters and gate panel from `lv_campaign_activation_status`, `lv_entitlements` and `lv_gate_status`; render `policy_pending`, `no entitlement` and `Team total undecided` as "not available yet" states; send an idempotency key per activation; treat `expired` as final. |

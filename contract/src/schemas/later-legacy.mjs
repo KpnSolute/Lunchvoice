@@ -7,7 +7,7 @@ export const laterSchemas = {
   PageRef: obj({ page_id: ref("Uuid") }),
   Page: obj({ id: ref("Uuid"), hub_id: ref("Uuid"), kind: ref("PageKind"), title: str(), published: bool() }),
   WaitlistJoinRequest: obj({ email: str({ minLength: 3, maxLength: 254 }), intended_hub_name: str({ maxLength: 80 }) }, ["intended_hub_name"]),
-  WaitlistJoinResult: obj({ status: enm(["queued", "duplicate", "closed"]) }),
+  WaitlistJoinResult: obj({ status: enm(["queued", "duplicate", "closed"], { description: "queued for a new or repeat sign-up (indistinguishable by design); closed when the waitlist is deliberately closed. duplicate is reserved and never returned, so the response cannot be used to find out who is on the list." }) }),
   BetaAdmitRequest: obj({ waitlist_id: ref("Uuid") }),
   BetaAdmitResult: obj({ admitted: bool(), owners_admitted: int({ minimum: 0 }), cap: nullable(int({ minimum: 1, description: "Confirmed founder requirement: at most 50 beta Hub owners." })) }),
   DiscoveryApplyRequest: obj({ hub_id: ref("Uuid") }),

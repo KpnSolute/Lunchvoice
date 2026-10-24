@@ -55,7 +55,7 @@ while read -r f; do
 done < "$TESTS/v2-migrations.txt"
 
 # Independent copies so committing tests cannot disturb each other.
-docker exec "$NAME" psql -U postgres -d postgres -X -q -c "create database lv_cc template lv" -c "create database lv_rb template lv" -c "create database lv_rb2 template lv" -c "create database lv_rb3 template lv" -c "create database lv_rb4 template lv" -c "create database lv_rb5 template lv" || exit 2
+docker exec "$NAME" psql -U postgres -d postgres -X -q -c "create database lv_cc template lv" -c "create database lv_rb template lv" -c "create database lv_rb2 template lv" -c "create database lv_rb3 template lv" -c "create database lv_rb4 template lv" -c "create database lv_rb5 template lv" -c "create database lv_rb6 template lv" || exit 2
 
 echo "== sql tests"
 SQL_PASS=0; SQL_FAIL=0
@@ -79,6 +79,7 @@ D2="$ROLLBACKS/20261024000200_v2_roles_capabilities_owner_transfer.down.sql"
 D3="$ROLLBACKS/20261024000300_v2_entitlements_campaign_lifecycle.down.sql"
 D4="$ROLLBACKS/20261024000400_v2_participation_receipts.down.sql"
 D5="$ROLLBACKS/20261024000500_v2_privacy_safe_analytics.down.sql"
+D6="$ROLLBACKS/20261024000600_v2_waitlist_hub_settings.down.sql"
 rbtest() { # label, database, post file, down scripts...
   local label="$1" db="$2" post="$3"; shift 3
   echo "== rollback ($label)"
@@ -86,16 +87,17 @@ rbtest() { # label, database, post file, down scripts...
     echo "ERROR in rollback test: $label"; cat /tmp/lv-rb.$$; FAILED=1
   fi
 }
-rbtest "everything, in reverse order" lv_rb "$TESTS/05_rollback_post.sql" "$D5" "$D4" "$D3" "$D2" "$D1"
-rbtest "migrations 5 to 2; migration 1 must keep working" lv_rb2 "$TESTS/05b_rollback_roles_only_post.sql" "$D5" "$D4" "$D3" "$D2"
-rbtest "migrations 5 to 3; migrations 1 and 2 must keep working" lv_rb3 "$TESTS/05c_rollback_campaigns_only_post.sql" "$D5" "$D4" "$D3"
-rbtest "migrations 5 and 4; migrations 1 to 3 must keep working" lv_rb4 "$TESTS/05d_rollback_participation_only_post.sql" "$D5" "$D4"
-rbtest "migration 5 only; migrations 1 to 4 must keep working" lv_rb5 "$TESTS/05e_rollback_analytics_only_post.sql" "$D5"
+rbtest "everything, in reverse order" lv_rb "$TESTS/05_rollback_post.sql" "$D6" "$D5" "$D4" "$D3" "$D2" "$D1"
+rbtest "migrations 5 to 2; migration 1 must keep working" lv_rb2 "$TESTS/05b_rollback_roles_only_post.sql" "$D6" "$D5" "$D4" "$D3" "$D2"
+rbtest "migrations 5 to 3; migrations 1 and 2 must keep working" lv_rb3 "$TESTS/05c_rollback_campaigns_only_post.sql" "$D6" "$D5" "$D4" "$D3"
+rbtest "migrations 5 and 4; migrations 1 to 3 must keep working" lv_rb4 "$TESTS/05d_rollback_participation_only_post.sql" "$D6" "$D5" "$D4"
+rbtest "migrations 6 and 5; migrations 1 to 4 must keep working" lv_rb5 "$TESTS/05e_rollback_analytics_only_post.sql" "$D6" "$D5"
+rbtest "migration 6 only; migrations 1 to 5 must keep working" lv_rb6 "$TESTS/05f_rollback_settings_only_post.sql" "$D6"
 rm -f /tmp/lv-rb.$$
 
 echo "== results"
 TOTAL=$((SQL_PASS + SQL_FAIL)); BAD=$SQL_FAIL
-for db in lv_cc lv_rb lv_rb2 lv_rb3 lv_rb4 lv_rb5; do
+for db in lv_cc lv_rb lv_rb2 lv_rb3 lv_rb4 lv_rb5 lv_rb6; do
   n=$(docker exec "$NAME" psql -U postgres -d $db -X -At -c "select count(*) from t.results")
   b=$(docker exec "$NAME" psql -U postgres -d $db -X -At -c "select count(*) from t.results where not ok")
   TOTAL=$((TOTAL + n)); BAD=$((BAD + b))

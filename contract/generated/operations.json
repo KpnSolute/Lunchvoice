@@ -166,7 +166,7 @@
     "id": "lv_hub_settings_update",
     "kind": "rpc-v2",
     "module": "hubs",
-    "status": "proposed",
+    "status": "implemented-nonprod",
     "milestone": "M1",
     "path": "/rest/v1/rpc/lv_hub_settings_update",
     "auth": "user",
@@ -898,7 +898,7 @@
     "id": "lv_waitlist_join",
     "kind": "rpc-v2",
     "module": "growth",
-    "status": "proposed",
+    "status": "implemented-nonprod",
     "milestone": "M1",
     "path": "/rest/v1/rpc/lv_waitlist_join",
     "auth": "anon",
@@ -907,7 +907,9 @@
       "F-03"
     ],
     "capabilities": [],
-    "decisions": []
+    "decisions": [
+      "D-07"
+    ]
   },
   {
     "id": "lv_beta_admit",

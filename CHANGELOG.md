@@ -8,6 +8,13 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added the v2 public waitlist and Hub settings (migration `20261024000600_v2_waitlist_hub_settings.sql`, **not applied to production**, stacked
+  on the analytics migration): `lv_waitlist_join` and `lv_hub_settings_update` (contract v0.7.0, `implemented-nonprod`). The waitlist stays CLOSED until
+  the founder sets `waitlist.open` (unset -> `lv_policy_undecided`); it stores only a normalized address and an optional Hub name in a table with no API
+  access and no read-back operation, answers a repeat sign-up exactly like a new one (no enumeration), and throttles on salted hashes (provisional: 5 per
+  address per day, 30 per network address per hour). Hub settings (rename, visibility, join mode) need `admin.settings.edit`, validate input, audit every
+  change with before/after, and use a separate v2 display name so the legacy organization name and slug are never edited. 808 database checks
+  (new: waitlist and settings 48, a settings race); six mutations are caught; rollback script included. Provisional register P-36 to P-40.
 - Added v2 privacy-safe analytics (migration `20261024000500_v2_privacy_safe_analytics.sql`, **not applied to production**, stacked on the
   participation migration) and `lv_analytics_query` (contract v0.6.0, `implemented-nonprod`; export and embed stay `blocked-decision`). It is the only
   reader of answers and returns aggregates only. Anonymous (or guest-bearing) Campaigns return nothing until THREE separate privacy policy values
