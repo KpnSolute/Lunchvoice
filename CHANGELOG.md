@@ -8,6 +8,21 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added v2 custom roles, capabilities and Owner transfer (migration `20261024000200_v2_roles_capabilities_owner_transfer.sql`,
+  **not applied to production**, stacked on the identity/Hub migration) and twelve `lv_*` RPCs (contract v0.3.0, `implemented-nonprod`).
+  27 proposed capabilities in three categories (Administration, Hub Appearance & Structure, Community & Campaigns) with individual and
+  group toggles; Owner-only operations (`hub.delete`, `hub.transfer_ownership`) are outside the catalog and the database refuses any
+  `hub.*` capability. Custom role slots (Starter 3, Team 6, Owner excluded) come from entitlement grants; the migration creates none, so
+  a Hub without a grant cannot create roles, and tests use synthetic grants only. Authority is enforced server-side on every call:
+  no-escalation (a caller cannot grant a capability they do not hold), authority over a role requires holding all its capabilities,
+  composite foreign keys make cross-Hub assignment impossible even for SQL, assignments vanish when a membership leaves `accepted`, and
+  revocation is immediate. Owner transfer is an atomic offer/accept between the current Owner and the recipient under the Hub lock
+  (one open offer per Hub, expiry, stale/cancelled/replayed offers, exactly one Owner) and changes `hubs.owner_account_id` only with a
+  short-lived random token that a session flag cannot forge. Reauthentication and offer lifetime are deliberately UNSET, so transfer
+  fails closed (`lv_policy_undecided`) until decided; when set, the database checks the access token's `amr` claim, which does not prove
+  the Google/central-identity reauthentication flow (D-01). Rollback scripts for each migration are in `supabase/rollbacks/` (migration 2 alone leaves
+  migration 1 working). 395 database checks in CI (new: roles 109, Owner transfer 70, ten concurrency races including the last role slot
+  and accept-versus-cancel); six mutations are caught. New provisional register entries P-07 to P-13.
 - Added the v2 identity, Hub and membership foundation (migration `20261024000100_v2_identity_hubs_memberships.sql`,
   **not applied to production**) and nine `lv_*` RPCs (contract v0.2.0, status `implemented-nonprod`). It is additive:
   a private `lv_private` schema (accounts, account identities, Hubs, memberships, audit events; RLS on, no API

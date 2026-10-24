@@ -111,3 +111,12 @@ test("provisional choices are registered, tied to a decision, and surfaced on th
   assert.ok(files["PROVISIONAL.md"].includes("not approved production policy"));
   assert.ok(doc.paths["/rest/v1/rpc/lv_join_hub"].post["x-provisional"].includes("P-05"));
 });
+
+test("the capability catalog fixture matches the ids seeded by the roles migration", () => {
+  const sql = fs.readFileSync(new URL("../supabase/migrations/20261024000200_v2_roles_capabilities_owner_transfer.sql", import.meta.url), "utf8");
+  const seeded = [...sql.matchAll(/\('([a-z]+\.[a-z_]+\.[a-z_]+)', '(administration|structure|community)', (\d+)\)/g)].map((m) => [m[1], m[2]]);
+  const catalog = JSON.parse(files["fixtures/roles.json"]).items.find((i) => i.name === "capability-catalog").data.capabilities.map((c) => [c.id, c.category]);
+  assert.equal(seeded.length, 27);
+  assert.deepEqual(seeded, catalog);
+  assert.ok(seeded.every(([id]) => !id.startsWith("hub.")));
+});

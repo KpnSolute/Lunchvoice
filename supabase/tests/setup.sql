@@ -55,6 +55,18 @@ create or replace function t.as_user(p_uid uuid) returns void language plpgsql a
 begin
   reset role;
   perform set_config('request.jwt.claim.sub', p_uid::text, false);
+  perform set_config('request.jwt.claims', '', false);
+  set role authenticated;
+end $$;
+
+-- Signed-in user whose access token carries a given authentication method at a given age (seconds ago).
+-- This only fabricates the CLAIM; it does not prove the real Google/central-identity reauthentication flow.
+create or replace function t.as_user_authed(p_uid uuid, p_method text, p_age_seconds int) returns void language plpgsql as $$
+begin
+  reset role;
+  perform set_config('request.jwt.claim.sub', p_uid::text, false);
+  perform set_config('request.jwt.claims', jsonb_build_object('sub', p_uid, 'amr', jsonb_build_array(
+    jsonb_build_object('method', p_method, 'timestamp', extract(epoch from now())::bigint - p_age_seconds)))::text, false);
   set role authenticated;
 end $$;
 
@@ -62,6 +74,7 @@ create or replace function t.as_anon() returns void language plpgsql as $$
 begin
   reset role;
   perform set_config('request.jwt.claim.sub', '', false);
+  perform set_config('request.jwt.claims', '', false);
   set role anon;
 end $$;
 
@@ -69,6 +82,7 @@ create or replace function t.as_pg() returns void language plpgsql as $$
 begin
   reset role;
   perform set_config('request.jwt.claim.sub', '', false);
+  perform set_config('request.jwt.claims', '', false);
 end $$;
 
 -- Fingerprint of every legacy table the migration must not touch.
@@ -93,3 +107,19 @@ create or replace function t.org_a() returns uuid language sql stable
 as $$ select id from public.orgs where slug = 'LionCafe' $$;
 create or replace function t.org_b() returns uuid language sql immutable
 as $$ select '00000000-0000-4000-8001-0000000000b2'::uuid $$;
+
+-- Scratch values that survive role switches inside one test transaction.
+create table if not exists t.vars (k text primary key, v text);
+grant all on t.vars to public;
+create or replace function t.put(p_k text, p_v text) returns void language sql
+as $$ insert into t.vars values (p_k, p_v) on conflict (k) do update set v = excluded.v $$;
+create or replace function t.get(p_k text) returns text language sql stable as $$ select v from t.vars where k = p_k $$;
+create or replace function t.id(p_k text) returns uuid language sql stable as $$ select v::uuid from t.vars where k = p_k $$;
+
+-- Reads a single value with the harness owner's privileges, callable under any role (for assertions about private tables).
+create or replace function t.q(p_sql text) returns text language plpgsql security definer as $$
+declare r text;
+begin
+  execute p_sql into r;
+  return r;
+end $$;

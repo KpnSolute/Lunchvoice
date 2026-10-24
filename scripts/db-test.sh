@@ -55,7 +55,7 @@ while read -r f; do
 done < "$TESTS/v2-migrations.txt"
 
 # Independent copies so committing tests cannot disturb each other.
-docker exec "$NAME" psql -U postgres -d postgres -X -q -c "create database lv_cc template lv" -c "create database lv_rb template lv" || exit 2
+docker exec "$NAME" psql -U postgres -d postgres -X -q -c "create database lv_cc template lv" -c "create database lv_rb template lv" -c "create database lv_rb2 template lv" || exit 2
 
 echo "== sql tests"
 SQL_PASS=0; SQL_FAIL=0
@@ -74,14 +74,21 @@ rm -f /tmp/lv-t.$$
 echo "== concurrency"
 DB=lv_cc bash "$TESTS/04_concurrency.sh" "$NAME" || FAILED=1
 
-echo "== rollback"
-if ! DB=lv_rb bash -c "cat '$TESTS/05_rollback_pre.sql' '$ROLLBACKS/20261024000100_v2_identity_hubs_memberships.down.sql' '$TESTS/05_rollback_post.sql' | docker exec -i '$NAME' psql -U postgres -d lv_rb -X -q -v ON_ERROR_STOP=1"; then
-  echo "ERROR in rollback test"; FAILED=1
+echo "== rollback (everything, in reverse order)"
+D1="$ROLLBACKS/20261024000100_v2_identity_hubs_memberships.down.sql"
+D2="$ROLLBACKS/20261024000200_v2_roles_capabilities_owner_transfer.down.sql"
+if ! cat "$TESTS/05_rollback_pre.sql" "$D2" "$D1" "$TESTS/05_rollback_post.sql" | docker exec -i "$NAME" psql -U postgres -d lv_rb -X -q -v ON_ERROR_STOP=1 >/dev/null 2>/tmp/lv-rb.$$; then
+  echo "ERROR in full rollback test"; cat /tmp/lv-rb.$$; FAILED=1
 fi
+echo "== rollback (migration 2 only; migration 1 must keep working)"
+if ! cat "$TESTS/05_rollback_pre.sql" "$D2" "$TESTS/05b_rollback_roles_only_post.sql" | docker exec -i "$NAME" psql -U postgres -d lv_rb2 -X -q -v ON_ERROR_STOP=1 >/dev/null 2>/tmp/lv-rb.$$; then
+  echo "ERROR in roles-only rollback test"; cat /tmp/lv-rb.$$; FAILED=1
+fi
+rm -f /tmp/lv-rb.$$
 
 echo "== results"
 TOTAL=$((SQL_PASS + SQL_FAIL)); BAD=$SQL_FAIL
-for db in lv_cc lv_rb; do
+for db in lv_cc lv_rb lv_rb2; do
   n=$(docker exec "$NAME" psql -U postgres -d $db -X -At -c "select count(*) from t.results")
   b=$(docker exec "$NAME" psql -U postgres -d $db -X -At -c "select count(*) from t.results where not ok")
   TOTAL=$((TOTAL + n)); BAD=$((BAD + b))

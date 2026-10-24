@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "LunchVoice API",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "Machine-readable contract for LunchVoice. v2 operations are Postgres functions behind PostgREST RPC returning a 200 envelope; legacy operations are the live v1 surface. Per-operation x-status says whether it exists: implemented (production), implemented-nonprod, proposed, blocked-decision. A null limit means undecided, never unlimited."
   },
   "servers": [
@@ -76,7 +76,8 @@
         "x-decisions": [],
         "x-auth": "user",
         "x-provisional": [
-          "P-06"
+          "P-06",
+          "P-10"
         ],
         "security": [
           {
@@ -522,7 +523,9 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-10"
+        ],
         "security": [
           {
             "apikey": [],
@@ -612,7 +615,9 @@
         "x-decisions": [],
         "x-auth": "user",
         "x-provisional": [
-          "P-02"
+          "P-02",
+          "P-09",
+          "P-10"
         ],
         "security": [
           {
@@ -705,7 +710,10 @@
           "D-05"
         ],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-09",
+          "P-10"
+        ],
         "security": [
           {
             "apikey": [],
@@ -1244,7 +1252,7 @@
           "roles"
         ],
         "x-module": "roles",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-35"
@@ -1254,14 +1262,16 @@
           "D-02"
         ],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-13"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
-        "description": "The catalog is the proposed vocabulary in docs/backend/API_AND_AUTHORIZATION_CONTRACTS.md; D-02 may change it.",
+        "description": "Proposed vocabulary (27 capabilities in three categories; D-02). Owner-only operations (hub.delete, hub.transfer_ownership) are listed in owner_only and can never be granted to a role.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated"
@@ -1322,7 +1332,7 @@
           "roles"
         ],
         "x-module": "roles",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-35"
@@ -1332,7 +1342,9 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-12"
+        ],
         "security": [
           {
             "apikey": [],
@@ -1411,7 +1423,7 @@
           "roles"
         ],
         "x-module": "roles",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-35"
@@ -1424,20 +1436,25 @@
           "D-06"
         ],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-07",
+          "P-12",
+          "P-13"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
-        "description": "Capabilities in the request must be held by the caller (no escalation) and must not be Owner-only.",
+        "description": "Capabilities must be held by the caller (no escalation: lv_forbidden, details.reason = cannot_grant_unheld_capability, details.missing) and must exist in the catalog (hub.* and unknown ids are lv_invalid_input). Starter allows 3 custom roles and Team 6 (Owner excluded), taken from entitlement grants: no active grant is lv_entitlement_missing; a plan whose allowance is undecided is lv_policy_undecided; a full Hub is lv_quota_exceeded with details {limit, used}. Today only synthetic grants exist; no real grant has been issued (P-12).",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
           "lv_forbidden",
           "lv_not_found",
           "lv_quota_exceeded",
+          "lv_entitlement_missing",
           "lv_policy_undecided",
           "lv_invalid_input",
           "lv_conflict"
@@ -1508,7 +1525,7 @@
           "roles"
         ],
         "x-module": "roles",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-35"
@@ -1518,19 +1535,23 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-07"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
+        "description": "Omitted or null name/icon/capabilities are left unchanged; icon \"\" clears the icon. The caller must hold every capability the role already carries (details.reason = role_exceeds_your_authority) and every capability they add (P-07).",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
           "lv_forbidden",
           "lv_not_found",
-          "lv_invalid_input"
+          "lv_invalid_input",
+          "lv_conflict"
         ],
         "responses": {
           "200": {
@@ -1598,7 +1619,7 @@
           "roles"
         ],
         "x-module": "roles",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-35"
@@ -1608,13 +1629,16 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-07"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
+        "description": "Frees the slot and removes every assignment. The caller must hold every capability the role carries (P-07).",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
@@ -1687,7 +1711,7 @@
           "roles"
         ],
         "x-module": "roles",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-35"
@@ -1697,20 +1721,24 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-07",
+          "P-10"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
+        "description": "Roles belong to one Hub; assigning across Hubs is impossible (a person who is not an accepted member of the role's Hub is lv_not_member). Not assignable to the Owner. Assignments disappear when the member stops being accepted (P-10).",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
           "lv_forbidden",
           "lv_not_found",
-          "lv_hub_mismatch",
-          "lv_not_member"
+          "lv_not_member",
+          "lv_invalid_input"
         ],
         "responses": {
           "200": {
@@ -1778,7 +1806,7 @@
           "roles"
         ],
         "x-module": "roles",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-35"
@@ -1788,19 +1816,22 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-07"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
+        "description": "lv_not_found when the person does not hold the role. The caller must hold every capability the role carries (P-07).",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
           "lv_forbidden",
           "lv_not_found",
-          "lv_hub_mismatch"
+          "lv_invalid_input"
         ],
         "responses": {
           "200": {
@@ -1868,7 +1899,7 @@
           "roles"
         ],
         "x-module": "roles",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-35"
@@ -1878,13 +1909,17 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-07",
+          "P-13"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
+        "description": "Enabling needs the caller to hold the capability; editing needs authority over the whole role (P-07). Owner-only ids are lv_invalid_input.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
@@ -1958,7 +1993,7 @@
           "roles"
         ],
         "x-module": "roles",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-35"
@@ -1968,13 +2003,17 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-08",
+          "P-13"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
+        "description": "Enabling a category requires the caller to hold every capability in it (no partial grant, P-08); disabling removes all of them.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
@@ -2048,29 +2087,36 @@
           "roles"
         ],
         "x-module": "roles",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-35"
         ],
         "x-capabilities": [],
-        "x-decisions": [],
+        "x-decisions": [
+          "D-01",
+          "D-02"
+        ],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-11"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
-        "description": "Owner only. One open offer per Hub.",
+        "description": "Owner only; no capability or role grants this. Fails closed with lv_policy_undecided until the reauthentication and offer-expiry policy are set (P-11). When the access token lacks a sufficiently fresh authentication the answer is lv_forbidden with details.reason = reauthentication_required: send the person through sign-in again, then retry with the new token. One open offer per Hub (lv_conflict); an expired open offer is expired on the spot. Recipient must be an accepted member (lv_not_member).",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
           "lv_forbidden",
           "lv_not_found",
           "lv_not_member",
-          "lv_conflict"
+          "lv_conflict",
+          "lv_policy_undecided",
+          "lv_invalid_input"
         ],
         "responses": {
           "200": {
@@ -2138,28 +2184,36 @@
           "roles"
         ],
         "x-module": "roles",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-35"
         ],
         "x-capabilities": [],
-        "x-decisions": [],
+        "x-decisions": [
+          "D-01",
+          "D-02"
+        ],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-10",
+          "P-11"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
+        "description": "Only the addressed recipient, with fresh authentication (details.reason = reauthentication_required). One transaction under the Hub lock: stale (Owner changed), expired, cancelled and superseded offers are lv_lifecycle_invalid with details.status; replay by the recipient returns the same result. The previous Owner becomes an ordinary accepted member with no roles; the new Owner's role assignments are dissolved. There is always exactly one Owner.",
         "x-idempotent": true,
         "x-errors": [
           "lv_unauthenticated",
           "lv_forbidden",
           "lv_not_found",
           "lv_lifecycle_invalid",
-          "lv_conflict"
+          "lv_not_member",
+          "lv_policy_undecided"
         ],
         "responses": {
           "200": {
@@ -2227,7 +2281,7 @@
           "roles"
         ],
         "x-module": "roles",
-        "x-status": "proposed",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M1",
         "x-flows": [
           "F-35"
@@ -2242,6 +2296,7 @@
             "userJwt": []
           }
         ],
+        "description": "The Owner withdraws or the recipient declines. Only a pending offer can be cancelled.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
@@ -9405,6 +9460,93 @@
         "lv_member_count"
       ],
       "summary": "Every legacy member of an organization becomes an accepted member of its Hub (backfill, signup mirror, repair), including students who have never used v2. Whether legacy accounts count as valid members for gates and discovery is undecided."
+    },
+    {
+      "id": "P-07",
+      "decisions": [
+        "D-02"
+      ],
+      "operations": [
+        "lv_role_create",
+        "lv_role_update",
+        "lv_role_delete",
+        "lv_role_assign",
+        "lv_role_unassign",
+        "lv_role_set_capability"
+      ],
+      "summary": "Delegation: nobody can grant a capability they do not hold, and a non-Owner can edit, assign, unassign or delete a role only if they hold every capability that role carries. The founder has not decided how far role managers may reach (for example whether they may manage peers or lesser roles they only partly cover)."
+    },
+    {
+      "id": "P-08",
+      "decisions": [
+        "D-02"
+      ],
+      "operations": [
+        "lv_role_set_group"
+      ],
+      "summary": "Enabling a whole capability category on a role requires holding every capability in it; there is no partial group grant. Disabling a category needs only authority over the role."
+    },
+    {
+      "id": "P-09",
+      "decisions": [
+        "D-02"
+      ],
+      "operations": [
+        "lv_remove_member",
+        "lv_suspend_member"
+      ],
+      "summary": "A non-Owner can remove or suspend only a member whose capabilities are within their own. Whether peers or lesser roles may act on each other is undecided."
+    },
+    {
+      "id": "P-10",
+      "decisions": [
+        "D-02"
+      ],
+      "operations": [
+        "lv_role_assign",
+        "lv_suspend_member",
+        "lv_remove_member",
+        "lv_leave_hub",
+        "lv_owner_transfer_accept",
+        "lv_my_context"
+      ],
+      "summary": "A member may hold several roles. Role assignments are dropped automatically when a membership stops being accepted (suspended, removed, left) and do not return on reinstatement. The Owner holds no roles (authority is direct); becoming Owner dissolves existing assignments."
+    },
+    {
+      "id": "P-11",
+      "decisions": [
+        "D-01",
+        "D-02"
+      ],
+      "operations": [
+        "lv_owner_transfer_start",
+        "lv_owner_transfer_accept"
+      ],
+      "summary": "Owner transfer reauthentication (required method and maximum age) and offer lifetime are UNDECIDED and unset in the database, so lv_owner_transfer_start/accept fail closed with lv_policy_undecided. When set, the database checks the amr claim of the access token; that does not prove the Google or central-identity reauthentication flow, which is a separate integration (D-01) with its own verification."
+    },
+    {
+      "id": "P-12",
+      "decisions": [
+        "D-06"
+      ],
+      "operations": [
+        "lv_role_create",
+        "lv_role_list"
+      ],
+      "summary": "Custom role slots (Starter 3, Team 6, Owner excluded) are confirmed numbers, but they are read from entitlement grants and no real grant exists: a Hub without an active grant cannot create roles, a plan whose allowance is undecided (campaign plans, manual) answers lv_policy_undecided, and what happens when a downgrade leaves more roles than slots is undefined."
+    },
+    {
+      "id": "P-13",
+      "decisions": [
+        "D-02"
+      ],
+      "operations": [
+        "lv_capability_catalog",
+        "lv_role_create",
+        "lv_role_set_capability",
+        "lv_role_set_group"
+      ],
+      "summary": "The capability vocabulary (27 ids in Administration, Hub Appearance & Structure, Community & Campaigns) is a proposal. `community.moderate` was renamed `community.comments.moderate`. Ids may change before launch; the roles migration seeds them from a table, not code."
     }
   ]
 }
