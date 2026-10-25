@@ -12,6 +12,21 @@ categories and the repository's decimal `X.X.X` release policy.
   `\\wsl.localhost\...` repository folder as the working directory, which Windows does not support, so the relative `scripts/mcp/supabase.sh` was never found
   ("Connection closed"). The server is now started by absolute path (`$HOME/projects/lunchvoice/scripts/mcp/supabase.sh`), which assumes the checkout lives there.
   The wrapper, token handling and read/write setting are unchanged. No secret, migration or database change.
+- Added pull-request validation (`.github/workflows/pr-checks.yml`). Previously the only
+  workflow ran on pushes to `main`, so a PR could merge with no automated checks. The new
+  workflow runs on `pull_request`, has read-only permissions and no secrets, and cannot tag,
+  release, deploy or push. It runs `check:brain`, new script tests (`node --test scripts/*.test.mjs`),
+  the production build, a bundle smoke check, and Deno tests for
+  `supabase/functions/_shared/`; it requires a `CHANGELOG.md` update in every PR and runs
+  `npm audit --audit-level=high` when the PR touches dependency, auth, org, migration,
+  function, workflow or hook paths. Builds now use placeholder (non-secret)
+  `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`: without them `src/lib/supabase.ts` throws
+  at load and the bundler drops the whole app, so a green build proved little;
+  `scripts/check-bundle.mjs` now fails if the bundle lacks the app and Supabase client.
+  Added `release-policy.mjs pr <base>` mode and npm scripts `test:pr`, `test:scripts`,
+  `check:bundle`. `test:light`, `test:heavy` and `version-release.yml` are unchanged.
+  Branch protection (making these checks required) is a separate founder decision; no
+  repository setting was changed.
 - Added project-scoped MCP server setup (`scripts/mcp/`): the Supabase MCP server now starts through
   `scripts/mcp/supabase.sh`, which loads secrets only from a gitignored, owner-only `.mcp.env` (never from the
   global shell), is scoped to one project with `--project-ref`, starts **read-only** by default, and pins
@@ -33,6 +48,47 @@ categories and the repository's decimal `X.X.X` release policy.
   migration, secret, function deployment, or live subscription was applied.
 
 ### Fixed
+
+- Restricted self-service writes to `public.profiles` (migration
+  `20261023225534_restrict_profile_self_service_columns`, **applied to production on 2026-10-23** with the
+  founder's authorization through the project MCP server, then recorded here with the same version). API roles
+  (`anon`, `authenticated`) can no longer INSERT or UPDATE profile rows at table level; signed-in users may update
+  only `email` and `display_name` (the app's only client-side profile write, `src/routes/Login.tsx`). Production
+  already restricted UPDATE to those two columns, but that grant was never recorded in the migrations, so fresh
+  replays did not match; this codifies it. A `BEFORE UPDATE` trigger additionally rejects changes to privileged
+  columns (role, staff flag, points, streak, last survey date, org, MJCC username) by any role other than the
+  database owner roles and the service role. Profiles are still created by `handle_new_user()` (SECURITY DEFINER,
+  owned by `postgres`); points/streak changes still happen in SECURITY DEFINER RPCs; Edge Functions use the service
+  role. Verified on a throwaway database replay first, then in production via catalog checks (privileges, trigger,
+  unchanged profile counts).
+- Fixed the heavy-test selector in `scripts/release-policy.mjs`: it matched
+  `src/contexts/Auth`, a directory that does not exist, so a commit touching only
+  `src/auth/AuthProvider.tsx` or `src/org/OrgProvider.tsx` skipped the heavy release
+  gate. The patterns now live in `scripts/release-patterns.mjs` (covering `src/auth/`,
+  `src/org/`, `src/lib/supabase`, `supabase/config.toml`, `.githooks/` and the release
+  scripts besides the earlier paths) with regression tests.
+
+- Remediated the three high-severity dependency advisories reported by `npm audit`
+  on 2026-10-23 (`vite` 8.1.3 -> 8.3.5, `nanoid` 3.3.17 -> 3.3.20, `source-map-js`
+  1.2.1 -> 1.2.2, with the matching `rolldown` 1.1.4 -> 1.2.15 and `postcss`
+  8.5.25 -> 8.5.31 updates) by refreshing `package-lock.json` only; `package.json`
+  ranges are unchanged and `react-router-dom` moved within 6.x (6.30.4 -> 6.30.6).
+  `npm audit --audit-level=high` now exits 0, so the heavy release gate passes
+  again. Two moderate `react-router` / `react-router-dom` advisories remain: their fix
+  requires React Router 7 (major). Assessment: the app is a client-side SPA with no
+  server rendering or hydration, so the `deserializeErrors()` advisory has no
+  reachable path; every `<Navigate>`/`navigate()` target in `src/` begins with a fixed
+  prefix (`/${org.slug}`, `/LionCafe`, a relative path, or `/`), so the backslash
+  open-redirect advisory has no user-controlled leading segment today. This is a
+  read-through of the call sites, not a proof; the React Router 7 migration remains
+  a separate, scheduled change. Verified with placeholder `VITE_SUPABASE_*`
+  values (see below) that the production bundle still contains the same app and
+  Supabase client code (519 kB -> 517 kB). No migration, secret or deployment.
+- Discovered that `npm run build` without `VITE_SUPABASE_URL` /
+  `VITE_SUPABASE_ANON_KEY` succeeds but produces a near-empty bundle (`src/lib/supabase.ts`
+  throws at module load, so the bundler drops everything after it), meaning a "passing
+  build" in an environment without those variables proves little. The CI change
+  tracks this separately.
 
 - Updated the locked PostCSS toolchain to remove the high-severity source-map
   path-disclosure advisory found by the release audit. Two moderate React
