@@ -13,7 +13,7 @@ check() { # name, "select <boolean expression>". A check that errors is recorded
   fi
 }
 as_user() { # uid, sql  (one fresh connection, runs as the API role)
-  P -c "set role authenticated" -c "set request.jwt.claim.sub = '$1'" -c "$2"
+  P -c "set role authenticated" -c "set request.jwt.claim.sub = '$1'" -c "set request.jwt.claims = '{\"sub\":\"$1\",\"iss\":\"urn:lunchvoice:legacy-auth-user\",\"role\":\"authenticated\"}'" -c "$2"
 }
 # psql -c runs each -c separately in one session; role/GUC persist within the session.
 
@@ -93,7 +93,7 @@ P -c "insert into lv_private.entitlement_grants (hub_id, plan_code, source) valu
 P -c "update lv_private.policy set value = '{\"max_age_seconds\": 300, \"methods\": [\"oauth\"]}'::jsonb where key = 'owner_transfer.reauth'" >/dev/null
 P -c "update lv_private.policy set value = '3600'::jsonb where key = 'owner_transfer.offer_ttl_seconds'" >/dev/null
 claims() { # uid -> JWT claims with a fresh oauth amr entry
-  printf '{"sub":"%s","amr":[{"method":"oauth","timestamp":%s}]}' "$1" "$(date +%s)"
+  printf '{"sub":"%s","iss":"urn:lunchvoice:legacy-auth-user","amr":[{"method":"oauth","timestamp":%s}]}' "$1" "$(date +%s)"
 }
 as_authed() { # uid, sql
   P -c "set role authenticated" -c "set request.jwt.claim.sub = '$1'" -c "set request.jwt.claims = '$(claims "$1")'" -c "$2"
@@ -370,3 +370,15 @@ check "concurrent syncs: no run reported an error" "select $(cat "$OUT"/lsync.* 
 check "concurrent syncs: each of the four sessions became exactly one archived Campaign" "select (select count(*) from lv_private.campaigns where legacy_historical and title like 'Race session %') = 4 and (select count(distinct legacy_session_id) from lv_private.campaigns where legacy_historical and title like 'Race session %') = 4"
 check "concurrent legacy writes: all 16 responses are mapped exactly once after one more sync" "select (select count(*) from lv_private.legacy_response_map m join public.responses r on r.id = m.response_id join public.sessions s on s.id = r.session_id where s.title like 'Race session %') = 16 and (select count(*) from lv_private.campaign_participation p join lv_private.campaigns c on c.id = p.campaign_id where c.title like 'Race session %') = 16"
 check "reconciliation after the race has no unexplained gap in responses, answers or points" "select (lv_private.legacy_reconcile('$A')->'responses'->>'not_yet_mapped_and_unexplained')::int = 0 and (lv_private.legacy_reconcile('$A')->'answers'->>'unexplained_gap')::int = 0 and (lv_private.legacy_reconcile('$A')->'points'->>'difference')::int = 0"
+
+
+echo "-- race 23: ten simultaneous first sign-ins of one central identity"
+P -c "update lv_private.policy set value = '[\"urn:lunchvoice:legacy-auth-user\", \"https://auth.test.invalid\"]'::jsonb where key = 'identity.trusted_issuers'" >/dev/null
+CS="00000000-0000-4000-8900-0000000000aa"
+for i in $(seq 1 10); do
+  P -c "set role authenticated" -c "set request.jwt.claim.sub = '$CS'" -c "set request.jwt.claims = '{\"sub\":\"$CS\",\"iss\":\"https://auth.test.invalid\",\"email\":\"race@example.invalid\",\"email_verified\":true}'" -c "select public.lv_my_context()->'data'->'account'->>'id'" >"$OUT/id.$i" 2>&1 &
+done
+wait
+check "central first sign-in race: exactly one account and one identity" "select (select count(*) from lv_private.account_identities where issuer = 'https://auth.test.invalid' and subject = '$CS') = 1 and (select count(*) from lv_private.accounts where id = '$CS') = 1"
+check "central first sign-in race: every caller saw the same account id" "select $(cat "$OUT"/id.* | sort -u | grep -c .) = 1"
+check "central first sign-in race: signing in created no membership" "select (select count(*) from lv_private.hub_memberships where account_id = '$CS') = 0"

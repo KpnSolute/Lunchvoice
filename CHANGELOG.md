@@ -8,6 +8,15 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added the identity-first corrective migration (`20261024000800_v2_identity_first.sql`, **not applied to production**, stacked on the legacy bridge). A person is a
+  central identity `(issuer, subject)` taken from a verified token: issuers must be on the allow-list policy `identity.trusted_issuers` (shipped UNSET, so nobody
+  is signed in until it is decided), the subject must be a UUID, there is one account per identity, and accounts are never linked by email or name. Signing in
+  grants no membership and no platform role; the legacy profile-to-account mirror trigger is removed from the shipped schema (kept only as a test fixture).
+  Hubs now own a unique, format-checked slug and display name (no organization row needed); platform administrators exist only through audited operator functions
+  and cannot be self-granted. New suites `15_pure_schema` and `16_identity`, race 23 (ten simultaneous first sign-ins of one identity yield one account); 954
+  database checks. Mutations "any issuer trusted" and "non-array issuer list accepted" are caught; lower-casing inside `caller_identity` is a redundant second layer
+  (`ensure_account` normalizes too). The real KpnAuth issuer, subject format and claims are unverified and must be confirmed before any production use.
+  Beta applications, approval and transactional Hub creation (`lv_hub_create`) follow in the next migration; `lv_beta_admit` is superseded by it.
 - Added the MJCC legacy bridge for rehearsal (migration `20261024000700_v2_legacy_bridge.sql`, **not applied to production**; the Hub keeps the name LionCafe):
   a read-only standalone inventory script (`supabase/bridge/legacy_inventory.sql`, never run against production by its author), a read-only in-database inventory,
   an idempotent, per-session-atomic sync that archives only HISTORICAL legacy survey sessions as closed, read-only Campaigns (`legacy_historical`) preserving the

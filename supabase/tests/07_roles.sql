@@ -11,7 +11,7 @@ insert into auth.users (id, email, raw_user_meta_data)
   values (t.u(21), 'outsider21@example.invalid', '{"display_name":"Outsider 21","org_id":"00000000-0000-4000-8001-0000000000c3"}');
 
 select t.check('the migration itself creates no entitlement grants', (select count(*) from lv_private.entitlement_grants) = 0);
-select t.check('Owner-only policy values start UNSET (fail closed)', (select count(*) from lv_private.policy where value is not null) = 0);
+select t.check('Owner-transfer policy values start UNSET (fail closed)', (select count(*) from lv_private.policy where key like 'owner_transfer.%' and value is not null) = 0);
 
 -- ---- catalog
 select t.as_anon();

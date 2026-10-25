@@ -55,7 +55,7 @@ create or replace function t.as_user(p_uid uuid) returns void language plpgsql a
 begin
   reset role;
   perform set_config('request.jwt.claim.sub', p_uid::text, false);
-  perform set_config('request.jwt.claims', '', false);
+  perform set_config('request.jwt.claims', jsonb_build_object('sub', p_uid, 'iss', 'urn:lunchvoice:legacy-auth-user', 'role', 'authenticated')::text, false);
   set role authenticated;
 end $$;
 
@@ -65,7 +65,7 @@ create or replace function t.as_user_authed(p_uid uuid, p_method text, p_age_sec
 begin
   reset role;
   perform set_config('request.jwt.claim.sub', p_uid::text, false);
-  perform set_config('request.jwt.claims', jsonb_build_object('sub', p_uid, 'amr', jsonb_build_array(
+  perform set_config('request.jwt.claims', jsonb_build_object('sub', p_uid, 'iss', 'urn:lunchvoice:legacy-auth-user', 'amr', jsonb_build_array(
     jsonb_build_object('method', p_method, 'timestamp', extract(epoch from now())::bigint - p_age_seconds)))::text, false);
   set role authenticated;
 end $$;
@@ -189,3 +189,12 @@ begin
 end $$;
 create or replace function t.finish(p_label text) returns void language sql security definer as $$
   update lv_private.campaigns set state = 'closed', closed_at = now() where id = t.id(p_label || '.id') $$;
+
+-- Signed in through a central issuer (the real model). p_verified controls the email_verified claim.
+create or replace function t.as_central(p_sub uuid, p_email text default null, p_verified boolean default true, p_iss text default 'https://auth.test.invalid') returns void language plpgsql as $$
+begin
+  reset role;
+  perform set_config('request.jwt.claim.sub', p_sub::text, false);
+  perform set_config('request.jwt.claims', jsonb_strip_nulls(jsonb_build_object('sub', p_sub, 'iss', p_iss, 'role', 'authenticated', 'email', p_email, 'email_verified', p_verified))::text, false);
+  set role authenticated;
+end $$;

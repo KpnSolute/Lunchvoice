@@ -6,13 +6,13 @@ select lv_private.backfill_org_hub(t.org_a(), t.u(2));
 select lv_private.backfill_org_hub(t.org_b(), t.u(11));
 
 -- Simulate a mirror that did not run: signups happen with the trigger off. Legacy signup must still work.
-alter table public.profiles disable trigger profiles_sync_v2;
+alter table public.profiles disable trigger t_profiles_mirror;
 insert into auth.users (id, email, raw_user_meta_data) values
   (t.u(31), 'missed.one@example.invalid', '{"display_name":"Missed One"}'),
   (t.u(32), 'missed.two@example.invalid', '{"display_name":"Missed Two"}'),
   (t.u(33), 'missed.three@example.invalid', '{"display_name":"Missed Three"}'),
   (t.u(34), 'other.org.missed@example.invalid', jsonb_build_object('display_name', 'Other Org Missed', 'org_id', t.org_b()));
-alter table public.profiles enable trigger profiles_sync_v2;
+alter table public.profiles enable trigger t_profiles_mirror;
 select t.check('legacy signup works while the mirror is off', (select count(*) from public.profiles where id in (t.u(31), t.u(32), t.u(33), t.u(34))) = 4);
 
 -- Prior decisions on people who exist in v2: they must survive the repair.
