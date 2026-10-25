@@ -10,11 +10,16 @@ categories and the repository's decimal `X.X.X` release policy.
 
 - Added the v2 public waitlist and Hub settings (migration `20261024000600_v2_waitlist_hub_settings.sql`, **not applied to production**, stacked
   on the analytics migration): `lv_waitlist_join` and `lv_hub_settings_update` (contract v0.7.0, `implemented-nonprod`). The waitlist stays CLOSED until
-  the founder sets `waitlist.open` (unset -> `lv_policy_undecided`); it stores only a normalized address and an optional Hub name in a table with no API
-  access and no read-back operation, answers a repeat sign-up exactly like a new one (no enumeration), and throttles on salted hashes (provisional: 5 per
-  address per day, 30 per network address per hour). Hub settings (rename, visibility, join mode) need `admin.settings.edit`, validate input, audit every
-  change with before/after, and use a separate v2 display name so the legacy organization name and slug are never edited. 808 database checks
-  (new: waitlist and settings 48, a settings race); six mutations are caught; rollback script included. Provisional register P-36 to P-40.
+  the founder decides four things (open, approved consent wording, retention, removal channel); until then it answers `lv_policy_undecided`. It stores the
+  normalized email address, an optional Hub name, the consent version and a deletion date in a private table with no API access, no read-back operation and no
+  account link (an operator purge and removal function exist); the throttle ledger holds only salted hashes, never raw addresses or IPs. It answers a repeat
+  sign-up exactly like a new one, and the throttle counts only the caller's own attempts from the caller's own origin (tested from a second origin), so it
+  cannot reveal prior submissions. The caller origin is trusted only from a configured proxy header position counted from the right (unset: one shared bucket).
+  Throttle values (5 per address per origin per day, 30 per origin per hour) are provisional and unapproved. Hub settings (rename, visibility, join mode)
+  need `admin.settings.edit`, are validated and audited, never edit the legacy organization name, and do not rewrite existing memberships (tested: pending
+  and suspended members stay as they are, new admission attempts follow the current mode, and a Hub made private stops resolving codes and showing counts to
+  outsiders immediately while members keep access). 842 database checks; ten mutations are caught. Proposal for wording/retention/removal:
+  `contract/WAITLIST_PROPOSAL.md` (unapproved). Provisional register P-36 to P-41.
 - Added v2 privacy-safe analytics (migration `20261024000500_v2_privacy_safe_analytics.sql`, **not applied to production**, stacked on the
   participation migration) and `lv_analytics_query` (contract v0.6.0, `implemented-nonprod`; export and embed stay `blocked-decision`). It is the only
   reader of answers and returns aggregates only. Anonymous (or guest-bearing) Campaigns return nothing until THREE separate privacy policy values
@@ -73,8 +78,8 @@ categories and the repository's decimal `X.X.X` release policy.
   a private `lv_private` schema (accounts, account identities, Hubs, memberships, audit events; RLS on, no API
   grants), the RPCs, and one `AFTER INSERT` trigger on `public.profiles` that mirrors new legacy users into v2 and can
   never fail a signup. A Hub *is* its organization (`hubs.id = orgs.id`), so ids, slugs and deep links are preserved
-  and no duplicate Hub can exist; accounts take the legacy user's id and are never merged by email. The LionCafe to
-  MJCC Hub backfill is `lv_private.backfill_org_hub(org_id, owner_account_id)`: operator-run, one transaction, repeatable,
+  and no duplicate Hub can exist; accounts take the legacy user's id and are never merged by email. The LionCafe Hub
+  backfill (the Hub keeps the name LionCafe; there is no separate "MJCC Hub") is `lv_private.backfill_org_hub(org_id, owner_account_id)`: operator-run, one transaction, repeatable,
   never overwrites suspensions or removals, never changes an Owner, and takes the Owner as a **required** input
   (never inferred from email, role or "first admin"). Includes `reconcile_org_hub` and a rollback script
   (`supabase/rollbacks/`). Only the Owner holds capabilities until the roles migration. New throwaway-Postgres test

@@ -1526,7 +1526,10 @@
           "details": {
             "reason": "policy_pending",
             "missing": [
-              "waitlist.open"
+              "waitlist.open",
+              "waitlist.consent_version",
+              "waitlist.retention",
+              "waitlist.removal"
             ]
           }
         },

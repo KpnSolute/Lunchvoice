@@ -317,3 +317,27 @@ done
 wait
 check "settings race: every update succeeded" "select $(cat "$OUT"/hs.* | grep -c '^true$') = 6"
 check "settings race: the Hub ends with one coherent name and the audit trail has one entry per real change" "select (select display_name from lv_private.hubs where id = '$A') like 'Racing name %' and (select count(*) from lv_private.hub_settings_events where hub_id = '$A') between 1 and 6"
+
+
+echo "-- race 21: simultaneous duplicate waitlist sign-ups (SYNTHETIC policy)"
+P -c "update lv_private.policy set value = 'true'::jsonb where key = 'waitlist.open'" >/dev/null
+P -c "update lv_private.policy set value = '\"v-race\"'::jsonb where key = 'waitlist.consent_version'" >/dev/null
+P -c "update lv_private.policy set value = '{\"days\": 30}'::jsonb where key = 'waitlist.retention'" >/dev/null
+P -c "update lv_private.policy set value = '{\"channel\": \"synthetic\"}'::jsonb where key = 'waitlist.removal'" >/dev/null
+P -c "update lv_private.policy set value = '{\"header\": \"x-forwarded-for\", \"hops_from_right\": 1}'::jsonb where key = 'waitlist.trusted_ip'" >/dev/null
+P -c "delete from lv_private.waitlist_attempts; delete from lv_private.waitlist" >/dev/null
+wl() { # origin-suffix address -> response data
+  P -c "set role anon" -c "set request.headers = '{\"x-forwarded-for\": \"spoof, 192.0.2.$1\"}'" -c "select coalesce(r->'error'->>'code', r->'data'->>'status') from (select public.lv_waitlist_join('$2') as r) x"
+}
+for i in 1 2 3 4 5 6 7 8; do
+  wl "$i" "Same.Person@Example.invalid" >"$OUT/w.$i" 2>&1 &
+done
+wait
+check "duplicate sign-ups from eight origins: exactly one stored entry" "select (select count(*) from lv_private.waitlist where email_normalized = 'same.person@example.invalid') = 1"
+check "duplicate sign-ups: every caller received the identical public answer" "select $(cat "$OUT"/w.* | sort -u | grep -c .) = 1 and '$(cat "$OUT"/w.1 | tr -d ' \n')' = 'queued'"
+for i in $(seq 1 10); do
+  wl 77 "hammer@example.invalid" >"$OUT/wh.$i" 2>&1 &
+done
+wait
+check "ten simultaneous attempts from ONE origin for one address: the limit holds exactly (5 accepted)" "select $(cat "$OUT"/wh.* | grep -c '^queued$') = 5 and $(cat "$OUT"/wh.* | grep -c '^lv_rate_limited$') = 5"
+check "...and still only one stored entry for it" "select (select count(*) from lv_private.waitlist where email_normalized = 'hammer@example.invalid') = 1"

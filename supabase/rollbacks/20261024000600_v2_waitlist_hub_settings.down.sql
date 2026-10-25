@@ -83,7 +83,11 @@ drop table if exists lv_private.hub_settings_events;
 drop table if exists lv_private.waitlist_attempts;
 drop table if exists lv_private.waitlist;
 drop table if exists lv_private.secrets;
-delete from lv_private.policy where key = 'waitlist.open';
+delete from lv_private.policy where key like 'waitlist.%';
 drop function if exists lv_private.clean_text(text, int);
+drop function if exists lv_private.waitlist_origin(text);
+drop function if exists lv_private.waitlist_policy_missing();
+drop function if exists lv_private.purge_expired_waitlist();
+drop function if exists lv_private.remove_waitlist_entry(text);
 
 commit;

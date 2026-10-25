@@ -4944,14 +4944,15 @@
           "P-36",
           "P-37",
           "P-38",
-          "P-39"
+          "P-39",
+          "P-41"
         ],
         "security": [
           {
             "apikey": []
           }
         ],
-        "description": "Stays closed until the founder opens it: with the waitlist.open policy unset the answer is lv_policy_undecided (details.missing); deliberately closed answers status closed. A repeat sign-up (any case or spacing) answers exactly like a new one, so the response never reveals whether an address is on the list; the status duplicate is therefore never returned. Stored: normalized address and optional intended Hub name only. Throttled on hashes (5 attempts per address per day, 30 per network address per hour, provisional): lv_rate_limited with details.retry_after_seconds. The consent/legal copy shown beside the form and the retention period for addresses are undecided (P-37, P-38). No operation reads the list back.",
+        "description": "Closed until the founder decides FOUR things: waitlist.open, waitlist.consent_version (the approved wording), waitlist.retention and waitlist.removal. While anything is missing the answer is lv_policy_undecided with details.missing; a deliberately closed list answers status closed. WHAT IS STORED: the private waitlist table keeps the normalized email address, the optional intended Hub name, the consent version shown and a deletion date (personal data; no API access, no read-back operation, no link to any account or Hub). The throttle ledger keeps only SALTED HASHES of the address and of the caller origin, never raw addresses or IPs, and is cleared after 7 days. NO ENUMERATION: a new and a repeat sign-up (any case or spacing) answer identically (queued), the status duplicate is never returned, and the throttle counts only the caller's own attempts from the caller's own origin, so what a caller sees never depends on what anyone else submitted (tested against a different origin). ORIGIN: the network address is used only if waitlist.trusted_ip names a header and a proxy-hop count counted from the RIGHT, i.e. the entry appended by your own proxies; a value supplied by the browser is never trusted by itself, and with no trusted source configured every caller shares one bucket. It must be verified against the real edge before the list opens. Provisional, unapproved limits: 5 attempts per address per origin per day and 30 per origin per hour (lv_rate_limited with details.retry_after_seconds). Operator functions purge expired rows and perform removal requests. Consent copy, retention length and the removal channel are founder decisions (P-37, P-38).",
         "x-idempotent": false,
         "x-errors": [
           "lv_rate_limited",
@@ -10241,7 +10242,7 @@
       "operations": [
         "lv_waitlist_join"
       ],
-      "summary": "The public waitlist is closed until the founder opens it (policy waitlist.open unset -> lv_policy_undecided). When it opens, who may join and how many beta owners are admitted (at most 50, confirmed) are separate, unimplemented decisions."
+      "summary": "The public waitlist is closed until the founder decides four things: waitlist.open, the consent wording (waitlist.consent_version), the retention period (waitlist.retention) and the removal channel (waitlist.removal). Opening alone is not enough. Who is admitted and the confirmed 50-beta-owner cap are separate, unimplemented decisions; joining the waitlist promises nothing."
     },
     {
       "id": "P-37",
@@ -10251,7 +10252,7 @@
       "operations": [
         "lv_waitlist_join"
       ],
-      "summary": "Waitlist consent and legal copy are undecided: the operation records no consent flag, so the page must show founder-approved wording next to the form. Nothing here constitutes agreed terms."
+      "summary": "Waitlist consent and legal wording are undecided. Each sign-up stores the version of the approved wording that was shown, but engineering has not written or approved any wording; see contract/WAITLIST_PROPOSAL.md for a proposal that needs founder and legal review."
     },
     {
       "id": "P-38",
@@ -10261,7 +10262,7 @@
       "operations": [
         "lv_waitlist_join"
       ],
-      "summary": "Waitlist addresses are personal data held with no API access and no read-back operation. How long they are kept, who may export them, and how a person is removed are undecided; throttle-ledger rows older than 7 days can be deleted by an operator."
+      "summary": "Waitlist retention and removal are undecided. The table holds the email address (personal data) with a deletion date from the retention policy, no API access and no read-back operation; an operator purge and an operator removal function exist and are tested. The throttle ledger holds salted hashes only and is cleared after 7 days. How long to keep addresses, who may export them and how people request removal are founder decisions."
     },
     {
       "id": "P-39",
@@ -10271,7 +10272,7 @@
       "operations": [
         "lv_waitlist_join"
       ],
-      "summary": "Waitlist throttle limits (5 per address per day, 30 per network address per hour) and the generic answer for repeat sign-ups are chosen for safety, not decided. The network address comes from the first x-forwarded-for entry, which a proxy configuration must set correctly."
+      "summary": "The waitlist throttle values (5 attempts per address per origin per day, 30 per origin per hour) are PROVISIONAL TEST VALUES, not approved. They count only the caller's own attempts, so they cannot reveal prior submissions by others."
     },
     {
       "id": "P-40",
@@ -10284,6 +10285,16 @@
         "lv_my_context"
       ],
       "summary": "A Hub's v2 display name is stored separately from the legacy organization name and never overwrites it. Who may rename, and the naming and reserved-word rules, are undecided (D-09); only length and control characters are checked."
+    },
+    {
+      "id": "P-41",
+      "decisions": [
+        "D-09"
+      ],
+      "operations": [
+        "lv_waitlist_join"
+      ],
+      "summary": "Trusted network identity for the waitlist is NOT configured (waitlist.trusted_ip unset), so every caller shares one throttle bucket. When set it uses the entry N places from the right of a named proxy header, which only holds if the production edge (Render/Supabase/Cloudflare) is verified to append the real client address there; a browser-supplied value is never trusted. The header name and hop count must be confirmed against the live edge before the list opens."
     }
   ]
 }

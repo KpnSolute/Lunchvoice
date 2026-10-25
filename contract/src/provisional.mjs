@@ -222,25 +222,25 @@ export const PROVISIONAL = [
   {
     id: "P-36",
     decisions: ["D-07"],
-    summary: "The public waitlist is closed until the founder opens it (policy waitlist.open unset -> lv_policy_undecided). When it opens, who may join and how many beta owners are admitted (at most 50, confirmed) are separate, unimplemented decisions.",
+    summary: "The public waitlist is closed until the founder decides four things: waitlist.open, the consent wording (waitlist.consent_version), the retention period (waitlist.retention) and the removal channel (waitlist.removal). Opening alone is not enough. Who is admitted and the confirmed 50-beta-owner cap are separate, unimplemented decisions; joining the waitlist promises nothing.",
     ops: ["lv_waitlist_join"],
   },
   {
     id: "P-37",
     decisions: ["D-07"],
-    summary: "Waitlist consent and legal copy are undecided: the operation records no consent flag, so the page must show founder-approved wording next to the form. Nothing here constitutes agreed terms.",
+    summary: "Waitlist consent and legal wording are undecided. Each sign-up stores the version of the approved wording that was shown, but engineering has not written or approved any wording; see contract/WAITLIST_PROPOSAL.md for a proposal that needs founder and legal review.",
     ops: ["lv_waitlist_join"],
   },
   {
     id: "P-38",
     decisions: ["D-10"],
-    summary: "Waitlist addresses are personal data held with no API access and no read-back operation. How long they are kept, who may export them, and how a person is removed are undecided; throttle-ledger rows older than 7 days can be deleted by an operator.",
+    summary: "Waitlist retention and removal are undecided. The table holds the email address (personal data) with a deletion date from the retention policy, no API access and no read-back operation; an operator purge and an operator removal function exist and are tested. The throttle ledger holds salted hashes only and is cleared after 7 days. How long to keep addresses, who may export them and how people request removal are founder decisions.",
     ops: ["lv_waitlist_join"],
   },
   {
     id: "P-39",
     decisions: ["D-09"],
-    summary: "Waitlist throttle limits (5 per address per day, 30 per network address per hour) and the generic answer for repeat sign-ups are chosen for safety, not decided. The network address comes from the first x-forwarded-for entry, which a proxy configuration must set correctly.",
+    summary: "The waitlist throttle values (5 attempts per address per origin per day, 30 per origin per hour) are PROVISIONAL TEST VALUES, not approved. They count only the caller's own attempts, so they cannot reveal prior submissions by others.",
     ops: ["lv_waitlist_join"],
   },
   {
@@ -248,5 +248,11 @@ export const PROVISIONAL = [
     decisions: ["D-09"],
     summary: "A Hub's v2 display name is stored separately from the legacy organization name and never overwrites it. Who may rename, and the naming and reserved-word rules, are undecided (D-09); only length and control characters are checked.",
     ops: ["lv_hub_settings_update", "lv_hub_public", "lv_my_context"],
+  },
+  {
+    id: "P-41",
+    decisions: ["D-09"],
+    summary: "Trusted network identity for the waitlist is NOT configured (waitlist.trusted_ip unset), so every caller shares one throttle bucket. When set it uses the entry N places from the right of a named proxy header, which only holds if the production edge (Render/Supabase/Cloudflare) is verified to append the real client address there; a browser-supplied value is never trusted. The header name and hop count must be confirmed against the live edge before the list opens.",
+    ops: ["lv_waitlist_join"],
   },
 ];

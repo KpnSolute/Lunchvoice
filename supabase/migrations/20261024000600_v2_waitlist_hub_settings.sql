@@ -2,9 +2,19 @@
 --
 -- DEPENDS ON migrations 1-5. NOT APPLIED TO PRODUCTION. Sets no policy value and creates no grant.
 --
--- Waitlist (F-01, F-03): a public, anonymous-callable queue. It stores an email address, so it is treated as personal
--- data: the table has no API grant, no operation reads it back, the response never reveals whether an address was
--- already present (no enumeration), and it stays CLOSED until the founder opens it (policy waitlist.open is unset).
+-- Waitlist (F-01, F-03): a public, anonymous-callable queue. WHAT IS STORED, plainly:
+--   * lv_private.waitlist holds the email address (normalized to lower case), an optional intended Hub name, the version
+--     of the consent wording shown and a deletion date. It is personal data. The table has no API grant, no operation reads
+--     it back, and it links to no account, Hub or Campaign.
+--   * lv_private.waitlist_attempts (the throttle ledger) holds only SALTED HASHES of the address and of the caller's origin,
+--     never the raw address or IP. Hashing does not make it anonymous; it is deleted after 7 days.
+--   The answer never reveals whether an address was already on the list (no enumeration), and a throttle answer depends only
+--   on the CALLER's own recent activity, never on what other people submitted. The list stays CLOSED until the founder
+--   decides FOUR things: waitlist.open, waitlist.consent_version (the approved wording), waitlist.retention and
+--   waitlist.removal. The throttle limits below are PROVISIONAL TEST VALUES, not approved. The caller's origin is trusted only
+--   if waitlist.trusted_ip names a header and a proxy-hop count that the real edge has been verified to set; otherwise all
+--   callers share one origin bucket. A value supplied by the browser is never trusted by itself.
+--
 -- Hub settings (F-44): rename, visibility and membership mode, gated by admin.settings.edit. The slug is never changed
 -- here (D-09). The Hub's v2 display name is separate from the legacy organization name, which this migration never edits.
 --
@@ -13,7 +23,15 @@
 
 insert into lv_private.policy (key, value, note) values
   ('waitlist.open', null,
-   'Whether the public waitlist accepts sign-ups. JSON true or false. Undecided (D-07): NULL makes lv_waitlist_join answer lv_policy_undecided; false answers status closed.');
+   'Whether the public waitlist accepts sign-ups. JSON true or false. Undecided (D-07): NULL makes lv_waitlist_join answer lv_policy_undecided; false answers status closed. true is honoured only when the three keys below are also set.'),
+  ('waitlist.consent_version', null,
+   'Identifier of the founder-approved consent/privacy wording shown beside the form, a JSON string up to 64 characters. Undecided (D-07/legal): stored with each sign-up. No wording is invented by engineering.'),
+  ('waitlist.retention', null,
+   'How long a sign-up is kept. {"days": 1..3650}. Undecided (D-10): sets each row''s deletion date; the purge job deletes expired rows.'),
+  ('waitlist.removal', null,
+   'How a person asks to be removed, shown to them. {"channel": "text up to 200 characters"}. Undecided (D-10). The operator function remove_waitlist_entry performs a removal.'),
+  ('waitlist.trusted_ip', null,
+   'Where the caller''s network address comes from. {"header": "x-forwarded-for"|"x-real-ip"|"cf-connecting-ip", "hops_from_right": 1..5}: the value hops_from_right entries from the right of that header, as set by YOUR trusted proxies. Must be verified against the real edge before use. Undecided: NULL puts every caller in one shared bucket (no per-network identity is trusted).');
 
 -- Per-install salt so stored IP hashes cannot be reversed by hashing the IPv4 space.
 create table lv_private.secrets (key text primary key, value text not null);
@@ -23,18 +41,21 @@ create table lv_private.waitlist (
   id uuid primary key default gen_random_uuid(),
   email_normalized text not null unique check (length(email_normalized) between 3 and 254),
   intended_hub_name text check (intended_hub_name is null or length(intended_hub_name) <= 80),
+  consent_version text not null,
+  delete_after timestamptz not null,
   created_at timestamptz not null default now()
 );
+create index waitlist_delete_after_idx on lv_private.waitlist (delete_after);
 
 -- Throttle ledger: HASHES only, never the address or the IP. Rows older than 7 days can be deleted by an operator.
 create table lv_private.waitlist_attempts (
   id bigint generated always as identity primary key,
   email_hash text not null,
-  ip_hash text,
+  origin_hash text not null,
   at timestamptz not null default now()
 );
-create index waitlist_attempts_email_idx on lv_private.waitlist_attempts (email_hash, at);
-create index waitlist_attempts_ip_idx on lv_private.waitlist_attempts (ip_hash, at);
+create index waitlist_attempts_pair_idx on lv_private.waitlist_attempts (email_hash, origin_hash, at);
+create index waitlist_attempts_origin_idx on lv_private.waitlist_attempts (origin_hash, at);
 
 alter table lv_private.hubs add column display_name text check (display_name is null or length(btrim(display_name)) between 1 and 80);
 
@@ -135,19 +156,70 @@ revoke all on all functions in schema lv_private from public, anon, authenticate
 -- ---------------------------------------------------------------------------------------------------------
 -- Public RPCs
 -- ---------------------------------------------------------------------------------------------------------
+-- Origin of the caller: a salted hash of the trusted network address, or the single shared bucket 'unknown'. Only the
+-- entry the configured proxies appended is used (counted from the right), so values a browser prepends are ignored.
+create function lv_private.waitlist_origin(p_salt text) returns text
+language plpgsql stable security definer set search_path = ''
+as $$
+declare
+  v_pol jsonb; v_headers json; v_hdr text; v_val text; v_parts text[]; v_hops int; v_ip text;
+begin
+  select p.value into v_pol from lv_private.policy p where p.key = 'waitlist.trusted_ip';
+  if v_pol is null or jsonb_typeof(v_pol) <> 'object' or (v_pol->>'header') not in ('x-forwarded-for', 'x-real-ip', 'cf-connecting-ip')
+     or (v_pol->>'hops_from_right') !~ '^[1-5]$' then
+    return 'unknown';
+  end if;
+  begin
+    v_headers := nullif(current_setting('request.headers', true), '')::json;
+  exception when others then
+    return 'unknown';
+  end;
+  v_hdr := v_pol->>'header';
+  v_hops := (v_pol->>'hops_from_right')::int;
+  v_val := v_headers->>v_hdr;
+  if v_val is null then return 'unknown'; end if;
+  select array_agg(btrim(x) order by ord) into v_parts from unnest(string_to_array(v_val, ',')) with ordinality as t(x, ord);
+  if v_parts is null or cardinality(v_parts) < v_hops then return 'unknown'; end if;
+  v_ip := nullif(v_parts[cardinality(v_parts) - v_hops + 1], '');
+  if v_ip is null or length(v_ip) > 64 then return 'unknown'; end if;
+  return encode(sha256(convert_to(p_salt || ':o:' || v_ip, 'UTF8')), 'hex');
+end;
+$$;
+
+-- Everything that must be decided before the real list opens; returns the missing keys.
+create function lv_private.waitlist_policy_missing() returns text[]
+language plpgsql stable security definer set search_path = ''
+as $$
+declare
+  v jsonb; m text[] := '{}';
+begin
+  select p.value into v from lv_private.policy p where p.key = 'waitlist.open';
+  if v is null or jsonb_typeof(v) <> 'boolean' then m := m || 'waitlist.open'::text; end if;
+  select p.value into v from lv_private.policy p where p.key = 'waitlist.consent_version';
+  if v is null or jsonb_typeof(v) <> 'string' or length(btrim(v #>> '{}')) not between 1 and 64 then m := m || 'waitlist.consent_version'::text; end if;
+  select p.value into v from lv_private.policy p where p.key = 'waitlist.retention';
+  if v is null or jsonb_typeof(v) <> 'object' or (v->>'days') !~ '^[1-9][0-9]{0,3}$' or (v->>'days')::int > 3650 then m := m || 'waitlist.retention'::text; end if;
+  select p.value into v from lv_private.policy p where p.key = 'waitlist.removal';
+  if v is null or jsonb_typeof(v) <> 'object' or jsonb_typeof(v->'channel') <> 'string' or length(btrim(v->>'channel')) not between 1 and 200 then m := m || 'waitlist.removal'::text; end if;
+  return m;
+end;
+$$;
+
 create function public.lv_waitlist_join(email text, intended_hub_name text default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
-  v_open jsonb; v_email text; v_name text; v_email_hash text; v_ip text; v_ip_hash text; v_salt text; v_headers json;
-  v_n_email int; v_n_ip int; v_oldest timestamptz;
+  v_open jsonb; v_missing text[]; v_email text; v_name text; v_email_hash text; v_origin text; v_salt text;
+  v_n_pair int; v_n_origin int; v_oldest timestamptz; v_days int; v_consent text;
 begin
   select p.value into v_open from lv_private.policy p where p.key = 'waitlist.open';
-  if v_open is null or jsonb_typeof(v_open) <> 'boolean' then
-    return lv_private.fail('lv_policy_undecided', 'The waitlist is not open yet.', jsonb_build_object('reason', 'policy_pending', 'missing', jsonb_build_array('waitlist.open')));
-  end if;
-  if not (v_open #>> '{}')::boolean then
+  -- A deliberately closed list answers closed without needing the other decisions.
+  if jsonb_typeof(v_open) = 'boolean' and not (v_open #>> '{}')::boolean then
     return lv_private.ok(jsonb_build_object('status', 'closed'));
+  end if;
+  v_missing := lv_private.waitlist_policy_missing();
+  if cardinality(v_missing) > 0 then
+    return lv_private.fail('lv_policy_undecided', 'The waitlist is not open yet.', jsonb_build_object('reason', 'policy_pending', 'missing', to_jsonb(v_missing)));
   end if;
 
   v_email := lower(btrim(email));
@@ -159,39 +231,69 @@ begin
     return lv_private.fail('lv_invalid_input', 'Check the Hub name.');
   end if;
 
-  -- Throttle on hashes (provisional limits: 5 per address per day, 30 per network address per hour).
+  -- Throttle (PROVISIONAL, unapproved): 5 attempts per address per day FROM THE SAME ORIGIN, and 30 per origin per hour.
+  -- Both count the caller's own attempts only, whether or not the address was already listed, so what a caller sees can
+  -- never depend on what anyone else submitted.
   select s.value into v_salt from lv_private.secrets s where s.key = 'waitlist_ip_salt';
   v_email_hash := encode(sha256(convert_to(v_salt || ':e:' || v_email, 'UTF8')), 'hex');
-  begin
-    v_headers := nullif(current_setting('request.headers', true), '')::json;
-  exception when others then
-    v_headers := null;
-  end;
-  v_ip := nullif(btrim(split_part(coalesce(v_headers->>'x-forwarded-for', ''), ',', 1)), '');
-  v_ip_hash := case when v_ip is null then null else encode(sha256(convert_to(v_salt || ':i:' || v_ip, 'UTF8')), 'hex') end;
+  v_origin := lv_private.waitlist_origin(v_salt);
 
-  perform pg_advisory_xact_lock(hashtextextended('lv_waitlist:' || v_email_hash, 0));
-  select count(*), min(a.at) into v_n_email, v_oldest from lv_private.waitlist_attempts a where a.email_hash = v_email_hash and a.at > now() - interval '1 day';
-  if v_n_email >= 5 then
+  perform pg_advisory_xact_lock(hashtextextended('lv_waitlist:' || v_origin, 0));
+  select count(*), min(a.at) into v_n_pair, v_oldest from lv_private.waitlist_attempts a
+  where a.email_hash = v_email_hash and a.origin_hash = v_origin and a.at > now() - interval '1 day';
+  if v_n_pair >= 5 then
     return lv_private.fail('lv_rate_limited', 'Too many attempts. Try again later.',
       jsonb_build_object('retry_after_seconds', greatest(60, ceil(extract(epoch from (v_oldest + interval '1 day' - now())))::int)));
   end if;
-  if v_ip_hash is not null then
-    select count(*), min(a.at) into v_n_ip, v_oldest from lv_private.waitlist_attempts a where a.ip_hash = v_ip_hash and a.at > now() - interval '1 hour';
-    if v_n_ip >= 30 then
-      return lv_private.fail('lv_rate_limited', 'Too many attempts. Try again later.',
-        jsonb_build_object('retry_after_seconds', greatest(60, ceil(extract(epoch from (v_oldest + interval '1 hour' - now())))::int)));
-    end if;
+  select count(*), min(a.at) into v_n_origin, v_oldest from lv_private.waitlist_attempts a where a.origin_hash = v_origin and a.at > now() - interval '1 hour';
+  if v_n_origin >= 30 then
+    return lv_private.fail('lv_rate_limited', 'Too many attempts. Try again later.',
+      jsonb_build_object('retry_after_seconds', greatest(60, ceil(extract(epoch from (v_oldest + interval '1 hour' - now())))::int)));
   end if;
-  insert into lv_private.waitlist_attempts (email_hash, ip_hash) values (v_email_hash, v_ip_hash);
+  insert into lv_private.waitlist_attempts (email_hash, origin_hash) values (v_email_hash, v_origin);
 
-  -- A repeat sign-up is silently idempotent and answers exactly like a new one: the response never reveals membership
-  -- of the list. (The contract's "duplicate" status is therefore never returned.)
-  insert into lv_private.waitlist (email_normalized, intended_hub_name) values (v_email, v_name)
+  select (p.value->>'days')::int into v_days from lv_private.policy p where p.key = 'waitlist.retention';
+  select p.value #>> '{}' into v_consent from lv_private.policy p where p.key = 'waitlist.consent_version';
+  -- A repeat sign-up is silently idempotent (first details kept) and answers exactly like a new one.
+  insert into lv_private.waitlist (email_normalized, intended_hub_name, consent_version, delete_after)
+  values (v_email, v_name, v_consent, now() + make_interval(days => v_days))
   on conflict (email_normalized) do nothing;
   return lv_private.ok(jsonb_build_object('status', 'queued'));
 end;
 $$;
+
+-- Operator functions (not exposed): retention and removal. Both are no-ops until a real list exists.
+create function lv_private.purge_expired_waitlist() returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  n_rows int; n_att int;
+begin
+  delete from lv_private.waitlist w where w.delete_after <= now();
+  get diagnostics n_rows = row_count;
+  delete from lv_private.waitlist_attempts a where a.at < now() - interval '7 days';
+  get diagnostics n_att = row_count;
+  return jsonb_build_object('waitlist_rows_deleted', n_rows, 'throttle_rows_deleted', n_att);
+end;
+$$;
+
+-- Removal request: deletes the entry and every throttle record for that address.
+create function lv_private.remove_waitlist_entry(p_email text) returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  v_email text := lower(btrim(p_email)); v_salt text; n_rows int; n_att int;
+begin
+  select s.value into v_salt from lv_private.secrets s where s.key = 'waitlist_ip_salt';
+  delete from lv_private.waitlist w where w.email_normalized = v_email;
+  get diagnostics n_rows = row_count;
+  delete from lv_private.waitlist_attempts a where a.email_hash = encode(sha256(convert_to(v_salt || ':e:' || v_email, 'UTF8')), 'hex');
+  get diagnostics n_att = row_count;
+  return jsonb_build_object('waitlist_rows_deleted', n_rows, 'throttle_rows_deleted', n_att);
+end;
+$$;
+
+revoke all on all functions in schema lv_private from public, anon, authenticated;
 
 create function public.lv_hub_settings_update(hub_id uuid, name text default null, visibility text default null, membership_mode text default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
