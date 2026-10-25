@@ -8,6 +8,14 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added beta self-service (migration `20261024000900_v2_beta_self_service.sql`, **not applied to production**, stacked on the identity-first migration): `lv_beta_apply`,
+  `lv_beta_my_application`, `lv_beta_applications_list`, `lv_beta_decide` and the real `lv_hub_create` (contract v0.9.0; `lv_beta_admit` is removed as superseded). A signed-in
+  person with a verified email applies; a platform reviewer approves (nobody can decide their own application; repeating a decision changes nothing); the approved applicant
+  creates their own Hub in ONE transaction that also makes them its accepted Owner, attaches the beta entitlement grant and consumes the approval. No developer edits a user row
+  and LionCafe uses the same path as any beta Hub. The 50-owner cap is enforced under a lock. Hub creation answers `lv_policy_undecided` until the founder decides `beta.terms`
+  (grant length and which limits "full access" means) and `slug.reserved`; none of that is invented. Students need no approval; the public waitlist is untouched. 999 database
+  checks, new suite `17_beta`, races 24-25 (cap of one against four creators; one approval used six times at once), rollback test for migration 9; five mutations are caught.
+  Provisional register P-47 to P-49.
 - Added the identity-first corrective migration (`20261024000800_v2_identity_first.sql`, **not applied to production**, stacked on the legacy bridge). A person is a
   central identity `(issuer, subject)` taken from a verified token: issuers must be on the allow-list policy `identity.trusted_issuers` (shipped UNSET, so nobody
   is signed in until it is decided), the subject must be a UUID, there is one account per identity, and accounts are never linked by email or name. Signing in

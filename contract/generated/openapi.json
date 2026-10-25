@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "LunchVoice API",
-    "version": "0.8.0",
+    "version": "0.9.0",
     "description": "Machine-readable contract for LunchVoice. v2 operations are Postgres functions behind PostgREST RPC returning a 200 envelope; legacy operations are the live v1 surface. Per-operation x-status says whether it exists: implemented (production), implemented-nonprod, proposed, blocked-decision. A null limit means undecided, never unlimited."
   },
   "servers": [
@@ -78,7 +78,8 @@
         "x-provisional": [
           "P-06",
           "P-10",
-          "P-40"
+          "P-40",
+          "P-49"
         ],
         "security": [
           {
@@ -1157,12 +1158,12 @@
     "/rest/v1/rpc/lv_hub_create": {
       "post": {
         "operationId": "lv_hub_create",
-        "summary": "Create a Hub for the caller (public creator onboarding).",
+        "summary": "Self-service Hub creation for an APPROVED beta applicant. One transaction creates the Hub (own slug and name), the Owner's accepted membership, the Owner designation and the beta grant, and consumes the approval; all or nothing.",
         "tags": [
           "hubs"
         ],
         "x-module": "hubs",
-        "x-status": "blocked-decision",
+        "x-status": "implemented-nonprod",
         "x-milestone": "M2",
         "x-flows": [
           "F-26"
@@ -1174,18 +1175,22 @@
           "D-09"
         ],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-47"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
+        "description": "Fails closed with lv_policy_undecided (details.missing) until beta.terms (the grant length and which plan limits full access means) and slug.reserved are decided. The 50-owner cap is confirmed and counted under a lock. No Owner is ever assigned by a developer: the caller becomes Owner by creating the Hub.",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
+          "lv_forbidden",
           "lv_conflict",
-          "lv_entitlement_missing",
+          "lv_slug_unavailable",
           "lv_quota_exceeded",
           "lv_policy_undecided",
           "lv_invalid_input"
@@ -1204,7 +1209,7 @@
                           "const": true
                         },
                         "data": {
-                          "$ref": "#/components/schemas/HubSettings"
+                          "$ref": "#/components/schemas/HubCreateResult"
                         },
                         "request_id": {
                           "$ref": "#/components/schemas/RequestId"
@@ -5027,38 +5032,37 @@
         }
       }
     },
-    "/rest/v1/rpc/lv_beta_admit": {
+    "/rest/v1/rpc/lv_beta_apply": {
       "post": {
-        "operationId": "lv_beta_admit",
-        "summary": "Admit a waitlisted owner under an atomic cap (at most 50 beta Hub owners).",
+        "operationId": "lv_beta_apply",
+        "summary": "Apply to run a beta Hub. Needs a signed-in person with a verified email; one open application per person; repeating returns the open one.",
         "tags": [
           "growth"
         ],
         "x-module": "growth",
-        "x-status": "blocked-decision",
-        "x-milestone": "M2",
+        "x-status": "implemented-nonprod",
+        "x-milestone": "M1",
         "x-flows": [
-          "F-26",
-          "F-45"
+          "F-26"
         ],
         "x-capabilities": [],
-        "x-decisions": [
-          "D-07"
+        "x-decisions": [],
+        "x-auth": "user",
+        "x-provisional": [
+          "P-49"
         ],
-        "x-auth": "service",
-        "x-provisional": [],
         "security": [
           {
             "apikey": [],
-            "serviceRole": []
+            "userJwt": []
           }
         ],
+        "description": "Distinct from the public waitlist: nothing here reads or writes it. The contact email is taken from the verified token and is shown only to platform reviewers.",
         "x-idempotent": false,
         "x-errors": [
-          "lv_forbidden",
-          "lv_not_found",
-          "lv_quota_exceeded",
-          "lv_policy_undecided"
+          "lv_unauthenticated",
+          "lv_email_unverified",
+          "lv_invalid_input"
         ],
         "responses": {
           "200": {
@@ -5074,7 +5078,7 @@
                           "const": true
                         },
                         "data": {
-                          "$ref": "#/components/schemas/BetaAdmitResult"
+                          "$ref": "#/components/schemas/BetaApplication"
                         },
                         "request_id": {
                           "$ref": "#/components/schemas/RequestId"
@@ -5111,7 +5115,272 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BetaAdmitRequest"
+                "$ref": "#/components/schemas/BetaApplyRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rest/v1/rpc/lv_beta_my_application": {
+      "post": {
+        "operationId": "lv_beta_my_application",
+        "summary": "The caller's latest beta application, or null.",
+        "tags": [
+          "growth"
+        ],
+        "x-module": "growth",
+        "x-status": "implemented-nonprod",
+        "x-milestone": "M1",
+        "x-flows": [
+          "F-26"
+        ],
+        "x-capabilities": [],
+        "x-decisions": [],
+        "x-auth": "user",
+        "x-provisional": [],
+        "security": [
+          {
+            "apikey": [],
+            "userJwt": []
+          }
+        ],
+        "x-idempotent": false,
+        "x-errors": [
+          "lv_unauthenticated"
+        ],
+        "responses": {
+          "200": {
+            "description": "Envelope: success, or a failure with a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "const": true
+                        },
+                        "data": {
+                          "$ref": "#/components/schemas/BetaMyApplication"
+                        },
+                        "request_id": {
+                          "$ref": "#/components/schemas/RequestId"
+                        }
+                      },
+                      "required": [
+                        "ok",
+                        "data",
+                        "request_id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "$ref": "#/components/schemas/LvFail"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Transport or gateway error (PostgREST).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostgrestError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Empty"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rest/v1/rpc/lv_beta_applications_list": {
+      "post": {
+        "operationId": "lv_beta_applications_list",
+        "summary": "Platform reviewers only: applications with contact details, optionally filtered by status.",
+        "tags": [
+          "growth"
+        ],
+        "x-module": "growth",
+        "x-status": "implemented-nonprod",
+        "x-milestone": "M1",
+        "x-flows": [
+          "F-45"
+        ],
+        "x-capabilities": [],
+        "x-decisions": [],
+        "x-auth": "user",
+        "x-provisional": [
+          "P-48"
+        ],
+        "security": [
+          {
+            "apikey": [],
+            "userJwt": []
+          }
+        ],
+        "x-idempotent": false,
+        "x-errors": [
+          "lv_unauthenticated",
+          "lv_forbidden",
+          "lv_invalid_input"
+        ],
+        "responses": {
+          "200": {
+            "description": "Envelope: success, or a failure with a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "const": true
+                        },
+                        "data": {
+                          "$ref": "#/components/schemas/BetaApplicationsList"
+                        },
+                        "request_id": {
+                          "$ref": "#/components/schemas/RequestId"
+                        }
+                      },
+                      "required": [
+                        "ok",
+                        "data",
+                        "request_id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "$ref": "#/components/schemas/LvFail"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Transport or gateway error (PostgREST).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostgrestError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BetaApplicationsListRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rest/v1/rpc/lv_beta_decide": {
+      "post": {
+        "operationId": "lv_beta_decide",
+        "summary": "Platform reviewers only: approve or reject a submitted application, or revoke an approval that has not yet produced a Hub. Nobody can decide their own application; repeating a decision changes nothing.",
+        "tags": [
+          "growth"
+        ],
+        "x-module": "growth",
+        "x-status": "implemented-nonprod",
+        "x-milestone": "M1",
+        "x-flows": [
+          "F-45"
+        ],
+        "x-capabilities": [],
+        "x-decisions": [],
+        "x-auth": "user",
+        "x-provisional": [
+          "P-48"
+        ],
+        "security": [
+          {
+            "apikey": [],
+            "userJwt": []
+          }
+        ],
+        "x-idempotent": false,
+        "x-errors": [
+          "lv_unauthenticated",
+          "lv_forbidden",
+          "lv_not_found",
+          "lv_conflict",
+          "lv_invalid_input"
+        ],
+        "responses": {
+          "200": {
+            "description": "Envelope: success, or a failure with a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "const": true
+                        },
+                        "data": {
+                          "$ref": "#/components/schemas/BetaApplicationAdmin"
+                        },
+                        "request_id": {
+                          "$ref": "#/components/schemas/RequestId"
+                        }
+                      },
+                      "required": [
+                        "ok",
+                        "data",
+                        "request_id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "$ref": "#/components/schemas/LvFail"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Transport or gateway error (PostgREST).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostgrestError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BetaDecideRequest"
               }
             }
           }
@@ -6427,7 +6696,9 @@
           "lv_conflict",
           "lv_policy_undecided",
           "lv_rate_limited",
-          "lv_invalid_input"
+          "lv_invalid_input",
+          "lv_email_unverified",
+          "lv_slug_unavailable"
         ]
       },
       "Error": {
@@ -8629,44 +8900,6 @@
           "status"
         ]
       },
-      "BetaAdmitRequest": {
-        "type": "object",
-        "properties": {
-          "waitlist_id": {
-            "$ref": "#/components/schemas/Uuid"
-          }
-        },
-        "additionalProperties": false,
-        "required": [
-          "waitlist_id"
-        ]
-      },
-      "BetaAdmitResult": {
-        "type": "object",
-        "properties": {
-          "admitted": {
-            "type": "boolean"
-          },
-          "owners_admitted": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "cap": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "minimum": 1,
-            "description": "Confirmed founder requirement: at most 50 beta Hub owners."
-          }
-        },
-        "additionalProperties": false,
-        "required": [
-          "admitted",
-          "owners_admitted",
-          "cap"
-        ]
-      },
       "DiscoveryApplyRequest": {
         "type": "object",
         "properties": {
@@ -8757,6 +8990,258 @@
           "hub_id",
           "pages",
           "slots"
+        ]
+      },
+      "BetaApplyRequest": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional free text about the Hub they plan to run."
+          }
+        },
+        "additionalProperties": false
+      },
+      "BetaApplication": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "submitted",
+              "approved",
+              "rejected",
+              "revoked"
+            ]
+          },
+          "submitted_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "decided_at": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hub_id": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decision_note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "already_open": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "status",
+          "submitted_at",
+          "decided_at",
+          "hub_id",
+          "decision_note"
+        ]
+      },
+      "BetaMyApplication": {
+        "type": "object",
+        "properties": {
+          "application": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BetaApplication"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "application"
+        ]
+      },
+      "BetaApplicationAdmin": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "submitted",
+              "approved",
+              "rejected",
+              "revoked"
+            ]
+          },
+          "submitted_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "decided_at": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hub_id": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decision_note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "account_id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "contact_email": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "changed": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "status",
+          "submitted_at",
+          "decided_at",
+          "hub_id",
+          "decision_note",
+          "account_id",
+          "display_name",
+          "contact_email",
+          "note"
+        ]
+      },
+      "BetaApplicationsListRequest": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "submitted",
+              "approved",
+              "rejected",
+              "revoked"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "BetaApplicationsList": {
+        "type": "object",
+        "properties": {
+          "applications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BetaApplicationAdmin"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "applications"
+        ]
+      },
+      "BetaDecideRequest": {
+        "type": "object",
+        "properties": {
+          "application_id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "reject",
+              "revoke"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "application_id",
+          "decision"
+        ]
+      },
+      "HubCreateResult": {
+        "type": "object",
+        "properties": {
+          "hub_id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "slug": {
+            "$ref": "#/components/schemas/Slug"
+          },
+          "name": {
+            "type": "string"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/HubVisibility"
+          },
+          "membership_mode": {
+            "$ref": "#/components/schemas/MembershipMode"
+          },
+          "entitlements": {
+            "$ref": "#/components/schemas/Entitlements"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "hub_id",
+          "slug",
+          "name",
+          "visibility",
+          "membership_mode",
+          "entitlements"
         ]
       },
       "HubCreateRequest": {
@@ -9660,8 +10145,9 @@
     "F-26": {
       "name": "Hub creation onboarding",
       "operations": [
+        "lv_beta_apply",
+        "lv_beta_my_application",
         "lv_hub_create",
-        "lv_beta_admit",
         "lv_entitlements",
         "lv_slug_claim"
       ]
@@ -9811,9 +10297,10 @@
       ]
     },
     "F-45": {
-      "name": "Beta invitation",
+      "name": "Beta review and approval",
       "operations": [
-        "lv_beta_admit"
+        "lv_beta_applications_list",
+        "lv_beta_decide"
       ]
     },
     "F-46": {
@@ -10363,6 +10850,40 @@
       ],
       "operations": [],
       "summary": "Legacy transition: legacy RPCs, login and surveys keep running untouched. The bridge is repeatable and per-session atomic; responses and answers that arrive later are picked up by the next sync; reconciliation reports drift (for example a mapped session live again). Rolling the bridge back deletes only the derived archive; every legacy row and every native v2 Campaign is unaffected. Nothing schedules the sync."
+    },
+    {
+      "id": "P-47",
+      "decisions": [
+        "D-06",
+        "D-07",
+        "D-09"
+      ],
+      "operations": [
+        "lv_hub_create"
+      ],
+      "summary": "Hub creation (lv_hub_create) fails closed with lv_policy_undecided until two founder decisions exist: beta.terms (the grant length in months, which is confirmed as three, and which plan's limits 'full access' means) and slug.reserved (the reserved-address list). The 50-owner cap is confirmed and enforced under a lock. The beta grant starts at Hub creation, which is the recommended default and is NOT founder-approved."
+    },
+    {
+      "id": "P-48",
+      "decisions": [
+        "D-01"
+      ],
+      "operations": [
+        "lv_beta_decide",
+        "lv_beta_applications_list"
+      ],
+      "summary": "Platform reviewers (who may decide beta applications) are rows in this database's platform_admins table, granted only by audited operator functions. Whether that authority should instead come from a claim issued by the central KpnIdentity platform is undecided; until then there must be exactly one source, and this table is it. Nobody can decide their own application."
+    },
+    {
+      "id": "P-49",
+      "decisions": [
+        "D-01"
+      ],
+      "operations": [
+        "lv_my_context",
+        "lv_beta_apply"
+      ],
+      "summary": "A person is the pair (issuer, subject) from a verified token. The issuer allow-list (identity.trusted_issuers) ships unset, the subject must be a UUID, and email/name claims are display and verification inputs only. The real KpnIdentity issuer, subject format and claim names are unverified assumptions; an email must be marked verified by the token before a beta application is accepted."
     }
   ]
 }

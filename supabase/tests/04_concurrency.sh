@@ -382,3 +382,26 @@ wait
 check "central first sign-in race: exactly one account and one identity" "select (select count(*) from lv_private.account_identities where issuer = 'https://auth.test.invalid' and subject = '$CS') = 1 and (select count(*) from lv_private.accounts where id = '$CS') = 1"
 check "central first sign-in race: every caller saw the same account id" "select $(cat "$OUT"/id.* | sort -u | grep -c .) = 1"
 check "central first sign-in race: signing in created no membership" "select (select count(*) from lv_private.hub_memberships where account_id = '$CS') = 0"
+
+
+echo "-- races 24-25: simultaneous Hub creations (cap of one; one approval used six times at once)"
+P -c "update lv_private.policy set value = '{\"months\": 3, \"plan_equivalent\": \"team\"}'::jsonb where key = 'beta.terms'" -c "update lv_private.policy set value = '[]'::jsonb where key = 'slug.reserved'" -c "update lv_private.policy set value = '1'::jsonb where key = 'beta.cap'" >/dev/null
+for n in 1 2 3 4; do
+  A="00000000-0000-4000-8900-0000000001b$n"
+  P -c "insert into lv_private.accounts (id, display_name) values ('$A', 'Race $n') on conflict do nothing" -c "insert into lv_private.account_identities (account_id, issuer, subject, provider) values ('$A', 'https://auth.test.invalid', '$A', 'central') on conflict do nothing" -c "insert into lv_private.beta_applications (account_id, status, contact_email, decided_at, decided_by) values ('$A', 'approved', 'race$n@example.invalid', now(), '00000000-0000-4000-8900-0000000000aa')" >/dev/null
+done
+for n in 1 2 3 4; do
+  A="00000000-0000-4000-8900-0000000001b$n"
+  P -c "set role authenticated" -c "set request.jwt.claim.sub = '$A'" -c "set request.jwt.claims = '{\"sub\":\"$A\",\"iss\":\"https://auth.test.invalid\"}'" -c "select public.lv_hub_create('Race Hub $n', 'race-hub-$n')" >"$OUT/hc.$n" 2>&1 &
+done
+wait
+check "cap race: with a cap of one, exactly one of four simultaneous creations produced a Hub" "select (select count(*) from lv_private.beta_applications where hub_id is not null and account_id::text like '00000000-0000-4000-8900-0000000001b%') = 1 and (select count(*) from lv_private.hubs where slug like 'race-hub-%') = 1"
+check "cap race: one beta grant exists for that Hub and the Hub has exactly one accepted member who is its Owner" "select (select count(*) from lv_private.entitlement_grants g join lv_private.hubs h on h.id = g.hub_id where h.slug like 'race-hub-%' and g.source = 'beta') = 1 and (select count(*) from lv_private.hub_memberships m join lv_private.hubs h on h.id = m.hub_id where h.slug like 'race-hub-%' and m.status = 'accepted' and h.owner_account_id = m.account_id) = 1"
+
+P -c "update lv_private.policy set value = '50'::jsonb where key = 'beta.cap'" -c "delete from lv_private.entitlement_grants where hub_id in (select id from lv_private.hubs where slug like 'race-hub-%')" -c "update lv_private.beta_applications set hub_id = null where hub_id is not null and account_id::text like '00000000-0000-4000-8900-0000000001b%'" -c "set session_replication_role = replica" -c "delete from lv_private.hub_memberships where hub_id in (select id from lv_private.hubs where slug like 'race-hub-%')" -c "delete from lv_private.hubs where slug like 'race-hub-%'" >/dev/null
+A="00000000-0000-4000-8900-0000000001b1"
+for k in 1 2 3 4 5 6; do
+  P -c "set role authenticated" -c "set request.jwt.claim.sub = '$A'" -c "set request.jwt.claims = '{\"sub\":\"$A\",\"iss\":\"https://auth.test.invalid\"}'" -c "select public.lv_hub_create('Same Person $k', 'same-person-$k')" >"$OUT/hs.$k" 2>&1 &
+done
+wait
+check "double-use race: one approval used by six simultaneous calls creates exactly one Hub, one grant, one membership" "select (select count(*) from lv_private.hubs where slug like 'same-person-%') = 1 and (select count(*) from lv_private.entitlement_grants g join lv_private.hubs h on h.id = g.hub_id where h.slug like 'same-person-%') = 1 and (select count(*) from lv_private.hub_memberships m join lv_private.hubs h on h.id = m.hub_id where h.slug like 'same-person-%') = 1"

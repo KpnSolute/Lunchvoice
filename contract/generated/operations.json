@@ -198,7 +198,7 @@
     "id": "lv_hub_create",
     "kind": "rpc-v2",
     "module": "hubs",
-    "status": "blocked-decision",
+    "status": "implemented-nonprod",
     "milestone": "M2",
     "path": "/rest/v1/rpc/lv_hub_create",
     "auth": "user",
@@ -912,21 +912,60 @@
     ]
   },
   {
-    "id": "lv_beta_admit",
+    "id": "lv_beta_apply",
     "kind": "rpc-v2",
     "module": "growth",
-    "status": "blocked-decision",
-    "milestone": "M2",
-    "path": "/rest/v1/rpc/lv_beta_admit",
-    "auth": "service",
+    "status": "implemented-nonprod",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_beta_apply",
+    "auth": "user",
     "flows": [
-      "F-26",
+      "F-26"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "lv_beta_my_application",
+    "kind": "rpc-v2",
+    "module": "growth",
+    "status": "implemented-nonprod",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_beta_my_application",
+    "auth": "user",
+    "flows": [
+      "F-26"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "lv_beta_applications_list",
+    "kind": "rpc-v2",
+    "module": "growth",
+    "status": "implemented-nonprod",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_beta_applications_list",
+    "auth": "user",
+    "flows": [
       "F-45"
     ],
     "capabilities": [],
-    "decisions": [
-      "D-07"
-    ]
+    "decisions": []
+  },
+  {
+    "id": "lv_beta_decide",
+    "kind": "rpc-v2",
+    "module": "growth",
+    "status": "implemented-nonprod",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_beta_decide",
+    "auth": "user",
+    "flows": [
+      "F-45"
+    ],
+    "capabilities": [],
+    "decisions": []
   },
   {
     "id": "lv_discovery_list",

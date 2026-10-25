@@ -1,5 +1,5 @@
 {
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Request/response pairs for mock adapters and contract tests. Synthetic data only.",
   "examples": [
     {

@@ -285,4 +285,22 @@ export const PROVISIONAL = [
     summary: "Legacy transition: legacy RPCs, login and surveys keep running untouched. The bridge is repeatable and per-session atomic; responses and answers that arrive later are picked up by the next sync; reconciliation reports drift (for example a mapped session live again). Rolling the bridge back deletes only the derived archive; every legacy row and every native v2 Campaign is unaffected. Nothing schedules the sync.",
     ops: [],
   },
+  {
+    id: "P-47",
+    decisions: ["D-06", "D-07", "D-09"],
+    summary: "Hub creation (lv_hub_create) fails closed with lv_policy_undecided until two founder decisions exist: beta.terms (the grant length in months, which is confirmed as three, and which plan's limits 'full access' means) and slug.reserved (the reserved-address list). The 50-owner cap is confirmed and enforced under a lock. The beta grant starts at Hub creation, which is the recommended default and is NOT founder-approved.",
+    ops: ["lv_hub_create"],
+  },
+  {
+    id: "P-48",
+    decisions: ["D-01"],
+    summary: "Platform reviewers (who may decide beta applications) are rows in this database's platform_admins table, granted only by audited operator functions. Whether that authority should instead come from a claim issued by the central KpnIdentity platform is undecided; until then there must be exactly one source, and this table is it. Nobody can decide their own application.",
+    ops: ["lv_beta_decide", "lv_beta_applications_list"],
+  },
+  {
+    id: "P-49",
+    decisions: ["D-01"],
+    summary: "A person is the pair (issuer, subject) from a verified token. The issuer allow-list (identity.trusted_issuers) ships unset, the subject must be a UUID, and email/name claims are display and verification inputs only. The real KpnIdentity issuer, subject format and claim names are unverified assumptions; an email must be marked verified by the token before a beta application is accepted.",
+    ops: ["lv_my_context", "lv_beta_apply"],
+  },
 ];

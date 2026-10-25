@@ -11,7 +11,7 @@ export type RequestId = string;
 
 export type Slug = string;
 
-export type ErrorCode = "lv_unauthenticated" | "lv_forbidden" | "lv_not_member" | "lv_not_found" | "lv_hub_mismatch" | "lv_quota_exceeded" | "lv_gate_unmet" | "lv_entitlement_missing" | "lv_lifecycle_invalid" | "lv_conflict" | "lv_policy_undecided" | "lv_rate_limited" | "lv_invalid_input";
+export type ErrorCode = "lv_unauthenticated" | "lv_forbidden" | "lv_not_member" | "lv_not_found" | "lv_hub_mismatch" | "lv_quota_exceeded" | "lv_gate_unmet" | "lv_entitlement_missing" | "lv_lifecycle_invalid" | "lv_conflict" | "lv_policy_undecided" | "lv_rate_limited" | "lv_invalid_input" | "lv_email_unverified" | "lv_slug_unavailable";
 
 export type Error = {
   code: ErrorCode;
@@ -549,16 +549,6 @@ export type WaitlistJoinResult = {
   status: "queued" | "duplicate" | "closed";
 };
 
-export type BetaAdmitRequest = {
-  waitlist_id: Uuid;
-};
-
-export type BetaAdmitResult = {
-  admitted: boolean;
-  owners_admitted: number;
-  cap: number | null;
-};
-
 export type DiscoveryApplyRequest = {
   hub_id: Uuid;
 };
@@ -583,6 +573,61 @@ export type PageList = {
   hub_id: Uuid;
   pages: Page[];
   slots: Slots;
+};
+
+export type BetaApplyRequest = {
+  note?: string;
+};
+
+export type BetaApplication = {
+  id: Uuid;
+  status: "submitted" | "approved" | "rejected" | "revoked";
+  submitted_at: Timestamp;
+  decided_at: Timestamp | null;
+  hub_id: Uuid | null;
+  decision_note: string | null;
+  already_open?: boolean;
+};
+
+export type BetaMyApplication = {
+  application: BetaApplication | null;
+};
+
+export type BetaApplicationAdmin = {
+  id: Uuid;
+  status: "submitted" | "approved" | "rejected" | "revoked";
+  submitted_at: Timestamp;
+  decided_at: Timestamp | null;
+  hub_id: Uuid | null;
+  decision_note: string | null;
+  account_id: Uuid;
+  display_name: string;
+  contact_email: string;
+  note: string | null;
+  changed?: boolean;
+};
+
+export type BetaApplicationsListRequest = {
+  status?: "submitted" | "approved" | "rejected" | "revoked";
+};
+
+export type BetaApplicationsList = {
+  applications: BetaApplicationAdmin[];
+};
+
+export type BetaDecideRequest = {
+  application_id: Uuid;
+  decision: "approve" | "reject" | "revoke";
+  note?: string;
+};
+
+export type HubCreateResult = {
+  hub_id: Uuid;
+  slug: Slug;
+  name: string;
+  visibility: HubVisibility;
+  membership_mode: MembershipMode;
+  entitlements: Entitlements;
 };
 
 export type HubCreateRequest = {
@@ -805,7 +850,7 @@ export interface OperationMap {
   lv_members_list: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_members_list"; request: HubRef; result: LvResult<MemberList> };
   lv_hub_settings_update: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_hub_settings_update"; request: HubSettingsUpdate; result: LvResult<HubSettings> };
   lv_hub_delete: { kind: "rpc-v2"; status: "blocked-decision"; milestone: "M2"; path: "/rest/v1/rpc/lv_hub_delete"; request: HubDeleteRequest; result: LvResult<BoolResult> };
-  lv_hub_create: { kind: "rpc-v2"; status: "blocked-decision"; milestone: "M2"; path: "/rest/v1/rpc/lv_hub_create"; request: HubCreateRequest; result: LvResult<HubSettings> };
+  lv_hub_create: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M2"; path: "/rest/v1/rpc/lv_hub_create"; request: HubCreateRequest; result: LvResult<HubCreateResult> };
   lv_capability_catalog: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_capability_catalog"; request: undefined; result: LvResult<CapabilityCatalog> };
   lv_role_list: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_role_list"; request: HubRef; result: LvResult<RoleList> };
   lv_role_create: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_role_create"; request: RoleCreateRequest; result: LvResult<Role> };
@@ -846,7 +891,10 @@ export interface OperationMap {
   lv_comment_create: { kind: "rpc-v2"; status: "proposed"; milestone: "M2"; path: "/rest/v1/rpc/lv_comment_create"; request: CommentCreateRequest; result: LvResult<Comment> };
   lv_comment_moderate: { kind: "rpc-v2"; status: "proposed"; milestone: "M2"; path: "/rest/v1/rpc/lv_comment_moderate"; request: CommentModerateRequest; result: LvResult<Comment> };
   lv_waitlist_join: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_waitlist_join"; request: WaitlistJoinRequest; result: LvResult<WaitlistJoinResult> };
-  lv_beta_admit: { kind: "rpc-v2"; status: "blocked-decision"; milestone: "M2"; path: "/rest/v1/rpc/lv_beta_admit"; request: BetaAdmitRequest; result: LvResult<BetaAdmitResult> };
+  lv_beta_apply: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_beta_apply"; request: BetaApplyRequest; result: LvResult<BetaApplication> };
+  lv_beta_my_application: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_beta_my_application"; request: Empty; result: LvResult<BetaMyApplication> };
+  lv_beta_applications_list: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_beta_applications_list"; request: BetaApplicationsListRequest; result: LvResult<BetaApplicationsList> };
+  lv_beta_decide: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_beta_decide"; request: BetaDecideRequest; result: LvResult<BetaApplicationAdmin> };
   lv_discovery_list: { kind: "rpc-v2"; status: "proposed"; milestone: "M2"; path: "/rest/v1/rpc/lv_discovery_list"; request: DiscoveryListRequest; result: LvResult<DiscoveryList> };
   lv_discovery_apply: { kind: "rpc-v2"; status: "proposed"; milestone: "M2"; path: "/rest/v1/rpc/lv_discovery_apply"; request: DiscoveryApplyRequest; result: LvResult<DiscoveryApplyResult> };
   lv_checkout_create: { kind: "rpc-v2"; status: "blocked-decision"; milestone: "M2"; path: "/rest/v1/rpc/lv_checkout_create"; request: CheckoutRequest; result: LvResult<CheckoutResult> };

@@ -59,6 +59,8 @@ export const ERROR_CODES = [
   "lv_policy_undecided",
   "lv_rate_limited",
   "lv_invalid_input",
+  "lv_email_unverified",
+  "lv_slug_unavailable",
 ];
 
 export const OP_STATUSES = [
