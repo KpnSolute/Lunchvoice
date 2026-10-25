@@ -341,3 +341,32 @@ done
 wait
 check "ten simultaneous attempts from ONE origin for one address: the limit holds exactly (5 accepted)" "select $(cat "$OUT"/wh.* | grep -c '^queued$') = 5 and $(cat "$OUT"/wh.* | grep -c '^lv_rate_limited$') = 5"
 check "...and still only one stored entry for it" "select (select count(*) from lv_private.waitlist where email_normalized = 'hammer@example.invalid') = 1"
+
+
+echo "-- race 22: four sync runs at once WHILE legacy students keep submitting to the sessions being mapped"
+TPL=$(P -c "with t as (insert into public.survey_templates (title, org_id) values ('Race template', '$A') returning id), q as (insert into public.survey_questions (template_id, position, type, prompt, required, org_id) select id, 1, 'rating', 'How was it?', true, '$A' from t) select id from t")
+QL=$(P -c "select id from public.survey_questions where template_id = '$TPL'")
+SIDS=""
+for k in 1 2 3 4; do
+  SID=$(P -c "insert into public.sessions (title, join_code, points_reward, is_active, opens_at, closes_at, template_id, created_at, org_id) values ('Race session $k', 'RC${k}XYZ', 40, false, now() - interval '30 days', now() - interval '20 days', '$TPL', now() - interval '31 days', '$A') returning id")
+  SIDS="$SIDS $SID"
+  for stu in 3 4; do
+    RID=$(P -c "insert into public.responses (session_id, student_id, points_awarded, submitted_at, org_id) values ('$SID', '$(U $stu)', 40, now() - interval '25 days', '$A') returning id")
+    P -c "insert into public.survey_answers (response_id, question_id, value, org_id) values ('$RID', '$QL', '4', '$A')" >/dev/null
+  done
+done
+for i in 1 2 3 4; do
+  P -c "select (lv_private.legacy_sync_org('$A')->>'errors')" >"$OUT/lsync.$i" 2>&1 &
+done
+for SID in $SIDS; do
+  for stu in 5 6; do
+    ( RID=$(P -c "insert into public.responses (session_id, student_id, points_awarded, submitted_at, org_id) values ('$SID', '$(U $stu)', 40, now() - interval '24 days', '$A') returning id")
+      P -c "insert into public.survey_answers (response_id, question_id, value, org_id) values ('$RID', '$QL', '5', '$A')" >/dev/null ) &
+  done
+done
+wait
+P -c "select lv_private.legacy_sync_org('$A')" >/dev/null
+check "concurrent syncs: no run reported an error" "select $(cat "$OUT"/lsync.* | grep -c '^0$') = 4"
+check "concurrent syncs: each of the four sessions became exactly one archived Campaign" "select (select count(*) from lv_private.campaigns where legacy_historical and title like 'Race session %') = 4 and (select count(distinct legacy_session_id) from lv_private.campaigns where legacy_historical and title like 'Race session %') = 4"
+check "concurrent legacy writes: all 16 responses are mapped exactly once after one more sync" "select (select count(*) from lv_private.legacy_response_map m join public.responses r on r.id = m.response_id join public.sessions s on s.id = r.session_id where s.title like 'Race session %') = 16 and (select count(*) from lv_private.campaign_participation p join lv_private.campaigns c on c.id = p.campaign_id where c.title like 'Race session %') = 16"
+check "reconciliation after the race has no unexplained gap in responses, answers or points" "select (lv_private.legacy_reconcile('$A')->'responses'->>'not_yet_mapped_and_unexplained')::int = 0 and (lv_private.legacy_reconcile('$A')->'answers'->>'unexplained_gap')::int = 0 and (lv_private.legacy_reconcile('$A')->'points'->>'difference')::int = 0"

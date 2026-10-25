@@ -1,5 +1,5 @@
 {
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Privacy-safe aggregates. The applied example uses a TEST-ONLY cohort value; the real threshold is undecided (D-10).",
   "items": [
     {

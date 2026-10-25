@@ -14,7 +14,7 @@ import { generateTypes } from "./to-typescript.mjs";
 import { PROVISIONAL } from "./provisional.mjs";
 import { checkDocument, validate } from "../validate.mjs";
 
-export const CONTRACT_VERSION = "0.7.0";
+export const CONTRACT_VERSION = "0.8.0";
 
 export const operations = [
   ...identityOps, ...hubOps, ...roleOps, ...entitlementOps, ...campaignOps, ...participationOps, ...analyticsOps, ...laterOps, ...legacyOps,

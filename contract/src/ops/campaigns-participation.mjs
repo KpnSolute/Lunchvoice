@@ -27,7 +27,7 @@ export const campaignOps = [
     request: "CampaignListRequest",
     data: "CampaignList",
     errors: ["lv_unauthenticated", "lv_forbidden", "lv_not_found", "lv_invalid_input"],
-    note: "Visible to anyone holding community.campaign.draft, .activate or .close. A Campaign past its closing time is listed as expired even before the expiry job persists it.",
+    note: "Visible to anyone holding community.campaign.draft, .activate or .close. A Campaign past its closing time is listed as expired even before the expiry job persists it. Archived legacy sessions appear here as closed Campaigns with legacy_historical = true and legacy_session_id set; filter or label them in the UI (they are history, not Winter Survey work).",
     auth: "user",
     capabilities: ["community.campaign.draft"],
   }),
@@ -112,7 +112,7 @@ export const campaignOps = [
     capabilities: ["community.campaign.activate"],
     decisions: ["D-04", "D-06", "D-08", "D-12"],
     idempotent: true,
-    note: "One atomic path under a Hub-level lock for manual activation, reopening a closed Campaign and scheduled activation: permission, lifecycle, entitlement, quota, gate, in that order. A retry with the same idempotency_key (same actor) returns the first result with replay=true and never restarts a clock; another actor with that key gets lv_conflict; a NEW key on an already active Campaign is lv_lifecycle_invalid (reason already_active). Failures carry details: quota {limit_name, limit, used}; gate {numerator, denominator, plan}; policy {reason, missing}; lifecycle {reason, state}. Responses are never touched by closing, expiry or reopening.",
+    note: "One atomic path under a Hub-level lock for manual activation, reopening a closed Campaign and scheduled activation: permission, lifecycle, entitlement, quota, gate, in that order. A retry with the same idempotency_key (same actor) returns the first result with replay=true and never restarts a clock; another actor with that key gets lv_conflict; a NEW key on an already active Campaign is lv_lifecycle_invalid (reason already_active). Failures carry details: quota {limit_name, limit, used}; gate {numerator, denominator, plan}; policy {reason, missing}; lifecycle {reason, state}. Responses are never touched by closing, expiry or reopening. An archived record of a legacy session (legacy_historical) is never activatable: lv_lifecycle_invalid with details.reason = legacy_historical (P-42).",
   }),
   v2({
     id: "lv_campaign_activation_status",
@@ -221,7 +221,7 @@ export const analyticsOps = [
     auth: "user",
     capabilities: ["community.analytics.view"],
     decisions: ["D-10", "D-12"],
-    note: "Anonymous Campaigns (and any Campaign with guest responses) return lv_policy_undecided with details.missing until THREE policy values are set: analytics.min_cohort, analytics.min_participants and analytics.disclosure_controls; a threshold alone does not settle D-10. Even then they are served only after the Campaign has finished (reason live_anonymous_results_restricted) and only for one population size: the first release freezes the participant counts and later changes make the results unavailable (reason population_changed_after_release), which blocks differencing between releases (P-28 to P-30). Query shapes are deliberately restricted: no filters, cross-tabulations, time slices or free text; text and ranking questions return lv_policy_undecided. Draft and scheduled Campaigns are lv_lifecycle_invalid. Identified (non-anonymous) Campaigns without guests need no privacy policy and may be read live (policy.status not_required). A cell with 0 < n < min_cohort is suppressed; suppressed or withheld values are null with suppressed = true and a reason, never 0; a real zero is 0. Every call is logged. There is no export or embed path.",
+    note: "Anonymous Campaigns (and any Campaign with guest responses) return lv_policy_undecided with details.missing until THREE policy values are set: analytics.min_cohort, analytics.min_participants and analytics.disclosure_controls; a threshold alone does not settle D-10. Even then they are served only after the Campaign has finished (reason live_anonymous_results_restricted) and only for one population size: the first release freezes the participant counts and later changes make the results unavailable (reason population_changed_after_release), which blocks differencing between releases (P-28 to P-30). Query shapes are deliberately restricted: no filters, cross-tabulations, time slices or free text; text and ranking questions return lv_policy_undecided. Draft and scheduled Campaigns are lv_lifecycle_invalid. Identified (non-anonymous) Campaigns without guests need no privacy policy and may be read live (policy.status not_required). A cell with 0 < n < min_cohort is suppressed; suppressed or withheld values are null with suppressed = true and a reason, never 0; a real zero is 0. Every call is logged. There is no export or embed path. Archived legacy sessions (legacy_historical) return lv_policy_undecided with details.reason = legacy_record_policy_pending whatever the analytics policy says (P-44).",
   }),
   v2({
     id: "lv_analytics_export",

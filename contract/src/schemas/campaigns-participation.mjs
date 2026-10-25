@@ -21,6 +21,7 @@ export const campaignSchemas = {
     expires_at: nullable(ref("Timestamp")),
     legacy_session_id: nullable(ref("Uuid")),
     join_code: nullable(str()),
+    legacy_historical: bool({ description: "true for an archived record of a legacy session: read-only history that cannot be activated, edited or answered and is excluded from quotas, the participation gate and analytics. legacy_session_id names the original session." }),
   }),
   CampaignList: obj({ hub_id: ref("Uuid"), campaigns: arr(ref("Campaign")) }),
   CampaignListRequest: obj({ hub_id: ref("Uuid"), state: ref("CampaignState") }, ["state"]),

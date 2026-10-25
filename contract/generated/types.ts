@@ -326,6 +326,7 @@ export type Campaign = {
   expires_at: Timestamp | null;
   legacy_session_id: Uuid | null;
   join_code: string | null;
+  legacy_historical: boolean;
 };
 
 export type CampaignList = {

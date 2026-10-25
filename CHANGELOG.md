@@ -8,6 +8,18 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added the MJCC legacy bridge for rehearsal (migration `20261024000700_v2_legacy_bridge.sql`, **not applied to production**; the Hub keeps the name LionCafe):
+  a read-only standalone inventory script (`supabase/bridge/legacy_inventory.sql`, never run against production by its author), a read-only in-database inventory,
+  an idempotent, per-session-atomic sync that archives only HISTORICAL legacy survey sessions as closed, read-only Campaigns (`legacy_historical`) preserving the
+  legacy session id, join code, times, question set, answers, receipts (original time) and points as recorded, plus a read-only reconciliation report and a rollback
+  that deletes only the derived archive. Live sessions and menu-rating sessions are left alone; ambiguous records (no/missing/empty template, impossible scale,
+  title length, backwards window, empty or colliding join code, students without an account or from another organization) are listed with a reason and never
+  mapped, repaired or discarded. Archived records use no quota slot, are excluded from the participation gate, cannot be activated, edited or answered, return
+  no analytics (`legacy_record_policy_pending`), are identified with guest access off, and never invent anonymity, audience, schedule or revision settings.
+  Writes nothing to any legacy table (byte-identical fingerprints). A race test (four syncs while legacy students keep submitting) found and fixed a real gap:
+  answers arriving after their response had been mapped are now picked up by the next sync. Contract v0.8.0 (`Campaign.legacy_historical`); runbook
+  `supabase/bridge/README.md`; Hub Builder questions for D-11 in `contract/BUILDER_QUESTIONS.md` (no format invented). 913 database checks; nine mutations are
+  caught. The production inventory, the real Owner mapping and any production run remain unapproved. Provisional register P-42 to P-46.
 - Added the v2 public waitlist and Hub settings (migration `20261024000600_v2_waitlist_hub_settings.sql`, **not applied to production**, stacked
   on the analytics migration): `lv_waitlist_join` and `lv_hub_settings_update` (contract v0.7.0, `implemented-nonprod`). The waitlist stays CLOSED until
   the founder decides four things (open, approved consent wording, retention, removal channel); until then it answers `lv_policy_undecided`. It stores the

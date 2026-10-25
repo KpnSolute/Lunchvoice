@@ -117,7 +117,7 @@ export const gateStatus = (plan, members, responders) => ({
 
 const campaign = (key, overrides) => ({
   id: CAMPAIGN[key], hub_id: HUB.one, mode: "survey", state: "draft", title: "Synthetic survey", anonymous: false, guest_access: "off",
-  opens_at: null, closes_at: null, activated_at: null, expires_at: null, legacy_session_id: null, join_code: null, ...overrides,
+  opens_at: null, closes_at: null, activated_at: null, expires_at: null, legacy_session_id: null, join_code: null, legacy_historical: false, ...overrides,
 });
 export const campaigns = {
   draft: campaign("draft", { title: "Synthetic draft survey" }),
@@ -125,6 +125,8 @@ export const campaigns = {
   active: campaign("active", { state: "active", title: "Synthetic active survey", opens_at: T.base, closes_at: T.end, activated_at: T.base, join_code: "SYN123" }),
   closed: campaign("closed", { state: "closed", title: "Synthetic closed survey", opens_at: T.base, closes_at: T.later, activated_at: T.base }),
   expired: campaign("expired", { state: "expired", title: "Synthetic expired survey", opens_at: T.base, closes_at: T.later, activated_at: T.base, expires_at: T.later }),
+  /** Archived record of a historical legacy session (synthetic ids): closed, identified, no times invented. */
+  legacyArchive: { ...campaign("closed", { title: "Historical survey (legacy session)", join_code: "HIST1" }), id: id(4, 9), state: "closed", legacy_session_id: id(9, 1), legacy_historical: true },
   anonymousActive: campaign("anonymousActive", { state: "active", title: "Synthetic anonymous survey", anonymous: true, opens_at: T.base, activated_at: T.base, join_code: "ANON99" }),
 };
 

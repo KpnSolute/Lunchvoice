@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "LunchVoice API",
-    "version": "0.7.0",
+    "version": "0.8.0",
     "description": "Machine-readable contract for LunchVoice. v2 operations are Postgres functions behind PostgREST RPC returning a 200 envelope; legacy operations are the live v1 surface. Per-operation x-status says whether it exists: implemented (production), implemented-nonprod, proposed, blocked-decision. A null limit means undecided, never unlimited."
   },
   "servers": [
@@ -2779,14 +2779,18 @@
         ],
         "x-decisions": [],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-42",
+          "P-43",
+          "P-45"
+        ],
         "security": [
           {
             "apikey": [],
             "userJwt": []
           }
         ],
-        "description": "Visible to anyone holding community.campaign.draft, .activate or .close. A Campaign past its closing time is listed as expired even before the expiry job persists it.",
+        "description": "Visible to anyone holding community.campaign.draft, .activate or .close. A Campaign past its closing time is listed as expired even before the expiry job persists it. Archived legacy sessions appear here as closed Campaigns with legacy_historical = true and legacy_session_id set; filter or label them in the UI (they are history, not Winter Survey work).",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
@@ -3054,7 +3058,9 @@
         "x-capabilities": [],
         "x-decisions": [],
         "x-auth": "user",
-        "x-provisional": [],
+        "x-provisional": [
+          "P-43"
+        ],
         "security": [
           {
             "apikey": [],
@@ -3256,7 +3262,8 @@
           "P-18",
           "P-19",
           "P-21",
-          "P-30"
+          "P-30",
+          "P-42"
         ],
         "security": [
           {
@@ -3264,7 +3271,7 @@
             "userJwt": []
           }
         ],
-        "description": "One atomic path under a Hub-level lock for manual activation, reopening a closed Campaign and scheduled activation: permission, lifecycle, entitlement, quota, gate, in that order. A retry with the same idempotency_key (same actor) returns the first result with replay=true and never restarts a clock; another actor with that key gets lv_conflict; a NEW key on an already active Campaign is lv_lifecycle_invalid (reason already_active). Failures carry details: quota {limit_name, limit, used}; gate {numerator, denominator, plan}; policy {reason, missing}; lifecycle {reason, state}. Responses are never touched by closing, expiry or reopening.",
+        "description": "One atomic path under a Hub-level lock for manual activation, reopening a closed Campaign and scheduled activation: permission, lifecycle, entitlement, quota, gate, in that order. A retry with the same idempotency_key (same actor) returns the first result with replay=true and never restarts a clock; another actor with that key gets lv_conflict; a NEW key on an already active Campaign is lv_lifecycle_invalid (reason already_active). Failures carry details: quota {limit_name, limit, used}; gate {numerator, denominator, plan}; policy {reason, missing}; lifecycle {reason, state}. Responses are never touched by closing, expiry or reopening. An archived record of a legacy session (legacy_historical) is never activatable: lv_lifecycle_invalid with details.reason = legacy_historical (P-42).",
         "x-idempotent": true,
         "x-errors": [
           "lv_unauthenticated",
@@ -3361,7 +3368,8 @@
         "x-auth": "user",
         "x-provisional": [
           "P-14",
-          "P-15"
+          "P-15",
+          "P-42"
         ],
         "security": [
           {
@@ -3838,7 +3846,8 @@
         "x-auth": "user",
         "x-provisional": [
           "P-23",
-          "P-24"
+          "P-24",
+          "P-43"
         ],
         "security": [
           {
@@ -3928,7 +3937,8 @@
           "P-31",
           "P-32",
           "P-33",
-          "P-34"
+          "P-34",
+          "P-44"
         ],
         "security": [
           {
@@ -3936,7 +3946,7 @@
             "userJwt": []
           }
         ],
-        "description": "Anonymous Campaigns (and any Campaign with guest responses) return lv_policy_undecided with details.missing until THREE policy values are set: analytics.min_cohort, analytics.min_participants and analytics.disclosure_controls; a threshold alone does not settle D-10. Even then they are served only after the Campaign has finished (reason live_anonymous_results_restricted) and only for one population size: the first release freezes the participant counts and later changes make the results unavailable (reason population_changed_after_release), which blocks differencing between releases (P-28 to P-30). Query shapes are deliberately restricted: no filters, cross-tabulations, time slices or free text; text and ranking questions return lv_policy_undecided. Draft and scheduled Campaigns are lv_lifecycle_invalid. Identified (non-anonymous) Campaigns without guests need no privacy policy and may be read live (policy.status not_required). A cell with 0 < n < min_cohort is suppressed; suppressed or withheld values are null with suppressed = true and a reason, never 0; a real zero is 0. Every call is logged. There is no export or embed path.",
+        "description": "Anonymous Campaigns (and any Campaign with guest responses) return lv_policy_undecided with details.missing until THREE policy values are set: analytics.min_cohort, analytics.min_participants and analytics.disclosure_controls; a threshold alone does not settle D-10. Even then they are served only after the Campaign has finished (reason live_anonymous_results_restricted) and only for one population size: the first release freezes the participant counts and later changes make the results unavailable (reason population_changed_after_release), which blocks differencing between releases (P-28 to P-30). Query shapes are deliberately restricted: no filters, cross-tabulations, time slices or free text; text and ranking questions return lv_policy_undecided. Draft and scheduled Campaigns are lv_lifecycle_invalid. Identified (non-anonymous) Campaigns without guests need no privacy policy and may be read live (policy.status not_required). A cell with 0 < n < min_cohort is suppressed; suppressed or withheld values are null with suppressed = true and a reason, never 0; a real zero is 0. Every call is logged. There is no export or embed path. Archived legacy sessions (legacy_historical) return lv_policy_undecided with details.reason = legacy_record_policy_pending whatever the analytics policy says (P-44).",
         "x-idempotent": false,
         "x-errors": [
           "lv_unauthenticated",
@@ -7658,6 +7668,9 @@
               "string",
               "null"
             ]
+          },
+          "legacy_historical": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false,
@@ -7674,7 +7687,8 @@
           "activated_at",
           "expires_at",
           "legacy_session_id",
-          "join_code"
+          "join_code",
+          "legacy_historical"
         ]
       },
       "CampaignList": {
@@ -10295,6 +10309,60 @@
         "lv_waitlist_join"
       ],
       "summary": "Trusted network identity for the waitlist is NOT configured (waitlist.trusted_ip unset), so every caller shares one throttle bucket. When set it uses the entry N places from the right of a named proxy header, which only holds if the production edge (Render/Supabase/Cloudflare) is verified to append the real client address there; a browser-supplied value is never trusted. The header name and hop count must be confirmed against the live edge before the list opens."
+    },
+    {
+      "id": "P-42",
+      "decisions": [
+        "D-12",
+        "D-04"
+      ],
+      "operations": [
+        "lv_campaign_activate",
+        "lv_campaign_list",
+        "lv_campaign_activation_status"
+      ],
+      "summary": "Legacy bridge scope: only HISTORICAL legacy survey sessions (not live, not menu-rating, no ambiguity) become archived, closed Campaigns marked legacy_historical. They never consume a quota slot, never count toward the participation gate, cannot be activated, reopened, edited or answered. Live sessions stay in the legacy app until a separately authorized cutover; menu-rating sessions stay legacy-only."
+    },
+    {
+      "id": "P-43",
+      "decisions": [
+        "D-12"
+      ],
+      "operations": [
+        "lv_campaign_list",
+        "lv_my_receipts",
+        "lv_campaign_questions"
+      ],
+      "summary": "Nothing is invented for archived records: they are identified (legacy responses kept the respondent id), guest access is off, opening and closing times are copied exactly as stored (a session with a backwards window is held as ambiguous, not repaired), the question set is revision 1 exactly as the legacy template stands today (the legacy app lets templates be edited, so the set may differ from what respondents saw), and points are recorded as awarded, not re-applied."
+    },
+    {
+      "id": "P-44",
+      "decisions": [
+        "D-10",
+        "D-12"
+      ],
+      "operations": [
+        "lv_analytics_query"
+      ],
+      "summary": "Results for archived legacy sessions are unavailable (policy-pending) regardless of any analytics policy: there is no evidence of what respondents were told about anonymity or publication, so none is assumed."
+    },
+    {
+      "id": "P-45",
+      "decisions": [
+        "D-12"
+      ],
+      "operations": [
+        "lv_campaign_list"
+      ],
+      "summary": "Ambiguous legacy records (no template, missing template, no questions, impossible scale or prompt length, title length, backwards time window, empty or colliding join code) are never mapped, repaired or discarded: they are listed with a reason for a human decision. Responses by students without an account or from another organization are held back and listed, not dropped."
+    },
+    {
+      "id": "P-46",
+      "decisions": [
+        "D-12"
+      ],
+      "operations": [],
+      "summary": "Legacy transition: legacy RPCs, login and surveys keep running untouched. The bridge is repeatable and per-session atomic; responses and answers that arrive later are picked up by the next sync; reconciliation reports drift (for example a mapped session live again). Rolling the bridge back deletes only the derived archive; every legacy row and every native v2 Campaign is unaffected. Nothing schedules the sync."
     }
   ]
 }

@@ -4,3 +4,4 @@
 20261024000400_v2_participation_receipts.sql
 20261024000500_v2_privacy_safe_analytics.sql
 20261024000600_v2_waitlist_hub_settings.sql
+20261024000700_v2_legacy_bridge.sql

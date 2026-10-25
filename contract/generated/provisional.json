@@ -1,5 +1,5 @@
 {
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Provisional implementation choices. NOT approved production policy.",
   "items": [
     {
@@ -464,6 +464,60 @@
       "ops": [
         "lv_waitlist_join"
       ]
+    },
+    {
+      "id": "P-42",
+      "decisions": [
+        "D-12",
+        "D-04"
+      ],
+      "summary": "Legacy bridge scope: only HISTORICAL legacy survey sessions (not live, not menu-rating, no ambiguity) become archived, closed Campaigns marked legacy_historical. They never consume a quota slot, never count toward the participation gate, cannot be activated, reopened, edited or answered. Live sessions stay in the legacy app until a separately authorized cutover; menu-rating sessions stay legacy-only.",
+      "ops": [
+        "lv_campaign_activate",
+        "lv_campaign_list",
+        "lv_campaign_activation_status"
+      ]
+    },
+    {
+      "id": "P-43",
+      "decisions": [
+        "D-12"
+      ],
+      "summary": "Nothing is invented for archived records: they are identified (legacy responses kept the respondent id), guest access is off, opening and closing times are copied exactly as stored (a session with a backwards window is held as ambiguous, not repaired), the question set is revision 1 exactly as the legacy template stands today (the legacy app lets templates be edited, so the set may differ from what respondents saw), and points are recorded as awarded, not re-applied.",
+      "ops": [
+        "lv_campaign_list",
+        "lv_my_receipts",
+        "lv_campaign_questions"
+      ]
+    },
+    {
+      "id": "P-44",
+      "decisions": [
+        "D-10",
+        "D-12"
+      ],
+      "summary": "Results for archived legacy sessions are unavailable (policy-pending) regardless of any analytics policy: there is no evidence of what respondents were told about anonymity or publication, so none is assumed.",
+      "ops": [
+        "lv_analytics_query"
+      ]
+    },
+    {
+      "id": "P-45",
+      "decisions": [
+        "D-12"
+      ],
+      "summary": "Ambiguous legacy records (no template, missing template, no questions, impossible scale or prompt length, title length, backwards time window, empty or colliding join code) are never mapped, repaired or discarded: they are listed with a reason for a human decision. Responses by students without an account or from another organization are held back and listed, not dropped.",
+      "ops": [
+        "lv_campaign_list"
+      ]
+    },
+    {
+      "id": "P-46",
+      "decisions": [
+        "D-12"
+      ],
+      "summary": "Legacy transition: legacy RPCs, login and surveys keep running untouched. The bridge is repeatable and per-session atomic; responses and answers that arrive later are picked up by the next sync; reconciliation reports drift (for example a mapped session live again). Rolling the bridge back deletes only the derived archive; every legacy row and every native v2 Campaign is unaffected. Nothing schedules the sync.",
+      "ops": []
     }
   ]
 }

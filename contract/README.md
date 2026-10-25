@@ -1,4 +1,4 @@
-# LunchVoice API contract (v0.7.0)
+# LunchVoice API contract (v0.8.0)
 
 Machine-readable contract for the backend, reconciled with all 49 frontend flows (F-01..F-49 in
 `docs/frontend/EXPERIENCE_PLAN.md`). Authored in `contract/src` (dependency-free JavaScript), emitted to
@@ -121,6 +121,14 @@ order: permission, lifecycle, entitlement, quota, gate. Show what the server tel
   than that (see P-23 for what is still undecided).
 - Guests are not available: there is no guest entry point and `guest_access: link` is rejected until the guest proof is decided (D-03).
 
+## Archived legacy sessions
+
+The legacy bridge (operator-run, not an API) can archive HISTORICAL LionCafe survey sessions as closed Campaigns with `legacy_historical: true` and `legacy_session_id` set.
+They appear in `lv_campaign_list` (state `closed`), their join code resolves for Hub members, and each participant sees their own receipt in `lv_my_receipts` with the
+original date and the points the legacy app awarded (`reward_state: recorded`). They are history, not Winter Survey work: label them "archived" or filter them out of
+operator views, never offer Activate/Reopen/Edit (the server refuses with `reason: legacy_historical`), and never show results for them (`legacy_record_policy_pending`).
+They use no quota slot and do not count toward the participation gate. Live sessions are not archived; the legacy app keeps serving them until a cutover is authorized.
+
 ## Waitlist and Hub settings
 
 - `lv_waitlist_join(email, intended_hub_name?)` works for signed-out visitors. It is **closed until the founder has decided four things** (opening, the consent wording, retention and the
@@ -171,6 +179,7 @@ to users as settled rules.
 
 | Version | Change | Frontend impact |
 | --- | --- | --- |
+| 0.8.0 | `Campaign` gains the required boolean `legacy_historical` (false for everything native). New error reasons: `lv_campaign_activate`/`lv_campaign_activation_status` -> `lv_lifecycle_invalid` with `details.reason = legacy_historical`; `lv_analytics_query` -> `lv_policy_undecided` with `details.reason = legacy_record_policy_pending`. No new operations: the bridge is operator-only. Provisional P-42 to P-46. | Add `legacy_historical` to the Campaign type, show archived Campaigns as read-only history, never offer Activate/Edit/Results for them. |
 | 0.7.0 | `lv_waitlist_join` and `lv_hub_settings_update` are `implemented-nonprod`. `lv_waitlist_join` can return `lv_policy_undecided` (waitlist not opened, with the missing keys), status `closed`, `lv_rate_limited` (own attempts only) and `lv_invalid_input`; the status `duplicate` is never returned (no enumeration). The waitlist needs four decisions before it can open, not one. Hub names in `lv_hub_public` and `lv_my_context` now come from the Hub's display name when set, else the organization name. Provisional P-36 to P-40. | Build the landing waitlist form against these states; do not claim whether an address is already registered; add a Hub settings form (name, visibility, join mode) gated by the `admin.settings.edit` capability. |
 | 0.6.0 | `lv_analytics_query` is `implemented-nonprod`. **Breaking shape change:** `AnalyticsResult` replaces `total_participants` with `participants: {member, guest}` (each `{n, suppressed, reason}`), adds `question_id`, `population`, `window`, `groups[].audience` and `groups[].reason`, and `policy.status` is now `applied` or `not_required` (it can no longer be `undecided`: undecided policy is an error). New schema `AnalyticsCount`. `lv_analytics_export`, `lv_analytics_embed_create`, `lv_analytics_embed_revoke` are `blocked-decision`. Provisional choices P-28 to P-35. | Rebuild the results view on `participants`, `groups[].audience/suppressed/reason`; render withheld values as withheld, never 0; handle the four `lv_policy_undecided` reasons as "not available yet" states; hide export/embed controls. |
 | 0.5.0 | Three operations move to `implemented-nonprod`: `lv_campaign_resolve`, `lv_submit_response`, `lv_my_receipts`. `Receipt` gains the required field `reward_state` (`unset` / `recorded` / `not_applicable`); `Receipt.points` is `null` while no reward policy exists (the old fixtures showed an invented 50). `lv_submit_response` errors are now `lv_unauthenticated`, `lv_not_found` (non-member, other-Hub member and unknown Campaign are indistinguishable), `lv_lifecycle_invalid` (`details.reason` `not_active` or `closed_by_time`), `lv_invalid_input` (`details.reason`, `question_id`), `lv_policy_undecided` (mode). `lv_campaign_resolve` errors are `lv_not_found` and `lv_invalid_input`. Provisional choices P-20 to P-27. | Add `reward_state` to receipt handling and never show points when it is `unset`; treat `duplicate: true` as success; map `details.reason` to field errors; show a closed/expired state on `lv_lifecycle_invalid`. |

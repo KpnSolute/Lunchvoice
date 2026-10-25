@@ -55,12 +55,12 @@ while read -r f; do
 done < "$TESTS/v2-migrations.txt"
 
 # Independent copies so committing tests cannot disturb each other.
-docker exec "$NAME" psql -U postgres -d postgres -X -q -c "create database lv_cc template lv" -c "create database lv_rb template lv" -c "create database lv_rb2 template lv" -c "create database lv_rb3 template lv" -c "create database lv_rb4 template lv" -c "create database lv_rb5 template lv" -c "create database lv_rb6 template lv" || exit 2
+docker exec "$NAME" psql -U postgres -d postgres -X -q -c "create database lv_cc template lv" -c "create database lv_rb template lv" -c "create database lv_rb2 template lv" -c "create database lv_rb3 template lv" -c "create database lv_rb4 template lv" -c "create database lv_rb5 template lv" -c "create database lv_rb6 template lv" -c "create database lv_rb7 template lv" || exit 2
 
 echo "== sql tests"
 SQL_PASS=0; SQL_FAIL=0
 for f in $(ls "$TESTS"/[0-9][0-9]_*.sql | sort); do
-  case "$f" in *05_rollback*) continue;; esac
+  case "$f" in *05_rollback*|*14_legacy_bridge_*) continue;; esac
   if ! docker exec -i "$NAME" psql -U postgres -d lv -X -q -v ON_ERROR_STOP=1 < "$f" >/tmp/lv-t.$$ 2>&1; then
     echo "ERROR in $f"; grep -v 'LVCHECK' /tmp/lv-t.$$ | head -20; FAILED=1
   fi
@@ -69,6 +69,14 @@ for f in $(ls "$TESTS"/[0-9][0-9]_*.sql | sort); do
   echo "$(basename "$f"): $p passed, $fl failed"
   grep 'LVCHECK|FAIL|' /tmp/lv-t.$$ | sed 's/.*LVCHECK|FAIL|/FAIL /; s/|/ :: /'
 done
+# The legacy bridge test is streamed: fixtures, then the standalone read-only inventory script, then the assertions.
+if ! cat "$TESTS/14_legacy_bridge_head.sql" supabase/bridge/legacy_inventory.sql "$TESTS/14_legacy_bridge_tail.sql" | docker exec -i "$NAME" psql -U postgres -d lv -X -q -v ON_ERROR_STOP=1 >/tmp/lv-t.$$ 2>&1; then
+  echo "ERROR in 14_legacy_bridge (streamed)"; grep -v 'LVCHECK' /tmp/lv-t.$$ | head -20; FAILED=1
+fi
+p=$(grep -c 'LVCHECK|PASS|' /tmp/lv-t.$$); fl=$(grep -c 'LVCHECK|FAIL|' /tmp/lv-t.$$)
+SQL_PASS=$((SQL_PASS + p)); SQL_FAIL=$((SQL_FAIL + fl))
+echo "14_legacy_bridge (streamed): $p passed, $fl failed"
+grep 'LVCHECK|FAIL|' /tmp/lv-t.$$ | sed 's/.*LVCHECK|FAIL|/FAIL /; s/|/ :: /'
 rm -f /tmp/lv-t.$$
 
 echo "== concurrency"
@@ -80,6 +88,7 @@ D3="$ROLLBACKS/20261024000300_v2_entitlements_campaign_lifecycle.down.sql"
 D4="$ROLLBACKS/20261024000400_v2_participation_receipts.down.sql"
 D5="$ROLLBACKS/20261024000500_v2_privacy_safe_analytics.down.sql"
 D6="$ROLLBACKS/20261024000600_v2_waitlist_hub_settings.down.sql"
+D7="$ROLLBACKS/20261024000700_v2_legacy_bridge.down.sql"
 rbtest() { # label, database, post file, down scripts...
   local label="$1" db="$2" post="$3"; shift 3
   echo "== rollback ($label)"
@@ -87,17 +96,18 @@ rbtest() { # label, database, post file, down scripts...
     echo "ERROR in rollback test: $label"; cat /tmp/lv-rb.$$; FAILED=1
   fi
 }
-rbtest "everything, in reverse order" lv_rb "$TESTS/05_rollback_post.sql" "$D6" "$D5" "$D4" "$D3" "$D2" "$D1"
-rbtest "migrations 5 to 2; migration 1 must keep working" lv_rb2 "$TESTS/05b_rollback_roles_only_post.sql" "$D6" "$D5" "$D4" "$D3" "$D2"
-rbtest "migrations 5 to 3; migrations 1 and 2 must keep working" lv_rb3 "$TESTS/05c_rollback_campaigns_only_post.sql" "$D6" "$D5" "$D4" "$D3"
-rbtest "migrations 5 and 4; migrations 1 to 3 must keep working" lv_rb4 "$TESTS/05d_rollback_participation_only_post.sql" "$D6" "$D5" "$D4"
-rbtest "migrations 6 and 5; migrations 1 to 4 must keep working" lv_rb5 "$TESTS/05e_rollback_analytics_only_post.sql" "$D6" "$D5"
-rbtest "migration 6 only; migrations 1 to 5 must keep working" lv_rb6 "$TESTS/05f_rollback_settings_only_post.sql" "$D6"
+rbtest "everything, in reverse order" lv_rb "$TESTS/05_rollback_post.sql" "$D7" "$D6" "$D5" "$D4" "$D3" "$D2" "$D1"
+rbtest "migrations 5 to 2; migration 1 must keep working" lv_rb2 "$TESTS/05b_rollback_roles_only_post.sql" "$D7" "$D6" "$D5" "$D4" "$D3" "$D2"
+rbtest "migrations 5 to 3; migrations 1 and 2 must keep working" lv_rb3 "$TESTS/05c_rollback_campaigns_only_post.sql" "$D7" "$D6" "$D5" "$D4" "$D3"
+rbtest "migrations 5 and 4; migrations 1 to 3 must keep working" lv_rb4 "$TESTS/05d_rollback_participation_only_post.sql" "$D7" "$D6" "$D5" "$D4"
+rbtest "migrations 6 and 5; migrations 1 to 4 must keep working" lv_rb5 "$TESTS/05e_rollback_analytics_only_post.sql" "$D7" "$D6" "$D5"
+rbtest "migrations 7 and 6; migrations 1 to 5 must keep working" lv_rb6 "$TESTS/05f_rollback_settings_only_post.sql" "$D7" "$D6"
+rbtest "migration 7 only; migrations 1 to 6 must keep working" lv_rb7 "$TESTS/05g_rollback_bridge_only_post.sql" "$D7"
 rm -f /tmp/lv-rb.$$
 
 echo "== results"
 TOTAL=$((SQL_PASS + SQL_FAIL)); BAD=$SQL_FAIL
-for db in lv_cc lv_rb lv_rb2 lv_rb3 lv_rb4 lv_rb5 lv_rb6; do
+for db in lv_cc lv_rb lv_rb2 lv_rb3 lv_rb4 lv_rb5 lv_rb6 lv_rb7; do
   n=$(docker exec "$NAME" psql -U postgres -d $db -X -At -c "select count(*) from t.results")
   b=$(docker exec "$NAME" psql -U postgres -d $db -X -At -c "select count(*) from t.results where not ok")
   TOTAL=$((TOTAL + n)); BAD=$((BAD + b))

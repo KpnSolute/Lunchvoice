@@ -1,5 +1,5 @@
 {
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Request/response pairs for mock adapters and contract tests. Synthetic data only.",
   "examples": [
     {
@@ -848,7 +848,8 @@
           "activated_at": null,
           "expires_at": null,
           "legacy_session_id": null,
-          "join_code": null
+          "join_code": null,
+          "legacy_historical": false
         },
         "request_id": "req_0020"
       }
@@ -894,7 +895,8 @@
               "activated_at": null,
               "expires_at": null,
               "legacy_session_id": null,
-              "join_code": null
+              "join_code": null,
+              "legacy_historical": false
             },
             {
               "id": "00000000-0000-4000-8004-000000000003",
@@ -909,7 +911,8 @@
               "activated_at": "2026-11-02T15:00:00Z",
               "expires_at": null,
               "legacy_session_id": null,
-              "join_code": "SYN123"
+              "join_code": "SYN123",
+              "legacy_historical": false
             }
           ]
         },
@@ -1260,6 +1263,46 @@
       }
     },
     {
+      "operationId": "lv_campaign_activate",
+      "name": "legacy-historical",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000009",
+        "idempotency_key": "00000000-0000-4000-8008-000000000003"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_lifecycle_invalid",
+          "message": "This is an archived record of a legacy session.",
+          "details": {
+            "reason": "legacy_historical",
+            "state": "closed"
+          }
+        },
+        "request_id": "req_0080"
+      }
+    },
+    {
+      "operationId": "lv_analytics_query",
+      "name": "legacy-record-policy-pending",
+      "request": {
+        "campaign_id": "00000000-0000-4000-8004-000000000009",
+        "metric": "participation"
+      },
+      "response": {
+        "ok": false,
+        "error": {
+          "code": "lv_policy_undecided",
+          "message": "Results for archived legacy sessions are not available until the privacy policy covers them.",
+          "details": {
+            "reason": "legacy_record_policy_pending",
+            "decision": "D-10"
+          }
+        },
+        "request_id": "req_0081"
+      }
+    },
+    {
       "operationId": "lv_campaign_close",
       "name": "ok",
       "request": {
@@ -1280,7 +1323,8 @@
           "activated_at": "2026-11-02T15:00:00Z",
           "expires_at": null,
           "legacy_session_id": null,
-          "join_code": null
+          "join_code": null,
+          "legacy_historical": false
         },
         "request_id": "req_0028"
       }

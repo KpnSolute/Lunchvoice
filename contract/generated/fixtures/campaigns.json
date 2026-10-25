@@ -1,5 +1,5 @@
 {
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "One Campaign per lifecycle state, plus a question set.",
   "items": [
     {
@@ -18,7 +18,8 @@
         "activated_at": null,
         "expires_at": null,
         "legacy_session_id": null,
-        "join_code": null
+        "join_code": null,
+        "legacy_historical": false
       }
     },
     {
@@ -37,7 +38,8 @@
         "activated_at": null,
         "expires_at": null,
         "legacy_session_id": null,
-        "join_code": null
+        "join_code": null,
+        "legacy_historical": false
       }
     },
     {
@@ -56,7 +58,8 @@
         "activated_at": "2026-11-02T15:00:00Z",
         "expires_at": null,
         "legacy_session_id": null,
-        "join_code": "SYN123"
+        "join_code": "SYN123",
+        "legacy_historical": false
       }
     },
     {
@@ -75,7 +78,8 @@
         "activated_at": "2026-11-02T15:00:00Z",
         "expires_at": null,
         "legacy_session_id": null,
-        "join_code": null
+        "join_code": null,
+        "legacy_historical": false
       }
     },
     {
@@ -94,7 +98,28 @@
         "activated_at": "2026-11-02T15:00:00Z",
         "expires_at": "2026-11-09T15:00:00Z",
         "legacy_session_id": null,
-        "join_code": null
+        "join_code": null,
+        "legacy_historical": false
+      }
+    },
+    {
+      "name": "campaign.legacyArchive",
+      "schema": "Campaign",
+      "data": {
+        "id": "00000000-0000-4000-8004-000000000009",
+        "hub_id": "00000000-0000-4000-8001-000000000001",
+        "mode": "survey",
+        "state": "closed",
+        "title": "Historical survey (legacy session)",
+        "anonymous": false,
+        "guest_access": "off",
+        "opens_at": null,
+        "closes_at": null,
+        "activated_at": null,
+        "expires_at": null,
+        "legacy_session_id": "00000000-0000-4000-8009-000000000001",
+        "join_code": "HIST1",
+        "legacy_historical": true
       }
     },
     {
@@ -113,7 +138,8 @@
         "activated_at": "2026-11-02T15:00:00Z",
         "expires_at": null,
         "legacy_session_id": null,
-        "join_code": "ANON99"
+        "join_code": "ANON99",
+        "legacy_historical": false
       }
     },
     {
