@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "LunchVoice API",
-    "version": "0.9.0",
+    "version": "0.10.0",
     "description": "Machine-readable contract for LunchVoice. v2 operations are Postgres functions behind PostgREST RPC returning a 200 envelope; legacy operations are the live v1 surface. Per-operation x-status says whether it exists: implemented (production), implemented-nonprod, proposed, blocked-decision. A null limit means undecided, never unlimited."
   },
   "servers": [
@@ -5387,6 +5387,455 @@
         }
       }
     },
+    "/rest/v1/rpc/lv_invite_create": {
+      "post": {
+        "operationId": "lv_invite_create",
+        "summary": "Create a Hub invitation (Discord-style code). The code is returned ONCE.",
+        "tags": [
+          "hubs"
+        ],
+        "x-module": "hubs",
+        "x-status": "implemented-nonprod",
+        "x-milestone": "M1",
+        "x-flows": [
+          "F-34"
+        ],
+        "x-capabilities": [
+          "admin.members.admit"
+        ],
+        "x-decisions": [],
+        "x-auth": "user",
+        "x-provisional": [
+          "P-50"
+        ],
+        "security": [
+          {
+            "apikey": [],
+            "userJwt": []
+          }
+        ],
+        "description": "Expiry and use limit are the creator's choice; omitting both makes a code that works until revoked. No default or ceiling is decided (P-50). Show the code immediately: it cannot be retrieved again.",
+        "x-idempotent": false,
+        "x-errors": [
+          "lv_unauthenticated",
+          "lv_forbidden",
+          "lv_not_found",
+          "lv_invalid_input"
+        ],
+        "responses": {
+          "200": {
+            "description": "Envelope: success, or a failure with a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "const": true
+                        },
+                        "data": {
+                          "$ref": "#/components/schemas/Invite"
+                        },
+                        "request_id": {
+                          "$ref": "#/components/schemas/RequestId"
+                        }
+                      },
+                      "required": [
+                        "ok",
+                        "data",
+                        "request_id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "$ref": "#/components/schemas/LvFail"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Transport or gateway error (PostgREST).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostgrestError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteCreateRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rest/v1/rpc/lv_invite_list": {
+      "post": {
+        "operationId": "lv_invite_list",
+        "summary": "Invitations of a Hub with status and use counts (never the codes).",
+        "tags": [
+          "hubs"
+        ],
+        "x-module": "hubs",
+        "x-status": "implemented-nonprod",
+        "x-milestone": "M1",
+        "x-flows": [
+          "F-34"
+        ],
+        "x-capabilities": [
+          "admin.members.admit"
+        ],
+        "x-decisions": [],
+        "x-auth": "user",
+        "x-provisional": [],
+        "security": [
+          {
+            "apikey": [],
+            "userJwt": []
+          }
+        ],
+        "x-idempotent": false,
+        "x-errors": [
+          "lv_unauthenticated",
+          "lv_forbidden",
+          "lv_not_found",
+          "lv_invalid_input"
+        ],
+        "responses": {
+          "200": {
+            "description": "Envelope: success, or a failure with a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "const": true
+                        },
+                        "data": {
+                          "$ref": "#/components/schemas/InviteList"
+                        },
+                        "request_id": {
+                          "$ref": "#/components/schemas/RequestId"
+                        }
+                      },
+                      "required": [
+                        "ok",
+                        "data",
+                        "request_id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "$ref": "#/components/schemas/LvFail"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Transport or gateway error (PostgREST).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostgrestError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteListRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rest/v1/rpc/lv_invite_revoke": {
+      "post": {
+        "operationId": "lv_invite_revoke",
+        "summary": "Revoke an invitation (idempotent). Answers lv_not_found both for unknown ids and for ids the caller may not manage.",
+        "tags": [
+          "hubs"
+        ],
+        "x-module": "hubs",
+        "x-status": "implemented-nonprod",
+        "x-milestone": "M1",
+        "x-flows": [
+          "F-34"
+        ],
+        "x-capabilities": [
+          "admin.members.admit"
+        ],
+        "x-decisions": [],
+        "x-auth": "user",
+        "x-provisional": [],
+        "security": [
+          {
+            "apikey": [],
+            "userJwt": []
+          }
+        ],
+        "x-idempotent": false,
+        "x-errors": [
+          "lv_unauthenticated",
+          "lv_not_found",
+          "lv_invalid_input"
+        ],
+        "responses": {
+          "200": {
+            "description": "Envelope: success, or a failure with a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "const": true
+                        },
+                        "data": {
+                          "$ref": "#/components/schemas/Invite"
+                        },
+                        "request_id": {
+                          "$ref": "#/components/schemas/RequestId"
+                        }
+                      },
+                      "required": [
+                        "ok",
+                        "data",
+                        "request_id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "$ref": "#/components/schemas/LvFail"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Transport or gateway error (PostgREST).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostgrestError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteRef"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rest/v1/rpc/lv_invite_preview": {
+      "post": {
+        "operationId": "lv_invite_preview",
+        "summary": "Show the Hub name and address for a valid code, before sign-in. Unknown, expired, revoked and used-up codes all answer the same lv_not_found.",
+        "tags": [
+          "hubs"
+        ],
+        "x-module": "hubs",
+        "x-status": "implemented-nonprod",
+        "x-milestone": "M1",
+        "x-flows": [
+          "F-07"
+        ],
+        "x-capabilities": [],
+        "x-decisions": [],
+        "x-auth": "anon",
+        "x-provisional": [
+          "P-50"
+        ],
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "description": "Holding the code is the permission to see the name. There is no throttle on guessing; the code carries 80 random bits (P-50). Keep the code in the client across sign-up and call lv_invite_redeem after sign-in.",
+        "x-idempotent": false,
+        "x-errors": [
+          "lv_not_found"
+        ],
+        "responses": {
+          "200": {
+            "description": "Envelope: success, or a failure with a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "const": true
+                        },
+                        "data": {
+                          "$ref": "#/components/schemas/InvitePreview"
+                        },
+                        "request_id": {
+                          "$ref": "#/components/schemas/RequestId"
+                        }
+                      },
+                      "required": [
+                        "ok",
+                        "data",
+                        "request_id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "$ref": "#/components/schemas/LvFail"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Transport or gateway error (PostgREST).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostgrestError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteCodeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rest/v1/rpc/lv_invite_redeem": {
+      "post": {
+        "operationId": "lv_invite_redeem",
+        "summary": "Redeem a code: the signed-in person becomes an ACCEPTED member (never a role holder or Owner). A removed or suspended person is refused; an existing member consumes no use.",
+        "tags": [
+          "hubs"
+        ],
+        "x-module": "hubs",
+        "x-status": "implemented-nonprod",
+        "x-milestone": "M1",
+        "x-flows": [
+          "F-07"
+        ],
+        "x-capabilities": [],
+        "x-decisions": [],
+        "x-auth": "user",
+        "x-provisional": [
+          "P-50"
+        ],
+        "security": [
+          {
+            "apikey": [],
+            "userJwt": []
+          }
+        ],
+        "description": "Call lv_my_context at least once after sign-in so the account exists. The use limit is enforced under a lock, so a limit of N admits exactly N people.",
+        "x-idempotent": false,
+        "x-errors": [
+          "lv_unauthenticated",
+          "lv_forbidden",
+          "lv_not_found"
+        ],
+        "responses": {
+          "200": {
+            "description": "Envelope: success, or a failure with a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "const": true
+                        },
+                        "data": {
+                          "$ref": "#/components/schemas/InviteRedeemResult"
+                        },
+                        "request_id": {
+                          "$ref": "#/components/schemas/RequestId"
+                        }
+                      },
+                      "required": [
+                        "ok",
+                        "data",
+                        "request_id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "$ref": "#/components/schemas/LvFail"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Transport or gateway error (PostgREST).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostgrestError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteCodeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/rest/v1/rpc/lv_discovery_list": {
       "post": {
         "operationId": "lv_discovery_list",
@@ -9244,6 +9693,210 @@
           "entitlements"
         ]
       },
+      "InviteCreateRequest": {
+        "type": "object",
+        "properties": {
+          "hub_id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "max_uses": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000,
+            "description": "Omit for no limit."
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "hub_id"
+        ]
+      },
+      "Invite": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "hub_id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "code_hint": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 4,
+            "description": "Last four characters of the code. Identifies an invitation in a list; useless for guessing it."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "expired",
+              "revoked",
+              "exhausted"
+            ]
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "expires_at": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_uses": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "uses": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_by_name": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 20,
+            "description": "The secret. Returned ONLY by lv_invite_create, once; the database keeps only a hash and it can never be shown again."
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "hub_id",
+          "code_hint",
+          "status",
+          "created_at",
+          "expires_at",
+          "max_uses",
+          "uses",
+          "note",
+          "created_by_name"
+        ]
+      },
+      "InviteListRequest": {
+        "type": "object",
+        "properties": {
+          "hub_id": {
+            "$ref": "#/components/schemas/Uuid"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "hub_id"
+        ]
+      },
+      "InviteList": {
+        "type": "object",
+        "properties": {
+          "invites": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Invite"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "invites"
+        ]
+      },
+      "InviteRef": {
+        "type": "object",
+        "properties": {
+          "invite_id": {
+            "$ref": "#/components/schemas/Uuid"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "invite_id"
+        ]
+      },
+      "InviteCodeRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 64,
+            "description": "Case-insensitive; surrounding spaces are ignored."
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "code"
+        ]
+      },
+      "InvitePreview": {
+        "type": "object",
+        "properties": {
+          "hub_slug": {
+            "$ref": "#/components/schemas/Slug"
+          },
+          "hub_name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "hub_slug",
+          "hub_name"
+        ]
+      },
+      "InviteRedeemResult": {
+        "type": "object",
+        "properties": {
+          "hub_id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "hub_slug": {
+            "$ref": "#/components/schemas/Slug"
+          },
+          "hub_name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "accepted"
+            ]
+          },
+          "already_member": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "hub_id",
+          "hub_slug",
+          "hub_name",
+          "status",
+          "already_member"
+        ]
+      },
       "HubCreateRequest": {
         "type": "object",
         "properties": {
@@ -10017,7 +10670,9 @@
     "F-07": {
       "name": "Private Hub gate",
       "operations": [
-        "lv_join_hub"
+        "lv_join_hub",
+        "lv_invite_preview",
+        "lv_invite_redeem"
       ]
     },
     "F-08": {
@@ -10214,7 +10869,10 @@
         "lv_members_list",
         "lv_decide_join",
         "lv_remove_member",
-        "lv_suspend_member"
+        "lv_suspend_member",
+        "lv_invite_create",
+        "lv_invite_list",
+        "lv_invite_revoke"
       ]
     },
     "F-35": {
@@ -10884,6 +11542,18 @@
         "lv_beta_apply"
       ],
       "summary": "A person is the pair (issuer, subject) from a verified token. The issuer allow-list (identity.trusted_issuers) ships unset, the subject must be a UUID, and email/name claims are display and verification inputs only. The real KpnIdentity issuer, subject format and claim names are unverified assumptions; an email must be marked verified by the token before a beta application is accepted."
+    },
+    {
+      "id": "P-50",
+      "decisions": [
+        "D-05"
+      ],
+      "operations": [
+        "lv_invite_create",
+        "lv_invite_preview",
+        "lv_invite_redeem"
+      ],
+      "summary": "Invitation codes: 20 hex characters (80 random bits), stored only as a hash, shown once. Expiry and use limit are the creator's choice with NO default and NO ceiling (an invitation with neither works until revoked). Preview and redeem have no guessing throttle. A code admits as an accepted member only; removed or suspended people are not readmitted. Whether invitation defaults, per-Hub limits or throttling are wanted is undecided."
     }
   ]
 }

@@ -630,6 +630,56 @@ export type HubCreateResult = {
   entitlements: Entitlements;
 };
 
+export type InviteCreateRequest = {
+  hub_id: Uuid;
+  max_uses?: number;
+  expires_at?: Timestamp;
+  note?: string;
+};
+
+export type Invite = {
+  id: Uuid;
+  hub_id: Uuid;
+  code_hint: string;
+  status: "active" | "expired" | "revoked" | "exhausted";
+  created_at: Timestamp;
+  expires_at: Timestamp | null;
+  max_uses: number | null;
+  uses: number;
+  note: string | null;
+  created_by_name: string;
+  code?: string;
+};
+
+export type InviteListRequest = {
+  hub_id: Uuid;
+};
+
+export type InviteList = {
+  invites: Invite[];
+};
+
+export type InviteRef = {
+  invite_id: Uuid;
+};
+
+export type InviteCodeRequest = {
+  code: string;
+};
+
+export type InvitePreview = {
+  hub_slug: Slug;
+  hub_name: string;
+};
+
+export type InviteRedeemResult = {
+  hub_id: Uuid;
+  hub_slug: Slug;
+  hub_name: string;
+  status: "accepted";
+  already_member: boolean;
+};
+
 export type HubCreateRequest = {
   name: string;
   slug: Slug;
@@ -895,6 +945,11 @@ export interface OperationMap {
   lv_beta_my_application: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_beta_my_application"; request: Empty; result: LvResult<BetaMyApplication> };
   lv_beta_applications_list: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_beta_applications_list"; request: BetaApplicationsListRequest; result: LvResult<BetaApplicationsList> };
   lv_beta_decide: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_beta_decide"; request: BetaDecideRequest; result: LvResult<BetaApplicationAdmin> };
+  lv_invite_create: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_invite_create"; request: InviteCreateRequest; result: LvResult<Invite> };
+  lv_invite_list: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_invite_list"; request: InviteListRequest; result: LvResult<InviteList> };
+  lv_invite_revoke: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_invite_revoke"; request: InviteRef; result: LvResult<Invite> };
+  lv_invite_preview: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_invite_preview"; request: InviteCodeRequest; result: LvResult<InvitePreview> };
+  lv_invite_redeem: { kind: "rpc-v2"; status: "implemented-nonprod"; milestone: "M1"; path: "/rest/v1/rpc/lv_invite_redeem"; request: InviteCodeRequest; result: LvResult<InviteRedeemResult> };
   lv_discovery_list: { kind: "rpc-v2"; status: "proposed"; milestone: "M2"; path: "/rest/v1/rpc/lv_discovery_list"; request: DiscoveryListRequest; result: LvResult<DiscoveryList> };
   lv_discovery_apply: { kind: "rpc-v2"; status: "proposed"; milestone: "M2"; path: "/rest/v1/rpc/lv_discovery_apply"; request: DiscoveryApplyRequest; result: LvResult<DiscoveryApplyResult> };
   lv_checkout_create: { kind: "rpc-v2"; status: "blocked-decision"; milestone: "M2"; path: "/rest/v1/rpc/lv_checkout_create"; request: CheckoutRequest; result: LvResult<CheckoutResult> };

@@ -1,5 +1,5 @@
 {
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Provisional implementation choices. NOT approved production policy.",
   "items": [
     {
@@ -551,6 +551,18 @@
       "ops": [
         "lv_my_context",
         "lv_beta_apply"
+      ]
+    },
+    {
+      "id": "P-50",
+      "decisions": [
+        "D-05"
+      ],
+      "summary": "Invitation codes: 20 hex characters (80 random bits), stored only as a hash, shown once. Expiry and use limit are the creator's choice with NO default and NO ceiling (an invitation with neither works until revoked). Preview and redeem have no guessing throttle. A code admits as an accepted member only; removed or suspended people are not readmitted. Whether invitation defaults, per-Hub limits or throttling are wanted is undecided.",
+      "ops": [
+        "lv_invite_create",
+        "lv_invite_preview",
+        "lv_invite_redeem"
       ]
     }
   ]

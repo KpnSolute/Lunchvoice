@@ -303,4 +303,10 @@ export const PROVISIONAL = [
     summary: "A person is the pair (issuer, subject) from a verified token. The issuer allow-list (identity.trusted_issuers) ships unset, the subject must be a UUID, and email/name claims are display and verification inputs only. The real KpnIdentity issuer, subject format and claim names are unverified assumptions; an email must be marked verified by the token before a beta application is accepted.",
     ops: ["lv_my_context", "lv_beta_apply"],
   },
+  {
+    id: "P-50",
+    decisions: ["D-05"],
+    summary: "Invitation codes: 20 hex characters (80 random bits), stored only as a hash, shown once. Expiry and use limit are the creator's choice with NO default and NO ceiling (an invitation with neither works until revoked). Preview and redeem have no guessing throttle. A code admits as an accepted member only; removed or suspended people are not readmitted. Whether invitation defaults, per-Hub limits or throttling are wanted is undecided.",
+    ops: ["lv_invite_create", "lv_invite_preview", "lv_invite_redeem"],
+  },
 ];

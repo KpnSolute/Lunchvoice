@@ -7,3 +7,4 @@
 20261024000700_v2_legacy_bridge.sql
 20261024000800_v2_identity_first.sql
 20261024000900_v2_beta_self_service.sql
+20261024001000_v2_hub_invitations.sql

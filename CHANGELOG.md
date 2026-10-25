@@ -8,6 +8,12 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Added Hub invitations (migration `20261024001000_v2_hub_invitations.sql`, **not applied to production**, stacked on beta self-service): `lv_invite_create`, `lv_invite_list`,
+  `lv_invite_revoke`, `lv_invite_preview` and `lv_invite_redeem` (contract v0.10.0). A Discord-style code (80 random bits) admits the signed-in person as an ACCEPTED member only:
+  never a role or Owner, and a removed or suspended person is not readmitted. The code is shown once and only its hash is stored; unknown, expired, revoked and used-up codes
+  answer identically; the use limit is enforced under a row lock (a limit of 3 admits exactly 3 of 8 simultaneous redeemers); an existing member consumes no use. Managing
+  needs `admin.members.admit`. Expiry and limit are the creator's choice; no default, ceiling or throttle is invented (P-50). 1036 database checks, new suite `18_invites`,
+  races 26-27, rollback test for migration 10; five mutations caught.
 - Added beta self-service (migration `20261024000900_v2_beta_self_service.sql`, **not applied to production**, stacked on the identity-first migration): `lv_beta_apply`,
   `lv_beta_my_application`, `lv_beta_applications_list`, `lv_beta_decide` and the real `lv_hub_create` (contract v0.9.0; `lv_beta_admit` is removed as superseded). A signed-in
   person with a verified email applies; a platform reviewer approves (nobody can decide their own application; repeating a decision changes nothing); the approved applicant

@@ -405,3 +405,27 @@ for k in 1 2 3 4 5 6; do
 done
 wait
 check "double-use race: one approval used by six simultaneous calls creates exactly one Hub, one grant, one membership" "select (select count(*) from lv_private.hubs where slug like 'same-person-%') = 1 and (select count(*) from lv_private.entitlement_grants g join lv_private.hubs h on h.id = g.hub_id where h.slug like 'same-person-%') = 1 and (select count(*) from lv_private.hub_memberships m join lv_private.hubs h on h.id = m.hub_id where h.slug like 'same-person-%') = 1"
+
+
+echo "-- races 26-27: invitation limits under simultaneous redemption"
+HUBI="00000000-0000-4000-8a00-0000000000d1"
+P -c "insert into lv_private.hubs (id, slug, display_name) values ('$HUBI', 'race-inv', 'Race Invite Hub')" >/dev/null
+for n in 1 2 3 4 5 6 7 8; do
+  A="00000000-0000-4000-8900-0000000002c$n"
+  P -c "insert into lv_private.accounts (id, display_name) values ('$A', 'Redeemer $n')" -c "insert into lv_private.account_identities (account_id, issuer, subject, provider) values ('$A', 'https://auth.test.invalid', '$A', 'central')" >/dev/null
+done
+P -c "insert into lv_private.hub_invites (hub_id, code_hash, code_hint, created_by, max_uses) values ('$HUBI', lv_private.invite_hash('racecode0000000000a1'), '00a1', '00000000-0000-4000-8900-0000000002c1', 3)" >/dev/null
+for n in 1 2 3 4 5 6 7 8; do
+  A="00000000-0000-4000-8900-0000000002c$n"
+  P -c "set role authenticated" -c "set request.jwt.claim.sub = '$A'" -c "set request.jwt.claims = '{\"sub\":\"$A\",\"iss\":\"https://auth.test.invalid\"}'" -c "select public.lv_invite_redeem('racecode0000000000a1')" >"$OUT/ir.$n" 2>&1 &
+done
+wait
+check "invitation limit race: a limit of three admitted exactly three of eight simultaneous redeemers" "select (select count(*) from lv_private.hub_memberships where hub_id = '$HUBI' and status = 'accepted') = 3 and (select uses from lv_private.hub_invites where code_hint = '00a1') = 3 and (select count(*) from lv_private.hub_invite_redemptions where hub_id = '$HUBI') = 3"
+P -c "insert into lv_private.hub_invites (hub_id, code_hash, code_hint, created_by) values ('$HUBI', lv_private.invite_hash('racecode0000000000b2'), '00b2', '00000000-0000-4000-8900-0000000002c1')" >/dev/null
+A="00000000-0000-4000-8900-0000000002c8"
+P -c "delete from lv_private.hub_memberships where hub_id = '$HUBI' and account_id = '$A'" >/dev/null
+for k in 1 2 3 4 5 6; do
+  P -c "set role authenticated" -c "set request.jwt.claim.sub = '$A'" -c "set request.jwt.claims = '{\"sub\":\"$A\",\"iss\":\"https://auth.test.invalid\"}'" -c "select public.lv_invite_redeem('racecode0000000000b2')" >"$OUT/iq.$k" 2>&1 &
+done
+wait
+check "same-person race: six simultaneous redemptions by one person make one membership and count one use" "select (select count(*) from lv_private.hub_memberships where hub_id = '$HUBI' and account_id = '$A' and status = 'accepted') = 1 and (select uses from lv_private.hub_invites where code_hint = '00b2') = 1"

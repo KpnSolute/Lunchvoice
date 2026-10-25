@@ -968,6 +968,82 @@
     "decisions": []
   },
   {
+    "id": "lv_invite_create",
+    "kind": "rpc-v2",
+    "module": "hubs",
+    "status": "implemented-nonprod",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_invite_create",
+    "auth": "user",
+    "flows": [
+      "F-34"
+    ],
+    "capabilities": [
+      "admin.members.admit"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_invite_list",
+    "kind": "rpc-v2",
+    "module": "hubs",
+    "status": "implemented-nonprod",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_invite_list",
+    "auth": "user",
+    "flows": [
+      "F-34"
+    ],
+    "capabilities": [
+      "admin.members.admit"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_invite_revoke",
+    "kind": "rpc-v2",
+    "module": "hubs",
+    "status": "implemented-nonprod",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_invite_revoke",
+    "auth": "user",
+    "flows": [
+      "F-34"
+    ],
+    "capabilities": [
+      "admin.members.admit"
+    ],
+    "decisions": []
+  },
+  {
+    "id": "lv_invite_preview",
+    "kind": "rpc-v2",
+    "module": "hubs",
+    "status": "implemented-nonprod",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_invite_preview",
+    "auth": "anon",
+    "flows": [
+      "F-07"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
+    "id": "lv_invite_redeem",
+    "kind": "rpc-v2",
+    "module": "hubs",
+    "status": "implemented-nonprod",
+    "milestone": "M1",
+    "path": "/rest/v1/rpc/lv_invite_redeem",
+    "auth": "user",
+    "flows": [
+      "F-07"
+    ],
+    "capabilities": [],
+    "decisions": []
+  },
+  {
     "id": "lv_discovery_list",
     "kind": "rpc-v2",
     "module": "growth",
