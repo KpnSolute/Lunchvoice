@@ -8,6 +8,10 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added
 
+- Fixed the project-scoped Supabase MCP server failing to start in the Claude desktop app on Windows with WSL (`.mcp.json`). The app launches `bash` from Windows with the
+  `\\wsl.localhost\...` repository folder as the working directory, which Windows does not support, so the relative `scripts/mcp/supabase.sh` was never found
+  ("Connection closed"). The server is now started by absolute path (`$HOME/projects/lunchvoice/scripts/mcp/supabase.sh`), which assumes the checkout lives there.
+  The wrapper, token handling and read/write setting are unchanged. No secret, migration or database change.
 - Added project-scoped MCP server setup (`scripts/mcp/`): the Supabase MCP server now starts through
   `scripts/mcp/supabase.sh`, which loads secrets only from a gitignored, owner-only `.mcp.env` (never from the
   global shell), is scoped to one project with `--project-ref`, starts **read-only** by default, and pins

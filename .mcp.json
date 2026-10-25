@@ -2,7 +2,7 @@
   "mcpServers": {
     "supabase": {
       "command": "bash",
-      "args": ["scripts/mcp/supabase.sh"]
+      "args": ["-c", "exec bash \"$HOME/projects/lunchvoice/scripts/mcp/supabase.sh\""]
     }
   }
 }
