@@ -59,8 +59,8 @@ When a function lands, move it from the mock to the real transport and delete th
 
 ## Errors
 
-Target shape `{ ok:false, error:{ code, message, ... } }`. Until the backend normalizes old
-writes, `lvApi` also parses the `lv_*` prefix of a raised exception message.
+Every expected failure is `{ ok:false, error:{ code, message, ... } }` (backend migration 000008;
+gate failures add `reasons`). A thrown exception is a genuine fault and maps to `lv_server_error`.
 
 ## Pricing in code
 

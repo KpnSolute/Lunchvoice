@@ -1,6 +1,5 @@
 // Typed client for the v2 `lv_api` functions. Shapes follow docs/backend/API_CONTRACT.md.
-// Application failures arrive as {ok:false,error}; older writes may raise an exception whose
-// message starts with the lv_ code, which is parsed here so screens see one shape.
+// Every expected application failure arrives as {ok:false,error} (migration 000008).
 
 export type LvErrorCode =
   | "lv_unauthenticated"
@@ -27,6 +26,7 @@ export interface LvError {
   code: LvErrorCode;
   message: string;
   missing?: string[];
+  reasons?: string[];
 }
 
 export type LvResult<T> = ({ ok: true } & T) | { ok: false; error: LvError };
@@ -172,9 +172,8 @@ export function createLvApi(transport: LvTransport) {
     try {
       return normalize<T>(await transport.rpc(fn, args));
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      const code = /^(lv_[a-z_]+)/.exec(message)?.[1] as LvErrorCode | undefined;
-      return { ok: false, error: { code: code ?? "lv_server_error", message } };
+      // Expected failures are always {ok:false,error}; an exception is a genuine server fault.
+      return { ok: false, error: { code: "lv_server_error", message: e instanceof Error ? e.message : String(e) } };
     }
   };
   return {
