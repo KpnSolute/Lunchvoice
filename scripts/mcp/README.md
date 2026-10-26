@@ -8,7 +8,9 @@ projects, and other projects can do the same with their own repository, token an
 
 | Piece | What it does |
 | --- | --- |
-| `.mcp.json` | Claude Code project config (also `.cursor/mcp.json`, `.vscode/mcp.json`). Starts `scripts/mcp/supabase.sh`. No secrets in it. |
+| `.mcp.json` | Claude Code project config. Starts both project-scoped wrappers. No secrets in it. |
+| `opencode.json` | OpenCode project config for the same two wrappers. No secrets in it. |
+| `.codex/config.toml` | Codex project config for the same two wrappers. Trust this project in Codex to load its project config. No secrets in it. |
 | `.mcp.env` | **Your private secrets**, gitignored, must be `chmod 600`. Copy from `.mcp.env.example`. |
 | `scripts/mcp/lib.sh` | Validates and loads `.mcp.env`; prints only to stderr (stdout is the MCP protocol). |
 | `scripts/mcp/supabase.sh` | Starts the Supabase MCP server **read-only**, scoped to one project, version pinned. |
@@ -17,10 +19,13 @@ projects, and other projects can do the same with their own repository, token an
 
 ## Set up (once, about two minutes)
 
-1. Create a Supabase access token in the Supabase dashboard (Account > Access Tokens) for this project.
-2. `cp .mcp.env.example .mcp.env && chmod 600 .mcp.env`, then put the token after `SUPABASE_ACCESS_TOKEN=`.
-3. `bash scripts/mcp/doctor.sh` and confirm it reports your project's name (it should read LunchVoicev2 after the rename).
-4. Restart Claude Code in this folder and approve the project MCP server when asked.
+1. Create a Supabase access token for each account in the Supabase dashboard (Account > Access Tokens).
+2. `cp .mcp.env.example .mcp.env && chmod 600 .mcp.env`, then put the tokens in `SUPABASE_ACCESS_TOKEN` and `KPNIDENTITY_ACCESS_TOKEN`. They must be different tokens from their respective accounts.
+3. Confirm `SUPABASE_PROJECT_REF` targets the first project and `KPNIDENTITY_PROJECT_REF` targets the second (defaults to the KpnIdentity project).
+4. `bash scripts/mcp/doctor.sh` and confirm it reports the first project's name (it should read LunchVoicev2 after the rename).
+5. Restart Claude Code, OpenCode, or Codex in this folder and approve/trust the project MCP configuration when asked.
+
+Each agent reads its own configuration format; the three files above all start the same wrappers and use the same private `.mcp.env`. The tokens and project refs stay independent between the two Supabase servers.
 
 ## What the Supabase server can do
 
@@ -52,8 +57,7 @@ Do not enable a Render server with a key that can also reach unrelated workspace
 
 ## Other projects
 
-Copy `scripts/mcp/`, `.mcp.env.example`, the `.gitignore` entry and a project-specific `.mcp.json` into the other repository,
-change the project ref, and give it its own token. Keep `.mcp.json` free of secrets so it is safe to commit.
+Copy `scripts/mcp/`, `.mcp.env.example`, the `.gitignore` entry, and the configuration file(s) for the agents you use into the other repository. Change project refs and provide each server its own account token. Keep all agent config files free of secrets so they are safe to commit.
 
 ## Unrelated servers you may see in Claude
 

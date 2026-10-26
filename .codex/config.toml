@@ -1,0 +1,7 @@
+[mcp_servers.supabase-local]
+command = "bash"
+args = ["-c", "exec bash \"$HOME/projects/lunchvoice/scripts/mcp/supabase.sh\""]
+
+[mcp_servers.supabase-kpnidentity]
+command = "bash"
+args = ["-c", "exec bash \"$HOME/projects/lunchvoice/scripts/mcp/supabase-kpnidentity.sh\""]

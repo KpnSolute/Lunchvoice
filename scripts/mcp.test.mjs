@@ -95,3 +95,43 @@ test("supabase wrapper allows writes only when explicitly requested", () => {
     }
   });
 });
+
+test("second Supabase wrapper uses its own token and project ref", () => {
+  withEnvFile(
+    "SUPABASE_ACCESS_TOKEN=primary-token\nKPNIDENTITY_ACCESS_TOKEN=secondary-token\nKPNIDENTITY_PROJECT_REF=separate123\nKPNIDENTITY_MCP_READ_ONLY=true\n",
+    0o600,
+    (file) => {
+      const dir = mkdtempSync(join(tmpdir(), "lv-npx-"));
+      try {
+        writeFileSync(
+          join(dir, "npx"),
+          '#!/usr/bin/env bash\nprintf "ARGS:%s\\n" "$*"\nif [ "${SUPABASE_ACCESS_TOKEN:-}" = "secondary-token" ]; then printf "TOKEN_IS_SECOND:yes\\n"; else printf "TOKEN_IS_SECOND:no\\n"; fi\n',
+        );
+        chmodSync(join(dir, "npx"), 0o755);
+        const result = run("supabase-kpnidentity.sh", [], {
+          LV_MCP_ENV_FILE: file,
+          PATH: `${dir}:${process.env.PATH}`,
+        });
+        assert.equal(result.status, 0);
+        assert.match(
+          result.stdout,
+          /ARGS:-y @supabase\/mcp-server-supabase@0\.13\.0 --project-ref=separate123 --read-only/,
+        );
+        assert.match(result.stdout, /TOKEN_IS_SECOND:yes/);
+        assert.doesNotMatch(result.stdout + result.stderr, /primary-token|secondary-token/);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    },
+  );
+});
+
+test("second Supabase wrapper refuses to reuse the primary token", () => {
+  withEnvFile("SUPABASE_ACCESS_TOKEN=primary-token\n", 0o600, (file) => {
+    const result = run("supabase-kpnidentity.sh", [], { LV_MCP_ENV_FILE: file });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /KPNIDENTITY_ACCESS_TOKEN is empty in \.mcp\.env/);
+    assert.equal(result.stdout, "");
+    assert.doesNotMatch(result.stdout + result.stderr, /primary-token/);
+  });
+});

@@ -1396,6 +1396,11 @@ categories and the repository's decimal `X.X.X` release policy.
   `.mcp.env.example`, a README, and 6 tests (`scripts/mcp.test.mjs`). `SUPABASE_ACCESS_TOKEN` was removed from
   `.env.example` (it moves to `.mcp.env`). Render MCP is documented but not enabled: its HTTP transport needs an API
   key in the process environment and no key scoping is documented. No secret, migration, resource or deployment.
+- Added OpenCode (`opencode.json`) and Codex (`.codex/config.toml`) project configurations for the two independent
+  Supabase MCP wrappers, alongside Claude Code's `.mcp.json`. All three clients use the same private `.mcp.env`
+  through the wrappers; the config files contain no credentials. Added regression tests confirming the second
+  server requires and uses its separate token. Updated the MCP setup guide. No secret, migration, resource,
+  or deployment.
 - Added a signed KpnSolute CloudEvents receiver to the existing `menu-sync`
   function for MJCC menu-day and menu-cycle events. It verifies Standard
   Webhooks signatures against the raw request body, enforces the tenant-to-org
