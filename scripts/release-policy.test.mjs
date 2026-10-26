@@ -109,14 +109,14 @@ test("pr mode does not require heavy tests for a docs-and-changelog change", () 
 });
 
 test("bundle check reports missing markers and passes when all are present", () => {
-  assert.deepEqual(findMissingMarkers("createClient GoTrueClient submit_response login-start survey_templates"), []);
-  assert.deepEqual(findMissingMarkers("createClient"), ["GoTrueClient", "submit_response", "login-start", "survey_templates"]);
+  assert.deepEqual(findMissingMarkers("lv_my_context lv_hub_create lv_submit_response lv_analytics_query"), []);
+  assert.deepEqual(findMissingMarkers("lv_my_context"), ["lv_hub_create", "lv_submit_response", "lv_analytics_query"]);
 
   const dir = mkdtempSync(join(tmpdir(), "lv-bundle-"));
   try {
     writeFileSync(join(dir, "index.js"), "throw Error(`Missing VITE_SUPABASE_URL`)");
     assert.equal(checkBundleDir(dir).ok, false);
-    writeFileSync(join(dir, "index.js"), "createClient GoTrueClient submit_response login-start survey_templates");
+    writeFileSync(join(dir, "index.js"), "lv_my_context lv_hub_create lv_submit_response lv_analytics_query");
     assert.equal(checkBundleDir(dir).ok, true);
     assert.equal(checkBundleDir(join(dir, "missing")).ok, false);
   } finally {

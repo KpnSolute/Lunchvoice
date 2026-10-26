@@ -11,7 +11,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const REQUIRED_MARKERS = ["createClient", "GoTrueClient", "submit_response", "login-start", "survey_templates"];
+const REQUIRED_MARKERS = ["lv_my_context", "lv_hub_create", "lv_submit_response", "lv_analytics_query"];
 
 export function findMissingMarkers(source, markers = REQUIRED_MARKERS) {
   return markers.filter((marker) => !source.includes(marker));

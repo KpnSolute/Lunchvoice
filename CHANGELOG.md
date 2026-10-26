@@ -6,7 +6,23 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed
+
+- **v2 frontend reset (branch `feat/v2-ui`).** Removed every v1 screen and its support code: student/cafeteria routes,
+  Content Central and the other admin screens, the `/LionCafe` and subdomain redirects, `AuthProvider`/`Gate`, the MJCC staff
+  SSO callback, the organization provider, menu/QR/workbook libraries and the v1 `public.*` types. `src/index.css` was trimmed
+  to the shared tokens, buttons, forms, cards, pills and chart styles. Unused dependencies `fflate`, `qrcode` and
+  `@types/qrcode` were dropped. Legacy behaviour lives in Git history only. No database, deployment or MJCC data was touched.
+- `scripts/check-bundle.mjs` and its test now require `lv_api` markers instead of v1 Supabase markers.
+- `AGENTS.md` / `CLAUDE.md` still describe v1 and are intentionally unchanged here (they must stay byte-identical); updating
+  them is pending an owner decision on v2 agent notes.
+
 ### Added
+
+- v2 frontend foundation: routes `/`, `/signin`, `/me`, `/:hub`, `/:hub/campaigns`, `/:hub/campaigns/:id`, `/:hub/analytics`;
+  `src/lib/lvApi.ts` typed client over the 13 `lv_api` functions; `src/lib/reservedSlugs.ts` (system-path reservation, mirrored
+  to the backend) with `npm run test:unit`; `src/identity/IdentityProvider.tsx` (simulated sign-in in mock mode only, since the
+  KpnIdentity issuer does not exist yet); an in-memory mock transport used when no Supabase env is set.
 
 - Added the canonical v2 fresh-install baseline: `supabase/migrations/000001_v2_core.sql` through `000006_v2_platform.sql`
   (core identity/Hubs/memberships, authorization, campaigns, participation, privacy analytics, platform), each with a matching

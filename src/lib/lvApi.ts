@@ -73,7 +73,10 @@ export function createLvApi(transport: LvTransport) {
     try {
       return normalize<T>(await transport.rpc(fn, args));
     } catch (e) {
-      return { ok: false, error: { code: "lv_server_error", message: e instanceof Error ? e.message : String(e) } };
+      // Older write functions raise Postgres exceptions whose message starts with the lv_ code.
+      const message = e instanceof Error ? e.message : String(e);
+      const code = /^(lv_[a-z_]+)/.exec(message)?.[1] as LvErrorCode | undefined;
+      return { ok: false, error: { code: code ?? "lv_server_error", message } };
     }
   };
   return {
