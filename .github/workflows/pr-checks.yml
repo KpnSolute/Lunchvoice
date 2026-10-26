@@ -55,18 +55,17 @@ jobs:
         if: steps.policy.outputs.heavy == 'true'
         run: npm audit --audit-level=high
 
-  edge-functions:
-    name: Edge function unit tests (Deno)
+  database:
+    name: Canonical v2 database suite
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: 2.9.6
-
-      - name: Run Deno tests for shared edge-function code
-        run: deno test --no-prompt supabase/functions/_shared/
+      # Applies every file in supabase/migrations to a throwaway Postgres container (no secrets, no real
+      # project), runs every SQL suite, a two-connection Hub slug race, and a full rollback rehearsal.
+      # It fails if any non-canonical file is present in the migration directory.
+      - name: Fresh install, SQL suites, slug race and rollback rehearsal
+        run: bash scripts/db-test-canonical.sh
