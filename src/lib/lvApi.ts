@@ -20,6 +20,8 @@ export type LvErrorCode =
   | "lv_hub_mismatch"
   | "lv_not_accepted"
   | "lv_anonymity_violation"
+  | "lv_limit_reached"
+  | "lv_rate_limited"
   | "lv_server_error";
 
 export interface LvError {
