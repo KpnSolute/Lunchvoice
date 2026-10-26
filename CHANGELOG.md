@@ -6,6 +6,27 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added
+
+- Added the canonical v2 fresh-install baseline: `supabase/migrations/000001_v2_core.sql` through `000006_v2_platform.sql`
+  (core identity/Hubs/memberships, authorization, campaigns, participation, privacy analytics, platform), each with a matching
+  `supabase/rollbacks/*.down.sql`. A **blank database plus these six files is a complete LunchVoice v2 installation**; the
+  legacy `public/` migrations in the same directory are v1 and are not part of it. Identity is `(issuer, subject)` with
+  `UNIQUE(identity_issuer, identity_subject)`; there is no auth-user-keyed identity, no legacy-auth-user synthesis, no
+  `public.profiles` mirror trigger and no dependency on `public.orgs`. For an anonymous Campaign the submission stores no
+  account and the participation stores no submission, enforced by triggers, so there is no stored join path from a person to
+  their answers. Tables live in schema `lv` and are never exposed; the whole API surface is 13 `lv_api` functions.
+- Added `scripts/db-test-canonical.sh`, a fresh-install runner that applies only the canonical migrations to a throwaway
+  Postgres, runs every suite, then applies and reverses the full baseline. It **fails on a zero-check run** rather than
+  reporting a false green.
+- Added tests: `supabase/tests/setup.sql` plus `01_identity` (25), `02_authorization` (28), `03_privacy` (26),
+  `04_analytics` (22), `05_acceptance` (50) and `06_concurrency` (11). **162 checks executed, 0 failed**, and the full
+  baseline applies to a blank database and rolls back completely.
+- Added `docs/backend/PRODUCTION_RESET_RUNBOOK.md`: the not-approved, not-executed procedure for resetting the v1 database,
+  including what is destroyed (137 users, 72 responses, 639 answers, 803 ratings, 14 orders), what is preserved, the
+  dependency of all six live Edge Functions on `profiles`/`orgs`, how the first v2 administrator and MJCC Hub are created, how
+  to prove no old student data survived, and the fact that there is **no rollback** after the schema drop.
+
 ### Changed
 
 - **Architecture: LunchVoice v2 starts fresh; D-01 Option D withdrawn.** Google → KpnIdentity → LunchVoice is now the only
