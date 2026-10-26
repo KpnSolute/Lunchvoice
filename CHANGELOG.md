@@ -11,7 +11,8 @@ categories and the repository's decimal `X.X.X` release policy.
 - Frontend docs reset to the v2 canonical master spec (2026-10-25): `README.md`, `PRODUCT.md` and `DESIGN.md` rewritten for the
   Hub/Campaign SaaS (Hybrid design direction, canonical pricing, Campaign Plus has no numeric price, Hub Name Reservation);
   new `docs/frontend/FRONTEND.md` (routes, boundaries, mock-to-real replacement table, work order, acceptance test) and
-  `docs/frontend/HANDOFF.md`; `MULTI_TENANT_PLAN.md` marked superseded. `discover` added to the reserved slugs.
+  `docs/frontend/HANDOFF.md`; `MULTI_TENANT_PLAN.md` (v1 plan) removed; history keeps it. `discover` added to the reserved slugs;
+  `lioncafe` and `mjcc-admin` removed from them so no customer name is special-cased (regression test added).
   `AGENTS.md`, `CLAUDE.md` and the spec/API contract remain with the backend thread.
 
 ### Changed

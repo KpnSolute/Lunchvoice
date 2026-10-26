@@ -13,7 +13,7 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   "leaderboard", "newsroom", "comments", "pages",
   // brand / ops
   "lunchvoice", "kpnsolute", "kpnidentity", "kpn", "www", "app", "status", "docs", "help", "support", "about",
-  "terms", "privacy", "blog", "legal", "security", "contact", "lioncafe", "mjcc-admin",
+  "terms", "privacy", "blog", "legal", "security", "contact",
 ]);
 
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;

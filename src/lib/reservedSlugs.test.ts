@@ -11,6 +11,10 @@ test("rejects every live route as a slug", () => {
   for (const s of ["me", "ME", "api", "analytics", "campaigns", "signin"]) assert.equal(slugProblem(s), "reserved");
 });
 
+test("no customer name is special-cased", () => {
+  for (const s of ["lioncafe", "mjcc", "mjcc-admin", "lioncafe-admin"]) assert.equal(slugProblem(s), null);
+});
+
 test("rejects malformed slugs", () => {
   for (const s of ["a", "-ab", "ab-", "a--b", "a b", "a_b", "x".repeat(41)]) assert.equal(slugProblem(s), "format");
 });
