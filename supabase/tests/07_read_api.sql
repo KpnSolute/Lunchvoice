@@ -42,13 +42,17 @@ select t.as_kpn(2);
 select t.check('slug: a reserved word is refused', t.code(lv_api.lv_hub_create('me', 'Me')) = 'lv_invalid_input');
 select t.check('slug: reserved words are matched case-insensitively', t.code(lv_api.lv_hub_create('ANALYTICS', 'A')) = 'lv_invalid_input');
 select t.as_pg();
+select t.check('slug: no customer name is reserved (lioncafe and mjcc are claimable like any free slug)',
+  t.q($$select (count(*) = 0)::text from lv.reserved_slugs where slug ~ 'lioncafe|mjcc|jobcorps'$$) = 'true');
+select t.check('slug: no Hub exists before a customer creates one',
+  t.q($$select (count(*) = 0)::text from lv.hubs$$) = 'true');
 select t.check('slug: a double hyphen is refused by the database',
   t.raises($$insert into lv.hubs (slug, display_name, owner_account_id) values ('bad--slug', 'x', (select id from lv.accounts limit 1))$$));
 select t.check('slug: a reserved word cannot be inserted around lv_hub_create',
   t.raises($$insert into lv.hubs (slug, display_name, owner_account_id) values ('beta', 'x', (select id from lv.accounts limit 1))$$));
 select t.as_kpn(2);
-select t.check('hub: an approved applicant creates a Hub', t.code(lv_api.lv_hub_create('lioncafe', 'LionCafe')) = 'ok');
-select t.put('hub', t.q($$select id::text from lv.hubs where slug = 'lioncafe'$$));
+select t.check('hub: an approved applicant creates a Hub', t.code(lv_api.lv_hub_create('harbor-hub', 'Harbor Hub')) = 'ok');
+select t.put('hub', t.q($$select id::text from lv.hubs where slug = 'harbor-hub'$$));
 
 -- Invitation with a known code, a draft Campaign and an active Campaign with questions.
 select t.as_pg();
@@ -69,7 +73,7 @@ select t.put('q2', t.q(format($q$select id::text from lv.campaign_questions wher
 
 -- ===== invite preview ===================================================================================
 select t.as_kpn(3);
-select t.check('preview: a valid code names the Hub', lv_api.lv_invite_preview('read-api-code') #>> '{hub,slug}' = 'lioncafe');
+select t.check('preview: a valid code names the Hub', lv_api.lv_invite_preview('read-api-code') #>> '{hub,slug}' = 'harbor-hub');
 select t.check('preview: it says the caller is not yet a member', (lv_api.lv_invite_preview('READ-API-CODE') ->> 'already_member') = 'false');
 select t.as_pg();
 select t.check('preview: previewing consumes no use',
@@ -89,7 +93,7 @@ select t.check('context: the Owner sees the Owner role and campaign.manage',
   and (lv_api.lv_my_context() #>> '{hubs,0,roles,0,key}') = 'owner');
 select t.as_kpn(3);
 select t.check('context: a plain member has the Hub but no capabilities',
-  (lv_api.lv_my_context() #>> '{hubs,0,slug}') = 'lioncafe'
+  (lv_api.lv_my_context() #>> '{hubs,0,slug}') = 'harbor-hub'
   and (lv_api.lv_my_context() #> '{hubs,0,capabilities}') = '[]'::jsonb);
 select t.as_kpn(1);
 select t.check('context: the reviewer is flagged as platform admin', (lv_api.lv_my_context() ->> 'is_platform_admin') = 'true');
@@ -97,17 +101,17 @@ select t.check('context: the reviewer is flagged as platform admin', (lv_api.lv_
 -- ===== Hub by slug ======================================================================================
 select t.as_kpn(3);
 select t.check('hub_get: a member gets membership details',
-  (lv_api.lv_hub_get('LionCafe') #>> '{membership,active_campaigns}') = '1');
+  (lv_api.lv_hub_get('Harbor-Hub') #>> '{membership,active_campaigns}') = '1');
 select t.as_kpn(4);
-select t.check('hub_get: a private Hub does not reveal itself to an outsider', t.code(lv_api.lv_hub_get('lioncafe')) = 'lv_not_found');
+select t.check('hub_get: a private Hub does not reveal itself to an outsider', t.code(lv_api.lv_hub_get('harbor-hub')) = 'lv_not_found');
 select t.check('hub_get: an unknown slug looks identical', t.code(lv_api.lv_hub_get('nothing-here')) = 'lv_not_found');
 select t.as_pg();
 update lv.hubs set visibility = 'public' where id = t.id('hub');
 select t.as_kpn(4);
-select t.check('hub_get: a public Hub shows its card to an outsider', lv_api.lv_hub_get('lioncafe') #>> '{hub,name}' = 'LionCafe');
-select t.check('hub_get: but not the membership block', (lv_api.lv_hub_get('lioncafe') -> 'membership') = 'null'::jsonb);
+select t.check('hub_get: a public Hub shows its card to an outsider', lv_api.lv_hub_get('harbor-hub') #>> '{hub,name}' = 'Harbor Hub');
+select t.check('hub_get: but not the membership block', (lv_api.lv_hub_get('harbor-hub') -> 'membership') = 'null'::jsonb);
 select t.as_anon();
-select t.check('hub_get: a signed-out visitor can read a public card', t.code(lv_api.lv_hub_get('lioncafe')) = 'ok');
+select t.check('hub_get: a signed-out visitor can read a public card', t.code(lv_api.lv_hub_get('harbor-hub')) = 'ok');
 
 -- ===== campaigns ========================================================================================
 select t.as_kpn(3);

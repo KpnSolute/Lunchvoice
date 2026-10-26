@@ -6,22 +6,61 @@ meaningful code, configuration, release, or operational change.
 
 ## Project
 
-Lunchvoice is a multi-tenant React, TypeScript, Vite, and Supabase application
-for dining feedback, menu planning, student rewards, and staff operations. It
-deploys as the Render static site `lunch-line-survey`.
+LunchVoice v2 is a multi-tenant SaaS platform for interactive community
+feedback, built by KpnSolute. Customers create **Hubs** and run **Campaigns**
+(surveys, polls, ratings, ideas, elections) with privacy-safe analytics.
+Dining is one customer use case, not the product.
 
-- GitHub: `MJCC-Portal/Interact`
-- Production Supabase: MJCCv2 (`qprfonxvthmaoxfixigk`)
-- MJCCv1 (`mgvyylvmkxhhataavqjz`) is an upstream staff/menu system, not this
-  repository's deployment target.
-- Local frontend: `npm run dev`
-- Architecture map: `graphify-out/wiki/index.md`
-- Product details: `README.md`, `PRODUCT.md`, and `DESIGN.md`
+- LunchVoice v1 is **retired**. Its users, responses, menus, rewards, orders,
+  staff access, tenant model and UI are not part of v2 and are never migrated,
+  backfilled, aliased, mapped or bridged. Git history is the archive.
+- LunchVoice builds the platform, not customer Hubs. Never pre-create, seed,
+  hardcode or special-case LionCafe, Miami Job Corps or MJCC (no Hub, owner,
+  role, page, Campaign, slug, route or fixture). A customer creates `lioncafe`
+  through the same public `lv_hub_create` flow as any other free slug. No code
+  path may say "if MJCC" or "if LionCafe".
+- Identity: Google, then KpnIdentity (`auth.kpnsolute.com`), then LunchVoice.
+  A person is the verified `(issuer, subject)` pair; email is never an identity
+  key. LunchVoice owns authorization, memberships, roles and entitlements.
+- Canonical spec: `docs/v2/LunchVoice_v2_CANONICAL_MASTER_SPEC_2026-10-25.md`.
+  Read it before implementing anything. Worker handoffs live in
+  `docs/v2/handoffs/`. Product detail is `docs/v2/PRODUCT_SPEC.md`; the
+  identity boundary is `docs/v2/IDENTITY_CONTRACT.md`.
+- Supabase refs: Lunchvoice `qprfonxvthmaoxfixigk`, KpnIdentity
+  `axzwdbizblfkspduqilj`. Production is not mutated without the approvals below.
+- GitHub: `MJCC-Portal/Interact`. Local frontend: `npm run dev`.
+- Architecture map: `graphify-out/wiki/index.md` (generated; may describe v1
+  until rebuilt).
+
+## Canonical Pricing and Entitlements
+
+One authoritative entitlement map. Never hardcode plan behavior separately in
+UI and API; the backend evaluates the active entitlement.
+
+- Free participant: $0. Participation is always free.
+- Starter Hub: $13/month. 3 custom roles, 3 custom Hub pages, 15 active
+  Campaigns, 2 active Survey-mode Campaigns, more than 50% unique-eligible-member
+  participation to unlock a survey replacement.
+- Team Hub: $29/month. 6 custom roles, expanded community pages, enhanced
+  modes, advanced role targeting and analytics, 5 active surveys, at least 20%
+  threshold, Discover eligibility at 700 genuine active members.
+- Campaign Starter: Starter family, time-bounded. $19 for the first 2 weeks,
+  $13 per additional week.
+- Campaign Plus: Team family, time-bounded. Its price is unknown. Never invent
+  one; checkout stays disabled and fails closed until the authoritative value is
+  supplied.
+- Hub Name Reservation ("Reserve your Hub URL"): $25 per 12 months, $25 renewal,
+  25-day grace (ACTIVE, GRACE, RELEASED). Grants no features.
+- The Owner is protected and does not consume a custom-role slot.
+- Thresholds count unique eligible members only: no guests, duplicates or bots.
+- Expired paid access fails closed for premium actions and never deletes
+  customer data.
 
 ## Mandatory Agent Startup
 
 1. Read both `AGENTS.md` and `CLAUDE.md`; stop if they differ.
-2. Read the newest entries in `CHANGELOG.md` before changing code.
+2. Read the canonical master spec and the newest entries in `CHANGELOG.md`
+   before changing code.
 3. Inspect `git status` and preserve unrelated user changes.
 4. Read the relevant source, tests, migrations, and deployment configuration.
 5. Never use the retired Documents/Jop Corps checkout. Work only in this repo.
@@ -45,6 +84,10 @@ KpnRelay, Regional Overseer, Synthesis Drive, and local delegated agents.
 - The governing agent reviews all delegated output before it is staged, merged,
   pushed, deployed, or described as complete. Delegation never transfers
   accountability.
+- Work is split between a UI thread and a backend thread. The backend owns
+  migrations, RLS, `lv_api`, identity, entitlements and the shared and backend
+  docs (including this file). The UI owns the frontend and its docs. Coordinate
+  contract changes through `docs/backend/API_CONTRACT.md`.
 
 ## Standing Git Authority
 
@@ -60,6 +103,7 @@ required checks pass and `CHANGELOG.md` is current.
 - Production database migrations, destructive data operations, credential
   changes, paid-resource changes, and actions outside this repository still
   require explicit task authority and all higher-level platform approvals.
+  A passing local test never authorizes deploying or mutating production.
 - If validation fails, do not push. Fix it or report the blocker upstream.
 
 ## Local CLI Delegation
@@ -109,34 +153,39 @@ mimo.cmd run --dir $PWD --format json "<bounded task and required output>"
 
 ## Architecture and Security Contracts
 
-- Tenant URLs are subdomain-first: `https://<orgSlug>.lunchvoice.com/...`.
-  The frontend maps that hostname internally onto the existing
-  `/:orgSlug/...` route tree, which remains a supported compatibility path.
-  `lunchvoice.com` and `www.lunchvoice.com` always serve the public site.
-- Production DNS and Render use one wildcard tenant binding
-  (`*.lunchvoice.com`), so adding an organization does not require another
-  DNS record, certificate, or frontend code change.
-- `OrgProvider` resolves the organization before login; `AuthProvider` is nested
-  inside it and rejects profile/URL organization mismatches.
-- Public tables are organization-scoped with `org_id`; inserts include it
-  explicitly and RLS uses `caller_org_id()`.
-- Keep RLS enabled on every exposed table. Use explicit Data API grants.
-- Views must use `security_invoker = on`.
-- Never expose a service-role or secret key to frontend code.
-- Authorization data belongs in app metadata/database state, never editable user
-  metadata. Prefer additive migrations and preserve production data.
-- Create migrations with `supabase migration new`; review and test them before
-  applying. The linked deployment target must remain MJCCv2.
-
-Core tables include `orgs`, `profiles`, `sessions`, `session_members`,
-`survey_templates`, `survey_questions`, `survey_answers`, `responses`,
-`response_ratings`, `menu_cycles`, `menu_cycle_days`, `dish_ratings`,
-`voice_notes`, `store_items`, `orders`, and `contract_requests`.
-
-Staff authentication bridges MJCCv1 through `login-start`, `staff-login`, and
-`staff-status`; student OTP and application data live in MJCCv2. The first
-tenant is LionCafe. Preserve rewards, ordering, survey, and tenant isolation
-while extending the product.
+- Hub URLs are path-based: `https://lunchvoice.com/{hubSlug}`. There is no
+  subdomain-per-tenant scheme. The immutable Hub id is separate from its slug;
+  authorization uses the id, never the slug.
+- The frontend uses `lv_api` only. It never reads or writes application tables
+  directly, and mocks are development-only.
+- The database schema is a fresh SaaS model: schemas `lv` (private) and
+  `lv_api` (the only exposed surface). The canonical chain is
+  `supabase/migrations/0000NN_v2_*.sql`, installed on a blank database and
+  proven by `scripts/db-test-canonical.sh`, which also rehearses every rollback
+  in `supabase/rollbacks/`. Do not add migrations that reference v1 tables.
+- Application failures return `{ok:false, error:{code, message, ...}}`. Only
+  truly unexpected faults are exceptions. The error codes are listed in
+  `docs/backend/API_CONTRACT.md`.
+- Reserved route names live in `lv.reserved_slugs` and are enforced by the
+  database; no customer name is ever reserved. Concurrent slug claims must be
+  safe.
+- Keep RLS enabled on every exposed table. Use explicit Data API grants. Views
+  must use `security_invoker = on`. Never expose a service-role or secret key to
+  frontend code.
+- Authorization data belongs in database state, never in editable user
+  metadata. Enforce roles, capabilities and entitlements on the server; UI
+  disabling is not authorization.
+- Anonymous means the creator-facing data cannot resolve the respondent. Keep
+  eligibility proof and answers separate. Suppressed or withheld analytics are
+  never reported as zero.
+- Guests do not create membership, do not count toward member totals or
+  thresholds, and cannot see private Hub content.
+- Never delete responses or private data to resolve an over-limit or unpaid
+  state. A released slug must never expose a prior owner's data.
+- Create migrations with `supabase migration new` or the numbered canonical
+  convention; review and test them before applying. Applying anything to
+  production needs the approved runbook (`docs/backend/PRODUCTION_RESET_RUNBOOK.md`)
+  and explicit owner approval.
 
 ## Change Discipline
 
@@ -144,6 +193,8 @@ while extending the product.
 - Update `CHANGELOG.md` under `[Unreleased]` in the same commit as the change.
 - Keep this file and `CLAUDE.md` identical. If brain guidance changes, edit both
   in the same commit and verify with `npm run check:brain`.
+- Never write documentation that tells an agent to preserve, migrate, backfill
+  or bridge v1, or that treats LionCafe or MJCC as an existing v2 tenant.
 - Rebuild the graph after significant architecture changes with
   `/graphify --update` when that tool is available.
 - Commit the lockfile whenever dependencies change.
@@ -170,15 +221,17 @@ Every push runs brain consistency, changelog, and build checks. Heavy testing
 is required for prereleases, main releases, dependency/lockfile changes,
 Supabase migrations or functions, auth/RLS code, deployment configuration, and
 release workflow changes. Heavy testing adds an npm security audit and any
-available project-specific integration checks. Supabase end-to-end tests need
-Docker Desktop running.
+available project-specific integration checks. Database changes also require a
+passing `scripts/db-test-canonical.sh`, which needs Docker.
 
 ## Definition of Done
 
 - `npm run check:brain`
 - `npm run build`
-- Relevant focused/integration checks pass.
+- Relevant focused/integration checks pass (`scripts/db-test-canonical.sh` for
+  database work).
 - `CHANGELOG.md` describes the change.
 - `AGENTS.md` and `CLAUDE.md` are identical.
-- No secrets or accidental generated files are staged.
+- No v1 dependency, customer-specific hardcoding or secret is introduced, and no
+  generated file is staged by accident.
 - The handoff states what is ready, linked, blocked, and the next command.

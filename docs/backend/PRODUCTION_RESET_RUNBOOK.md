@@ -12,7 +12,8 @@ It is treated as **LunchVoice v1 / retirement-pending** (decision S-4).
 
 ## 0. Preconditions (all must be true before step 1)
 
-- [ ] `feat/v2-canonical-baseline` is merged and CI is green.
+- [ ] The canonical baseline (migrations `000001` to `000007`) is merged and CI is green.
+- [ ] The founder's reset decision (v1 retired, nothing preserved) is recorded in the approval below.
 - [ ] `scripts/db-test-canonical.sh` passes locally: blank install + full rollback.
 - [ ] The KpnIdentity issuer exists and is verified, and `identity.trusted_issuers`
       is set. **Without this the reset produces a system nobody can sign in to.**
@@ -127,7 +128,7 @@ grant usage on schema public to anon, authenticated, service_role;
 ```
 
 **Step 5 — install the canonical baseline.**
-Apply `000001_v2_core.sql` … `000006_v2_platform.sql` **in order**, via
+Apply `000001_v2_core.sql` … `000007_v2_read_api.sql` **in order**, via
 `supabase db push` or the SQL editor. Not the legacy migrations in the same
 directory — those are v1.
 
@@ -146,11 +147,11 @@ select lv.grant_platform_admin('<account uuid>', null);
 ```
 `grant_platform_admin` writes an audit event. Signing up never grants review.
 
-**Step 8 — create the MJCC Hub.**
-The owner applies for beta (`lv_beta_apply`), a reviewer approves
-(`lv_beta_decide`), and the owner calls `lv_hub_create('lioncafe', 'LionCafe')`.
-That creates the Hub, the Owner membership, the Owner role with its capabilities,
-and consumes the approval in one transaction.
+**Step 8 — no customer Hub is created here.**
+The reset installs the platform only. It does not create LionCafe, MJCC or any
+other Hub, owner, role or Campaign. Every Hub, including `lioncafe`, is created
+later by its customer through the public `lv_hub_create` flow like any other
+slug.
 
 **Step 9 — prove no old student data survived:**
 ```sql
@@ -164,10 +165,10 @@ select (select count(*) from auth.users) as auth_users,          -- expect 0 + n
 Also confirm the legacy tables are gone by name:
 `select to_regclass('public.profiles') is null and to_regclass('public.responses') is null;`
 
-## 6. How the first v2 administrator and MJCC Hub are created
+## 6. How the first v2 administrator is created
 
-See steps 7 and 8. Both are deliberate, audited operations. Neither can happen by
-signing up, and neither needs a manual `UPDATE`.
+See step 7. It is a deliberate, audited operation. It cannot happen by signing up
+and needs no manual `UPDATE`. Customer Hubs are never created by the operator.
 
 ## 7. Rollback limitations
 
@@ -198,5 +199,5 @@ taken **before** step 3 — which is another reason to decide once, and late.
 
 - That a real Google → KpnIdentity sign-in works. The baseline is tested against
   a simulated issuer only (see `IDENTITY_CONTRACT.md` §7).
-- That the Dec 11 date holds. With D-01 Option D withdrawn there is no fallback
+- That a December launch holds. With D-01 Option D withdrawn there is no fallback
   identity path (see `D01_IDENTITY_SUPERSESSION_2026-10-25.md`).

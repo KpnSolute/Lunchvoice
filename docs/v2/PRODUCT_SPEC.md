@@ -1,25 +1,23 @@
 # LunchVoice v2 product specification
 
-Status: authoritative v2 target for review and approval; not shipped behavior.
-Product authority: founder. Implementation owner after approval: Claude.
-Recorded: 2026-10-23. **Schedule update (founder message relayed 2026-10-23):** MJCC Hub
-and **MJCC Hub Winter Survey 2026** launch on **December 11, 2026** as the first operational
-v2 beta; **LunchVoice v2 main public release is December 23, 2026**. The launch-readiness
-go/no-go is recommended for **December 9** with **December 10** for final checks. The
-Winter Survey opening date is confirmed; its opening time and timezone, closing date/time,
-operator, questionnaire, audience and anonymity requirement remain open (D-12).
-December 13 was the earlier provisional target and is superseded. See the
-[execution roadmap](../backend/EXECUTION_ROADMAP.md#0-schedule-update-founder-message-relayed-2026-10-23).
+Status: v2 product detail. **Subordinate to
+[LunchVoice_v2_CANONICAL_MASTER_SPEC_2026-10-25.md](LunchVoice_v2_CANONICAL_MASTER_SPEC_2026-10-25.md)** (2026-10-25 founder reset), which wins on
+any conflict: v1 is retired and is not a migration source, LionCafe/MJCC is never built into the
+product, and the entitlement and pricing map in the master spec is authoritative.
+Product authority: founder. Recorded: 2026-10-23, revised 2026-10-25.
+
+**Schedule.** The founder's targets are a December 2026 beta and a December 23, 2026 public
+release, with readiness go/no-go recommended for December 9. The first real customer test is a
+food service manager creating a Hub through the normal public onboarding (master spec section 18);
+no customer-specific work is part of the schedule. Opening times and the first Campaign's content
+belong to that customer, not to engineering.
 
 ## Authority and reading order
 
-Read this document, [CURRENT_STATE_AUDIT.md](CURRENT_STATE_AUDIT.md),
-[ARCHITECTURE.md](ARCHITECTURE.md), [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md),
-and [DEFINITION_OF_DONE.md](DEFINITION_OF_DONE.md) together. This suite governs
-v2 product intent; `AGENTS.md` and `CLAUDE.md` retain operational, security,
-release, and delegation governance. Legacy `README.md`, `PRODUCT.md`, and
-`DESIGN.md` are current-product context and reusable design guidance, not the
-authoritative v2 feature list.
+Read [LunchVoice_v2_CANONICAL_MASTER_SPEC_2026-10-25.md](LunchVoice_v2_CANONICAL_MASTER_SPEC_2026-10-25.md) first, then this document and
+[IDENTITY_CONTRACT.md](IDENTITY_CONTRACT.md). `AGENTS.md` and `CLAUDE.md` retain operational,
+security, release, and delegation governance. `DESIGN.md` is design guidance. Nothing in this
+repository describes v1 as a product to preserve.
 
 Sources: the founder's 2026-10-23 execution request and explicit supplemental
 requirements in the documentation task, alongside the accessible final exchanges
@@ -43,20 +41,16 @@ product concept; surveys become a Campaign mode. A Hub is the community and
 authorization boundary, not a mutable slug. A registered account can join
 multiple Hubs. A membership is an accepted account-to-Hub relationship.
 
-Preserve Miami Job Corps / LionCafe as the first operational use case, including
-menus, surveys, response history, points/streaks, rewards, orders, and staff
-operations where applicable. Support the planned **December MJCC Campaign**,
-named **MJCC Hub Winter Survey 2026** and serving as the launch event,
-without destructive migration. Exact Campaign date, operator, content, and
-legacy feature placement need D-12. Approval of this documentation is not
-permission to deploy or modify production.
+LunchVoice v1 is retired. Its users, responses, menus, rewards, orders, staff access and tenant
+model are not part of v2 and are not migrated, backfilled, mapped or bridged. LunchVoice builds the
+platform; customers build their own Hubs. The product contains no pre-created, seeded or
+hardcoded LionCafe or Miami Job Corps Hub, owner, role, page, Campaign or route. Approval of this
+documentation is not permission to deploy or modify production.
 
 **Direction recorded 2026-10-23 (founder statement; not yet a numbered requirement).** LunchVoice is
-**consumer-first**: v2 does not rely on the native MJCC-specific integrations the product used before.
-For the tenant/Hub system, **connectors** are planned that let a Hub plug in its own APIs to drive surveys
-(a developer-facing feature). The founder indicated the LionCafe Hub needs this for its surveys at launch,
-but also described connectors as later work; timing and scope are an open question (proposed **D-13** in the
-[execution roadmap](../backend/EXECUTION_ROADMAP.md)). Nothing here approves a connector design.
+**consumer-first**. For the tenant/Hub system, **connectors** are planned that let a Hub plug in its
+own APIs to drive surveys (a developer-facing feature). Timing and scope are open (proposed **D-13**
+in the [execution roadmap](../backend/EXECUTION_ROADMAP.md)). Nothing here approves a connector design.
 
 ## Confirmed entitlements and milestones
 
@@ -71,13 +65,13 @@ but also described connectors as later work; timing and scope are an open questi
 | V2-08 | Survey-mode caps | Starter **2** simultaneously active Survey-mode Campaigns; Team **5** |
 | V2-09 | Participation gates | Starter **>50%** unique eligible Hub-member participation; Team **>=20%**, to unlock an additional survey |
 | V2-10 | Campaign Starter | Standalone seasonal purchase: **$19 for the first 2 weeks**, **+$13 for each additional week** |
-| V2-11 | Campaign Plus | Standalone seasonal Team-equivalent purchase; **base price and extension pricing TBD** |
+| V2-11 | Campaign Plus | Duration-based Team-family purchase (same feature family as Team Hub; billing time is the only difference); **numeric price is a missing configuration value. Checkout stays disabled and fails closed until it is supplied; never invent one** |
 | V2-12 | Campaign windows | Can be scheduled; purchased windows begin when activated |
-| V2-13 | Name reservation | Campaign Pass customers: **$25 for 12 months**, renewed for **$25 for another 12 months**, independent of Campaign access expiry |
+| V2-13 | Hub Name Reservation | Any customer: **$25 for 12 months**, **$25 renewal**, independent of any Hub or Campaign entitlement; grants no features |
 | V2-14 | Name grace | **25 calendar days from reservation expiration**, then cancel reservation and release exclusive slug claim |
 | V2-15 | Discovery | Hubs with **at least 700 valid members** may apply at `discovery.lunchvoice.com`; approval is not guaranteed |
 | V2-16 | Beta | Public waitlist first; maximum **50 beta Hub owners** |
-| V2-17 | Milestones | **November 12, 2026** proposed waitlist/internal prototype milestone; **December 9** recommended readiness go/no-go; **December 10** final checks; **December 11, 2026** MJCC Hub and Winter Survey launch (v2 beta); **December 23, 2026** v2 main public release. Opening time/timezone TBD (D-12) |
+| V2-17 | Milestones | **November 12, 2026** proposed waitlist/internal prototype milestone; **December 9** recommended readiness go/no-go; **December 10** final checks; **December 23, 2026** v2 public release. A December beta is the platform's first real-customer test (master spec section 18), not a customer-specific build |
 
 The 15-Campaign allowance and two-Survey cap are separate constraints. Team's
 total active Campaign cap, exact custom page allocation, advanced-mode matrix,
@@ -131,10 +125,9 @@ directory lives at `discovery.lunchvoice.com`. Moderation/approval workflow,
 ranking, visibility of private Hubs, reapplication, and falling below eligibility
 remain D-05. This is not a 700-member cap and not the existing in-Hub survey list.
 
-Canonical Hub URLs use paths. Existing subdomain and LionCafe links need a tested
-compatibility/redirect plan; do not remove them merely to change terminology.
-Reserve platform route names and avoid collisions with login, pricing, discovery,
-and account routes. Exact namespace rules and redirects are D-09.
+Canonical Hub URLs use paths. There is no subdomain-per-tenant scheme and no v1 link
+compatibility. Platform route names are reserved in `lv.reserved_slugs` (server-authoritative,
+case-insensitive) so they cannot collide with Hub slugs. Remaining namespace rules are D-09.
 
 ## Roles and fine-grained permissions (V2-07, V2-18)
 
@@ -254,9 +247,10 @@ or unpaid state. Billing integration details follow provider selection.
 
 ## Annual name reservation (V2-13, V2-14)
 
-Campaign Pass customers may purchase an available Hub slug for $25 for 12 months.
-Renewal is $25 for another 12 months. Reservation remains valid when Campaign
-access expires; the two clocks and entitlements are independent.
+The canonical product is **Hub Name Reservation** ("Reserve your Hub URL"). Any customer may
+purchase an available Hub slug for $25 for 12 months. Renewal is $25 for another 12 months.
+Lifecycle: ACTIVE, then GRACE, then RELEASED. Reservation remains valid when Hub or Campaign
+access expires; the clocks and entitlements are independent, and a reservation grants no features.
 
 | State | Namespace behavior |
 | --- | --- |
@@ -297,8 +291,8 @@ Required journeys also need public pricing, waitlist/beta status, Hub discovery,
 Hub landing, account/Hub switcher, Campaign participation/receipt, creator
 workspace, membership/role settings, billing/reservation, and support/privacy
 surfaces. Exact route names beyond the confirmed Hub/discovery hosts are
-implementation choices subject to namespace review. Reuse legacy dining pages
-where appropriate; do not equate an existing rewards store with a complete v2 Shop.
+implementation choices subject to namespace review. v2 builds its own Shop; nothing from the v1
+rewards store carries over.
 
 ## Analytics and privacy (V2-21)
 
@@ -324,14 +318,13 @@ not 50 responses, 50 members, or an unqualified 50-Hub limit. Admission must be
 atomic. D-07 defines unique-owner counting, multiple owned Hubs, transfer effects,
 invitations, re-entry, and beta pricing. Do not invent exemptions or free beta terms.
 
-November 12, 2026 is a **proposed** waitlist/internal prototype milestone.
-Per the founder's relayed update, **December 11, 2026** is the MJCC Hub and Winter
-Survey launch (first operational v2 beta, milestone M1) and **December 23, 2026** is the
-v2 main public release (M2). Readiness go/no-go is recommended for **December 9**
-(December 10 for final checks and fixes only). December 13 is superseded. Which confirmed
-capabilities ship in M1 versus M2 is a founder decision. Preserve and rehearse the Winter
-Survey as an operational acceptance journey; dates do not waive migration safety, and each
-launch needs separate production authority.
+November 12, 2026 is a **proposed** waitlist/internal prototype milestone. A December beta
+is the first real-customer test of the generic platform (milestone M1) and **December 23, 2026**
+is the public release (M2). Readiness go/no-go is recommended for **December 9** (December 10
+for final checks and fixes only). Which confirmed capabilities ship in M1 versus M2 is a founder
+decision. The acceptance journey is generic: a new creator signs in, creates any Hub, creates and
+publishes a Campaign, receives responses and reads results with no code change. Each launch
+needs separate production authority.
 
 ## Decision register
 
@@ -341,7 +334,7 @@ with date, decision, owner, and acceptance-test changes before it ships.
 
 | ID | Still undecided | Blocks |
 | --- | --- | --- |
-| D-01 | Central identity protocol/client/session contract, stable personal-ID mapping, linking, recovery/logout, legacy migration steps | Identity cutover |
+| D-01 | Central identity protocol/client/session contract, linking, recovery/logout (no legacy migration; v1 is retired) | Identity cutover |
 | D-02 | Full capability catalog, defaults, role composition/delegation, icon policy, secure owner transfer procedure | RBAC and owner operations |
 | D-03 | Guest proof/deduplication, private share lifespan/revocation, abuse limits, consent and conversion | Guest release |
 | D-04 | Initial survey allowances, measurement window/scope, eligible snapshots, zero-member behavior, active-state counting and reopen/mode changes | Survey activation gates |
@@ -352,7 +345,7 @@ with date, decision, owner, and acceptance-test changes before it ships.
 | D-09 | Namespace/redirects, reservation calendar boundaries/renewal anchoring, reminders, subscription slug rights and safe reclaims | Slug lifecycle |
 | D-10 | Analytics thresholds/export/retention, anonymous identity protection and operational-access policy | Analytics and privacy release |
 | D-11 | Page slot counting, Team page allocation, content blocks, draft/publish and audience details | Builder finalization |
-| D-12 | Legacy feature placement/cutover, December MJCC Campaign date/content/operator, compatibility schedule | Operational migration |
+| D-12 | Withdrawn 2026-10-25: v1 is retired, there is no legacy placement or cutover, and no customer Campaign is an engineering item | n/a |
 
 Unresolved decisions block dependent behavior, not independent work. Campaign
 Plus may be documented as planned/TBD, but cannot be sold until its prices and

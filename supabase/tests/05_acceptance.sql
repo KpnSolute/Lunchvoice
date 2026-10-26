@@ -49,7 +49,7 @@ select t.as_kpn(2, 'chef@example.invalid', true, 'Chef');
 select t.check('STEP 3: a new person signs in', t.code(lv_api.lv_my_context()) = 'ok');
 select t.put('chef', t.q($$select lv.current_account_id()::text$$));
 select t.check('STEP 3: an applicant can apply for beta',
-  t.code(lv_api.lv_beta_apply('We run the MJCC cafeteria.')) = 'ok');
+  t.code(lv_api.lv_beta_apply('We run a community cafeteria.')) = 'ok');
 
 select t.as_kpn(1);
 select t.put('app', t.q($$select id::text from lv.beta_applications where account_id = '$$ || t.get('chef') || $$'::uuid$$));
@@ -65,13 +65,13 @@ select t.check('STEP 3: nobody may decide their own application',
 -- =========================================================================================================
 select t.as_kpn(2);
 select t.check('STEP 4: the approved applicant creates a Hub',
-  t.code(lv_api.lv_hub_create('lioncafe', 'LionCafe')) = 'ok');
-select t.put('hub', t.q($$select id::text from lv.hubs where slug = 'lioncafe'$$));
+  t.code(lv_api.lv_hub_create('harbor-hub', 'Harbor Hub')) = 'ok');
+select t.put('hub', t.q($$select id::text from lv.hubs where slug = 'harbor-hub'$$));
 select t.as_pg();
 select t.check('STEP 4: the Hub exists with an independent id (no dependency on any legacy table)',
   t.get('hub') is not null);
 select t.check('STEP 4: the creator is the Owner',
-  t.q($$select (owner_account_id = '$$ || t.get('chef') || $$'::uuid)::text from lv.hubs where slug = 'lioncafe'$$) = 'true');
+  t.q($$select (owner_account_id = '$$ || t.get('chef') || $$'::uuid)::text from lv.hubs where slug = 'harbor-hub'$$) = 'true');
 select t.check('STEP 4: the creator is an accepted member',
   t.q($$select status from lv.hub_memberships where hub_id = '$$ || t.get('hub') || $$'::uuid and account_id = '$$ || t.get('chef') || $$'::uuid$$) = 'accepted');
 select t.check('STEP 4: the Owner holds the Owner role with its capabilities',

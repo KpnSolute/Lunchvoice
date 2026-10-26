@@ -33,8 +33,8 @@ insert into lv.reserved_slugs (slug, reason) values
   ('comments', 'planned feature'), ('pages', 'planned feature'),
   ('lunchvoice', 'brand'), ('kpnsolute', 'brand'), ('kpnidentity', 'brand'), ('kpn', 'brand'),
   ('status', 'brand'), ('docs', 'brand'), ('help', 'brand'), ('about', 'brand'), ('terms', 'brand'),
-  ('privacy', 'brand'), ('blog', 'brand'), ('legal', 'brand'), ('security', 'brand'), ('contact', 'brand'),
-  ('lioncafe-admin', 'brand'), ('mjcc-admin', 'brand')
+  ('privacy', 'brand'), ('blog', 'brand'), ('legal', 'brand'), ('security', 'brand'), ('contact', 'brand')
+-- No customer names are ever reserved. 'lioncafe' and 'mjcc' are claimable like any other free slug.
 on conflict do nothing;
 
 -- A Hub cannot be given a reserved slug by any path, not only through lv_hub_create.
