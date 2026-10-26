@@ -54,3 +54,18 @@ jobs:
       - name: Security audit (dependency, auth, migration, function, workflow or hook changes)
         if: steps.policy.outputs.heavy == 'true'
         run: npm audit --audit-level=high
+
+  database:
+    name: Canonical v2 database suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # Applies every file in supabase/migrations to a throwaway Postgres container (no secrets, no real
+      # project), runs every SQL suite, a two-connection Hub slug race, and a full rollback rehearsal.
+      # It fails if any non-canonical file is present in the migration directory.
+      - name: Fresh install, SQL suites, slug race and rollback rehearsal
+        run: bash scripts/db-test-canonical.sh
