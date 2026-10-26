@@ -6,6 +6,22 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Security
+
+- The dev mock API and the simulated sign-in no longer ship in production bundles: they are gated on `import.meta.env.DEV`, a
+  production build without Supabase configuration fails closed, and `scripts/check-bundle.mjs` now fails on dev-only strings.
+  Adopted the backend's v2 `AGENTS.md`/`CLAUDE.md`; removed `public/tenants`, `legacy/`, the v1 `.env.example` values and
+  `docs/backend/DATA_AND_MIGRATION_PLAN.md`.
+
+### Added (read APIs and screens)
+
+- Typed client now covers the full `lv_api` contract (hub get, members, invites, campaigns, submit, analytics, beta). Screens:
+  public Hub landing (readable signed out), Campaign list, Campaign Studio (add questions, publish, close, share code),
+  respondent player (one question per screen, anonymity notice, receipt), results with explicit "Withheld" states, Members and
+  Invitations, `/pricing` from `src/config/pricing.ts` (Campaign Plus has no price; checkout disabled), placeholder
+  `/discover`, `/billing`, `/settings`. Create Hub handles `lv_beta_required` with a beta application.
+  Walked in the browser against the dev mock (create Hub, publish Campaign, respond, results); no console errors.
+
 ### Documentation
 
 - Frontend docs reset to the v2 canonical master spec (2026-10-25): `README.md`, `PRODUCT.md` and `DESIGN.md` rewritten for the

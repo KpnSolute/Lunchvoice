@@ -40,12 +40,18 @@ exists only when the mock is active and must be impossible in a build with real
 
 | Mock (`src/lib/mockTransport.ts`) | Real replacement | Status |
 | --- | --- | --- |
-| `lv_my_context` | `lv_my_context` (expanded: roles, capabilities) | backend ready locally (`feat/v2-read-api`) |
-| `lv_hub_create`, invites, campaign create, submit | same functions | exist in the canonical baseline; errors normalizing |
-| hub-by-slug (derived from my_context) | `lv_hub_get` | ready locally, not wired |
-| campaign list/detail | `lv_campaign_list`, `lv_campaign_get` | ready locally, not wired |
-| members, invites list/preview | `lv_member_list`, `lv_invite_list`, `lv_invite_preview` | ready locally, not wired |
-| beta status | `lv_beta_status` | ready locally, not wired |
+The mock is dev-only: `import.meta.env.DEV` gates it, a production build without a configured
+backend fails closed, and `npm run check:bundle` fails if mock or simulated-sign-in strings reach
+`dist`. Every function below is wired in `src/lib/lvApi.ts` against the real contract; the mock
+only stands in until `feat/v2-read-api` is merged and deployed.
+
+| Mock case | Real function | Status |
+| --- | --- | --- |
+| my context, beta status/apply | `lv_my_context`, `lv_beta_status`, `lv_beta_apply` | wired; backend local only |
+| hub create/get, members | `lv_hub_create`, `lv_hub_get`, `lv_member_list` | wired; backend local only |
+| invites create/list/preview/redeem/revoke | `lv_invite_*` | wired; backend local only |
+| campaign list/get/create/question/activate/close | `lv_campaign_*` | wired; backend local only |
+| submit, analytics | `lv_submit_response`, `lv_analytics_query` | wired; backend local only |
 | simulated sign-in | KpnIdentity OIDC | issuer does not exist yet |
 | plans, entitlements, reservations, scheduling, pages, roles editing | none yet | blocked on backend |
 
