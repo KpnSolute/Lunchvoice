@@ -1,8 +1,21 @@
 # Production reset runbook — LunchVoice v2 fresh install
 
-**Status: NOT APPROVED, NOT EXECUTED.** Written 2026-10-25. This document is the
-procedure the owner must explicitly approve before anyone touches the production
-database. Nothing here has been run.
+**Status: AUTHORIZED by the founder on 2026-10-26; NOT YET EXECUTED against production.**
+The founder's "Production Reset Authorization" covers removing v1 completely (repository,
+live database, v1 users, v1 API, v1 secrets) and installing fresh v2, with no further
+approval needed, subject to its stop conditions: the target is not the LunchVoice project,
+the deletion would affect another active KpnSolute product, credentials are unavailable,
+the target cannot be identified safely, or a v2 migration fails validation.
+
+**Execution blocker (2026-10-26).** Neither the Supabase connector in the backend session
+nor the local CLI login can see project `qprfonxvthmaoxfixigk` (the connector lists only
+`aqhblrphsaqnpgyxspvz`; the CLI login lists that and KpnIdentity `axzwdbizblfkspduqilj`).
+The repository-side steps are done; the live steps wait for access to the LunchVoice
+project. Nothing in production has been touched.
+
+The repository cleanup (steps 3-5 of the authorization's execution order) is complete:
+the active `supabase/migrations/` directory contains only `000001`-`000008`, and the v1
+Edge Functions, `legacy/`, `public/tenants/` and v1 scripts and config are removed.
 
 Project: **MJCCv2 / "Lunchvoice"**, ref `qprfonxvthmaoxfixigk`, org
 `qggdncgjvnmedihxqpww`, region us-west-2, Postgres 17.6.1.155.
@@ -13,7 +26,10 @@ It is treated as **LunchVoice v1 / retirement-pending** (decision S-4).
 ## 0. Preconditions (all must be true before step 1)
 
 - [ ] The canonical baseline (migrations `000001` to `000007`) is merged and CI is green.
-- [ ] The founder's reset decision (v1 retired, nothing preserved) is recorded in the approval below.
+- [x] The founder's reset authorization (2026-10-26) is recorded above.
+- [ ] The session can see project `qprfonxvthmaoxfixigk` (ref and org match). Verify before every step.
+- [ ] `auth.users` belongs only to LunchVoice. If another KpnSolute app shares this Auth tenant, stop that deletion and report it.
+- [ ] A snapshot or backup is taken where the plan allows (the free tier has no point-in-time recovery).
 - [ ] `scripts/db-test-canonical.sh` passes locally: blank install + full rollback.
 - [ ] The KpnIdentity issuer exists and is verified, and `identity.trusted_issuers`
       is set. **Without this the reset produces a system nobody can sign in to.**
@@ -128,9 +144,9 @@ grant usage on schema public to anon, authenticated, service_role;
 ```
 
 **Step 5 — install the canonical baseline.**
-Apply `000001_v2_core.sql` … `000007_v2_read_api.sql` **in order**, via
-`supabase db push` or the SQL editor. Not the legacy migrations in the same
-directory — those are v1.
+Apply `000001_v2_core.sql` … `000008_v2_error_envelope.sql` **in order**, via
+`supabase db push` or the SQL editor. The active migration directory contains
+only these files; v1 migrations live in Git history only.
 
 **Step 6 — set the identity policy (REQUIRED; empty = nobody can sign in).**
 ```sql

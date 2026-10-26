@@ -28,7 +28,7 @@ Dining is one customer use case, not the product.
   identity boundary is `docs/v2/IDENTITY_CONTRACT.md`.
 - Supabase refs: Lunchvoice `qprfonxvthmaoxfixigk`, KpnIdentity
   `axzwdbizblfkspduqilj`. Production is not mutated without the approvals below.
-- GitHub: `MJCC-Portal/Interact`. Local frontend: `npm run dev`.
+- GitHub: `KpnSolute/Lunchvoice`. Local frontend: `npm run dev`.
 - Architecture map: `graphify-out/wiki/index.md` (generated; may describe v1
   until rebuilt).
 

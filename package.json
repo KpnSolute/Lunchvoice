@@ -17,9 +17,7 @@
     "test:light": "npm run check:brain && npm run build",
     "test:heavy": "npm run test:light && npm audit --audit-level=high",
     "preview": "vite preview",
-    "postinstall": "git config core.hooksPath .githooks || true",
-    "deploy:functions": "supabase functions deploy --project-ref qprfonxvthmaoxfixigk",
-    "check:email": "node scripts/check-email-setup.mjs"
+    "postinstall": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",

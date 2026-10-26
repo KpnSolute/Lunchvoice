@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Fresh-install test runner for the CANONICAL v2 baseline.
 #
-# Spins a throwaway Postgres, applies ONLY the canonical migrations (0000NN_v2_*.sql), then runs every
-# supabase/tests/NN_*.sql suite. It intentionally does NOT apply the legacy public/ migrations in the same
-# directory: the canonical baseline must become a valid installation from an EMPTY database.
+# Spins a throwaway Postgres, applies EVERY file in supabase/migrations (as `supabase db reset` would), then
+# runs every supabase/tests/NN_*.sql suite. The directory holds only the canonical v2 chain (0000NN_v2_*.sql);
+# this script fails if any other file is present, so it never relies on filtering v1 out. The baseline must
+# become a valid installation from an EMPTY database.
 #
 # Never touches a real Supabase project. Container is removed on exit unless LV_KEEP=1.
 set -u
@@ -17,6 +18,9 @@ TESTS=supabase/tests
 cleanup() { [ -n "${LV_KEEP:-}" ] || docker rm -f "$NAME" >/dev/null 2>&1; }
 trap cleanup EXIT
 
+# The active migration directory must hold only the canonical chain: no v1 file may sit beside it.
+STRAY=$(ls "$MIG" | grep -v -E '^[0-9]{6}_v2_[a-z_]+\.sql$' || true)
+if [ -n "$STRAY" ]; then echo "non-canonical file(s) in $MIG:"; echo "$STRAY"; exit 2; fi
 echo "== canonical baseline: $(ls "$MIG"/[0-9][0-9][0-9][0-9][0-9][0-9]_*.sql 2>/dev/null | wc -l) migrations"
 
 docker run -d --name "$NAME" -e POSTGRES_PASSWORD=localtest -e POSTGRES_DB=lv "$IMAGE" >/dev/null || exit 2
