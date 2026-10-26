@@ -6,6 +6,19 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed
+
+- CI now matches v2. `main` still carried the "Edge function unit tests (Deno)" job, which failed on every PR because the v1
+  `supabase/functions/_shared/` directory no longer exists. It is replaced by a "Canonical v2 database suite" job running
+  `scripts/db-test-canonical.sh` (fresh install, SQL suites, two-connection slug race, rollback rehearsal; no secrets). The `main`
+  version pipeline runs the same suite before tagging. The heavy-test path selector drops `supabase/functions/` and adds
+  `supabase/rollbacks/`, `supabase/tests/` and `scripts/db-test-canonical.sh`.
+
+### Added
+
+- Added `.github/pull_request_template.md`: scope, required checks, v2 rules (no v1, no customer hardcoding, error contract, server-side
+  enforcement, no production mocks) and an explicit production-impact statement.
+
 ### Changed
 
 - **Founder reset, 2026-10-25 (supersedes every earlier entry that preserves, migrates or special-cases v1 or LionCafe).**

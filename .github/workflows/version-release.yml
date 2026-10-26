@@ -37,6 +37,9 @@ jobs:
       - name: Run light tests
         run: npm run test:light
 
+      - name: Run the canonical v2 database suite
+        run: bash scripts/db-test-canonical.sh
+
       - name: Decide whether heavy tests are required
         id: heavy
         shell: bash

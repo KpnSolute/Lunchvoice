@@ -10,7 +10,8 @@ export const HEAVY_PATH_PATTERN = new RegExp(
   [
     "package(-lock)?\\.json",
     "render\\.yaml",
-    "supabase/(migrations/|functions/|config\\.toml$)",
+    "supabase/(migrations/|rollbacks/|tests/|config\\.toml$)",
+    "scripts/db-test-canonical\\.sh$",
     "src/(auth|org)/",
     "src/lib/supabase",
     "\\.github/workflows/",
