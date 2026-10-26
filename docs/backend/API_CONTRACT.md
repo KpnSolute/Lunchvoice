@@ -167,3 +167,119 @@ A draft Campaign returns `lv_lifecycle_invalid`. Treat `lv_policy_undecided` as 
 
 Hub settings changes, role management, member admit/remove/approve, Owner transfer, waitlist, pages,
 comments, rewards. Anything in the prototype's 76 operations that is not listed above is not in the v2 baseline.
+
+## Roles and members (000010, roadmap slice 7)
+
+Status: on `feat/v2-collab-participation-api`, stacked on `feat/v2-read-api`. Not applied to production.
+
+New error codes: `lv_limit_reached` (a slot or total limit is used up) and `lv_rate_limited` (guest rate, below).
+
+No escalation, everywhere: a caller cannot create, edit, delete, assign or unassign a role carrying a capability
+they do not hold, and cannot remove a member who holds a capability they lack. The Owner role is never editable,
+deletable or assignable (`lv_owner_protected`).
+
+- `lv_capability_catalog()`: `{ ok, groups: [{ group, capabilities: [{ capability, label }] }] }`. Works signed out.
+  Groups today: `hub`, `members`, `roles`, `campaigns`, `analytics`.
+- `lv_role_list(p_hub)` needs `admin.roles.manage`:
+  `{ ok, roles: [role], custom_slots: { used, limit } }` where `role` is
+  `{ role_id, key, name, icon, is_owner, is_system, capabilities: [...], member_count }`. `limit` is null while undecided.
+- `lv_role_create(p_hub, p_name, p_icon?, p_capabilities?, p_groups?)` needs `admin.roles.manage`. `p_groups` adds every
+  capability in each named group. Returns `{ ok, role }`. Name is 1 to 40 characters and unique in the Hub (any case);
+  icon is a lowercase token like `shield` (`[a-z0-9-]`, up to 40). Errors: `lv_invalid_input` (unknown capability or
+  group, bad name or icon), `lv_conflict` (name taken), `lv_forbidden` (escalation), `lv_limit_reached` (no free custom
+  slot), `lv_policy_undecided` with `missing: ["roles.max_custom_per_hub"]` (no slot limit set yet; fails closed).
+  The Owner role never uses a slot. Slots will come from the entitlement map (Starter family 3, Team family 6).
+- `lv_role_update(p_role, p_name?, p_icon?, p_capabilities?, p_groups?)`: omitted fields are unchanged; `p_icon = ''`
+  clears the icon; giving `p_capabilities` or `p_groups` replaces the whole set. Returns `{ ok, role }`.
+- `lv_role_delete(p_role)`: `{ ok }`. Unassigns the role from everyone.
+- `lv_member_role_assign(p_membership, p_role)` / `lv_member_role_unassign(p_membership, p_role)` need
+  `admin.roles.manage`. Return `{ ok, roles: [{ key, name }] }` for that member. Only accepted members hold roles
+  (`lv_not_accepted`).
+- `lv_hub_join(p_hub)`: `{ ok, status: "accepted"|"pending", already_member }`. Open Hubs admit at once; approval Hubs
+  create a pending request; invite-only Hubs answer `lv_forbidden`. A private Hub answers `lv_not_found` to non-members.
+  A removed person gets `lv_forbidden`.
+- `lv_member_leave(p_hub)`: `{ ok }`. The Owner cannot leave (`lv_owner_protected`). Someone who left may join again.
+- `lv_member_admit(p_membership)` and `lv_member_reject(p_membership)` need `admin.members.admit` and a pending request
+  (`lv_lifecycle_invalid` otherwise). Rejecting deletes the request, so the person may ask again.
+- `lv_member_remove(p_membership)` needs `admin.members.remove`. Permanent: a removed member can never rejoin, not even
+  with an invitation. Not for yourself (`lv_invalid_input`; use leave) and never the Owner.
+- `lv_invite_redeem` now also re-admits someone who left and turns a pending request into membership.
+- `lv_member_list` (000007) can now show `status: "pending"` rows for approval Hubs.
+
+Ownership transfer is not here; it belongs to the Hub ownership slice.
+
+## Campaign lifecycle and versions (000011, roadmap slice 8)
+
+Stored `status` is now `draft`, `active`, `paused`, `closed` or `archived`. The UI should show a phase:
+
+| Phase | Meaning |
+|---|---|
+| `draft` | Being written. Editable. |
+| `scheduled` | `status = active` and `opens_at` is in the future. Holds an active slot already. |
+| `open` | `status = active` and inside its window. Accepts responses. |
+| `ended` | `status = active` and `closes_at` has passed. No responses; results count as finished. |
+| `paused` | Stopped by a manager. No responses. Does not hold a slot. |
+| `closed` | Final for responses. |
+| `archived` | Hidden from the working list; nothing deleted. |
+
+`lv_campaign_list` and `lv_campaign_get` return the stored `status` with `opens_at` and `closes_at`; derive the phase
+from those three as in the table.
+
+Publishing (`lv_campaign_activate` or `lv_campaign_schedule`) writes an immutable version: the question set, the
+participation settings and the active-Campaign limit in force. After publishing, the Campaign and its questions answer
+`lv_locked` to edits.
+
+All of these need `campaign.manage`:
+
+- `lv_campaign_update(p_campaign, p_title?, p_mode?, p_anonymity?, p_opens_at?, p_closes_at?, p_clear_schedule?)`:
+  draft only. Omitted fields are unchanged; `p_clear_schedule = true` removes the window. `lv_invalid_input` for a blank
+  title, an unknown mode, or a window that closes before it opens or already closed.
+- `lv_campaign_question_update(p_question, p_position?, p_kind?, p_prompt?, p_config?)` and
+  `lv_campaign_question_remove(p_question)`: draft only (`lv_locked`). A taken position is `lv_conflict`.
+- `lv_campaign_schedule(p_campaign, p_opens_at?, p_closes_at?)`: publishes a draft with a window.
+  `{ ok, status, phase: "scheduled"|"open", version }`. Same gate as activation (`lv_gate_blocked` with `reasons`).
+- `lv_campaign_pause(p_campaign)`: running or scheduled to paused. `lv_lifecycle_invalid` otherwise.
+- `lv_campaign_resume(p_campaign)`: paused to active. Needs a free active slot again: `lv_gate_blocked` with
+  `reasons` of `limit_reached`, `limit_undefined` or `already_closed`.
+- `lv_campaign_close(p_campaign)`: now also closes paused and scheduled Campaigns. A draft is `lv_lifecycle_invalid`.
+- `lv_campaign_archive(p_campaign)`: closed to archived, or discards a draft. Running or paused is `lv_lifecycle_invalid`.
+- `lv_campaign_versions(p_campaign)`: `{ ok, versions: [{ version, published_at, settings, questions }] }`.
+
+## Participation modes and guests (000012, roadmap slice 10)
+
+A Campaign has `anonymity` (`anonymous` or `identified`) and `audience` (`members` or `members_and_guests`).
+Members answer through `lv_submit_response` as before. Guests answer by the Campaign's join code, signed out.
+
+- `lv_campaign_set_participation(p_campaign, p_audience?, p_guest_limit?, p_clear_guest_limit?)` needs
+  `campaign.manage`; draft only (`lv_locked`), because it is part of the published version. `p_guest_limit` caps the
+  total number of guest responses.
+- `lv_guest_campaign_get(p_join_code)`: signed out.
+  `{ ok, campaign: { campaign_id, title, mode, anonymity, phase, opens_at, closes_at }, hub: { name }, questions, can_respond }`.
+  Only a published, unpaused Campaign that allows guests is found; anything else is `lv_not_found`. Nothing else about
+  the Hub is returned.
+- `lv_guest_submit(p_join_code, p_guest_key, p_answers)`: signed out. `p_guest_key` is a random secret of 32 to 200
+  characters that the browser generates once per Campaign and keeps; only its hash is stored. Success:
+  `{ ok, receipt_id, duplicate }` (the same key again returns the first receipt). Errors: `lv_not_found`, `lv_closed`,
+  `lv_invalid_input`, `lv_limit_reached` (guest total reached), `lv_rate_limited` (too many guest responses this minute),
+  `lv_policy_undecided` with `missing: ["participation.guest_rate_per_minute"]` (no rate set yet; fails closed).
+
+Guests never become members, never count toward member totals or survey thresholds, and leave no stored link between
+a guest and their answers. Per-network limits (per IP) belong at the edge in front of the API.
+
+## Analytics additions (000013, roadmap slice 11)
+
+`lv_analytics_query` keeps its contract and gains:
+
+- `participant_count` now also returns `guest_n` and `guest_suppressed`. `n` stays unique member participants.
+- `participation_rate`: `{ ok, metric, n, eligible_n, rate, suppressed }`. `n` is unique member participants,
+  `eligible_n` accepted members, `rate` is `n / eligible_n` (null when there are no members or when suppressed).
+  Guests never count.
+- `rating_summary` (needs `p_question` of kind `rating`): `{ ok, metric, question_id, n, mean, suppressed }`.
+- `answer_distribution` for `multi_choice` now counts each selected option once instead of each combination.
+- Anonymous results are published once the Campaign has **finished**: closed, archived, or past `closes_at`. A paused
+  anonymous Campaign is not finished. A late guest response changes the frozen population like a member's would.
+
+`lv_analytics_overview(p_campaign)` needs `analytics.read`. It returns everything a results page needs:
+`{ ok, participant_count: {...}, participation_rate: {...}, questions: [{ question_id, position, kind, prompt, result }] }`,
+where each `result` is the `answer_distribution` envelope (plus `summary` for rating questions) or that question's own
+refusal (for example free text). A whole-Campaign refusal (`lv_policy_undecided`, `lv_lifecycle_invalid`) is returned as is.
