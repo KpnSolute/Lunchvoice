@@ -86,7 +86,8 @@ them requires a LunchVoice migration.
 
 - `docs/backend/D01_IDENTITY_DECISION_PACKET.md` — Option D marked withdrawn.
 - `docs/v2/PRODUCT_SPEC.md` — V2-02 identity and continuity wording replaced.
-- `docs/backend/DATA_AND_MIGRATION_PLAN.md` — fresh-start principle added.
+- `docs/backend/DATA_AND_MIGRATION_PLAN.md` — fresh-start principle added. (Deleted later the same
+  day by the canonical reset; it only described a v1 migration. Git history keeps it.)
 - `docs/backend/EXECUTION_ROADMAP.md` — dependency and fallback status noted.
 - `CHANGELOG.md` — entry under Unreleased.
 

@@ -64,7 +64,7 @@ select lv_api.lv_campaign_question_add(t.id('c2'), 1, 'rating', 'Q');
 
 select t.check('the first Campaign activates under a cap of 1', t.code(lv_api.lv_campaign_activate(t.id('c1'))) = 'ok');
 select t.check('the second Campaign is refused by the same cap',
-  t.raises($$select lv_api.lv_campaign_activate('$$ || t.get('c2') || $$'::uuid)$$, '42501'));
+  t.code(lv_api.lv_campaign_activate(t.id('c2'))) = 'lv_gate_blocked');
 
 -- ---------------------------------------------------------------------------------------------------------
 -- Invitation: the use limit is enforced under a row lock
@@ -72,7 +72,7 @@ select t.check('the second Campaign is refused by the same cap',
 select t.check('lv_invite_redeem locks the invitation row before counting uses',
   t.q($$select (prosrc like '%for update%')::text
             from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-           where n.nspname = 'lv_api' and p.proname = 'lv_invite_redeem'$$) = 'true');
+           where n.nspname = 'lv' and p.proname = 'api_invite_redeem'$$) = 'true');
 
 select t.as_pg();
 insert into lv.hub_invites (hub_id, code_hash, created_by, max_uses)
@@ -89,7 +89,7 @@ select t.check('a second redeemer is refused once the limit is reached',
 -- ---------------------------------------------------------------------------------------------------------
 -- Sequence determinism: the existence checks above are the real guarantee; note the limitation honestly
 -- ---------------------------------------------------------------------------------------------------------
-select t.check('NOTE: true parallel racing is not exercised by this suite (needs a concurrent client)',
-  true, 'documented limitation, see handoff');
+select t.check('NOTE: this file proves lock keys and caps; two-connection racing for a Hub slug is run by scripts/db-test-canonical.sh',
+  true, 'invites, submissions and activation are not yet raced by parallel clients');
 
 rollback;

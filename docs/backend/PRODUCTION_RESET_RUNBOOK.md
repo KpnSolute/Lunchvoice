@@ -1,8 +1,21 @@
 # Production reset runbook — LunchVoice v2 fresh install
 
-**Status: NOT APPROVED, NOT EXECUTED.** Written 2026-10-25. This document is the
-procedure the owner must explicitly approve before anyone touches the production
-database. Nothing here has been run.
+**Status: AUTHORIZED by the founder on 2026-10-26; NOT YET EXECUTED against production.**
+The founder's "Production Reset Authorization" covers removing v1 completely (repository,
+live database, v1 users, v1 API, v1 secrets) and installing fresh v2, with no further
+approval needed, subject to its stop conditions: the target is not the LunchVoice project,
+the deletion would affect another active KpnSolute product, credentials are unavailable,
+the target cannot be identified safely, or a v2 migration fails validation.
+
+**Execution blocker (2026-10-26).** Neither the Supabase connector in the backend session
+nor the local CLI login can see project `qprfonxvthmaoxfixigk` (the connector lists only
+`aqhblrphsaqnpgyxspvz`; the CLI login lists that and KpnIdentity `axzwdbizblfkspduqilj`).
+The repository-side steps are done; the live steps wait for access to the LunchVoice
+project. Nothing in production has been touched.
+
+The repository cleanup (steps 3-5 of the authorization's execution order) is complete:
+the active `supabase/migrations/` directory contains only `000001`-`000008`, and the v1
+Edge Functions, `legacy/`, `public/tenants/` and v1 scripts and config are removed.
 
 Project: **MJCCv2 / "Lunchvoice"**, ref `qprfonxvthmaoxfixigk`, org
 `qggdncgjvnmedihxqpww`, region us-west-2, Postgres 17.6.1.155.
@@ -12,7 +25,11 @@ It is treated as **LunchVoice v1 / retirement-pending** (decision S-4).
 
 ## 0. Preconditions (all must be true before step 1)
 
-- [ ] `feat/v2-canonical-baseline` is merged and CI is green.
+- [ ] The canonical baseline (migrations `000001` to `000007`) is merged and CI is green.
+- [x] The founder's reset authorization (2026-10-26) is recorded above.
+- [ ] The session can see project `qprfonxvthmaoxfixigk` (ref and org match). Verify before every step.
+- [ ] `auth.users` belongs only to LunchVoice. If another KpnSolute app shares this Auth tenant, stop that deletion and report it.
+- [ ] A snapshot or backup is taken where the plan allows (the free tier has no point-in-time recovery).
 - [ ] `scripts/db-test-canonical.sh` passes locally: blank install + full rollback.
 - [ ] The KpnIdentity issuer exists and is verified, and `identity.trusted_issuers`
       is set. **Without this the reset produces a system nobody can sign in to.**
@@ -127,9 +144,9 @@ grant usage on schema public to anon, authenticated, service_role;
 ```
 
 **Step 5 — install the canonical baseline.**
-Apply `000001_v2_core.sql` … `000006_v2_platform.sql` **in order**, via
-`supabase db push` or the SQL editor. Not the legacy migrations in the same
-directory — those are v1.
+Apply `000001_v2_core.sql` … `000008_v2_error_envelope.sql` **in order**, via
+`supabase db push` or the SQL editor. The active migration directory contains
+only these files; v1 migrations live in Git history only.
 
 **Step 6 — set the identity policy (REQUIRED; empty = nobody can sign in).**
 ```sql
@@ -146,11 +163,11 @@ select lv.grant_platform_admin('<account uuid>', null);
 ```
 `grant_platform_admin` writes an audit event. Signing up never grants review.
 
-**Step 8 — create the MJCC Hub.**
-The owner applies for beta (`lv_beta_apply`), a reviewer approves
-(`lv_beta_decide`), and the owner calls `lv_hub_create('lioncafe', 'LionCafe')`.
-That creates the Hub, the Owner membership, the Owner role with its capabilities,
-and consumes the approval in one transaction.
+**Step 8 — no customer Hub is created here.**
+The reset installs the platform only. It does not create LionCafe, MJCC or any
+other Hub, owner, role or Campaign. Every Hub, including `lioncafe`, is created
+later by its customer through the public `lv_hub_create` flow like any other
+slug.
 
 **Step 9 — prove no old student data survived:**
 ```sql
@@ -164,10 +181,10 @@ select (select count(*) from auth.users) as auth_users,          -- expect 0 + n
 Also confirm the legacy tables are gone by name:
 `select to_regclass('public.profiles') is null and to_regclass('public.responses') is null;`
 
-## 6. How the first v2 administrator and MJCC Hub are created
+## 6. How the first v2 administrator is created
 
-See steps 7 and 8. Both are deliberate, audited operations. Neither can happen by
-signing up, and neither needs a manual `UPDATE`.
+See step 7. It is a deliberate, audited operation. It cannot happen by signing up
+and needs no manual `UPDATE`. Customer Hubs are never created by the operator.
 
 ## 7. Rollback limitations
 
@@ -198,5 +215,5 @@ taken **before** step 3 — which is another reason to decide once, and late.
 
 - That a real Google → KpnIdentity sign-in works. The baseline is tested against
   a simulated issuer only (see `IDENTITY_CONTRACT.md` §7).
-- That the Dec 11 date holds. With D-01 Option D withdrawn there is no fallback
+- That a December launch holds. With D-01 Option D withdrawn there is no fallback
   identity path (see `D01_IDENTITY_SUPERSESSION_2026-10-25.md`).

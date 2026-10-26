@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Fresh-install test runner for the CANONICAL v2 baseline.
 #
-# Spins a throwaway Postgres, applies ONLY the canonical migrations (0000NN_v2_*.sql), then runs every
-# supabase/tests/NN_*.sql suite. It intentionally does NOT apply the legacy public/ migrations in the same
-# directory: the canonical baseline must become a valid installation from an EMPTY database.
+# Spins a throwaway Postgres, applies EVERY file in supabase/migrations (as `supabase db reset` would), then
+# runs every supabase/tests/NN_*.sql suite. The directory holds only the canonical v2 chain (0000NN_v2_*.sql);
+# this script fails if any other file is present, so it never relies on filtering v1 out. The baseline must
+# become a valid installation from an EMPTY database.
 #
 # Never touches a real Supabase project. Container is removed on exit unless LV_KEEP=1.
 set -u
@@ -17,6 +18,9 @@ TESTS=supabase/tests
 cleanup() { [ -n "${LV_KEEP:-}" ] || docker rm -f "$NAME" >/dev/null 2>&1; }
 trap cleanup EXIT
 
+# The active migration directory must hold only the canonical chain: no v1 file may sit beside it.
+STRAY=$(ls "$MIG" | grep -v -E '^[0-9]{6}_v2_[a-z_]+\.sql$' || true)
+if [ -n "$STRAY" ]; then echo "non-canonical file(s) in $MIG:"; echo "$STRAY"; exit 2; fi
 echo "== canonical baseline: $(ls "$MIG"/[0-9][0-9][0-9][0-9][0-9][0-9]_*.sql 2>/dev/null | wc -l) migrations"
 
 docker run -d --name "$NAME" -e POSTGRES_PASSWORD=localtest -e POSTGRES_DB=lv "$IMAGE" >/dev/null || exit 2
@@ -56,6 +60,60 @@ for f in $(ls "$TESTS"/[0-9][0-9]_*.sql 2>/dev/null | sort); do
   [ "$x" -gt 0 ] && { echo "FAILURES in $(basename "$f")"; echo "$out" | grep 'LVCHECK|FAIL'; }
 done
 
+# 3b. Parallel slug race: two real connections claim the same Hub slug at the same instant. A controller
+# session holds an advisory lock while both clients queue on it; releasing it starts them together.
+echo "== parallel slug race"
+RACE_FAIL=0
+RACE_SLUG="race-hub"
+q -c "create database lv_race" >/dev/null 2>&1 || { echo "   could not create race database"; RACE_FAIL=1; }
+if [ "$RACE_FAIL" = "0" ]; then
+  qdb lv_race < "$TESTS/setup.sql" >/dev/null 2>&1 || RACE_FAIL=1
+  for f in $(ls "$MIG"/[0-9][0-9][0-9][0-9][0-9][0-9]_*.sql | sort); do
+    qdb lv_race < "$f" >/dev/null 2>&1 || { echo "   race database migration failed: $f"; RACE_FAIL=1; break; }
+  done
+fi
+if [ "$RACE_FAIL" = "0" ]; then
+  qdb lv_race >/dev/null 2>&1 <<'SQL' || RACE_FAIL=1
+select t.trust_test_issuer();
+select t.as_kpn(1); select lv_api.lv_my_context();
+select t.as_kpn(2); select lv_api.lv_my_context();
+select t.as_pg();
+insert into lv.beta_applications (account_id, status) select id, 'approved' from lv.accounts;
+SQL
+fi
+if [ "$RACE_FAIL" = "0" ]; then
+  ( docker exec -i "$NAME" psql -U postgres -d lv_race -X -q -At >/dev/null 2>&1 <<'SQL'
+select pg_advisory_lock(424242);
+select pg_sleep(3);
+select pg_advisory_unlock(424242);
+SQL
+  ) &
+  CONTROLLER=$!
+  sleep 1
+  for n in 1 2; do
+    ( docker exec -i "$NAME" psql -U postgres -d lv_race -X -q -At > "/tmp/lv-race-$n.$$" 2>&1 <<SQL
+select t.as_kpn($n);
+select pg_advisory_lock_shared(424242);
+select 'RESULT|' || t.code(lv_api.lv_hub_create('$RACE_SLUG', 'Race $n'));
+SQL
+    ) &
+  done
+  wait
+  OKS=$(cat /tmp/lv-race-1.$$ /tmp/lv-race-2.$$ | grep -c '^RESULT|ok$')
+  CONFLICTS=$(cat /tmp/lv-race-1.$$ /tmp/lv-race-2.$$ | grep -c '^RESULT|lv_conflict$')
+  HUBS=$(qdb lv_race -At -c "select count(*) from lv.hubs where slug = '$RACE_SLUG'" 2>/dev/null)
+  CONSUMED=$(qdb lv_race -At -c "select count(*) from lv.beta_applications where status = 'consumed'" 2>/dev/null)
+  OWNERS=$(qdb lv_race -At -c "select count(*) from lv.hubs h join lv.hub_memberships m on m.hub_id = h.id and m.account_id = h.owner_account_id and m.status = 'accepted' where h.slug = '$RACE_SLUG'" 2>/dev/null)
+  echo "   winners=$OKS conflicts=$CONFLICTS hubs=$HUBS approvals_consumed=$CONSUMED owner_memberships=$OWNERS"
+  if [ "$OKS" = "1" ] && [ "$CONFLICTS" = "1" ] && [ "$HUBS" = "1" ] && [ "$CONSUMED" = "1" ] && [ "$OWNERS" = "1" ]; then
+    echo "   exactly one claimant won; the loser got lv_conflict and kept its approval"
+  else
+    echo "   RACE FAILED"; cat /tmp/lv-race-1.$$ /tmp/lv-race-2.$$ | head -10; RACE_FAIL=1
+  fi
+  kill "$CONTROLLER" 2>/dev/null
+  rm -f /tmp/lv-race-1.$$ /tmp/lv-race-2.$$
+fi
+
 echo "== results"
 echo "checks: $((SQL_PASS + SQL_FAIL)), failed: $SQL_FAIL"
 
@@ -83,4 +141,4 @@ rm -f /tmp/lv-rb.$$
 rm -f /tmp/lv-canon-setup.$$ /tmp/lv-canon-mig.$$
 # A zero-check run is a harness failure, not a pass: guard against a false green.
 if [ "$((SQL_PASS + SQL_FAIL))" = "0" ]; then echo "FAIL (no checks ran)"; exit 1; fi
-if [ "$SQL_FAIL" = "0" ] && [ "$RB_FAIL" = "0" ]; then echo PASS; else echo FAIL; exit 1; fi
+if [ "$SQL_FAIL" = "0" ] && [ "$RB_FAIL" = "0" ] && [ "$RACE_FAIL" = "0" ]; then echo PASS; else echo FAIL; exit 1; fi
