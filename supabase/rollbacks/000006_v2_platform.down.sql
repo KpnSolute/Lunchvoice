@@ -1,0 +1,26 @@
+-- Rollback for 000006_v2_platform.
+drop function if exists lv_api.lv_analytics_query(uuid, text, uuid);
+drop function if exists lv_api.lv_submit_response(uuid, jsonb);
+drop function if exists lv_api.lv_campaign_close(uuid);
+drop function if exists lv_api.lv_campaign_activate(uuid);
+drop function if exists lv_api.lv_campaign_question_add(uuid, int, text, text, jsonb);
+drop function if exists lv_api.lv_campaign_create(uuid, text, text, text);
+drop function if exists lv_api.lv_invite_revoke(uuid);
+drop function if exists lv_api.lv_invite_redeem(text);
+drop function if exists lv_api.lv_invite_create(uuid, int, timestamptz);
+drop function if exists lv_api.lv_beta_decide(uuid, boolean);
+drop function if exists lv_api.lv_beta_apply(text);
+drop function if exists lv_api.lv_hub_create(text, text);
+drop function if exists lv_api.lv_my_context();
+drop function if exists lv.invite_hash(text);
+drop function if exists lv.revoke_platform_admin(uuid, uuid);
+drop function if exists lv.grant_platform_admin(uuid, uuid);
+drop function if exists lv.is_platform_admin(uuid);
+drop table if exists lv.hub_invite_redemptions;
+drop table if exists lv.hub_invites;
+drop table if exists lv.beta_application_events;
+drop table if exists lv.beta_applications;
+drop table if exists lv.platform_admin_events;
+drop table if exists lv.platform_admins;
+drop table if exists lv.reserved_slugs;
+drop schema if exists lv_api cascade;

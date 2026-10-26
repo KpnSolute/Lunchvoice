@@ -1,0 +1,22 @@
+-- Rollback for 000002_v2_authorization: remove roles and capability wiring, keep memberships.
+drop trigger if exists roles_protect_owner on lv.roles;
+drop trigger if exists membership_roles_protect_owner on lv.membership_roles;
+drop trigger if exists hub_memberships_protect_owner on lv.hub_memberships;
+drop trigger if exists hubs_owner_guard on lv.hubs;
+drop trigger if exists hub_memberships_drop_roles on lv.hub_memberships;
+drop trigger if exists membership_roles_accepted_guard on lv.membership_roles;
+drop trigger if exists membership_roles_hub_guard on lv.membership_roles;
+drop function if exists lv.require_capability(uuid, uuid, text);
+drop function if exists lv.is_owner(uuid, uuid);
+drop function if exists lv.has_capability(uuid, uuid, text);
+drop function if exists lv.membership_of(uuid, uuid);
+drop function if exists lv.protect_owner_role_row();
+drop function if exists lv.protect_owner_role();
+drop function if exists lv.protect_owner_membership();
+drop function if exists lv.check_hub_owner();
+drop function if exists lv.drop_roles_on_leave();
+drop function if exists lv.check_membership_role_accepted();
+drop function if exists lv.check_membership_role_hub();
+drop table if exists lv.membership_roles;
+drop table if exists lv.role_capabilities;
+drop table if exists lv.roles;

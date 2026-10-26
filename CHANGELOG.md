@@ -6,6 +6,141 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed
+
+- **Founder reset, 2026-10-25 (supersedes every earlier entry that preserves, migrates or special-cases v1 or LionCafe).**
+  LunchVoice v1 is retired and nothing is preserved, migrated, backfilled, mapped or bridged; LunchVoice builds the platform
+  and never a customer Hub. No Hub, owner, role, page, Campaign, slug or fixture for LionCafe or MJCC exists in product code,
+  migrations or tests; a customer creates `lioncafe` through the public `lv_hub_create` flow. The earlier entries below that
+  mention creating the MJCC Hub, a Dec 11 MJCC launch or a v1 staff-permission fix are historical and no longer apply.
+- Added the canonical spec to the repo as `docs/v2/LunchVoice_v2_CANONICAL_MASTER_SPEC_2026-10-25.md`, and the split worker
+  prompts as `docs/v2/handoffs/UI_WORKER.md` and `docs/v2/handoffs/BACKEND_WORKER.md`.
+- Rewrote `AGENTS.md` and `CLAUDE.md` (byte-identical) as v2-only: SaaS boundary, identity, one entitlement map (Starter $13/mo,
+  Team $29/mo, Campaign Starter $19 for 2 weeks plus $13 per week, Campaign Plus price unset and fail-closed, Hub Name
+  Reservation $25 per 12 months with 25-day grace), `lv_api`-only frontend, error contract, privacy rules and thread ownership.
+- Rewrote `docs/backend/EXECUTION_ROADMAP.md` to the spec's 14-slice backend order with the entitlement map and the audit of the
+  migration chain. Amended `docs/v2/PRODUCT_SPEC.md` (now subordinate to the master spec; MJCC preservation, subdomain/LionCafe
+  compatibility and Campaign-Pass-only reservation wording replaced) and `docs/backend/PRODUCTION_RESET_RUNBOOK.md` (the reset
+  no longer creates any Hub).
+- Audit of migrations 000001-000007: no v1 table dependency, no seed. Fixed two issues: tests created `lioncafe` as their sample
+  Hub (now a synthetic Hub), and a draft reserved-slug list carried `mjcc-admin` and `lioncafe-admin` (removed; no customer name
+  is reserved). Added a test that no customer name is reserved and that no Hub exists before a customer creates one.
+
+- Added `supabase/migrations/000008_v2_error_envelope.sql` (with rollback and `08_error_contract` tests). All 13 `lv_api` write
+  functions now return `{ok:false, error:{code, message, ...}}` for every expected failure; bodies moved to `lv.api_*` behind
+  thin wrappers; `lv_gate_blocked` carries `reasons`; caller-caused database rule violations map to `lv_invalid_input`,
+  `lv_conflict` or `lv_not_found`; real faults stay exceptional as `lv_server_error` with no detail. `lv_hub_create` now
+  validates slug format and display name itself (no raw constraint errors) and writes a `hub.created` audit event. For anonymous
+  Campaigns the submission and answer timestamps are coarsened to the day so they never equal the participation timestamp (the
+  stored join path found in the spec audit). Existing tests that expected raises now assert error codes.
+- Added a two-connection slug race to `scripts/db-test-canonical.sh`: two clients claim one slug at once; exactly one wins, the
+  other gets `lv_conflict` and keeps its approval. Suite is now 228 checks plus the race, 0 failed, rollback rehearsal passing.
+
+### Removed
+
+- **v1 removed from the repository (founder authorization 2026-10-26).** Deleted the v1 Edge Functions (`login-start`,
+  `staff-login`, `staff-sso`, `staff-status`, `menu-sync`, `send-email` and `_shared`), `supabase/keepalive.sql`, the tracked
+  `supabase/.temp/linked-project.json`, `legacy/`, `public/tenants/`, `scripts/check-email-setup.mjs`, the `deploy:functions` and
+  `check:email` scripts, the MJCC menu bridge and tenant-map settings in `.env.example`, and all 20 v1 migrations from
+  `supabase/migrations/`. The active migration directory now contains only `000001`-`000008`, so `supabase db reset` or `db push`
+  produces only the v2 schema; `scripts/db-test-canonical.sh` fails if any other file appears there. Git history keeps v1.
+  Not touched here (UI branch owns them): `src/` v1 frontend, `scripts/check-bundle.mjs` and `scripts/release-policy*`.
+- **Live production not yet reset.** The backend session's Supabase connector and the local CLI login cannot see project
+  `qprfonxvthmaoxfixigk`, so the destructive live steps (drop v1 schema, delete v1 users, retire v1 functions and secrets,
+  install v2, deploy v2) are blocked on access and have not been run. See `docs/backend/PRODUCTION_RESET_RUNBOOK.md`.
+- Removed `MULTI_TENANT_PLAN.md` and `docs/backend/DATA_AND_MIGRATION_PLAN.md`, which planned v1 org-to-Hub continuity and a data
+  migration. Git history keeps them.
+
+### Added
+
+- **Roadmap slices 7, 8, 10 and 11 (branch `feat/v2-collab-participation-api`, stacked on `feat/v2-read-api`; not applied to
+  production).** Split with the backend thread: this branch owns migrations `000010`-`000019`; slices 4, 5, 6, 9, 12 and 13 stay
+  with the backend thread. Each migration has a rollback and a test suite; documented append-only in `docs/backend/API_CONTRACT.md`.
+  - `000010_v2_roles_members.sql`: capability catalogue with groups; custom roles with name and icon; `lv_role_list/create/update/
+    delete`, `lv_member_role_assign/unassign`, `lv_hub_join`, `lv_member_leave/admit/reject/remove`. No escalation anywhere (nobody
+    grants, edits, deletes, assigns or removes past their own capabilities); Owner role untouchable; the Owner never uses a custom
+    slot. Custom-role slots read `lv.custom_role_limit()`, which fails closed until policy `roles.max_custom_per_hub` is set; slice 9
+    should replace that body with the entitlement map. Members can leave and rejoin (`left` status); removal stays permanent.
+    `lv_invite_redeem` now re-admits someone who left.
+  - `000011_v2_campaign_lifecycle.sql`: statuses `paused` and `archived`; Scheduled and Ended are derived from the window
+    (`lv.campaign_phase`), so scheduled Campaigns hold their slot from publication and no background job is needed. Publishing writes
+    an immutable `lv.campaign_versions` row (questions, participation settings, limit in force). New `lv_campaign_update`,
+    `lv_campaign_question_update/remove`, `lv_campaign_schedule`, `lv_campaign_pause/resume` (resume re-checks the cap),
+    `lv_campaign_archive`, `lv_campaign_versions`; `lv_campaign_close` now also closes paused or scheduled Campaigns and refuses drafts.
+  - `000012_v2_participation_modes.sql`: guest participation (`audience = 'members_and_guests'`) through `lv_guest_campaign_get` and
+    `lv_guest_submit` by join code, signed out. Guests never create memberships or count toward member totals; dedup by a hashed
+    client key; per-Campaign total and per-minute rate limits, failing closed until policy `participation.guest_rate_per_minute` is set.
+    `lv_campaign_set_participation` (draft only).
+  - `000013_v2_analytics.sql`: anonymous results publish once finished (closed, archived or past `closes_at`; paused is not finished);
+    guests counted apart (`guest_n`) and included in the frozen release population; new `participation_rate` and `rating_summary`
+    metrics; `multi_choice` counted per option; `lv_analytics_overview`; `lv.campaign_member_participation()` for the survey unlock
+    threshold in slice 9.
+  - Tests: `10_roles_members` (46 checks), `11_campaign_lifecycle` (39), `12_participation_modes` (23), `13_analytics` (20).
+    `scripts/db-test-canonical.sh`: 356 checks, 0 failed, slug race passing, full apply and rollback rehearsal passing.
+  - Not done here: ownership transfer (slice 6), entitlement-driven limits (slice 9), election-mode guest rules (no election mode
+    exists yet), true parallel races for the new advisory locks, and `lv_campaign_list/get` still return the stored status (the UI
+    derives the phase; folding `phase` into those reads is left to the read-API owner).
+
+- Added `supabase/migrations/000007_v2_read_api.sql` (with rollback and `07_read_api` tests): read API for the v2 frontend
+  (`lv_hub_get`, `lv_campaign_list`, `lv_campaign_get`, `lv_member_list`, `lv_invite_list`, `lv_invite_preview`, `lv_beta_status`),
+  richer `lv_my_context` (roles, capabilities, platform-admin and beta state), a completed reserved-slug list enforced by a
+  trigger, and a no-double-hyphen slug rule. Documented in `docs/backend/API_CONTRACT.md`.
+
+### Added
+
+- Added the canonical v2 fresh-install baseline: `supabase/migrations/000001_v2_core.sql` through `000006_v2_platform.sql`
+  (core identity/Hubs/memberships, authorization, campaigns, participation, privacy analytics, platform), each with a matching
+  `supabase/rollbacks/*.down.sql`. A **blank database plus these six files is a complete LunchVoice v2 installation**; the
+  legacy `public/` migrations in the same directory are v1 and are not part of it. Identity is `(issuer, subject)` with
+  `UNIQUE(identity_issuer, identity_subject)`; there is no auth-user-keyed identity, no legacy-auth-user synthesis, no
+  `public.profiles` mirror trigger and no dependency on `public.orgs`. For an anonymous Campaign the submission stores no
+  account and the participation stores no submission, enforced by triggers, so there is no stored join path from a person to
+  their answers. Tables live in schema `lv` and are never exposed; the whole API surface is 13 `lv_api` functions.
+- Added `scripts/db-test-canonical.sh`, a fresh-install runner that applies only the canonical migrations to a throwaway
+  Postgres, runs every suite, then applies and reverses the full baseline. It **fails on a zero-check run** rather than
+  reporting a false green.
+- Added tests: `supabase/tests/setup.sql` plus `01_identity` (25), `02_authorization` (28), `03_privacy` (26),
+  `04_analytics` (22), `05_acceptance` (50) and `06_concurrency` (11). **162 checks executed, 0 failed**, and the full
+  baseline applies to a blank database and rolls back completely.
+- Added `docs/backend/PRODUCTION_RESET_RUNBOOK.md`: the not-approved, not-executed procedure for resetting the v1 database,
+  including what is destroyed (137 users, 72 responses, 639 answers, 803 ratings, 14 orders), what is preserved, the
+  dependency of all six live Edge Functions on `profiles`/`orgs`, how the first v2 administrator and MJCC Hub are created, how
+  to prove no old student data survived, and the fact that there is **no rollback** after the schema drop.
+
+### Changed
+
+- **Architecture: LunchVoice v2 starts fresh; D-01 Option D withdrawn.** Google → KpnIdentity → LunchVoice is now the only
+  identity path, and the old student dataset is explicitly not migrated. Old student accounts, responses, answers, ratings,
+  points, reward history and legacy memberships do not carry into v2; the old production database is v1 / retirement-pending.
+  Identity is the `(issuer, subject)` pair with `UNIQUE(identity_issuer, identity_subject)`; email is never the identity key.
+  Hubs get independent v2 identities and no longer depend on `public.orgs`; `public.profiles` is not the v2 identity model and
+  `role`, `is_staff`, `org_id` and `mjcc_username` are absent from the canonical schema. The legacy survey bridge is removed.
+  Recorded in `docs/backend/D01_IDENTITY_SUPERSESSION_2026-10-25.md`, which supersedes parts of the D-01 packet
+  (`docs/backend/D01_IDENTITY_DECISION_PACKET.md`), `docs/v2/PRODUCT_SPEC.md` (V2-02), `docs/backend/DATA_AND_MIGRATION_PLAN.md`
+  (§2 principle 4) and `docs/backend/EXECUTION_ROADMAP.md`, all of which were amended in the same change so no authoritative
+  document still mandates Option D or v1 data continuity.
+- **Schedule risk recorded, not softened:** with no fallback, Dec 11 depends on a KpnIdentity issuer that does not yet exist.
+  Architecture correctness takes priority over retaining Option D.
+
+### Added
+
+- Added `docs/v2/IDENTITY_CONTRACT.md`: what crosses from KpnIdentity into LunchVoice (`iss`, `sub`, `email`,
+  `email_verified`, `name`, `picture`, nonce), the token/session trust model, validation and fail-closed rules, account-linking
+  rules (no email merging), verified-vs-unverified behaviour, and the explicit statement that email is not the identity key.
+- Added `docs/v2/KPNIDENTITY_SCHEMA_V1.md`: a minimal identity schema (`kpni.profiles`, `kpni.oauth_clients`,
+  `kpni.oauth_redirect_uris`, `kpni.security_events`), the Supabase-managed vs application-table split, and the deliberate
+  exclusions (MFA, grants, tenancy, billing) that would otherwise make an oversized IAM platform.
+- Added `docs/v2/LUNCHVOICE_SCHEMA_V2.md`: the canonical fresh-install schema and its six baseline migrations, the
+  `accounts → hub_memberships → membership_roles → role_capabilities` model, and the anonymity boundary.
+- Added `docs/backend/V2_MIGRATION_CLASSIFICATION.md`: KEEP / REDESIGN / REMOVE for all 11 prototype migrations with reasons
+  and destinations, plus the ported non-SQL assets. Nothing in the prototype stack was deleted.
+
+### Notes
+
+- The prototype stack (`feat/v2-hub-invitations` and the other 10 v2 branches) is unchanged and remains the research record.
+  The canonical baseline is built on `feat/v2-canonical-baseline` off `main`, not on the prototype branch.
+- No production database was read, written or wiped in this change.
+
 ### Added
 
 - Fixed the project-scoped Supabase MCP server failing to start in the Claude desktop app on Windows with WSL (`.mcp.json`). The app launches `bash` from Windows with the
