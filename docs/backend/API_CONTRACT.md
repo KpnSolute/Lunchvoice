@@ -89,7 +89,7 @@ accepted_at, is_owner, roles }] }`. No email addresses.
 
 ## Invitations
 
-- `lv_invite_create(p_hub, p_max_uses?, p_expires_at?)` needs `admin.members.admit`. The code is shown once.
+- `lv_invite_create(p_hub, p_max_uses?, p_expires_at?)` needs `admin.members.admit`. Returns `{ ok, invite_id, code, shown_once: true }`; the code appears only in this response.
 - `lv_invite_list(p_hub)` needs `admin.members.admit`:
   `{ ok, invites: [{ invite_id, max_uses, uses, expires_at, revoked_at, created_at, state: "active"|"revoked"|"expired"|"exhausted" }] }`.
   Codes are stored hashed and cannot be shown again.
