@@ -6,6 +6,14 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Documentation
+
+- Frontend docs reset to the v2 canonical master spec (2026-10-25): `README.md`, `PRODUCT.md` and `DESIGN.md` rewritten for the
+  Hub/Campaign SaaS (Hybrid design direction, canonical pricing, Campaign Plus has no numeric price, Hub Name Reservation);
+  new `docs/frontend/FRONTEND.md` (routes, boundaries, mock-to-real replacement table, work order, acceptance test) and
+  `docs/frontend/HANDOFF.md`; `MULTI_TENANT_PLAN.md` marked superseded. `discover` added to the reserved slugs.
+  `AGENTS.md`, `CLAUDE.md` and the spec/API contract remain with the backend thread.
+
 ### Changed
 
 - **v2 frontend reset (branch `feat/v2-ui`).** Removed every v1 screen and its support code: student/cafeteria routes,
