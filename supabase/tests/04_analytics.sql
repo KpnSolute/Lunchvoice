@@ -136,7 +136,7 @@ select t.check('free-text answers are not published, even with a policy set',
 -- ---------------------------------------------------------------------------------------------------------
 select t.as_kpn(101);
 select t.check('a non-admin member cannot read analytics',
-  t.raises($$select lv_api.lv_analytics_query('$$ || t.get('c') || $$'::uuid, 'participant_count')$$, '42501'));
+  t.code(lv_api.lv_analytics_query(t.id('c'), 'participant_count')) = 'lv_forbidden');
 select t.check('no caller can query the answers table directly',
   t.raises($$select * from lv.answers$$));
 select t.check('no caller can query submissions directly',

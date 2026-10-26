@@ -22,11 +22,11 @@ uses exactly this path to create `lioncafe`.
 | # | Slice | Status | Notes and acceptance |
 | --- | --- | --- | --- |
 | 1 | Audit the migration chain for legacy-bridge assumptions | **done** 2026-10-25 | Canonical migrations 000001-000007 reference no `orgs`, `profiles`, legacy auth, LionCafe or MJCC. Tests use generic Hubs. Customer names are not reserved. See the audit note below |
-| 2 | Normalize `lv_api` errors to `{ok:false,error:{code,message,...}}` | **next** | Older write functions still raise. Update tests, `API_CONTRACT.md` and the UI's types |
+| 2 | Normalize `lv_api` errors to `{ok:false,error:{code,message,...}}` | **done locally** (migration 000008) | All 13 write functions wrapped; bodies live in `lv.api_*`. Tests and `API_CONTRACT.md` updated. The UI's types still need to drop the raise-parsing path |
 | 3 | Reconcile the read API into the canonical stack | **done locally** (`feat/v2-read-api`, migration 000007) | `lv_hub_get`, `lv_campaign_list/get`, `lv_member_list`, `lv_invite_list/preview`, `lv_beta_status`, richer `lv_my_context`, reserved slugs. 202+ checks pass. Not pushed |
 | 4 | KpnIdentity/Google exchange | later | `auth.kpnsolute.com`, `(issuer, subject)`, never email. Needs the real issuer and JWKS; tested today only with a simulated issuer |
 | 5 | Account and session | later | Account created on first verified sign-in; logout/recovery contract |
-| 6 | Hub create/read/update and ownership | later | Atomic create: authentication, entitlement check, normalized slug, reserved-slug check, concurrency-safe claim, protected Owner, audit. Add a two-user slug race test. Replace the beta gate with the entitlement check |
+| 6 | Hub create/read/update and ownership | **partial** | Done: atomic create with slug validation, reserved-slug check, concurrency-safe claim (two-connection race test), protected Owner, `hub.created` audit event. Remaining: replace the beta gate with the entitlement check; Hub update; ownership transfer |
 | 7 | Memberships, invites and roles | later | 3 custom roles (Starter family), 6 (Team family), Owner outside the count, no privilege escalation, secure ownership transfer |
 | 8 | Campaign version, questions and lifecycle | later | Draft, Scheduled, Active, Paused/Closed, Archived; immutable published versions; schedule and eligibility records |
 | 9 | Duration entitlements | later | Explicit start/end timestamps, scheduled activation, idempotent extension, server time, fail closed on expiry, no deletion of customer data |

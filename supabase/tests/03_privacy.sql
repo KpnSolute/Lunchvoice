@@ -48,8 +48,8 @@ select t.as_kpn(11, 'member1@example.invalid', true, 'Member One');
 select lv_api.lv_my_context();
 select t.put('m1', t.q($$select lv.current_account_id()::text$$));
 select t.check('a non-member cannot submit',
-  t.raises($$select lv_api.lv_submit_response('$$ || t.get('anon_c') || $$'::uuid,
-    '[{"question_id":"$$ || t.get('anon_q') || $$","value":4}]'::jsonb)$$, '42501'));
+  t.code(lv_api.lv_submit_response(t.id('anon_c'),
+    format('[{"question_id":"%s","value":4}]', t.get('anon_q'))::jsonb)) = 'lv_forbidden');
 
 select t.as_pg();
 insert into lv.hub_memberships (hub_id, account_id, status, accepted_at)
@@ -137,7 +137,7 @@ select t.as_kpn(13);
 select t.check('member 3 has no prior participation in this Campaign',
   t.q($$select count(*)::text from lv.participation where campaign_id = '$$ || t.get('anon_c') || $$'::uuid and account_id = '$$ || t.get('m3') || $$'::uuid$$) = '0');
 select t.check('a missing answer is rejected',
-  t.raises($$select lv_api.lv_submit_response('$$ || t.get('anon_c') || $$'::uuid, '[]'::jsonb)$$, '22023'));
+  t.code(lv_api.lv_submit_response(t.id('anon_c'), '[]'::jsonb)) = 'lv_invalid_input');
 select t.check('a rejected submission creates no participation row',
   t.q($$select count(*)::text from lv.participation where campaign_id = '$$ || t.get('anon_c') || $$'::uuid and account_id = '$$ || t.get('m3') || $$'::uuid$$) = '0');
 select t.as_pg();
@@ -149,15 +149,15 @@ select t.as_pg();
 insert into lv.hub_memberships (hub_id, account_id, status, accepted_at) values (t.id('hub'), t.id('m2'), 'accepted', now());
 select t.as_kpn(12);
 select t.check('a closed Campaign refuses responses',
-  t.raises($$select lv_api.lv_submit_response('$$ || t.get('anon_c') || $$'::uuid,
-    '[{"question_id":"$$ || t.get('anon_q') || $$","value":3}]'::jsonb)$$, '42501'));
+  t.code(lv_api.lv_submit_response(t.id('anon_c'),
+    format('[{"question_id":"%s","value":3}]', t.get('anon_q'))::jsonb)) = 'lv_closed');
 
 -- ---------------------------------------------------------------------------------------------------------
 -- A caller cannot forge identity by supplying an account id
 -- ---------------------------------------------------------------------------------------------------------
 select t.as_anon();
 select t.check('an anonymous caller cannot submit at all',
-  t.raises($$select lv_api.lv_submit_response('$$ || t.get('ident_c') || $$'::uuid,
-    '[{"question_id":"$$ || t.get('ident_q') || $$","value":5}]'::jsonb)$$, '42501'));
+  t.code(lv_api.lv_submit_response(t.id('ident_c'),
+    format('[{"question_id":"%s","value":5}]', t.get('ident_q'))::jsonb)) = 'lv_unauthenticated');
 
 rollback;

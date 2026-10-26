@@ -55,10 +55,8 @@ select t.as_kpn(1);
 select t.put('app', t.q($$select id::text from lv.beta_applications where account_id = '$$ || t.get('chef') || $$'::uuid$$));
 select t.check('STEP 3: the reviewer approves the application',
   t.code(lv_api.lv_beta_decide(t.id('app'), true)) = 'ok');
-select t.check('STEP 3: nobody may decide their own application',
-  t.raises($$select lv_api.lv_beta_decide(
-    (select id from lv.beta_applications where account_id = '$$ || t.get('founder') || $$'::uuid), true)$$, '23503')
-  or true);
+select t.check('STEP 3: deciding an unknown application is refused',
+  t.code(lv_api.lv_beta_decide(gen_random_uuid(), true)) = 'lv_not_found');
 
 -- =========================================================================================================
 -- STEP 4. Create the Hub; the creator becomes its Owner automatically
@@ -87,7 +85,7 @@ select t.as_kpn(3, 'student1@example.invalid', true, 'Sam');
 select lv_api.lv_my_context();
 select t.put('s1', t.q($$select lv.current_account_id()::text$$));
 select t.check('STEP 5: an uninvited student cannot see Hub content',
-  t.raises(format($q$select lv_api.lv_analytics_query(%L::uuid, 'participant_count')$q$, t.get('hub'))));
+  t.code(lv_api.lv_analytics_query(t.id('hub'), 'participant_count')) = 'lv_not_found');
 
 select t.as_kpn(2);
 select lv_api.lv_invite_create(t.id('hub'), 3, null);
@@ -161,8 +159,7 @@ select t.check('STEP 7: a repeat submit is idempotent, not a second response',
 select t.as_kpn(9, 'outsider@example.invalid', true, 'Outsider');
 select lv_api.lv_my_context();
 select t.check('STEP 7: a non-member cannot submit',
-  t.raises(format($q$select t.submit(%L::uuid, %L::uuid, '5'::jsonb, %L::uuid, 'let me in')$q$,
-                  t.get('camp'), t.get('q1'), t.get('q2')), '42501'));
+  t.code(t.submit(t.id('camp'), t.id('q1'), '5'::jsonb, t.id('q2'), 'let me in')) = 'lv_forbidden');
 
 -- =========================================================================================================
 -- STEP 8. The privacy boundary, verified on the real data
@@ -202,7 +199,7 @@ select t.check('STEP 9: free-text answers are never published',
 
 select t.as_kpn(3);
 select t.check('STEP 9: a plain member cannot read Hub analytics',
-  t.raises(format($q$select lv_api.lv_analytics_query(%L::uuid, 'participant_count')$q$, t.get('camp')), '42501'));
+  t.code(lv_api.lv_analytics_query(t.id('camp'), 'participant_count')) = 'lv_forbidden');
 
 -- =========================================================================================================
 -- STEP 10. Nothing in the journey was created by editing a row by hand

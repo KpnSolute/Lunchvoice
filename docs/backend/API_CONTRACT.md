@@ -1,6 +1,6 @@
 # LunchVoice v2 API contract (`lv_api`)
 
-Status: implemented on `feat/v2-read-api` (migrations 000001-000007). Not applied to production.
+Status: implemented on `feat/v2-read-api` (migrations 000001-000008). Not applied to production.
 The frontend uses only these functions for application data. Tables and the `lv` schema are not reachable.
 
 Every function returns `jsonb`. The caller is always taken from the verified KpnIdentity token; no function
@@ -11,11 +11,14 @@ accepts an account id. Call them through PostgREST RPC against schema `lv_api`.
 - Success: `{ "ok": true, ... }`
 - Failure: `{ "ok": false, "error": { "code": "lv_...", "message": "..." } }`
 
-**Known inconsistency (to be normalized).** Read functions added in 000007 always return the envelope.
-Older write functions (000006) sometimes *raise* a Postgres exception whose message starts with the code, for
-example `lv_forbidden: missing capability campaign.manage` (SQLSTATE `42501`, `23503` for not-found, `22023`
-for invalid input). Until normalized, the client must handle both: parse the code from the `lv_...` prefix of
-the exception message, or from `error.code`.
+**One contract (since 000008).** Every expected failure from every `lv_api` function is returned as the
+failure envelope. The client never parses Postgres exception text. Optional metadata rides alongside `code`
+and `message`: `lv_gate_blocked` adds `reasons: [...]`, and `lv_policy_undecided` may add `missing: [...]`.
+Database rule violations the caller caused (bad enum, malformed value, check constraint) come back as
+`lv_invalid_input`, duplicates as `lv_conflict`, and a missing referenced record as `lv_not_found`.
+Only a true server fault is an HTTP-level error, reported as `lv_server_error` with no internal detail.
+`lv_submit_response` is also an envelope function now: `lv_closed`, `lv_forbidden`, `lv_not_found`,
+`lv_invalid_input` and `lv_unauthenticated` are returned, not raised.
 
 ## Error codes
 
@@ -68,9 +71,12 @@ Errors: `lv_forbidden` (not an administrator, or deciding your own), `lv_not_fou
 ## Hubs
 
 ### `lv_hub_create(p_slug, p_name)`
-`{ ok, hub_id, slug }`. Slug is lowercased. Errors: `lv_invalid_input` (reserved), `lv_beta_required`,
-`lv_conflict` (taken). The database also enforces: 3 to 40 characters, `[a-z0-9-]`, no leading or trailing
-hyphen, no `--`. Reserved slugs are in `lv.reserved_slugs` (case-insensitive); the UI may mirror them for
+`{ ok, hub_id, slug }`. Slug is lowercased. Atomic: the Hub, its protected Owner membership and role, the
+beta consumption and a `hub.created` audit event commit together or not at all. Errors: `lv_invalid_input`
+(reserved, wrong length or format, or a blank display name), `lv_beta_required`, `lv_conflict` (taken). Format
+is 3 to 40 characters, `[a-z0-9-]`, no leading or trailing hyphen, no `--`. Concurrent claims of one slug are
+safe: exactly one caller wins and the other gets `lv_conflict` with its approval intact (proven by a
+two-connection test in `scripts/db-test-canonical.sh`). Reserved slugs are in `lv.reserved_slugs` (case-insensitive); the UI may mirror them for
 availability hints but the server decides.
 
 ### `lv_hub_get(p_slug)`
@@ -131,7 +137,7 @@ Create returns `{ ok, campaign_id }`. Activation can fail with `lv_gate_blocked`
 ### `lv_submit_response(p_campaign, p_answers)`
 `p_answers` is `[{ question_id, value }]` and must answer every question (rating 1-5; others non-null).
 Success: `{ ok, receipt_id, duplicate }`. A repeat submission is not an error: it returns the original
-receipt with `duplicate: true`. Errors (raised): `lv_unauthenticated`, `lv_not_found`, `lv_closed`,
+receipt with `duplicate: true`. Errors (envelope): `lv_unauthenticated`, `lv_not_found`, `lv_closed`,
 `lv_forbidden` (not an accepted member), `lv_invalid_input` (message names the problem).
 
 Anonymous versus identified is a Campaign setting (`campaign.anonymity`), not an error. For an anonymous

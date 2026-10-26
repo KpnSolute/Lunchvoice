@@ -26,6 +26,16 @@ categories and the repository's decimal `X.X.X` release policy.
   Hub (now a synthetic Hub), and a draft reserved-slug list carried `mjcc-admin` and `lioncafe-admin` (removed; no customer name
   is reserved). Added a test that no customer name is reserved and that no Hub exists before a customer creates one.
 
+- Added `supabase/migrations/000008_v2_error_envelope.sql` (with rollback and `08_error_contract` tests). All 13 `lv_api` write
+  functions now return `{ok:false, error:{code, message, ...}}` for every expected failure; bodies moved to `lv.api_*` behind
+  thin wrappers; `lv_gate_blocked` carries `reasons`; caller-caused database rule violations map to `lv_invalid_input`,
+  `lv_conflict` or `lv_not_found`; real faults stay exceptional as `lv_server_error` with no detail. `lv_hub_create` now
+  validates slug format and display name itself (no raw constraint errors) and writes a `hub.created` audit event. For anonymous
+  Campaigns the submission and answer timestamps are coarsened to the day so they never equal the participation timestamp (the
+  stored join path found in the spec audit). Existing tests that expected raises now assert error codes.
+- Added a two-connection slug race to `scripts/db-test-canonical.sh`: two clients claim one slug at once; exactly one wins, the
+  other gets `lv_conflict` and keeps its approval. Suite is now 228 checks plus the race, 0 failed, rollback rehearsal passing.
+
 ### Removed
 
 - Removed `MULTI_TENANT_PLAN.md` and `docs/backend/DATA_AND_MIGRATION_PLAN.md`, which planned v1 org-to-Hub continuity and a data

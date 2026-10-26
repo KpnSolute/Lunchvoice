@@ -61,9 +61,9 @@ select t.as_kpn(10);
 select t.check('the Owner of Hub A holds no capability in Hub B',
   t.q($$select lv.has_capability('$$ || t.get('acc_a') || $$'::uuid, '$$ || t.get('hub_b') || $$'::uuid, 'campaign.manage')::text$$) = 'false');
 select t.check('the Owner of Hub A cannot create a Campaign in Hub B',
-  t.raises($$select lv_api.lv_campaign_create('$$ || t.get('hub_b') || $$'::uuid, 'Sneaky', 'survey')$$, '42501'));
+  t.code(lv_api.lv_campaign_create(t.id('hub_b'), 'Sneaky', 'survey')) = 'lv_forbidden');
 select t.check('the Owner of Hub A cannot mint an invitation for Hub B',
-  t.raises($$select lv_api.lv_invite_create('$$ || t.get('hub_b') || $$'::uuid)$$, '42501'));
+  t.code(lv_api.lv_invite_create(t.id('hub_b'))) = 'lv_forbidden');
 select t.check('a non-member cannot read Hub B analytics',
   t.raises($$select lv.analytics_query(gen_random_uuid(), 'participant_count')$$));
 
