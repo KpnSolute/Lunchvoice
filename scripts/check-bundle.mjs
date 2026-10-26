@@ -1,13 +1,11 @@
 // Smoke check that a production build actually contains the application.
 //
-// Without VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY at build time,
-// src/lib/supabase.ts throws at module load and the bundler drops everything
-// after it, so `vite build` still "succeeds" with a near-empty bundle. CI
-// supplies placeholder (non-secret) values; this check proves they took effect.
+// A build that silently drops the app would still "succeed". This check proves the
+// bundle contains the v2 `lv_api` operations the app calls (required markers) and none
+// of the dev-only mock or simulated sign-in code (forbidden markers).
 //
-// Markers are stable identifiers: the Supabase client factory, the auth client,
-// and RPC/function names the app calls. If one is renamed on purpose, update the
-// list here in the same change.
+// Markers are stable identifiers. If one is renamed on purpose, update the lists here
+// in the same change.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
