@@ -36,6 +36,12 @@ categories and the repository's decimal `X.X.X` release policy.
 - Added a two-connection slug race to `scripts/db-test-canonical.sh`: two clients claim one slug at once; exactly one wins, the
   other gets `lv_conflict` and keeps its approval. Suite is now 228 checks plus the race, 0 failed, rollback rehearsal passing.
 
+### Fixed
+
+- Fixed PR checks after the v1 removal: the "Edge function unit tests (Deno)" job failed because `supabase/functions/_shared/` was
+  deleted. It is replaced by a "Canonical v2 database suite" job running `scripts/db-test-canonical.sh` (fresh install, SQL suites,
+  two-connection slug race, rollback rehearsal) in a throwaway Postgres container with no secrets.
+
 ### Removed
 
 - **v1 removed from the repository (founder authorization 2026-10-26).** Deleted the v1 Edge Functions (`login-start`,
