@@ -48,8 +48,10 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
       session,
       api: createApi(() => session?.token ?? null, session?.name),
       issuerConfigured: Boolean(issuer),
-      canSimulate: usingMock,
-      signInSimulated: (name) => persist({ token: "simulated", name: name || "Dana" }),
+      canSimulate: import.meta.env.DEV && usingMock,
+      signInSimulated: import.meta.env.DEV
+        ? (name) => persist({ token: "simulated", name: name || "Dana" })
+        : () => {},
       signOut: () => persist(null),
     };
   }, [session]);

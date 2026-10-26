@@ -118,6 +118,8 @@ test("bundle check reports missing markers and passes when all are present", () 
     assert.equal(checkBundleDir(dir).ok, false);
     writeFileSync(join(dir, "index.js"), "lv_my_context lv_hub_create lv_submit_response lv_analytics_query");
     assert.equal(checkBundleDir(dir).ok, true);
+    writeFileSync(join(dir, "index.js"), "lv_my_context lv_hub_create lv_submit_response lv_analytics_query Sign in (simulated)");
+    assert.equal(checkBundleDir(dir).ok, false);
     assert.equal(checkBundleDir(join(dir, "missing")).ok, false);
   } finally {
     rmSync(dir, { recursive: true, force: true });

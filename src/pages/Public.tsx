@@ -47,7 +47,7 @@ export function SignIn() {
       ) : (
         <div className="notice">KpnIdentity is not configured for this build, so Google sign-in is unavailable.</div>
       )}
-      {canSimulate && (
+      {import.meta.env.DEV && canSimulate && (
         <>
           <label className="stack">Simulated display name
             <input value={name} onChange={(e) => setName(e.target.value)} />

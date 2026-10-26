@@ -22,8 +22,19 @@ function realTransport(getToken: () => string | null): LvTransport {
   };
 }
 
-export const usingMock = import.meta.env.VITE_LV_MOCK === "1" || !url || !key;
+// Production builds never use the mock: without a configured backend they fail closed.
+const failClosed: LvTransport = {
+  async rpc() {
+    return { ok: false, error: { code: "lv_server_error", message: "LunchVoice is not configured." } };
+  },
+};
+
+// The mock exists only in `vite` dev builds. `import.meta.env.DEV` is replaced with a
+// literal so the mock and the simulated sign-in are dropped from production bundles.
+export const usingMock: boolean =
+  import.meta.env.DEV && (import.meta.env.VITE_LV_MOCK === "1" || !url || !key);
 
 export function createApi(getToken: () => string | null, displayName?: string): LvApi {
-  return createLvApi(usingMock ? createMockTransport(displayName) : realTransport(getToken));
+  if (import.meta.env.DEV && usingMock) return createLvApi(createMockTransport(displayName));
+  return createLvApi(url && key ? realTransport(getToken) : failClosed);
 }

@@ -13,6 +13,13 @@ import { join } from "node:path";
 
 const REQUIRED_MARKERS = ["lv_my_context", "lv_hub_create", "lv_submit_response", "lv_analytics_query"];
 
+// Dev-only code that must never reach a production bundle.
+const FORBIDDEN_MARKERS = ["Sign in (simulated)", "mock-account", "Mock does not implement"];
+
+export function findForbiddenMarkers(source, markers = FORBIDDEN_MARKERS) {
+  return markers.filter((marker) => source.includes(marker));
+}
+
 export function findMissingMarkers(source, markers = REQUIRED_MARKERS) {
   return markers.filter((marker) => !source.includes(marker));
 }
@@ -34,6 +41,10 @@ export function checkBundleDir(dir) {
         `Bundle is missing expected markers: ${missing.join(", ")}. ` +
         "Was the build run without VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY?",
     };
+  }
+  const forbidden = findForbiddenMarkers(source);
+  if (forbidden.length > 0) {
+    return { ok: false, message: `Bundle ships dev-only code: ${forbidden.join(", ")}.` };
   }
   return { ok: true, message: `Bundle contains all ${REQUIRED_MARKERS.length} expected markers (${source.length} bytes).` };
 }
