@@ -32,6 +32,15 @@ else. **Email is never the identity key.**
 KpnIdentity must never learn that LunchVoice has Hubs, roles, plans, campaigns or
 participations. No LunchVoice concept may appear in a KpnIdentity table.
 
+### 1.1 Who may sign up (amended 2026-10-27)
+
+KpnIdentity accepts public sign-up with Google or with the person's own email address (verified by
+KpnIdentity). No KpnSolute team, staff or organization membership is required, and KpnIdentity has no
+concept of one (`KPNIDENTITY_SCHEMA_V1.md` excludes organisations, teams and groups). LunchVoice therefore
+has one sign-in path, Google or email through KpnIdentity, and never authenticates anyone itself.
+Team Hub is a LunchVoice plan and says nothing about KpnSolute staff. Email sign-up at KpnIdentity is an
+open dependency; until it exists, only Google sign-in can be exercised.
+
 ## 2. What crosses the boundary
 
 Exactly one token crosses, on sign-in, and only these claims are consumed.

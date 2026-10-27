@@ -8,6 +8,15 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Changed
 
+- **Founder amendment, 2026-10-27: open sign-up for Hub users.** Hub users sign up with their own email address through
+  KpnIdentity (Google or email); no KpnSolute team, staff or organization membership is required, and Team Hub plans are independent
+  of KpnSolute team membership. LunchVoice still never authenticates anyone itself and still keys people by `(issuer, subject)`.
+  Recorded as section 4.1 of the canonical master spec, section 1.1 of `docs/v2/IDENTITY_CONTRACT.md`, row V2-03 of
+  `docs/v2/PRODUCT_SPEC.md` and the identity bullet in `AGENTS.md` and `CLAUDE.md`. Open dependency: KpnIdentity must support email
+  sign-up; if LunchVoice were to run its own email sign-up instead, that would reverse decision S-1 and needs an explicit decision.
+
+### Changed
+
 - **Founder reset, 2026-10-25 (supersedes every earlier entry that preserves, migrates or special-cases v1 or LionCafe).**
   LunchVoice v1 is retired and nothing is preserved, migrated, backfilled, mapped or bridged; LunchVoice builds the platform
   and never a customer Hub. No Hub, owner, role, page, Campaign, slug or fixture for LionCafe or MJCC exists in product code,
