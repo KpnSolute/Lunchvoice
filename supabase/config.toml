@@ -1,1 +1,15 @@
 project_id = "qprfonxvthmaoxfixigk"
+
+# The Data API exposes only the lv_api schema (the whole v2 API surface). `public` is intentionally empty and not exposed.
+# The same list must be set on the live project (Settings, Data API, Exposed schemas); config.toml alone does not change it.
+[api]
+schemas = ["lv_api"]
+extra_search_path = []
+
+# LunchVoice never authenticates anyone itself (docs/v2/IDENTITY_CONTRACT.md): people sign in through KpnIdentity,
+# so self-service sign-up on this project's own Supabase Auth stays off.
+[auth]
+enable_signup = false
+
+[auth.email]
+enable_signup = false

@@ -6,6 +6,19 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed
+
+- Anonymous response timing, second pass (audit finding). 000008 rounded an anonymous submission's time to the day, which still
+  matched the participation row on a day with one or few respondents. Migration `000020_v2_anonymous_time_constant.sql` gives every
+  submission and answer of an anonymous Campaign one constant date (the day it was activated), so no answer-side timestamp varies
+  per respondent. Identified Campaigns keep real times. New suite `20_anonymous_time_constant` (9 checks). Full run: 365 checks,
+  0 failed, race and rollback rehearsal pass.
+- `supabase/config.toml` now declares the Data API schema list as `lv_api` only and turns off self-service sign-up on this project's
+  own Supabase Auth (LunchVoice never authenticates anyone itself). **These are repository declarations only.** The live project
+  must have `lv_api` added to its exposed schemas and email sign-up turned off in the dashboard; those live settings are not changed
+  yet and need the owner's go-ahead.
+
+
 ### Changed
 
 - **Founder reset, 2026-10-25 (supersedes every earlier entry that preserves, migrates or special-cases v1 or LionCafe).**
