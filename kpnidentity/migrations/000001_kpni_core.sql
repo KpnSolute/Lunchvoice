@@ -7,13 +7,23 @@ create extension if not exists pgcrypto with schema extensions;
 
 create schema if not exists kpni;
 revoke all on schema kpni from public;
+-- Anything added to this schema later is closed to everyone but the owner until it is granted on purpose.
+alter default privileges in schema kpni revoke all on tables from public, anon, authenticated;
+alter default privileges in schema kpni revoke all on sequences from public, anon, authenticated;
+alter default privileges in schema kpni revoke execute on functions from public, anon, authenticated;
+-- PostgreSQL grants EXECUTE on new functions to PUBLIC through a built-in default that a schema-scoped statement
+-- cannot remove, so the revoke below is global for the migration role. This project holds identity data only.
+alter default privileges revoke execute on functions from public;
 
 -- ---------------------------------------------------------------------------------------------------------
--- kpni.profiles: one row per person, keyed by the Supabase auth user id. `subject` is the stable `sub`.
+-- kpni.profiles: one row per person, keyed by the Supabase auth user id.
+-- `subject` is the stable `sub`. Supabase puts auth.users.id in the token's `sub`, so the two are the same
+-- value by constraint: LunchVoice keys on the token's `sub` and it can never disagree with this table.
 -- ---------------------------------------------------------------------------------------------------------
 create table kpni.profiles (
   auth_user_id   uuid primary key references auth.users (id) on delete cascade,
-  subject        uuid not null unique default gen_random_uuid(),
+  subject        uuid not null unique,
+  constraint subject_is_auth_user_id check (subject = auth_user_id),
   display_name   text,
   picture_url    text,
   email          extensions.citext,
@@ -45,13 +55,16 @@ create trigger profiles_freeze_subject before update on kpni.profiles
 create table kpni.security_events (
   id          bigserial primary key,
   occurred_at timestamptz not null default now(),
-  event       text not null check (event in
-                ('sign_in', 'sign_in_failed', 'account_created', 'email_changed', 'client_created')),
+  -- Only events this schema can truthfully write. sign_in / sign_in_failed are not listed: nothing in the
+  -- database observes them (they live in auth.audit_log_entries), so they are added when something writes them.
+  event       text not null check (event in ('account_created', 'email_changed', 'client_created')),
   subject     uuid,
   detail      jsonb not null default '{}'::jsonb,
   ip          text,
   user_agent  text
 );
+comment on column kpni.security_events.ip is 'Personal data. Retention: purge ip and user_agent after 90 days (see kpnidentity/README.md).';
+comment on column kpni.security_events.user_agent is 'Personal data. Retention: purge after 90 days (see kpnidentity/README.md).';
 
 create function kpni.security_events_append_only() returns trigger
 language plpgsql set search_path = '' as $$
@@ -134,33 +147,38 @@ $$;
 -- ---------------------------------------------------------------------------------------------------------
 create function kpni.on_auth_user_created() returns trigger
 language plpgsql security definer set search_path = '' as $$
-declare v_subject uuid;
 begin
-  insert into kpni.profiles (auth_user_id, display_name, picture_url, email, email_verified)
-  values (new.id,
+  -- email_verified comes only from GoTrue's own email_confirmed_at. user_metadata is user-editable and is
+  -- never trusted for this.
+  insert into kpni.profiles (auth_user_id, subject, display_name, picture_url, email, email_verified)
+  values (new.id, new.id,
           new.raw_user_meta_data ->> 'name',
           new.raw_user_meta_data ->> 'picture',
           new.email,
-          coalesce((new.raw_user_meta_data ->> 'email_verified')::boolean, new.email_confirmed_at is not null))
-  returning subject into v_subject;
-  insert into kpni.security_events (event, subject) values ('account_created', v_subject);
+          new.email_confirmed_at is not null);
+  insert into kpni.security_events (event, subject) values ('account_created', new.id);
   return new;
 end $$;
 
-create function kpni.on_auth_user_email_changed() returns trigger
+-- Keeps the cached email and verification state in step with auth.users (confirm-after-signup, email change).
+create function kpni.on_auth_user_updated() returns trigger
 language plpgsql security definer set search_path = '' as $$
-declare v_subject uuid;
 begin
-  update kpni.profiles set email = new.email where auth_user_id = new.id returning subject into v_subject;
-  insert into kpni.security_events (event, subject, detail) values ('email_changed', v_subject, '{}'::jsonb);
+  update kpni.profiles
+     set email = new.email, email_verified = (new.email_confirmed_at is not null)
+   where auth_user_id = new.id;
+  if old.email is distinct from new.email then
+    insert into kpni.security_events (event, subject) values ('email_changed', new.id);
+  end if;
   return new;
 end $$;
 
 create trigger kpni_on_auth_user_created after insert on auth.users
   for each row execute function kpni.on_auth_user_created();
-create trigger kpni_on_auth_user_email_changed after update of email on auth.users
-  for each row when (old.email is distinct from new.email)
-  execute function kpni.on_auth_user_email_changed();
+create trigger kpni_on_auth_user_updated after update of email, email_confirmed_at on auth.users
+  for each row when (old.email is distinct from new.email
+                     or old.email_confirmed_at is distinct from new.email_confirmed_at)
+  execute function kpni.on_auth_user_updated();
 
 -- ---------------------------------------------------------------------------------------------------------
 -- Privilege posture: none of this is exposed through the Data API.

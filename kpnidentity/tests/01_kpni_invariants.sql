@@ -30,6 +30,10 @@ select t.check('the same subject cannot be held by a second person',
   t.raises($$update kpni.profiles set subject = '$$ || current_setting('t.ada') || $$' where auth_user_id = '22222222-2222-4222-8222-222222222222'$$));
 select t.check('two people hold different subjects',
   (select count(distinct subject) from kpni.profiles) = 2);
+select t.check('the subject equals the auth user id, which is the `sub` Supabase puts in the token',
+  (select bool_and(subject = auth_user_id) from kpni.profiles));
+select t.check('a profile whose subject differs from the auth user id cannot exist',
+  t.raises($$insert into kpni.profiles (auth_user_id, subject) values (gen_random_uuid(), gen_random_uuid())$$));
 
 -- 3. deleting the auth user cascades the profile; security events survive
 delete from auth.users where id = '22222222-2222-4222-8222-222222222222';
@@ -74,6 +78,32 @@ select t.check('client creation is audited', (select count(*) from kpni.security
 update kpni.oauth_clients set is_active = false where client_id = 'lunchvoice';
 select t.check('a deactivated client cannot authorize', not kpni.client_can_authorize('lunchvoice', 'https://lunchvoice.com/auth/callback'));
 select t.check('a deactivated client cannot authenticate with its secret', not kpni.verify_client_secret('lunchvoice', 's3cret-value'));
+
+-- Email verification is derived from GoTrue's email_confirmed_at only, and kept current
+insert into auth.users (id, email, email_confirmed_at, raw_user_meta_data) values
+  ('33333333-3333-4333-8333-333333333333', 'eve@example.invalid', null, '{"email_verified":true,"name":"Eve"}');
+select t.check('forged user_metadata email_verified does not make an email verified',
+  not (select email_verified from kpni.profiles where auth_user_id = '33333333-3333-4333-8333-333333333333'));
+update auth.users set email_confirmed_at = now() where id = '33333333-3333-4333-8333-333333333333';
+select t.check('confirming the email after signup marks the profile verified',
+  (select email_verified from kpni.profiles where auth_user_id = '33333333-3333-4333-8333-333333333333'));
+update auth.users set email = 'eve.new@example.invalid', email_confirmed_at = null where id = '33333333-3333-4333-8333-333333333333';
+select t.check('an email change that is not yet confirmed clears verification and updates the cached email',
+  (select not email_verified and email::text = 'eve.new@example.invalid'
+     from kpni.profiles where auth_user_id = '33333333-3333-4333-8333-333333333333'));
+update auth.users set email_confirmed_at = now() where id = '33333333-3333-4333-8333-333333333333';
+select t.check('confirming the new email restores verification',
+  (select email_verified from kpni.profiles where auth_user_id = '33333333-3333-4333-8333-333333333333'));
+
+-- Default privileges: new objects in kpni are closed by default
+create function kpni.zz_probe() returns int language sql as 'select 1';
+create table kpni.zz_probe_t (id int);
+select t.check('a new function in kpni is not executable by public, anon or authenticated',
+  not has_function_privilege('anon', 'kpni.zz_probe()', 'execute')
+  and not has_function_privilege('authenticated', 'kpni.zz_probe()', 'execute'));
+select t.check('a new table in kpni is not readable by anon or authenticated',
+  not has_table_privilege('anon', 'kpni.zz_probe_t', 'select')
+  and not has_table_privilege('authenticated', 'kpni.zz_probe_t', 'select'));
 
 -- Privilege posture: the Data API roles see nothing
 set local role anon;
