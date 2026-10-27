@@ -191,6 +191,27 @@ No MJCC staff SSO is part of v2.
 
 ---
 
+### 4.1 Amendment, 2026-10-27 (founder): open sign-up for Hub users
+
+Hub users sign up with their own email address. A person does **not** need to belong to any KpnSolute
+team, staff group or organization, and nobody has to be inside a "KpnIdentity network" first: KpnIdentity
+sign-up is open to the public.
+
+- KpnIdentity offers Google and the person's own email address as sign-in methods. KpnIdentity verifies the
+  email and asserts `email_verified`. LunchVoice never runs its own email or password authentication and
+  still consumes only verified KpnIdentity tokens, keyed by `(issuer, subject)`, never by email.
+- Hub membership, roles and plan (including Team Hub and Campaign Plus) are LunchVoice concepts. They are
+  independent of any KpnSolute team or staff membership. Paying for or owning a Team Hub does not require the
+  owner, and joining one does not require a member, to be KpnSolute staff.
+- A Hub may let people join with their own email through its normal join mode (open, approval, invite-only);
+  the invitation and membership rules in sections 5 and 6 are unchanged. A person with an unverified email may
+  browse and join by invitation, but flows that promise mail to that address stay refused until it is verified
+  (see `IDENTITY_CONTRACT.md` section 5).
+- **Open item.** KpnIdentity must support email sign-up. `KPNIDENTITY_SCHEMA_V1.md` does not yet describe it,
+  so it is a KpnIdentity work item and a dependency of the first real customer sign-in. If the intent is
+  instead that LunchVoice runs its own email sign-up outside KpnIdentity, that reverses decision S-1 in
+  `docs/backend/D01_IDENTITY_SUPERSESSION_2026-10-25.md` and needs an explicit founder decision.
+
 ## 5. Hubs
 
 A Hub is the core customer/community space.
