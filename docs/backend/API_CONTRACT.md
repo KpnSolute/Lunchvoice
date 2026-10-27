@@ -6,6 +6,14 @@ The frontend uses only these functions for application data. Tables and the `lv`
 Every function returns `jsonb`. The caller is always taken from the verified KpnIdentity token; no function
 accepts an account id. Call them through PostgREST RPC against schema `lv_api`.
 
+## Exposure (Data API)
+
+The only schema the Data API may expose is `lv_api`; `public` holds nothing and stays unexposed. The live Supabase project must list
+`lv_api` under Settings, Data API, Exposed schemas, otherwise every RPC call returns "schema not found". `supabase/config.toml`
+declares the intended list for local runs. Both `anon` and `authenticated` may execute `lv_api` functions; the `lv` schema is not
+reachable by either role. Note for the identity slice: PostgREST accepts only tokens signed for this project, so the KpnIdentity
+token exchange (slice 4) must mint a LunchVoice session token; the browser never calls `lv_api` with a raw KpnIdentity token.
+
 ## Envelope
 
 - Success: `{ "ok": true, ... }`
