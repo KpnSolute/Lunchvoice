@@ -1,9 +1,14 @@
 {
   "servers": {
-    "supabase": {
+    "lunchvoice": {
       "type": "stdio",
       "command": "bash",
-      "args": ["${workspaceFolder}/scripts/mcp/supabase.sh"]
+      "args": ["-c", "exec bash \"$HOME/projects/lunchvoice/scripts/mcp/supabase.sh\""]
+    },
+    "kpnauth": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["-c", "exec bash \"$HOME/projects/lunchvoice/scripts/mcp/supabase-kpnidentity.sh\""]
     }
   }
 }

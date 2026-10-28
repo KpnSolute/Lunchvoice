@@ -6,6 +6,18 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed
+
+- **Renamed the project MCP servers to `lunchvoice` and `kpnauth`** across every harness config: `.mcp.json` (Claude Code),
+  `opencode.json`, `.codex/config.toml`, `.vscode/mcp.json` and `.cursor/mcp.json`. The old names were inconsistent
+  (`supabase`, `supabase-local`, `supabase-lunchvoice`, `supabase-kpnidentity`) and actively misleading: `supabase-local`
+  pointed at the **production** LunchVoice project, not a local database. VS Code and Cursor also moved off the old
+  relative-path `command` form to the same absolute-path `bash -c "exec bash ..."` wrapper the other harnesses use, which is
+  what makes the desktop app work on WSL. `scripts/mcp/README.md` documents the new names and why they changed.
+  Local-only `.claude/settings.local.json` now allow-lists read-only tools under the new names; `apply_migration`,
+  `execute_sql`, `delete_branch`, `reset_branch`, `merge_branch` and `deploy_edge_function` were removed from the
+  auto-allow list so they prompt again on a production project.
+
 ### Changed (survey creation and Campaign lists, founder assignment 2026-11-12, PR D)
 
 - **New Quick Survey opens on a short template list:** Blank and the first five templates, then "Show all N templates".
@@ -1401,6 +1413,9 @@ categories and the repository's decimal `X.X.X` release policy.
   through the wrappers; the config files contain no credentials. Added regression tests confirming the second
   server requires and uses its separate token. Updated the MCP setup guide. No secret, migration, resource,
   or deployment.
+- Fixed the Supabase MCP wrappers and doctor to read the `LUNCHVOICE_SUPABASE_*` and
+  `KPNIDENTITY_SUPABASE_*` variable names used in `.mcp.env`, while retaining compatibility with the earlier
+  unprefixed names. Updated the env example and guide. No credentials were changed.
 - Added a signed KpnSolute CloudEvents receiver to the existing `menu-sync`
   function for MJCC menu-day and menu-cycle events. It verifies Standard
   Webhooks signatures against the raw request body, enforces the tenant-to-org

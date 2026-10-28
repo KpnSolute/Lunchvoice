@@ -8,20 +8,26 @@ projects, and other projects can do the same with their own repository, token an
 
 | Piece | What it does |
 | --- | --- |
-| `.mcp.json` | Claude Code project config. Starts both project-scoped wrappers. No secrets in it. |
+| `.mcp.json` | Claude Code project config. Starts both project-scoped wrappers as `lunchvoice` and `kpnauth`. No secrets in it. |
 | `opencode.json` | OpenCode project config for the same two wrappers. No secrets in it. |
 | `.codex/config.toml` | Codex project config for the same two wrappers. Trust this project in Codex to load its project config. No secrets in it. |
+| `.vscode/mcp.json` / `.cursor/mcp.json` | VS Code and Cursor project config for the same two wrappers. |
 | `.mcp.env` | **Your private secrets**, gitignored, must be `chmod 600`. Copy from `.mcp.env.example`. |
 | `scripts/mcp/lib.sh` | Validates and loads `.mcp.env`; prints only to stderr (stdout is the MCP protocol). |
-| `scripts/mcp/supabase.sh` | Starts the Supabase MCP server **read-only**, scoped to one project, version pinned. |
+| `scripts/mcp/supabase.sh` | Starts the Supabase MCP server for the LunchVoice project as `lunchvoice` — **read-only**, scoped to one project, version pinned. |
+| `scripts/mcp/supabase-kpnidentity.sh` | Starts the Supabase MCP server for the KpnIdentity project as `kpnauth`, with its own token. |
 | `scripts/mcp/with-env.sh` | Generic wrapper: `bash scripts/mcp/with-env.sh <command...>` runs any command with `.mcp.env` loaded. Use it for the next server. |
 | `scripts/mcp/doctor.sh` | Checks the setup and confirms the project ref exists for your token (one read-only API request). Prints no secrets. |
+
+> **Names are `lunchvoice` and `kpnauth`.** They were previously `supabase`, `supabase-local`,
+> `supabase-lunchvoice` and `supabase-kpnidentity`, which was confusing: `supabase-local` pointed at the
+> **production** LunchVoice project, not a local database. All five harness configs now agree.
 
 ## Set up (once, about two minutes)
 
 1. Create a Supabase access token for each account in the Supabase dashboard (Account > Access Tokens).
-2. `cp .mcp.env.example .mcp.env && chmod 600 .mcp.env`, then put the tokens in `SUPABASE_ACCESS_TOKEN` and `KPNIDENTITY_ACCESS_TOKEN`. They must be different tokens from their respective accounts.
-3. Confirm `SUPABASE_PROJECT_REF` targets the first project and `KPNIDENTITY_PROJECT_REF` targets the second (defaults to the KpnIdentity project).
+2. `cp .mcp.env.example .mcp.env && chmod 600 .mcp.env`, then put the tokens in `LUNCHVOICE_SUPABASE_ACCESS_TOKEN` and `KPNIDENTITY_SUPABASE_ACCESS_TOKEN`. They must be different tokens from their respective accounts.
+3. Confirm `LUNCHVOICE_SUPABASE_PROJECT_REF` targets the first project and `KPNIDENTITY_SUPABASE_PROJECT_REF` targets the second (defaults to the KpnIdentity project).
 4. `bash scripts/mcp/doctor.sh` and confirm it reports the first project's name (it should read LunchVoicev2 after the rename).
 5. Restart Claude Code, OpenCode, or Codex in this folder and approve/trust the project MCP configuration when asked.
 

@@ -1,8 +1,12 @@
 {
   "mcpServers": {
-    "supabase": {
+    "lunchvoice": {
       "command": "bash",
-      "args": ["${workspaceFolder}/scripts/mcp/supabase.sh"]
+      "args": ["-c", "exec bash \"$HOME/projects/lunchvoice/scripts/mcp/supabase.sh\""]
+    },
+    "kpnauth": {
+      "command": "bash",
+      "args": ["-c", "exec bash \"$HOME/projects/lunchvoice/scripts/mcp/supabase-kpnidentity.sh\""]
     }
   }
 }

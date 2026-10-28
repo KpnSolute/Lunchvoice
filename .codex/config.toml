@@ -1,7 +1,7 @@
-[mcp_servers.supabase-local]
+[mcp_servers.lunchvoice]
 command = "bash"
 args = ["-c", "exec bash \"$HOME/projects/lunchvoice/scripts/mcp/supabase.sh\""]
 
-[mcp_servers.supabase-kpnidentity]
+[mcp_servers.kpnauth]
 command = "bash"
 args = ["-c", "exec bash \"$HOME/projects/lunchvoice/scripts/mcp/supabase-kpnidentity.sh\""]
