@@ -1,188 +1,203 @@
-import { Link } from "react-router-dom";
-import { Icon } from "../components/Icon";
-import { Micro, Notice, Pill } from "../components/ui";
+import {
+  Button,
+  ButtonLink,
+  Card,
+  Icon,
+  Lifecycle,
+  Notice,
+  PageHead,
+  Pill,
+  Table,
+  type Column,
+} from "../ui";
 import { PLANS } from "../config/pricing";
 
-// Display-only page. The backend entitlement map decides what a plan allows; every
-// checkout button stays disabled because no billing service is deployed yet.
-const CHECKOUT_CLOSED = "Checkout is not open yet — nothing on this page can charge you.";
-
-const RTB = [
+const ENTITLEMENTS: { label: string; starter: string; team: string }[] = [
   { label: "Custom roles", starter: "3", team: "6" },
-  { label: "Active Survey-mode Campaigns", starter: "2", team: "5" },
-  { label: "Survey replacement threshold", starter: "More than 50% of eligible members", team: "20% of eligible members or more" },
-  { label: "Discover eligibility", starter: "—", team: "Apply at 700 active members" },
-  { label: "Active Campaigns overall", starter: "15", team: "Not published" },
+  { label: "Custom Hub pages", starter: "3", team: "Expanded community pages" },
+  { label: "Active Campaigns", starter: "15", team: "15" },
+  { label: "Active surveys", starter: "2", team: "5" },
+  { label: "Survey replacement", starter: "After more than 50% of unique eligible members", team: "At 20% participation or more" },
+  { label: "Campaign modes", starter: "Core modes", team: "Enhanced modes" },
+  { label: "Targeting and analytics", starter: "Standard", team: "Advanced role targeting and analytics" },
+  { label: "Discover eligibility", starter: "—", team: "Applies at 700 genuine active members" },
+  { label: "Owner role slot", starter: "Never counts against the limit", team: "Never counts against the limit" },
+];
+
+const COLUMNS: Column<(typeof ENTITLEMENTS)[number]>[] = [
+  { key: "label", header: "Entitlement", render: (r) => <span className="t-ui">{r.label}</span> },
+  { key: "starter", header: "Starter", render: (r) => <span className="t-small muted">{r.starter}</span> },
+  { key: "team", header: "Team", render: (r) => <span className="t-small muted">{r.team}</span> },
 ];
 
 export function Pricing() {
+  const starter = PLANS.find((p) => p.id === "starter")!;
+  const team = PLANS.find((p) => p.id === "team")!;
+  const seasonal = PLANS.find((p) => p.id === "campaign_starter")!;
+  const plus = PLANS.find((p) => p.id === "campaign_plus")!;
+  const reservation = PLANS.find((p) => p.id === "reservation")!;
+  const free = PLANS.find((p) => p.id === "free")!;
+
   return (
-    <div className="lv-page">
-      <header className="ui-head">
-        <Micro accent>Pricing</Micro>
-        <h1 className="ui-display ui-display-xl">Free to answer. Pay to create.</h1>
-        <p>
-          Participation is free forever. Creating a Hub is a monthly plan or a time-bounded Campaign
-          window, and every paid surface fails closed rather than guessing.
-        </p>
-      </header>
+    <div className="wrap page">
+      <PageHead
+        eyebrow="Pricing"
+        title="Participation is free. Running a Hub is not."
+        sub="Every member answers for free, forever. Hub plans are per community. Prices below are the canonical published figures."
+      />
 
-      <Notice tone="warn">{CHECKOUT_CLOSED}</Notice>
+      <Notice tone="info" title="Checkout is not open in this build" >
+        Plan terms are shown so you can decide. No button here takes a payment, and no card details are collected.
+      </Notice>
 
-      {/* ---------- the six canonical plans ---------- */}
-      <div className="lv-plan-grid" style={{ marginTop: 18 }}>
-        {PLANS.map((plan) => (
-          <article
-            key={plan.id}
-            className={`lv-price-card${plan.id === "team" ? " lv-price-card-feature" : ""}`}
-            aria-labelledby={`plan-${plan.id}`}
-          >
-            <div className="ui-spread">
-              <Micro accent={plan.id === "team"}>{plan.name}</Micro>
-              {plan.id === "team" && <Pill tone="accent">Most included</Pill>}
-            </div>
-            <p className="lv-price-figure">
-              <span>{plan.priceLabel ?? "—"}</span>
-              <small>{plan.cadence}</small>
-            </p>
-            <ul className="lv-plan-list">
-              {plan.features.map((f) => (
-                <li key={f}>
-                  <Icon name="check" size={15} />
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <button
-              className="ui-btn ui-btn-block ui-btn-outline"
-              disabled
-              aria-disabled="true"
-              title={plan.priceLabel === null ? "No authoritative price has been supplied" : CHECKOUT_CLOSED}
-            >
-              {plan.id === "free"
-                ? "Included with any account"
-                : plan.priceLabel === null
-                  ? "Pricing coming soon"
-                  : "Checkout opens soon"}
-            </button>
-          </article>
-        ))}
-      </div>
-
-      {/* ---------- entitlement map ---------- */}
-      <section style={{ marginTop: 46 }} aria-labelledby="entitlements-title">
-        <header className="lv-section-head">
-          <p className="lv-eyebrow">What a plan actually changes</p>
-          <h2 id="entitlements-title" className="ui-display ui-display-lg">
-            Limits are counted in unique eligible members.
-          </h2>
-        </header>
-        <div className="ui-card" style={{ padding: 0, overflow: "hidden" }}>
-          <div className="ui-table-wrap">
-            <table className="ui-table">
-              <caption className="ui-help" style={{ textAlign: "left", padding: "14px 16px 0" }}>
-                Starter and Team only. Guests, duplicates and bots never count toward a threshold.
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Entitlement</th>
-                  <th scope="col">Starter · $13</th>
-                  <th scope="col">Team · $29</th>
-                </tr>
-              </thead>
-              <tbody>
-                {RTB.map((row) => (
-                  <tr key={row.label}>
-                    <th scope="row" style={{ fontFamily: "var(--font-sans)", fontWeight: 600, fontSize: 14, padding: "12px 16px" }}>
-                      {row.label}
-                    </th>
-                    <td style={{ padding: "12px 16px" }}>{row.starter}</td>
-                    <td style={{ padding: "12px 16px" }}>{row.team}</td>
-                  </tr>
+      <section className="section-sm">
+        <div className="grid grid-3">
+          {[free, starter, team].map((p) => (
+            <Card key={p.id} className="stack" style={{ padding: 28 }}>
+              <div className="row-between">
+                <p className="t-title">{p.name}</p>
+                {p.id === "starter" && <Pill tone="accent">Most common</Pill>}
+              </div>
+              <p className="t-display-md" style={{ fontSize: 44, letterSpacing: "-0.04em" }}>
+                {p.priceLabel}
+                <span className="t-small subtle" style={{ marginLeft: 8, fontWeight: 400, letterSpacing: 0 }}>
+                  {p.cadence}
+                </span>
+              </p>
+              <ul className="stack stack-sm grow">
+                {p.features.map((f) => (
+                  <li key={f} className="row" style={{ gap: 8, alignItems: "flex-start" }}>
+                    <Icon name="check" size={15} strokeWidth={2.4} />
+                    <span className="t-small">{f}</span>
+                  </li>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </ul>
+              <Button variant={p.id === "starter" ? "primary" : "raised"} disabled aria-describedby="checkout-why">
+                {p.id === "free" ? "Start answering" : `Choose ${p.name}`}
+              </Button>
+            </Card>
+          ))}
         </div>
-        <p className="ui-help" style={{ marginTop: 10 }}>
-          A Starter Hub can replace a Survey once more than half of its eligible members have answered. A Team
-          Hub unlocks that at 20%. Replacement never deletes the original responses.
+        <p id="checkout-why" className="t-small subtle" style={{ marginTop: 10 }}>
+          Disabled: checkout is not connected yet. Nothing is charged, and no plan is activated by this page.
         </p>
       </section>
 
-      {/* ---------- Campaign windows ---------- */}
-      <section style={{ marginTop: 46 }} aria-labelledby="windows-title">
-        <header className="lv-section-head">
-          <p className="lv-eyebrow">One Campaign, no subscription</p>
-          <h2 id="windows-title" className="ui-display ui-display-lg">
-            Time-bounded windows for a single Campaign.
-          </h2>
-        </header>
-        <div className="ui-grid-2">
-          <article className="ui-card">
-            <Micro accent>Campaign Starter</Micro>
-            <p className="lv-price-figure" style={{ margin: "10px 0 4px" }}>
-              <span>$19</span>
-              <small>first 2 weeks, then $13 per extra week</small>
+      <section className="section-sm">
+        <div className="section-head">
+          <p className="t-label muted">Starter vs Team</p>
+          <h2 className="t-display-md">The backend evaluates these, not the UI.</h2>
+          <p className="t-small muted">One entitlement map decides what a plan allows. A disabled button is never the enforcement.</p>
+        </div>
+        <Table
+          columns={COLUMNS}
+          rows={ENTITLEMENTS}
+          rowKey={(r) => r.label}
+          caption="Starter and Team entitlements"
+        />
+      </section>
+
+      <section className="section-sm">
+        <div className="section-head">
+          <p className="t-label muted">Time-bounded plans</p>
+          <h2 className="t-display-md">A Campaign without a subscription.</h2>
+        </div>
+        <div className="grid grid-2">
+          <Card className="stack">
+            <div className="row-between">
+              <p className="t-title">{seasonal.name}</p>
+              <Pill>Starter family</Pill>
+            </div>
+            <p className="t-display-md" style={{ fontSize: 36 }}>
+              {seasonal.priceLabel}
             </p>
-            <p className="ui-muted" style={{ margin: "0 0 14px", fontSize: 14.5 }}>
-              The Starter feature family for the length of your window. The Hub itself is not a subscription
-              during that period.
+            <p className="t-small muted">{seasonal.cadence}</p>
+            <p className="t-small muted">{seasonal.features.join(" · ")}</p>
+            <Button disabled aria-describedby="seasonal-why">
+              Choose {seasonal.name}
+            </Button>
+            <p id="seasonal-why" className="t-small subtle">
+              Disabled: the paid window starts when the backend schedules it. No start date is set here.
             </p>
-            <button className="ui-btn ui-btn-outline" disabled aria-disabled="true">Checkout opens soon</button>
-          </article>
-          <article className="ui-card ui-card-quiet">
-            <Micro accent>Campaign Plus</Micro>
-            <p className="lv-price-figure" style={{ margin: "10px 0 4px" }}>
-              <span>—</span>
-              <small>price not published</small>
+          </Card>
+          <Card className="stack">
+            <div className="row-between">
+              <p className="t-title">{plus.name}</p>
+              <Pill tone="warn">Price pending</Pill>
+            </div>
+            <p className="t-display-md" style={{ fontSize: 36, color: "var(--lv-muted)" }}>
+              Price coming soon
             </p>
-            <p className="ui-muted" style={{ margin: "0 0 14px", fontSize: 14.5 }}>
-              The Team feature family for a time-bounded window. No price has been supplied, so this card never
-              invents one and its checkout stays closed.
+            <p className="t-small muted">
+              {plus.name} is a Team-family plan with a time-bounded window. Its price has not been supplied, so it is never
+              displayed and can never be purchased.
             </p>
-            <button className="ui-btn ui-btn-outline" disabled aria-disabled="true">Pricing coming soon</button>
-          </article>
+            <Button disabled aria-describedby="plus-why">
+              Unavailable until priced
+            </Button>
+            <p id="plus-why" className="t-small subtle">
+              Checkout stays disabled and fails closed. We do not invent a number for this plan.
+            </p>
+          </Card>
         </div>
       </section>
 
-      {/* ---------- Hub Name Reservation ---------- */}
-      <section style={{ marginTop: 46 }} aria-labelledby="reservation-title">
-        <div className="ui-panel">
-          <div className="ui-panel-top">
-            <Micro accent>Hub Name Reservation</Micro>
-            <Pill tone="accent">$25 / 12 months</Pill>
-          </div>
-          <h2 id="reservation-title" className="ui-display ui-display-md" style={{ margin: "0 0 8px" }}>
-            Reserve your Hub URL before you build it.
-          </h2>
-          <p style={{ margin: "0 0 18px", maxWidth: "60ch" }}>
-            Hold an address while you plan. Renewal is $25 per 12 months, and a reservation grants no features.
-          </p>
-          <div className="lv-lifecycle" aria-label="Reservation lifecycle">
-            <span>ACTIVE</span>
-            <i aria-hidden="true">→</i>
-            <span>GRACE · 25 days</span>
-            <i aria-hidden="true">→</i>
-            <span>RELEASED</span>
-          </div>
-          <p style={{ margin: "16px 0 0", fontSize: 13.5, maxWidth: "62ch" }}>
-            After expiry the address enters a 25-day grace period. Once released it can be claimed by another
-            creator, and it never exposes a previous owner&rsquo;s data.
-          </p>
-          <div className="ui-row" style={{ marginTop: 18 }}>
-            <button className="ui-btn ui-btn-primary" disabled aria-disabled="true">Reservation checkout opens soon</button>
-            <Link className="ui-btn ui-btn-outline" to="/create">Create a Hub instead</Link>
-          </div>
+      <section className="section-sm">
+        <div className="section-head">
+          <p className="t-label muted">Reserve your Hub URL</p>
+          <h2 className="t-display-md">Hold an address while you plan.</h2>
         </div>
+        <Card className="stack">
+          <div className="row-between">
+            <p className="t-display-md" style={{ fontSize: 32 }}>
+              {reservation.priceLabel}
+              <span className="t-small subtle" style={{ marginLeft: 8, fontWeight: 400 }}>
+                {reservation.cadence}
+              </span>
+            </p>
+            <Pill tone="accent">Grants no features</Pill>
+          </div>
+          <p className="t-small muted">{reservation.features.join(" · ")}</p>
+          <div className="stack stack-sm">
+            <p className="t-label muted">Lifecycle</p>
+            <Lifecycle steps={["ACTIVE", "GRACE", "RELEASED"]} current="ACTIVE" />
+            <p className="t-small subtle">
+              25 days of grace after expiry. A released address can be claimed by someone else, and never exposes the previous
+              owner's data.
+            </p>
+          </div>
+          <div className="row">
+            <Button disabled aria-describedby="reserve-why">
+              Reserve this address
+            </Button>
+            <ButtonLink to="/create" variant="quiet">
+              Choose an address first
+            </ButtonLink>
+          </div>
+          <p id="reserve-why" className="t-small subtle">
+            Disabled: reservation checkout is not connected. The lifecycle above is the real product rule, not a simulation.
+          </p>
+        </Card>
       </section>
 
-      <div className="ui-row" style={{ marginTop: 34 }}>
-        <Link className="ui-btn ui-btn-primary ui-btn-lg" to="/signin">
-          Get started <Icon name="arrow" size={17} />
-        </Link>
-        <Link className="ui-btn ui-btn-outline ui-btn-lg" to="/how-it-works">See how it works</Link>
-      </div>
+      <section className="section-sm" style={{ paddingBottom: 48 }}>
+        <Card className="stack">
+          <p className="t-title">What happens when a plan expires?</p>
+          <ul className="stack stack-sm">
+            {[
+              "Premium actions fail closed: you cannot create past the limit on an expired plan.",
+              "Nothing is deleted. Responses and private data are never removed to resolve an unpaid state.",
+              "Threshold counts still only include unique eligible members.",
+              "You can export your data at any time while signed in.",
+            ].map((t) => (
+              <li key={t} className="row" style={{ gap: 8, alignItems: "flex-start" }}>
+                <Icon name="check" size={15} strokeWidth={2.4} />
+                <span className="t-small">{t}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </section>
     </div>
   );
 }

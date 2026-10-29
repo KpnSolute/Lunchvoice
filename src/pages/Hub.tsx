@@ -1,13 +1,48 @@
-import { useState, type ReactNode } from "react";
-import { Link, NavLink, Outlet, useOutletContext, useParams } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link, Outlet, useOutletContext, useParams } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import { RESERVED_SLUGS } from "../lib/reservedSlugs";
-import type { HubInfo, HubMembership, Role } from "../lib/lvApi";
-import { PENDING_API } from "../lib/lvApi";
-import { Btn, Card, CopyField, Empty, ErrorNote, Loading, Meter, Metric, Micro, Notice, PageHead, Pill, Tabs } from "../components/ui";
-import { Icon } from "../components/Icon";
+import { PENDING_API, type HubInfo, type HubMembership, type Member, type Role } from "../lib/lvApi";
 import { describeError } from "../lib/errors";
+import { PLANS } from "../config/pricing";
+import {
+  AppHeader,
+  BottomTabs,
+  Breadcrumbs,
+  Button,
+  ButtonLink,
+  Card,
+  Checkbox,
+  ColorPicker,
+  CopyField,
+  Dialog,
+  Empty,
+  ErrorNote,
+  Field,
+  GateMeter,
+  HubMark,
+  HubTabs,
+  Icon,
+  Lifecycle,
+  Loading,
+  MakerSignature,
+  Metric,
+  Notice,
+  PageHead,
+  PendingNote,
+  Pill,
+  Progress,
+  QuotaMeter,
+  Segmented,
+  Select,
+  Switch,
+  Table,
+  TextInput,
+  useToast,
+  type Column,
+  type TabItem,
+} from "../ui";
 import { NotFoundPage } from "./Marketing";
 
 export interface HubCtx {
@@ -17,24 +52,45 @@ export interface HubCtx {
 export const useHubCtx = () => useOutletContext<HubCtx>();
 export const can = (m: HubMembership | null, cap: string) => Boolean(m?.is_owner || m?.capabilities.includes(cap));
 
+/* ------------------------------------------------------------------ shell */
+
 export function HubLayout() {
   const { hub: slug } = useParams();
   const { api, session } = useIdentity();
   const reserved = !slug || RESERVED_SLUGS.has(slug.toLowerCase());
   const q = useLv(
-    () => (reserved ? Promise.resolve({ ok: false as const, error: { code: "lv_not_found" as const, message: "" } }) : api.hubGet(slug)),
+    () =>
+      reserved
+        ? Promise.resolve({ ok: false as const, error: { code: "lv_not_found" as const, message: "" } })
+        : api.hubGet(slug),
     [api, slug, reserved],
   );
 
   if (reserved) return <NotFoundPage />;
-  if (q.loading) return <div className="ui-page"><Loading rows={3} label="Loading Hub" /></div>;
+  if (q.loading) {
+    return (
+      <div className="wrap page">
+        <Loading rows={4} label="Loading Hub" />
+      </div>
+    );
+  }
   if (q.error || !q.data) {
     return (
-      <div className="ui-page" style={{ maxWidth: 620 }}>
-        <PageHead eyebrow="Hub" title="Hub not available" sub="It may not exist, or it may be private. A private Hub answers exactly like a missing one." />
-        <div className="ui-row">
-          {!session && <Link className="ui-btn ui-btn-primary" to="/signin" state={{ from: `/${slug}` }}>Sign in</Link>}
-          <Link className="ui-btn ui-btn-outline" to="/">LunchVoice home</Link>
+      <div className="wrap page" style={{ maxWidth: 620 }}>
+        <PageHead
+          eyebrow="Hub"
+          title="Hub not available"
+          sub="It may not exist, or it may be private. A private Hub answers exactly like a missing one, so nobody can probe for one."
+        />
+        <div className="row">
+          {!session && (
+            <ButtonLink to="/signin" state={{ from: `/${slug}` }} variant="primary">
+              Sign in
+            </ButtonLink>
+          )}
+          <ButtonLink to="/" variant="raised">
+            LunchVoice home
+          </ButtonLink>
         </div>
       </div>
     );
@@ -42,53 +98,77 @@ export function HubLayout() {
 
   const { hub, membership } = q.data;
   const base = `/${hub.slug}`;
-  const tabs = [
-    { to: base, label: "Overview", end: true },
-    { to: `${base}/campaigns`, label: "Campaigns" },
-    ...(can(membership, "analytics.read") ? [{ to: `${base}/analytics`, label: "Analytics" }] : []),
-    ...(can(membership, "admin.members.admit") || can(membership, "admin.members.remove") ? [{ to: `${base}/members`, label: "Members" }] : []),
-    ...(can(membership, "admin.members.admit") ? [{ to: `${base}/invites`, label: "Invites" }] : []),
-    ...(can(membership, "admin.roles.manage") ? [{ to: `${base}/roles`, label: "Roles" }] : []),
-    ...(membership ? [{ to: `${base}/settings`, label: "Settings" }] : []),
-    ...(membership?.is_owner
-      ? [
-          { to: `${base}/billing`, label: "Billing" },
-          { to: `${base}/reservation`, label: "Reservation" },
-          { to: `${base}/discover`, label: "Discover" },
-        ]
+  const isManager = Boolean(membership);
+  const tabs: TabItem[] = [
+    { to: base, label: "Overview", icon: "home", end: true },
+    { to: `${base}/campaigns`, label: "Campaigns", icon: "campaign" },
+    ...(can(membership, "analytics.read") ? [{ to: `${base}/analytics`, label: "Analytics", icon: "leaderboard" }] : []),
+    ...(can(membership, "admin.members.admit") || can(membership, "admin.members.remove")
+      ? [{ to: `${base}/members`, label: "Members", icon: "members" }]
       : []),
+    ...(can(membership, "admin.members.admit") ? [{ to: `${base}/invites`, label: "Invites", icon: "qr" }] : []),
+    ...(can(membership, "admin.roles.manage") ? [{ to: `${base}/roles`, label: "Roles", icon: "roles" }] : []),
+    ...(isManager ? [{ to: `${base}/settings`, label: "Settings", icon: "settings" }] : []),
+    ...(membership?.is_owner ? [{ to: `${base}/billing`, label: "Billing", icon: "billing" }] : []),
   ];
 
-  // Small screens get a thumb-reach tab bar for the five most-used surfaces.
-  const bottom = tabs.filter((t) =>
-    ["Overview", "Campaigns", "Analytics", "Members", "Settings"].includes(t.label),
-  ).slice(0, 5);
+  const phoneTabs: TabItem[] = [
+    { to: base, label: "Home", icon: "home", end: true },
+    { to: `${base}/campaigns`, label: "Campaigns", icon: "campaign" },
+    ...(can(membership, "analytics.read") ? [{ to: `${base}/analytics`, label: "Analytics", icon: "leaderboard" }] : []),
+    ...(can(membership, "admin.members.admit") ? [{ to: `${base}/members`, label: "Members", icon: "members" }] : []),
+  ];
+
+  const more = (
+    <div className="stack stack-sm">
+      {tabs.slice(4).map((t) => (
+        <Link key={t.to} to={t.to} className="btn btn-raised" style={{ justifyContent: "flex-start" }}>
+          {t.icon && <Icon name={t.icon} size={18} />}
+          {t.label}
+        </Link>
+      ))}
+      {tabs.length <= 4 && <p className="t-small subtle">Nothing else to show with your permissions.</p>}
+    </div>
+  );
 
   return (
-    <div className="ui-page">
-      <div className="ui-spread" style={{ alignItems: "flex-end", marginBottom: 14 }}>
-        <div>
-          <Micro accent>Hub</Micro>
-          <h1 className="ui-display ui-display-lg" style={{ margin: "6px 0 4px" }}>{hub.name}</h1>
-          <div className="ui-row ui-gap-8">
-            <Pill>{hub.visibility}</Pill>
-            <Pill>{hub.membership_mode.replace("_", " ")}</Pill>
-            <span className="ui-muted ui-mono" style={{ fontSize: 12 }}>/{hub.slug}</span>
+    <div className="has-bottom-tabs">
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
+      <AppHeader hub={{ slug: hub.slug, name: hub.name }} hubs={session ? undefined : undefined} accountName={session?.name} />
+      <main id="main" className="page">
+        <div className="wrap">
+          <div className="row-between" style={{ alignItems: "flex-end", marginBottom: 14 }}>
+            <div className="stack stack-sm">
+              <Breadcrumbs items={[{ to: "/me", label: "My Hubs" }, { label: hub.name }]} />
+              <div className="row">
+                <HubMark name={hub.name} slug={hub.slug} size={36} />
+                <h1 className="t-display-md">{hub.name}</h1>
+              </div>
+              <div className="row" style={{ gap: 6 }}>
+                <Pill>{hub.visibility}</Pill>
+                <Pill>{hub.membership_mode.replace("_", " ")}</Pill>
+                <span className="t-small subtle mono">/{hub.slug}</span>
+              </div>
+            </div>
+            <div className="row">
+              {membership?.is_owner && <Pill tone="accent">Owner</Pill>}
+              <span className="t-small subtle">
+                {hub.member_count} {hub.member_count === 1 ? "member" : "members"}
+              </span>
+            </div>
           </div>
+
+          <div className="desktop-tabs">
+            <HubTabs items={tabs} />
+          </div>
+
+          <Outlet context={{ hub, membership } satisfies HubCtx} />
         </div>
-        {membership?.is_owner && <Pill tone="accent">Owner</Pill>}
-      </div>
-      <Tabs items={tabs} />
-      <div style={{ marginTop: 20 }}>
-        <Outlet context={{ hub, membership } satisfies HubCtx} />
-      </div>
-      <nav className="ui-bottom-nav" aria-label="Hub sections">
-        {bottom.map((t) => (
-          <NavLink key={t.to} to={t.to} end={t.end}>
-            {t.label}
-          </NavLink>
-        ))}
-      </nav>
+      </main>
+      <BottomTabs items={phoneTabs} more={more} />
+      <style>{`@media (max-width: 720px){ .desktop-tabs{display:none;} }`}</style>
     </div>
   );
 }
@@ -97,93 +177,176 @@ export function HubLayout() {
 
 export function HubOverview() {
   const { hub, membership } = useHubCtx();
-  const { api, session } = useIdentity();
-  const { code } = useParams();
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [pending, setPending] = useState(false);
+  const { api } = useIdentity();
+  const campaigns = useLv(() => api.campaignList(hub.hub_id), [api, hub.hub_id]);
+  const [joining, setJoining] = useState(false);
+  const [joinState, setJoinState] = useState<"idle" | "pending" | "error">("idle");
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   async function join() {
-    setBusy(true);
+    setJoining(true);
     const r = await api.hubJoin(hub.hub_id);
-    setBusy(false);
-    if (r.ok) setPending(r.status === "pending");
-    else setError(describeError(r.error));
+    setJoining(false);
+    if (!r.ok) {
+      setJoinError(describeError(r.error));
+      setJoinState("error");
+      return;
+    }
+    if (r.status === "pending") setJoinState("pending");
+    else window.location.reload();
   }
+
+  const active = campaigns.data?.campaigns.filter((c) => c.status === "active") ?? [];
+  const drafts = campaigns.data?.campaigns.filter((c) => c.status === "draft") ?? [];
 
   if (!membership) {
     return (
-      <div className="ui-grid-2">
-        <Card>
-          <Micro>Membership</Micro>
-          <h2 className="ui-display ui-display-md" style={{ margin: "8px 0 6px" }}>
-            {hub.membership_mode === "open" ? "This Hub is open to join." : hub.membership_mode === "approval" ? "Join requests are reviewed by a manager." : "This Hub is invite only."}
-          </h2>
-          <p className="ui-muted" style={{ margin: "0 0 14px" }}>
-            Campaigns, members and results stay private until you're a member.
-          </p>
-          {error && <Notice tone="err">{error}</Notice>}
-          {pending && <Notice tone="info">Request sent. A manager will review it.</Notice>}
-          {!session ? (
-            <Link className="ui-btn ui-btn-primary" to="/signin" state={{ from: `/${hub.slug}` }}>Sign in to join</Link>
-          ) : hub.membership_mode === "invite_only" ? (
-            <Link className="ui-btn ui-btn-outline" to="/join">Use an invite code</Link>
-          ) : (
-            <Btn variant="primary" onClick={join} disabled={busy}>{busy ? "Working…" : hub.membership_mode === "open" ? "Join this Hub" : "Request to join"}</Btn>
-          )}
-        </Card>
-        <Card quiet>
-          <Micro>About this Hub</Micro>
-          <div className="ui-row ui-gap-16" style={{ marginTop: 12 }}>
-            <Metric value={hub.member_count} label="members" />
-            <Metric value={hub.visibility} label="visibility" />
-            <Metric value={hub.membership_mode.replace("_", " ")} label="joining" />
+      <div className="stack" style={{ gap: 24 }}>
+        <Card className="stack">
+          <div className="row-between">
+            <div className="stack stack-sm" style={{ maxWidth: "52ch" }}>
+              <p className="t-label muted">About this Hub</p>
+              <h2 className="t-display-md" style={{ fontSize: 26 }}>
+                {hub.name}
+              </h2>
+              <p className="t-small muted">
+                {hub.visibility === "private"
+                  ? "This Hub is private. Its members and Campaigns are not public."
+                  : "This Hub is public. You can see which Campaigns are open, but only eligible members can answer."}
+              </p>
+            </div>
+            <HubMark name={hub.name} slug={hub.slug} size={56} />
           </div>
+
+          {hub.membership_mode === "invite_only" ? (
+            <Notice tone="info" title="Invitation only">
+              This Hub only accepts people who were invited. Ask a manager for an invitation link, then open it while signed in.
+            </Notice>
+          ) : joinState === "pending" ? (
+            <Notice tone="info" title="Request sent">
+              A manager will review it. You cannot see member-only content until then.
+            </Notice>
+          ) : (
+            <div className="row">
+              <Button variant="primary" loading={joining} onClick={join}>
+                {hub.membership_mode === "approval" ? "Request to join" : "Join this Hub"}
+              </Button>
+              <ButtonLink to="/join" variant="raised">
+                Have a code?
+              </ButtonLink>
+            </div>
+          )}
+          {joinState === "error" && <ErrorNote error={joinError} />}
         </Card>
+
+        <section className="stack">
+          <h2 className="t-title">Open Campaigns</h2>
+          {campaigns.loading && <Loading rows={2} />}
+          {active.length === 0 ? (
+            <Empty icon="campaign" title="Nothing open right now">
+              When a Campaign opens, it appears here with how long it takes and whether answers are anonymous.
+            </Empty>
+          ) : (
+            <div className="grid grid-2">
+              {active.map((c) => (
+                <Card key={c.campaign_id} className="stack">
+                  <div className="row-between">
+                    <p className="t-title">{c.title}</p>
+                    <Pill tone="accent">{c.mode}</Pill>
+                  </div>
+                  <p className="t-small muted">
+                    {c.question_count} questions · {c.anonymity === "anonymous" ? "Anonymous" : "Signed answers"}
+                  </p>
+                  <ButtonLink to={`/${hub.slug}/campaigns/${c.campaign_id}`} variant="raised" size="sm">
+                    Open
+                  </ButtonLink>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     );
   }
 
   return (
-    <div className="ui-stack ui-gap-16">
-      <div className="ui-panel">
-        <div className="ui-panel-top">
-          <Micro accent>Your seat</Micro>
-          <Pill tone={membership.is_owner ? "accent" : "muted"}>{membership.is_owner ? "Owner" : "Member"}</Pill>
-        </div>
-        <div className="ui-grid-3">
-          <div className="ui-stack ui-gap-4"><span className="ui-metric">{membership.active_campaigns}</span><Micro>active Campaigns</Micro></div>
-          <div className="ui-stack ui-gap-4"><span className="ui-metric">{hub.member_count}</span><Micro>members</Micro></div>
-          <div className="ui-stack ui-gap-4"><span className="ui-metric">{membership.roles.length}</span><Micro>custom roles</Micro></div>
-        </div>
-        <div className="ui-row" style={{ marginTop: 20 }}>
-          <Link className="ui-btn ui-btn-primary" to={`/${hub.slug}/campaigns`}>Campaigns</Link>
-          {can(membership, "analytics.read") && <Link className="ui-btn ui-btn-outline" to={`/${hub.slug}/analytics`} style={{ color: "var(--on-ink)", borderColor: "oklch(0.36 0.015 62)" }}>Analytics</Link>}
-        </div>
-      </div>
+    <div className="stack" style={{ gap: 24 }}>
+      <section className="grid grid-4">
+        <Card className="stack stack-sm">
+          <Metric label="Active Campaigns" value={active.length} hint="of this plan's limit" />
+        </Card>
+        <Card className="stack stack-sm">
+          <Metric label="Members" value={hub.member_count} hint="unique eligible members only" />
+        </Card>
+        <Card className="stack stack-sm">
+          <Metric label="Drafts" value={drafts.length} hint="not visible to members" />
+        </Card>
+        <Card className="stack stack-sm">
+          <Metric label="Plan" value={membership.is_owner ? "Starter" : "—"} raw hint="the backend enforces limits" />
+        </Card>
+      </section>
 
-      {membership.roles.length > 0 && (
-        <Card>
-          <Micro>Your roles</Micro>
-          <div className="ui-row ui-gap-8" style={{ marginTop: 8 }}>
-            {membership.roles.map((r) => <Pill key={r.key} tone="muted">{r.name}</Pill>)}
+      <section className="grid grid-2">
+        <Card className="stack">
+          <div className="row-between">
+            <h2 className="t-title">Participation</h2>
+            <Pill tone="accent">Live</Pill>
           </div>
-          <p className="ui-help" style={{ marginTop: 10 }}>
-            Your capabilities come from these roles. The server decides; this page only reflects it.
+          <GateMeter participating={96} eligible={154} threshold={50} />
+          <p className="t-small subtle">
+            Fixture numbers. A real gate reads from the Campaign, and guests never count toward it.
           </p>
         </Card>
-      )}
 
-      <Card quiet>
-        <div className="ui-spread">
-          <div>
-            <Micro>Invite link</Micro>
-            <p className="ui-muted" style={{ margin: "6px 0 0", fontSize: 14 }}>Share the Hub address; joining follows the Hub's mode.</p>
+        <Card className="stack">
+          <h2 className="t-title">Quick actions</h2>
+          <div className="stack stack-sm">
+            <ButtonLink to={`/${hub.slug}/campaigns/new`} variant="primary" icon="plus">
+              New Campaign
+            </ButtonLink>
+            <ButtonLink to={`/${hub.slug}/invites`} variant="raised" icon="qr">
+              Invite members
+            </ButtonLink>
+            <ButtonLink to={`/${hub.slug}/settings`} variant="quiet" icon="builder">
+              Open Hub Builder
+            </ButtonLink>
           </div>
-          <CopyField value={`https://lunchvoice.com/${hub.slug}`} />
+        </Card>
+      </section>
+
+      <section className="stack">
+        <div className="row-between">
+          <h2 className="t-title">Campaigns</h2>
+          <ButtonLink to={`/${hub.slug}/campaigns`} variant="quiet" size="sm" iconRight="arrow-right">
+            All Campaigns
+          </ButtonLink>
         </div>
-      </Card>
-      {code && <Notice tone="ok">Joined through invite {code}.</Notice>}
+        {campaigns.loading && <Loading rows={2} />}
+        {campaigns.error && <ErrorNote error={campaigns.error} onRetry={campaigns.reload} />}
+        {campaigns.data && campaigns.data.campaigns.length === 0 && (
+          <Empty icon="campaign" title="No Campaigns yet" action={<ButtonLink to={`/${hub.slug}/campaigns/new`} variant="primary" size="sm">Create the first one</ButtonLink>}>
+            A Campaign is one ask: a survey, poll, rating, idea or election. Draft one, publish it when you are ready.
+          </Empty>
+        )}
+        {campaigns.data && campaigns.data.campaigns.length > 0 && (
+          <div className="grid grid-2">
+            {campaigns.data.campaigns.slice(0, 4).map((c) => (
+              <Card key={c.campaign_id} className="stack">
+                <div className="row-between">
+                  <p className="t-title">{c.title}</p>
+                  <Pill tone={c.status === "active" ? "ok" : c.status === "draft" ? "quiet" : "quiet"}>{c.status}</Pill>
+                </div>
+                <p className="t-small muted">
+                  {c.mode} · {c.question_count} questions · {c.anonymity}
+                </p>
+                <ButtonLink to={`/${hub.slug}/campaigns/${c.campaign_id}`} variant="quiet" size="sm" iconRight="arrow-right">
+                  Open
+                </ButtonLink>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
@@ -193,98 +356,153 @@ export function HubOverview() {
 export function Members() {
   const { hub, membership } = useHubCtx();
   const { api } = useIdentity();
-  const members = useLv(() => api.memberList(hub.hub_id), [api, hub.hub_id]);
-  const roles = useLv(() => api.roleList(hub.hub_id), [api, hub.hub_id]);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const list = useLv(() => api.memberList(hub.hub_id), [api, hub.hub_id]);
 
-  async function act(fn: () => Promise<{ ok: boolean; error?: { code: string; message: string } }>) {
-    const r = await fn();
-    if (r.ok) members.reload();
-    else setError(describeError(r.error as never));
-  }
+  const rows = useMemo(() => {
+    const all = list.data?.members ?? [];
+    const q = query.trim().toLowerCase();
+    return q ? all.filter((m) => (m.display_name ?? "").toLowerCase().includes(q)) : all;
+  }, [list.data, query]);
 
-  const accepted = members.data?.members.filter((m) => m.status === "accepted") ?? [];
-  const pendingReq = members.data?.members.filter((m) => m.status === "pending") ?? [];
+  const columns: Column<Member>[] = [
+    {
+      key: "name",
+      header: "Member",
+      render: (m) => (
+        <div className="row" style={{ gap: 10 }}>
+          {can(membership, "admin.members.remove") && !m.is_owner && (
+            <Checkbox
+              checked={selected.includes(m.membership_id)}
+              onChange={(v) => setSelected((s) => (v ? [...s, m.membership_id] : s.filter((x) => x !== m.membership_id)))}
+            >
+              <span className="sr-only">Select {m.display_name ?? "member"}</span>
+            </Checkbox>
+          )}
+          <span className="t-ui">{m.display_name ?? "Unnamed member"}</span>
+          {m.is_owner && <Pill tone="accent">Owner</Pill>}
+        </div>
+      ),
+    },
+    {
+      key: "roles",
+      header: "Roles",
+      render: (m) => (
+        <span className="row" style={{ gap: 4 }}>
+          {m.roles.length ? m.roles.map((r) => <Pill key={r.key}>{r.name}</Pill>) : <span className="t-small subtle">No custom role</span>}
+        </span>
+      ),
+    },
+    { key: "status", header: "Status", render: (m) => <Pill tone={m.status === "accepted" ? "ok" : "warn"}>{m.status}</Pill> },
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      render: (m) =>
+        m.status === "pending" && can(membership, "admin.members.admit") ? (
+          <div className="row row-end">
+            <Button
+              size="sm"
+              variant="raised"
+              onClick={async () => {
+                const r = await api.memberAdmit(m.membership_id);
+                toast(r.ok ? "Member admitted" : "Could not admit member", r.ok ? "ok" : "error");
+                list.reload();
+              }}
+            >
+              Admit
+            </Button>
+            <Button
+              size="sm"
+              variant="danger"
+              onClick={async () => {
+                const r = await api.memberReject(m.membership_id);
+                toast(r.ok ? "Request rejected" : "Could not reject", r.ok ? "ok" : "error");
+                list.reload();
+              }}
+            >
+              Reject
+            </Button>
+          </div>
+        ) : m.is_owner ? (
+          <span className="t-small subtle">Protected</span>
+        ) : (
+          <Button
+            size="sm"
+            variant="quiet"
+            disabled={!can(membership, "admin.members.remove")}
+            onClick={async () => {
+              const r = await api.memberRemove(m.membership_id);
+              toast(r.ok ? "Member removed" : describeError(r.error as never), r.ok ? "ok" : "error");
+              list.reload();
+            }}
+          >
+            Remove
+          </Button>
+        ),
+    },
+  ];
 
   return (
-    <div className="ui-stack ui-gap-16">
-      {error && <ErrorNote error={{ code: "lv_server_error", message: error }} />}
+    <div className="stack" style={{ gap: 20 }}>
+      <PageHead
+        eyebrow="Members"
+        title="Who is in this Hub."
+        sub="Only unique eligible members count toward thresholds. Guests never appear here."
+        action={<ButtonLink to={`/${hub.slug}/invites`} variant="raised" icon="qr">Invite</ButtonLink>}
+      />
 
-      {pendingReq.length > 0 && (
-        <Card>
-          <Micro accent>Waiting on you</Micro>
-          <div className="ui-table-wrap" style={{ marginTop: 8 }}>
-            <table className="ui-table">
-              <thead><tr><th>Member</th><th>Requested</th><th /></tr></thead>
-              <tbody>
-                {pendingReq.map((m) => (
-                  <tr key={m.membership_id}>
-                    <td>{m.display_name ?? "Member"}</td>
-                    <td className="ui-muted">{m.accepted_at ? new Date(m.accepted_at).toLocaleDateString() : "—"}</td>
-                    <td>
-                      <div className="ui-row" style={{ justifyContent: "flex-end" }}>
-                        <Btn size="sm" variant="primary" onClick={() => act(() => api.memberAdmit(m.membership_id))}>Admit</Btn>
-                        <Btn size="sm" variant="quiet" onClick={() => act(() => api.memberReject(m.membership_id))}>Reject</Btn>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
-
-      <Card>
-        <div className="ui-spread" style={{ marginBottom: 8 }}>
-          <Micro>Members</Micro>
-          <span className="ui-help">{accepted.length} accepted</span>
+      <div className="row">
+        <div className="input-affix" style={{ maxWidth: 320 }}>
+          <Icon name="search" size={18} />
+          <TextInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search members" aria-label="Search members" />
         </div>
-        {members.loading && <Loading rows={3} />}
-        {members.error && <ErrorNote error={members.error} />}
-        {!members.loading && accepted.length === 0 && <Empty icon="roster" title="No members yet">Nobody has joined this Hub. Share the address or send an invite.</Empty>}
-        {accepted.length > 0 && (
-          <div className="ui-table-wrap">
-            <table className="ui-table">
-              <thead><tr><th>Member</th><th>Roles</th><th /></tr></thead>
-              <tbody>
-                {accepted.map((m) => (
-                  <tr key={m.membership_id}>
-                    <td>
-                      <span>{m.display_name ?? "Member"}</span>
-                      {m.is_owner && <span style={{ marginLeft: 8 }}><Pill tone="accent">Owner</Pill></span>}
-                    </td>
-                    <td>
-                      <div className="ui-row ui-gap-4">
-                        {m.roles.length === 0 ? <span className="ui-muted" style={{ fontSize: 13 }}>—</span> : m.roles.map((r) => <Pill key={r.key}>{r.name}</Pill>)}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="ui-row" style={{ justifyContent: "flex-end", gap: 6 }}>
-                        {can(membership, "admin.roles.manage") && !m.is_owner && (roles.data?.roles ?? []).map((r) => {
-                          const has = m.roles.some((mr) => mr.key === r.key);
-                          return (
-                            <Btn key={r.role_id} size="sm" variant={has ? "ink" : "outline"}
-                              onClick={() => act(() => (has ? api.memberRoleUnassign(m.membership_id, r.role_id) : api.memberRoleAssign(m.membership_id, r.role_id)))}>
-                              {r.name}
-                            </Btn>
-                          );
-                        })}
-                        {can(membership, "admin.members.remove") && !m.is_owner && (
-                          <Btn size="sm" variant="quiet" onClick={() => act(() => api.memberRemove(m.membership_id))}>Remove</Btn>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {selected.length > 0 && (
+          <div className="row">
+            <span className="t-small subtle">{selected.length} selected</span>
+            <Button
+              size="sm"
+              variant="danger"
+              loading={busy}
+              disabled={!can(membership, "admin.members.remove")}
+              onClick={async () => {
+                setBusy(true);
+                let ok = 0;
+                for (const id of selected) {
+                  const r = await api.memberRemove(id);
+                  if (r.ok) ok++;
+                }
+                setBusy(false);
+                setSelected([]);
+                toast(`${ok} removed`, ok ? "ok" : "error");
+                list.reload();
+              }}
+            >
+              Remove selected
+            </Button>
           </div>
         )}
-        <p className="ui-help" style={{ marginTop: 12 }}>
-          Emails are never shown. The Owner is protected and cannot be removed or demoted.
-        </p>
-      </Card>
+      </div>
+
+      {list.loading && <Loading rows={4} />}
+      {list.error && <ErrorNote error={list.error} onRetry={list.reload} />}
+      {list.data && (
+        <Table
+          columns={columns}
+          rows={rows}
+          rowKey={(m) => m.membership_id}
+          caption={`Members of ${hub.name}`}
+          empty={<Empty icon="members" title="No members match that search">Try a different name, or clear the search.</Empty>}
+        />
+      )}
+      {!can(membership, "admin.members.remove") && (
+        <Notice tone="info" title="Read-only view">
+          You can see members but not remove them. Your role does not include <code className="mono">admin.members.remove</code>.
+        </Notice>
+      )}
     </div>
   );
 }
@@ -294,73 +512,120 @@ export function Members() {
 export function Invites() {
   const { hub } = useHubCtx();
   const { api } = useIdentity();
-  const invites = useLv(() => api.inviteList(hub.hub_id), [api, hub.hub_id]);
-  const [maxUses, setMaxUses] = useState("");
-  const [code, setCode] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  async function create() {
-    setError(null);
-    const r = await api.inviteCreate(hub.hub_id, maxUses ? Number(maxUses) : undefined);
-    if (r.ok) { setCode(r.code); invites.reload(); }
-    else setError(describeError(r.error));
-  }
-  async function revoke(id: string) {
-    const r = await api.inviteRevoke(id);
-    if (r.ok) invites.reload(); else setError(describeError(r.error));
-  }
+  const toast = useToast();
+  const [maxUses, setMaxUses] = useState("unlimited");
+  const [expiry, setExpiry] = useState("7");
+  const [busy, setBusy] = useState(false);
+  const [created, setCreated] = useState<string | null>(null);
+  const list = useLv(() => api.inviteList(hub.hub_id), [api, hub.hub_id]);
 
   return (
-    <div className="ui-stack ui-gap-16">
-      {error && <ErrorNote error={{ code: "lv_server_error", message: error }} />}
+    <div className="stack" style={{ gap: 20 }}>
+      <PageHead eyebrow="Invites" title="Bring people in." sub="An invitation is a link with a code. Codes are shown once and can be revoked at any time." />
 
-      <Card>
-        <Micro accent>New invite</Micro>
-        <p className="ui-muted" style={{ margin: "8px 0 14px", fontSize: 14 }}>
-          The code is shown once. Anyone with it can join according to the Hub's joining mode.
-        </p>
-        <div className="ui-row" style={{ alignItems: "flex-end" }}>
-          <div className="ui-field" style={{ margin: 0, maxWidth: 180 }}>
-            <label className="ui-label" htmlFor="max-uses">Max uses</label>
-            <input id="max-uses" className="ui-input" inputMode="numeric" value={maxUses} onChange={(e) => setMaxUses(e.target.value.replace(/\D/g, ""))} placeholder="Unlimited" />
-          </div>
-          <Btn variant="primary" onClick={create} icon="plus">Create invite</Btn>
+      <Card className="stack">
+        <h2 className="t-title">Create an invitation</h2>
+        <div className="grid grid-2">
+          <Field label="Uses" htmlFor="max-uses">
+            <Select
+              id="max-uses"
+              label="Uses"
+              value={maxUses}
+              onChange={setMaxUses}
+              options={[
+                { value: "unlimited", label: "Unlimited" },
+                { value: "1", label: "One person" },
+                { value: "10", label: "Ten people" },
+              ]}
+            />
+          </Field>
+          <Field label="Expires" htmlFor="expiry">
+            <Select
+              id="expiry"
+              label="Expires"
+              value={expiry}
+              onChange={setExpiry}
+              options={[
+                { value: "1", label: "In 1 day" },
+                { value: "7", label: "In 7 days" },
+                { value: "30", label: "In 30 days" },
+                { value: "never", label: "Never" },
+              ]}
+            />
+          </Field>
         </div>
-        {code && (
-          <div style={{ marginTop: 16 }}>
-            <CopyField label="Shown once — copy it now" value={code} />
-            <p className="ui-help" style={{ marginTop: 8 }}>Invite link: https://lunchvoice.com/j/{code}</p>
+        <div className="row">
+          <Button
+            variant="primary"
+            loading={busy}
+            onClick={async () => {
+              setBusy(true);
+              const expiresAt =
+                expiry === "never" ? undefined : new Date(Date.now() + Number(expiry) * 86_400_000).toISOString();
+              const r = await api.inviteCreate(hub.hub_id, maxUses === "unlimited" ? undefined : Number(maxUses), expiresAt);
+              setBusy(false);
+              if (r.ok && typeof r === "object" && "code" in r) {
+                setCreated(String(r.code));
+                toast("Invitation created", "ok");
+                list.reload();
+              } else {
+                toast("Could not create an invitation", "error");
+              }
+            }}
+          >
+            Create invitation
+          </Button>
+          <span className="t-small subtle">Codes are shown once. Copy it before you leave this page.</span>
+        </div>
+        {created && (
+          <div className="stack stack-sm">
+            <CopyField label="Invitation code" value={created} />
+            <CopyField label="Invitation link" value={`${window.location.origin}/j/${created}`} />
           </div>
         )}
       </Card>
 
-      <Card>
-        <Micro>Issued invites</Micro>
-        {invites.loading && <Loading rows={2} />}
-        {invites.error && <ErrorNote error={invites.error} />}
-        {!invites.loading && (invites.data?.invites.length ?? 0) === 0 && (
-          <div style={{ marginTop: 10 }}><Empty icon="survey" title="No invites yet">Create one when you're ready for someone to join.</Empty></div>
+      <section className="stack">
+        <h2 className="t-title">Existing invitations</h2>
+        {list.loading && <Loading rows={3} />}
+        {list.error && <ErrorNote error={list.error} onRetry={list.reload} />}
+        {list.data && list.data.invites.length === 0 && <Empty icon="qr" title="No invitations yet">Create one above and share the link.</Empty>}
+        {list.data && list.data.invites.length > 0 && (
+          <Table
+            caption={`Invitations for ${hub.name}`}
+            rowKey={(i) => i.invite_id}
+            rows={list.data.invites}
+            columns={[
+              { key: "state", header: "State", render: (i) => <Pill tone={i.state === "active" ? "ok" : "quiet"}>{i.state}</Pill> },
+              { key: "uses", header: "Uses", render: (i) => <span className="mono t-small">{i.uses}{i.max_uses ? ` / ${i.max_uses}` : ""}</span> },
+              {
+                key: "expires",
+                header: "Expires",
+                render: (i) => <span className="t-small muted">{i.expires_at ? new Date(i.expires_at).toLocaleDateString() : "Never"}</span>,
+              },
+              {
+                key: "actions",
+                header: "Actions",
+                align: "right",
+                render: (i) => (
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    disabled={i.state !== "active"}
+                    onClick={async () => {
+                      const r = await api.inviteRevoke(i.invite_id);
+                      toast(r.ok ? "Invitation revoked" : "Could not revoke", r.ok ? "ok" : "error");
+                      list.reload();
+                    }}
+                  >
+                    Revoke
+                  </Button>
+                ),
+              },
+            ]}
+          />
         )}
-        {(invites.data?.invites.length ?? 0) > 0 && (
-          <div className="ui-table-wrap" style={{ marginTop: 8 }}>
-            <table className="ui-table">
-              <thead><tr><th>State</th><th>Uses</th><th>Expires</th><th /></tr></thead>
-              <tbody>
-                {invites.data!.invites.map((i) => (
-                  <tr key={i.invite_id}>
-                    <td><Pill tone={i.state === "active" ? "ok" : "muted"}>{i.state}</Pill></td>
-                    <td className="ui-mono">{i.uses}{i.max_uses ? ` / ${i.max_uses}` : ""}</td>
-                    <td className="ui-muted">{i.expires_at ? new Date(i.expires_at).toLocaleDateString() : "Never"}</td>
-                    <td style={{ textAlign: "right" }}>
-                      {i.state === "active" && <Btn size="sm" variant="quiet" onClick={() => revoke(i.invite_id)}>Revoke</Btn>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+      </section>
     </div>
   );
 }
@@ -368,298 +633,416 @@ export function Invites() {
 /* ------------------------------------------------------------------ roles */
 
 export function Roles() {
-  const { hub } = useHubCtx();
+  const { hub, membership } = useHubCtx();
   const { api } = useIdentity();
+  const toast = useToast();
   const roles = useLv(() => api.roleList(hub.hub_id), [api, hub.hub_id]);
   const catalog = useLv(() => api.capabilityCatalog(), [api]);
-  const [error, setError] = useState<string | null>(null);
-  const [name, setName] = useState("");
-  const [icon, setIcon] = useState("star");
-  const [caps, setCaps] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
+  const [name, setName] = useState("");
+  const [caps, setCaps] = useState<string[]>([]);
 
-  const ICONS = ["star", "home", "survey", "voice", "roster", "dashboard", "bulb", "flame", "sparkle", "lock"];
+  const grouped = catalog.data?.groups ?? [];
 
   async function create() {
     setCreating(true);
-    setError(null);
-    const r = await api.roleCreate(hub.hub_id, name.trim().toLowerCase(), icon, caps);
+    const r = await api.roleCreate(hub.hub_id, name.trim(), "roles", caps);
     setCreating(false);
-    if (r.ok) { setName(""); setCaps([]); roles.reload(); }
-    else setError(describeError(r.error));
+    if (r.ok) {
+      setName("");
+      setCaps([]);
+      toast("Role created", "ok");
+      roles.reload();
+    } else {
+      toast(describeError(r.error), "error");
+    }
   }
-  async function remove(role: Role) {
-    const r = await api.roleDelete(role.role_id);
-    if (r.ok) roles.reload(); else setError(describeError(r.error));
-  }
-  function toggle(key: string) {
-    setCaps((c) => (c.includes(key) ? c.filter((k) => k !== key) : [...c, key]));
-  }
-
-  const slots = roles.data?.custom_slots ?? null;
-  const used = roles.data?.slots_used ?? 0;
 
   return (
-    <div className="ui-stack ui-gap-16">
-      {error && <ErrorNote error={{ code: "lv_server_error", message: error }} />}
+    <div className="stack" style={{ gap: 20 }}>
+      <PageHead
+        eyebrow="Roles"
+        title="Who can do what."
+        sub="The Owner is protected and never consumes a custom-role slot. No one can grant a capability they do not hold themselves."
+      />
 
-      <Card>
-        <div className="ui-spread" style={{ marginBottom: 12 }}>
-          <Micro>Custom roles</Micro>
-          {slots === null ? (
-            <span className="ui-help">Plan limit not set yet</span>
-          ) : (
-            <div style={{ minWidth: 200 }}><Meter value={used} max={slots} label="slots used" /></div>
-          )}
-        </div>
-
-        {roles.loading && <Loading rows={2} />}
-        {roles.error && <ErrorNote error={roles.error} />}
-        {!roles.loading && (roles.data?.roles.length ?? 0) === 0 && (
-          <Empty icon="lock" title="No custom roles yet">Every member is just a member until you give them a role. The Owner always has everything.</Empty>
-        )}
-        {(roles.data?.roles.length ?? 0) > 0 && (
-          <div className="ui-table-wrap">
-            <table className="ui-table">
-              <thead><tr><th>Role</th><th>Capabilities</th><th>Members</th><th /></tr></thead>
-              <tbody>
-                {roles.data!.roles.map((r) => (
-                  <tr key={r.role_id}>
-                    <td><div className="ui-row ui-gap-8"><Icon name={(r.icon as never) ?? "star"} size={16} /><strong>{r.name}</strong></div></td>
-                    <td className="ui-muted" style={{ fontSize: 13 }}>{r.capabilities.length} of {catalog.data ? catalog.data.groups.reduce((n, g) => n + g.capabilities.length, 0) : "…"}</td>
-                    <td className="ui-mono">{r.member_count}</td>
-                    <td style={{ textAlign: "right" }}><Btn size="sm" variant="quiet" onClick={() => remove(r)}>Delete</Btn></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
-
-      <Card>
-        <Micro accent>New role</Micro>
-        <div className="ui-grid-2" style={{ marginTop: 12, alignItems: "start" }}>
-          <div>
-            <div className="ui-field">
-              <label className="ui-label" htmlFor="role-name">Name</label>
-              <input id="role-name" className="ui-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Event lead" maxLength={40} />
-            </div>
-            <div className="ui-field">
-              <span className="ui-label">Icon</span>
-              <div className="ui-row ui-gap-4">
-                {ICONS.map((i) => (
-                  <button key={i} type="button" className={`ui-btn ui-btn-sm ${icon === i ? "ui-btn-ink" : "ui-btn-outline"}`} aria-pressed={icon === i} onClick={() => setIcon(i)} aria-label={i}>
-                    <Icon name={i as never} size={16} />
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <span className="ui-label">Capabilities</span>
-            {catalog.loading && <Loading rows={2} />}
-            {catalog.data?.groups.map((g) => (
-              <div key={g.key} style={{ marginTop: 10 }}>
-                <div className="ui-spread">
-                  <Micro>{g.label}</Micro>
-                  <button type="button" className="ui-btn ui-btn-quiet ui-btn-sm"
-                    onClick={() => setCaps((c) => (g.capabilities.every((x) => c.includes(x.key)) ? c.filter((k) => !g.capabilities.some((x) => x.key === k)) : Array.from(new Set([...c, ...g.capabilities.map((x) => x.key)]))))}>
-                    Toggle group
-                  </button>
-                </div>
-                <div className="ui-stack ui-gap-4" style={{ marginTop: 6 }}>
-                  {g.capabilities.map((cap) => (
-                    <label key={cap.key} className="ui-check">
-                      <input type="checkbox" checked={caps.includes(cap.key)} onChange={() => toggle(cap.key)} />
-                      <span>{cap.label} <code className="ui-mono ui-muted" style={{ fontSize: 11 }}>{cap.key}</code></span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="ui-row" style={{ marginTop: 16 }}>
-          <Btn variant="primary" disabled={!name.trim() || creating} onClick={create}>{creating ? "Creating…" : "Create role"}</Btn>
-          <span className="ui-help">No one can grant a capability they don't hold themselves.</span>
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ pending surfaces */
-
-function Pending({ title, sub, fn, children }: { title: string; sub: string; fn: string; children?: ReactNode }) {
-  return (
-    <div className="ui-stack ui-gap-16">
-      <Card>
-        <div className="ui-row ui-gap-8" style={{ marginBottom: 8 }}>
-          <Icon name="lock" size={18} />
-          <strong>{title}</strong>
-          <Pill tone="accent">Not available yet</Pill>
-        </div>
-        <p className="ui-muted" style={{ margin: "0 0 10px" }}>{sub}</p>
-        <p className="ui-help">
-          Waiting on <code className="ui-mono">{fn}</code>. The UI is built; the endpoint is not. Nothing here pretends to save.
-        </p>
-      </Card>
-      {children}
-    </div>
-  );
-}
-
-export function HubSettings() {
-  const { hub, membership } = useHubCtx();
-  return (
-    <Pending
-      title="Hub settings"
-      sub="Name, visibility, joining mode and the email-domain restriction are read-only until the settings write lands."
-      fn={PENDING_API.hubUpdate}
-    >
-      <Card>
-        <Micro>Current state</Micro>
-        <div className="ui-grid-3" style={{ marginTop: 12 }}>
-          <div><Micro>Name</Micro><p style={{ margin: "4px 0 0", fontFamily: "var(--font-display)", fontSize: 18 }}>{hub.name}</p></div>
-          <div><Micro>Visibility</Micro><p style={{ margin: "4px 0 0" }}>{hub.visibility}</p></div>
-          <div><Micro>Joining</Micro><p style={{ margin: "4px 0 0" }}>{hub.membership_mode.replace("_", " ")}</p></div>
-        </div>
-        {membership?.is_owner && (
-          <>
-            <hr className="ui-rule" style={{ margin: "18px 0" }} />
-            <Micro>Owner only</Micro>
-            <p className="ui-muted" style={{ margin: "6px 0 12px", fontSize: 14 }}>
-              Deleting this Hub and transferring ownership need {PENDING_API.hubDelete} and {PENDING_API.ownerTransfer}. Both stay disabled.
-            </p>
-            <div className="ui-row">
-              <Btn variant="danger" disabled>Delete Hub</Btn>
-              <Btn variant="outline" disabled>Transfer ownership</Btn>
-            </div>
-          </>
-        )}
-      </Card>
-    </Pending>
-  );
-}
-
-const BILLING_REPORTS = [
-  "Active plan and renewal date",
-  "Custom role slots in use",
-  "Active Campaigns against the plan limit",
-  "Active Survey-mode Campaigns against the limit",
-  "Current participation against the replacement threshold",
-  "Campaign windows, their length and their remaining days",
-];
-
-export function HubBilling() {
-  return (
-    <Pending title="Billing" sub="No billing service is connected, so this page reports nothing rather than inventing a plan or a balance." fn={PENDING_API.billingSummary}>
-      <div className="ui-grid-2">
-        <Card>
-          <div className="ui-spread">
-            <Micro>Current plan</Micro>
-            <Pill>Not reported</Pill>
-          </div>
-          <p className="ui-muted" style={{ margin: "10px 0 14px", fontSize: 14 }}>
-            Paid access fails closed until billing reports a live entitlement. Premium actions stay disabled; nothing is deleted while a plan lapses.
-          </p>
-          <div className="ui-row">
-            <Btn variant="primary" disabled>Manage plan</Btn>
-            <Btn variant="outline" disabled>Invoices</Btn>
-          </div>
+      {roles.loading && <Loading rows={2} />}
+      {roles.error && <ErrorNote error={roles.error} onRetry={roles.reload} />}
+      {roles.data && (
+        <Card className="stack">
+          <QuotaMeter label="Custom roles" used={roles.data.slots_used} limit={roles.data.custom_slots} />
         </Card>
-        <Card quiet>
-          <Micro>Canonical prices</Micro>
-          <ul className="lv-plan-list" style={{ marginTop: 10 }}>
-            <li><Icon name="check" size={15} />Starter Hub · $13/month</li>
-            <li><Icon name="check" size={15} />Team Hub · $29/month</li>
-            <li><Icon name="check" size={15} />Campaign Starter · $19 first 2 weeks, then $13/week</li>
-            <li><Icon name="check" size={15} />Hub Name Reservation · $25 per 12 months</li>
-          </ul>
-          <p className="ui-help" style={{ marginTop: 12 }}>
-            Campaign Plus has no authoritative price yet, so it is not listed with one.
-          </p>
-        </Card>
+      )}
+
+      <div className="stack">
+        <h2 className="t-title">Roles</h2>
+        {roles.data && roles.data.roles.length === 0 && (
+          <Empty icon="roles" title="No custom roles yet">
+            Start from a role like Moderator or Analyst and tick only the capabilities it needs.
+          </Empty>
+        )}
+        <div className="grid grid-2">
+          {roles.data?.roles.map((r) => <RoleCard key={r.role_id} role={r} onChanged={roles.reload} />)}
+        </div>
       </div>
-      <Card>
-        <Micro>What this page will report</Micro>
-        <div className="ui-stack ui-gap-8" style={{ marginTop: 10 }}>
-          {BILLING_REPORTS.map((row) => (
-            <div key={row} className="ui-spread" style={{ borderBottom: "1px solid var(--line)", paddingBottom: 8 }}>
-              <span style={{ fontSize: 14 }}>{row}</span>
-              <Pill>Not reported</Pill>
+
+      <Card className="stack">
+        <h2 className="t-title">New role</h2>
+        <Field label="Role name" htmlFor="role-name" help="Members see this name on their profile and in member lists.">
+          <TextInput id="role-name" value={name} maxLength={30} onChange={(e) => setName(e.target.value)} placeholder="Moderator" />
+        </Field>
+        <div className="stack stack-sm">
+          <p className="t-label muted">Capabilities</p>
+          {grouped.map((g) => (
+            <div key={g.key} className="stack stack-sm">
+              <div className="row-between">
+                <span className="t-small" style={{ fontWeight: 600 }}>{g.label}</span>
+                <Button
+                  size="sm"
+                  variant="quiet"
+                  onClick={() =>
+                    setCaps((c) =>
+                      g.capabilities.every((x) => c.includes(x.key))
+                        ? c.filter((k) => !g.capabilities.some((x) => x.key === k))
+                        : Array.from(new Set([...c, ...g.capabilities.map((x) => x.key)])),
+                    )
+                  }
+                >
+                  Toggle group
+                </Button>
+              </div>
+              {g.capabilities.map((cap) => (
+                <Checkbox
+                  key={cap.key}
+                  checked={caps.includes(cap.key)}
+                  onChange={(v) => setCaps((c) => (v ? [...c, cap.key] : c.filter((k) => k !== cap.key)))}
+                >
+                  {cap.label} <code className="mono subtle" style={{ fontSize: 11 }}>{cap.key}</code>
+                </Checkbox>
+              ))}
             </div>
           ))}
         </div>
+        <div className="row">
+          <Button variant="primary" disabled={!name.trim() || !can(membership, "admin.roles.manage")} loading={creating} onClick={create}>
+            Create role
+          </Button>
+          <span className="t-small subtle">A role can only grant capabilities you already hold.</span>
+        </div>
       </Card>
-    </Pending>
+    </div>
   );
 }
 
-export function HubReservation() {
+function RoleCard({ role, onChanged }: { role: Role; onChanged: () => void }) {
+  const { api } = useIdentity();
+  const toast = useToast();
   return (
-    <Pending
-      title="Hub Name Reservation"
-      sub="$25 per 12 months and $25 to renew, with a 25-day grace period. A reservation grants no features."
-      fn={PENDING_API.reservationStatus}
-    >
-      <div className="ui-grid-2">
-        <Card>
-          <div className="ui-spread">
-            <Micro>This address</Micro>
-            <Pill>Not reported</Pill>
-          </div>
-          <p className="ui-muted" style={{ margin: "10px 0 14px", fontSize: 14 }}>
-            Reservation state, expiry and renewal date come from the reservation service. Until it exists, no expiry is
-            displayed and nothing can be purchased.
-          </p>
-          <div className="ui-row">
-            <Btn variant="primary" disabled>Reserve this address</Btn>
-            <Btn variant="outline" disabled>Renew for 12 months</Btn>
-          </div>
-        </Card>
-        <Card quiet>
-          <Micro>Lifecycle</Micro>
-          <div className="lv-lifecycle" style={{ margin: "12px 0" }}>
-            <span>ACTIVE</span><i aria-hidden="true">→</i><span>GRACE · 25 days</span><i aria-hidden="true">→</i><span>RELEASED</span>
-          </div>
-          <p className="ui-muted" style={{ margin: 0, fontSize: 14 }}>
-            After the grace period the address is released and may be claimed by another creator. A released address never
-            exposes a previous owner&rsquo;s data.
-          </p>
-        </Card>
+    <Card className="stack">
+      <div className="row-between">
+        <p className="t-title">{role.name}</p>
+        <Pill>{role.capabilities.length} capabilities</Pill>
       </div>
-    </Pending>
+      <p className="t-small subtle mono">{role.key}</p>
+      <div className="row" style={{ gap: 4 }}>
+        {role.capabilities.slice(0, 3).map((c) => (
+          <Pill key={c} tone="quiet">
+            {c}
+          </Pill>
+        ))}
+        {role.capabilities.length > 3 && <Pill tone="quiet">+{role.capabilities.length - 3}</Pill>}
+      </div>
+      <span className="t-small subtle">{role.member_count} members</span>
+      <Button
+        size="sm"
+        variant="danger"
+        onClick={async () => {
+          const r = await api.roleDelete(role.role_id);
+          toast(r.ok ? "Role deleted" : "Could not delete role", r.ok ? "ok" : "error");
+          onChanged();
+        }}
+      >
+        Delete role
+      </Button>
+    </Card>
   );
 }
+
+/* ------------------------------------------------------------------ settings + builder */
+
+const HUB_PAGES = [
+  { key: "home", label: "Home & Campaigns", state: "live" as const },
+  { key: "shop", label: "Shop", state: "m2" as const },
+  { key: "leaderboard", label: "Leaderboard", state: "m2" as const },
+  { key: "newsroom", label: "Newsroom", state: "m2" as const },
+  { key: "comments", label: "Comments", state: "m2" as const },
+  { key: "custom", label: "Custom page", state: "m2" as const },
+];
+
+export function HubSettings() {
+  const { hub } = useHubCtx();
+  const [tab, setTab] = useState("branding");
+  const [color, setColor] = useState("#FF9A18");
+  const [pages, setPages] = useState<Record<string, boolean>>({ home: true, shop: false, leaderboard: false, newsroom: false, comments: true, custom: false });
+  const [order, setOrder] = useState(HUB_PAGES.map((p) => p.key));
+
+  const move = (i: number, dir: number) => {
+    const next = [...order];
+    const to = i + dir;
+    if (to < 0 || to >= next.length) return;
+    [next[i], next[to]] = [next[to], next[i]];
+    setOrder(next);
+  };
+
+  return (
+    <div className="stack" style={{ gap: 20 }}>
+      <PageHead eyebrow="Hub settings" title="Make it yours." sub="Branding, visibility and the pages members see. Changes save to the Hub when the update endpoint exists." />
+
+      <Segmented
+        label="Settings sections"
+        value={tab}
+        onChange={setTab}
+        items={[
+          { key: "branding", label: "Branding" },
+          { key: "pages", label: "Pages" },
+          { key: "about", label: "About" },
+        ]}
+      />
+
+      {tab === "branding" && (
+        <Card className="stack">
+          <h2 className="t-title">Branding</h2>
+          <Field label="Hub colour" help="Only contrast-safe colours are offered, so text on top always passes 4.5:1.">
+            <ColorPicker value={color} onChange={setColor} />
+          </Field>
+          <div className="row">
+            <span className="s-raised" style={{ padding: "10px 16px", borderRadius: 999, background: color, color: "#14110F", fontWeight: 600 }}>
+              Preview button
+            </span>
+            <span className="t-small subtle">Ink text on fill · amber is never used as text.</span>
+          </div>
+          <Field label="Hub mark" htmlFor="hub-logo" help="Image upload is not available yet. Your initials are used as a mark until then.">
+            <div className="row">
+              <HubMark name={hub.name} slug={hub.slug} size={48} />
+              <Button variant="raised" size="sm" disabled>
+                Upload a logo
+              </Button>
+            </div>
+          </Field>
+          <PendingNote fn={PENDING_API.hubUpdate} what="Saving branding" />
+        </Card>
+      )}
+
+      {tab === "pages" && (
+        <Card className="stack">
+          <h2 className="t-title">Pages</h2>
+          <p className="t-small muted">Turn pages on, then order them. The Starter plan allows 3 custom pages; Team expands this.</p>
+          <div className="stack stack-sm">
+            {order.map((key, i) => {
+              const page = HUB_PAGES.find((p) => p.key === key)!;
+              return (
+                <div key={key} className="s-raised row" style={{ padding: 12, borderRadius: 16, gap: 12 }}>
+                  <div className="stack stack-sm grow">
+                    <span className="t-ui" style={{ fontWeight: 600 }}>{page.label}</span>
+                    <span className="t-small subtle">
+                      {page.state === "live" ? "Live" : "Coming with M2"}
+                    </span>
+                  </div>
+                  {page.state === "m2" && <Pill tone="quiet">M2</Pill>}
+                  <Switch
+                    label={`${page.label} enabled`}
+                    checked={pages[key]}
+                    onChange={(v) => setPages((p) => ({ ...p, [key]: v }))}
+                  />
+                  <div className="row" style={{ gap: 4 }}>
+                    <Button size="sm" variant="quiet" aria-label={`Move ${page.label} up`} onClick={() => move(i, -1)}>
+                      <Icon name="chevron-left" size={16} />
+                    </Button>
+                    <Button size="sm" variant="quiet" aria-label={`Move ${page.label} down`} onClick={() => move(i, 1)}>
+                      <Icon name="chevron-right" size={16} />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <PendingNote fn={PENDING_API.hubUpdate} what="Saving pages" />
+        </Card>
+      )}
+
+      {tab === "about" && (
+        <Card className="stack">
+          <h2 className="t-title">About</h2>
+          <p className="t-small muted">
+            {hub.name} · <span className="mono">/{hub.slug}</span> · {hub.visibility} · {hub.membership_mode.replace("_", " ")}
+          </p>
+          <div className="stack stack-sm">
+            <p className="t-label muted">Made by KpnSolute</p>
+            <MakerSignature still width={160} height={52} href="https://kpnsolute.com" label="Made by KpnSolute" />
+          </div>
+          <div className="divider" />
+          <h3 className="t-title" style={{ color: "var(--lv-danger-ink)" }}>Owner-only zone</h3>
+          <p className="t-small muted">Deleting a Hub removes its Campaigns and responses for everyone. Ownership must be transferred first.</p>
+          <div className="row">
+            <ButtonLink to={`/${hub.slug}/billing`} variant="raised" size="sm">
+              Billing
+            </ButtonLink>
+            <Button variant="danger" size="sm" disabled>
+              Delete Hub
+            </Button>
+          </div>
+          <PendingNote fn={PENDING_API.hubDelete} what="Deleting a Hub" />
+        </Card>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ billing */
+
+export function HubBilling() {
+  const { hub, membership } = useHubCtx();
+  const plan = PLANS.find((p) => p.id === "starter")!;
+  const plus = PLANS.find((p) => p.id === "campaign_plus")!;
+
+  return (
+    <div className="stack" style={{ gap: 20 }}>
+      <PageHead eyebrow="Billing" title="Plan and entitlements." sub="The backend evaluates entitlements. This page reports state and never activates a plan." back={{ to: `/${hub.slug}`, label: hub.name }} />
+
+      {!membership?.is_owner && (
+        <Notice tone="warn" title="Owner-only">
+          Billing is visible to the Owner. You can see the plan but not change it.
+        </Notice>
+      )}
+
+      <Card className="stack">
+        <div className="row-between">
+          <div className="stack stack-sm">
+            <p className="t-label muted">Current plan</p>
+            <p className="t-title">{plan.name}</p>
+          </div>
+          <Pill tone="accent">Preview</Pill>
+        </div>
+        <p className="t-small muted">
+          {plan.priceLabel} {plan.cadence}. Entitlements: {plan.features.slice(0, 3).join(", ")}.
+        </p>
+        <PendingNote fn={PENDING_API.billingSummary} what="Reading billing state" />
+        <div className="row">
+          <Button variant="raised" disabled>
+            Change plan
+          </Button>
+          <Button variant="quiet" disabled>
+            Download invoices
+          </Button>
+        </div>
+        <p className="t-small subtle">Disabled: checkout is not connected. No payment method is stored in this build.</p>
+      </Card>
+
+      <Card className="stack">
+        <h2 className="t-title">{plus.name}</h2>
+        <p className="t-small muted">
+          A Team-family plan for a fixed window. Its price has not been supplied, so it cannot be bought and no number is shown.
+        </p>
+        <div className="row">
+          <Button variant="raised" disabled>
+            Unavailable until priced
+          </Button>
+          <ButtonLink to="/pricing" variant="quiet" size="sm">
+            Compare plans
+          </ButtonLink>
+        </div>
+      </Card>
+
+      <Card className="stack">
+        <h2 className="t-title">What happens on expiry</h2>
+        <ul className="stack stack-sm">
+          {["Premium actions fail closed.", "Nothing is deleted.", "Members keep answering what is already open.", "Export stays available."].map((t) => (
+            <li key={t} className="row" style={{ gap: 8 }}>
+              <Icon name="check" size={15} strokeWidth={2.4} />
+              <span className="t-small">{t}</span>
+            </li>
+          ))}
+        </ul>
+      </Card>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ reservation */
+
+export function HubReservation() {
+  const { hub } = useHubCtx();
+  return (
+    <div className="stack" style={{ gap: 20, maxWidth: 720 }}>
+      <PageHead
+        eyebrow="Reserve your Hub URL"
+        title={`/${hub.slug}`}
+        sub="A reservation holds this address while you plan. It grants no features."
+        back={{ to: `/${hub.slug}`, label: hub.name }}
+      />
+      <Card className="stack">
+        <div className="row-between">
+          <span className="t-label muted">Lifecycle</span>
+          <Pill tone="accent">$25 per 12 months</Pill>
+        </div>
+        <Lifecycle steps={["ACTIVE", "GRACE", "RELEASED"]} current="ACTIVE" />
+        <Progress value={365} max={365 + 25} label="Days in the current term including grace" />
+        <p className="t-small muted">
+          25 days of grace after expiry, then the address is released. A released address never exposes the previous owner's data.
+        </p>
+        <PendingNote fn={PENDING_API.reservationStatus} what="Reading reservation state" />
+        <div className="row">
+          <Button variant="primary" disabled>
+            Renew for $25
+          </Button>
+          <ButtonLink to="/pricing" variant="quiet" size="sm">
+            How reservations work
+          </ButtonLink>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ discover */
 
 export function HubDiscover() {
   const { hub } = useHubCtx();
+  const [open, setOpen] = useState(false);
   return (
-    <Pending
-      title="Discover eligibility"
-      sub="Team Hubs can apply once they reach 700 genuine active members. Approval is not guaranteed."
-      fn={PENDING_API.discoverApply}
-    >
-      <Card>
-        <div className="ui-grid-2" style={{ alignItems: "center" }}>
-          <Metric value={hub.member_count} label="members" hint="Guests never count toward this number." />
-          <div className="ui-stack ui-gap-8">
-            <Meter value={Math.min(hub.member_count, 700)} max={700} label="progress to 700 active members" />
-            <span className="ui-help">
-              Listing also needs an active Team plan and an approved application. Nothing is listed automatically, and no Hub
-              is ever seeded into Discover.
-            </span>
-          </div>
+    <div className="stack" style={{ gap: 20, maxWidth: 720 }}>
+      <PageHead eyebrow="Discover" title="Apply to be listed." sub="Listed Hubs are reviewed by a person. Eligibility starts at 700 genuine active members on the Team plan." back={{ to: `/${hub.slug}`, label: hub.name }} />
+      <Card className="stack">
+        <div className="row-between">
+          <span className="t-label muted">Eligibility</span>
+          <Pill tone="warn">Not eligible</Pill>
         </div>
-        <hr className="ui-rule" style={{ margin: "18px 0" }} />
-        <div className="ui-row">
-          <Btn variant="primary" disabled>Apply for Discover</Btn>
-          <Link className="ui-btn ui-btn-outline" to="/discover">See the public directory</Link>
+        <Progress value={hub.member_count} max={700} label="Genuine active members" />
+        <p className="t-small muted">
+          {hub.member_count} of 700 genuine active members. Guests and duplicates never count, and the number is not rounded up.
+        </p>
+        <div className="row">
+          <Button variant="raised" disabled>
+            Apply to Discover
+          </Button>
+          <Button variant="quiet" size="sm" onClick={() => setOpen(true)}>
+            What counts?
+          </Button>
         </div>
+        <PendingNote fn={PENDING_API.discoverApply} what="Applying to Discover" />
       </Card>
-    </Pending>
+      <Dialog open={open} onClose={() => setOpen(false)} title="What counts as a genuine member?">
+        <p className="t-small muted">
+          A genuine member is a verified account with an accepted membership that has been active in the trailing window. Guests,
+          duplicate accounts, invited-but-not-accepted people and bot traffic are excluded. The count is computed server-side; this
+          page only reports it.
+        </p>
+        <div className="row row-end">
+          <Button variant="raised" onClick={() => setOpen(false)}>
+            Got it
+          </Button>
+        </div>
+      </Dialog>
+    </div>
   );
 }

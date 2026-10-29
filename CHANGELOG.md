@@ -6,6 +6,78 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added — v2 UI rebuilt from the design system (BUILD_PROMPT phases 1–7)
+
+- **One design system in `src/ui/`.** `tokens.css` ports the handoff's token file (light, dark, high contrast),
+  `base.css` holds the reset, the nine type roles, the five surfaces, controls and layout utilities, and
+  `index.ts` is the only import surface a page may use. `src/components/`, `src/styles/` and `src/index.css` are
+  deleted, so there is no second place a colour, shadow or type size can come from.
+- **Self-hosted fonts.** Bricolage Grotesque, Geist and Space Mono are served from `/fonts` (latin + latin-ext only,
+  `font-display: swap`) with Bricolage 800 and Geist 400 preloaded. The Google Fonts links and both preconnects are
+  gone; `public/licenses/` carries the three OFL texts.
+- **Theme system.** `ThemeProvider` resolves light / dark / system (live `prefers-color-scheme`) plus a high-contrast
+  toggle, persisted in `localStorage`, with a no-flash inline script in `index.html`. Tokens remap every surface, so
+  nothing hand-picks a colour.
+- **Component library** (`src/ui/components/`): Button (primary / raised / ink / quiet / danger, three sizes,
+  icon-only), IconToggleGroup, Field and text controls, Select (listbox with `↑↓`, Home/End, type-ahead, Esc),
+  Combobox, Checkbox, RadioGroup (roving tabindex), Switch, Segmented with a measured sliding thumb, Slider,
+  six-cell CodeInput with paste and backspace, contrast-safe ColorPicker, the five answer controls with selection
+  jelly, NPS/slider/ranking behind the `futureModes` boundary, Card/Panel/Pill/HubMark/Metric/Table/Empty/Skeleton/
+  Notice/Toast/Tooltip/Progress/QuotaMeter/GateMeter/Lifecycle, Dialog and Sheet (focus trap, Esc, focus return),
+  TypedConfirm for destructive actions, Menu, MarketingNav, AppHeader, HubTabs, BottomTabs, Breadcrumbs and the
+  brand marks. Every component renders in the dev-only `/__gallery`.
+- **Motion system** (`src/ui/motion.ts`): the handoff's easings and durations only — press `scale(.94,.88)`,
+  560 ms selection jelly, spring segmented thumb, popovers, staggered page enter with the View Transitions API,
+  marketing scroll reveal, 40 s ticker that pauses off-screen, live dot and count-up. `prefers-reduced-motion`
+  turns every one into an instant state.
+- **KpnSolute signature.** `public/brand/kpn-signature@1.js` (immutable) and `/brand/kpn-signature.js` (latest) ship
+  the shared web component; `MakerSignature` wraps it for React with a typed intrinsic element. It appears on the
+  landing hero, the closing CTA band, every footer, and the Hub About panel — never in the respondent player.
+  `public/brand/README.md` documents the attributes, `replay()` and the `kpn-signature:drawn` event. The path
+  remains a marked PLACEHOLDER until the founder supplies the real vector.
+- **Public site.** Landing rebuilt to the handoff composition (hero with marker highlight, CTA row with signature,
+  join-code card, example result with a withheld bar, amber ticker, three steps, ink privacy band, use cases, pricing
+  teaser from `config/pricing.ts`, spring FAQ, closing band), plus how-it-works, use cases, pricing with the
+  Starter/Team entitlement table, the two seasonal windows, the reservation lifecycle and Campaign Plus visibly
+  unpriced, beta, about, fixture status, placeholder legal pages, support, Discover eligibility and a neutral 404.
+- **Account.** Sign-in with the KpnIdentity button and an honest fail-closed state naming the missing env var, join
+  and invitation redemption with invalid/expired/already-member states, My Hubs with empty states, a four-step create
+  flow with a live slug check, and settings for theme, contrast, profile, session and typed-confirm deletion.
+- **Hub workspace.** Permission-shaped tabs on desktop and five BottomTabs on phones; visitor and manager overviews
+  with access gates; Campaign list with phase filters; Studio with question builder (drag and arrow reordering, per-mode
+  editors, live phone preview), audience/anonymity, schedule, publish dialog and share panel; Campaign detail with the
+  lifecycle stepper; results with distributions, trends, withheld states and a disabled export; members, invites,
+  roles with a QuotaMeter, Hub Builder settings, billing, reservation and Discover eligibility.
+- **Respondent player** at `/c/:joinCode`: mobile-first, one question per screen, segmented progress, welcome, review,
+  thanks with a jelly check, and closed / not-open / already-answered / offline / not-eligible states. Guests are told
+  they never count as members.
+- **Tests.** Playwright with axe: the full acceptance path (sign in → create Hub → build and publish a Campaign →
+  answer as a guest → read results), axe and horizontal-overflow assertions on every public route, every signed-in
+  route and every Hub tab, dark-mode axe passes, the gallery, and a screenshot matrix in `e2e/shots` at 390 and 1280 in
+  light and dark.
+- `scripts/gen-icons.mjs` regenerates the 20-icon handoff set, stripping its embedded C2PA metadata.
+
+### Changed
+
+- `index.html` preloads two font files instead of calling Google, and resolves the theme before first paint.
+- `src/lib/reservedSlugs.ts` also reserves `c`, `j`, `g`, `brand`, `fonts`, `licenses`, `how-it-works` and `use-cases`,
+  so no Hub can claim a path the app serves.
+- The landing hero's signature sits behind the CTA and is hidden below 720 px, where a tail has no room.
+- Display type inherits colour instead of forcing page ink, so headings work on raised, page and ink surfaces; raised
+  cards inside an ink panel reset to page ink.
+- The marketing card copy, member and question counts, and the Hub heading use singular/plural correctly.
+
+### Fixed
+
+- Hub mark initials failed 4.5:1 on clay; every mark colour now carries its own legible text colour.
+- The trend chart nested focusable points inside `role="img"`; it is a labelled group.
+- The create-Hub stepper used `role="list"` without list items, and Hub tabs claimed `role="tab"` outside a tablist.
+- A long Hub name widened the phone header past the viewport; it ellipsizes now, and pages get room under the
+  bottom nav.
+- The page-head back control is a router link, so in-app navigation no longer reloads the app.
+- The dev mock sign-in lands on the page you came from.
+
+
 ### Fixed (tactile surfaces after the handoff pass)
 
 - Price cards were left flat white with a hairline while every other surface moved to the raised gradient, and display

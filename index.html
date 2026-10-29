@@ -3,20 +3,38 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LunchVoice</title>
-  <meta name="description" content="Hubs, campaigns and aggregate results." />
+  <title>LunchVoice · Community feedback that stays private</title>
+  <meta name="description" content="Hubs and Campaigns for any community: surveys, polls, ratings and ideas with privacy-safe results. Participation is always free." />
   <meta name="theme-color" content="#EEEDEA" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon-180.png" />
   <meta property="og:title" content="LunchVoice" />
-  <meta property="og:description" content="Hubs, campaigns and aggregate results." />
+  <meta property="og:description" content="Community feedback that stays private. Hubs, Campaigns and withheld results that are never reported as zero." />
   <meta property="og:image" content="/brand/lunchvoice-mark.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <!-- Display: Bricolage Grotesque · UI: Geist · Labels/numbers: Space Mono (all OFL 1.1).
-       Self-host these before launch; see the design handoff's ASSET_MANIFEST.md. -->
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+  <!-- Fonts are self-hosted (latin + latin-ext, swap). Nothing loads from Google.
+       Preload the two faces that paint above the fold: Bricolage 800 and Geist 400. -->
+  <link rel="preload" href="/fonts/bricolage-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin />
+
+  <!-- Resolve the theme before first paint so a dark-mode user never sees a white flash.
+       Keys must match src/ui/theme.tsx. -->
+  <script>
+    (function () {
+      try {
+        var mode = localStorage.getItem("lv.theme") || "system";
+        var dark = mode === "dark" || (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        var root = document.documentElement;
+        root.dataset.theme = dark ? "dark" : "light";
+        root.dataset.contrast = localStorage.getItem("lv.contrast") === "high" ? "high" : "normal";
+        root.style.colorScheme = dark ? "dark" : "light";
+      } catch (e) {
+        document.documentElement.dataset.theme = "light";
+        document.documentElement.dataset.contrast = "normal";
+      }
+    })();
+  </script>
 </head>
 <body>
   <div id="root"></div>

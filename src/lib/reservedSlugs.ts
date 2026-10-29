@@ -4,6 +4,10 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   // live routes
   "me", "api", "analytics", "campaigns", "signin", "signout", "login", "logout", "auth", "callback", "oauth", "sso",
   "join", "invite", "invites", "discover", "discovery", "pricing", "waitlist", "beta",
+  // public site routes and the respondent player
+  "c", "j", "g", "how-it-works", "use-cases", "terms", "privacy", "support", "about", "status",
+  // static asset trees served from /public
+  "brand", "fonts", "licenses",
   // static / system
   "assets", "static", "public", "favicon.ico", "robots.txt", "sitemap.xml", "manifest.webmanifest", ".well-known",
   "index.html",

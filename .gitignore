@@ -12,3 +12,12 @@ tsconfig.tsbuildinfo
 supabase/.temp/
 graphify-out/cache/
 .commit-msg
+
+# design-handoff reference material extracted from the audit zip
+.audit/
+
+# Local verification artifacts
+/test-results/
+/playwright-report/
+/e2e/shots/
+/.tmpfix/
