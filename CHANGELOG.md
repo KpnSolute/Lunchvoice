@@ -6,6 +6,20 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (public landing page)
+
+- Replaced the placeholder hero with a real marketing page: hero with an example Campaign card (including a withheld
+  cohort), how-it-works steps, a privacy section explaining anonymous-by-default / withheld-never-zero / guests-stay-guests,
+  six use cases (dining only as one), a pricing teaser read from `src/config/pricing.ts`, an FAQ, a closing call to action
+  and a footer. Type-led layout in the existing ink/amber/bone tokens.
+- Marketing chrome in `Shell`: nav (How it works, Use cases, Pricing) on `/` and `/pricing` only, so in-product Hub routes
+  keep the compact header; footer carries the maker's mark.
+- `src/components/MakerMark.tsx`: `MakerMark`/`MadeBy` for the KpnSolute signature, using `currentColor` and a documented
+  placeholder until the real SVG and typeface are supplied (`--font-maker` token added in `src/styles/landing.css`).
+- Anchor targets carry `scroll-margin-top` so sections do not hide under the sticky header; hash links scroll on navigation.
+- Verified in the browser at 1280px and 390px: no console errors, no horizontal overflow at 390px.
+
+
 ### Fixed
 
 - Production build: `src/lib/reservedSlugs.test.ts` imports `node:test`, and `tsc -b` type-checks everything under

@@ -1,35 +1,71 @@
 import { useState, type ReactNode } from "react";
 import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
+import { MadeBy } from "../components/MakerMark";
+import "../styles/landing.css";
+
+// The marketing chrome (full nav, footer, maker's mark) belongs to the public pages.
+// In-product routes keep the compact header so Hub chrome stays the focus.
+const MARKETING_ROUTES = new Set(["/", "/pricing"]);
 
 export function Shell() {
   const { session, signOut } = useIdentity();
+  const { pathname } = useLocation();
+  const marketing = MARKETING_ROUTES.has(pathname);
+
   return (
     <>
-      <header className="wrap row" style={{ justifyContent: "space-between", paddingBottom: 0 }}>
-        <Link to="/"><img src="/brand/lunchvoice-wordmark.svg" alt="LunchVoice" height={28} /></Link>
-        {session ? (
-          <div className="row">
-            <Link to="/me">{session.name}</Link>
-            <button className="btn btn-ghost" onClick={signOut}>Sign out</button>
-          </div>
-        ) : (
-          <Link className="btn btn-primary" to="/signin">Sign in</Link>
-        )}
-      </header>
-      <main className="wrap"><Outlet /></main>
-    </>
-  );
-}
+      <header className="lv-header">
+        <Link to="/" className="lv-brand" aria-label="LunchVoice home">
+          <img src="/brand/lunchvoice-mark.svg" alt="" height={28} width={28} />
+          <span>LunchVoice</span>
+        </Link>
 
-export function Landing() {
-  return (
-    <div className="stack" style={{ gap: 16, paddingTop: 40 }}>
-      <div className="eyebrow">LunchVoice</div>
-      <h1>Communities that ask, and listen.</h1>
-      <p className="muted">Join or create a Hub, run campaigns, and see aggregate results without exposing who answered.</p>
-      <div className="row"><Link className="btn btn-primary" to="/signin">Get started</Link></div>
-    </div>
+        {marketing && (
+          <nav className="lv-nav" aria-label="Main">
+            <Link to="/#how">How it works</Link>
+            <Link to="/#use-cases">Use cases</Link>
+            <Link to="/pricing">Pricing</Link>
+          </nav>
+        )}
+
+        <div className="lv-header-actions">
+          {session ? (
+            <>
+              <Link className="lv-link-quiet" to="/me">{session.name}</Link>
+              <button className="btn btn-ghost" onClick={signOut}>Sign out</button>
+            </>
+          ) : (
+            <>
+              {marketing && <Link className="lv-link-quiet" to="/signin">Sign in</Link>}
+              <Link className="btn btn-primary" to="/signin">Get started</Link>
+            </>
+          )}
+        </div>
+      </header>
+
+      <main className={marketing ? "lv-main" : "wrap"}>
+        <Outlet />
+      </main>
+
+      {marketing && (
+        <footer className="lv-footer">
+          <div className="lv-footer-inner">
+            <span className="row" style={{ gap: 9 }}>
+              <img src="/brand/lunchvoice-mark.svg" alt="" height={22} width={22} />
+              <strong style={{ fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>LunchVoice</strong>
+            </span>
+            <nav className="lv-footer-nav" aria-label="Footer">
+              <Link to="/pricing">Pricing</Link>
+              <Link to="/#how">How it works</Link>
+              <Link to="/#use-cases">Use cases</Link>
+              <Link to="/signin">Sign in</Link>
+            </nav>
+            <MadeBy />
+          </div>
+        </footer>
+      )}
+    </>
   );
 }
 
