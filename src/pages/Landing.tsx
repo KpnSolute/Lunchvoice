@@ -156,6 +156,7 @@ export function Landing() {
           </div>
         </div>
 
+        <div className="lv-hero-art">
         <figure className="lv-preview" aria-label="Example of a Campaign and its results">
           <div className="lv-preview-top">
             <span className="lv-chip">Example Campaign</span>
@@ -188,6 +189,20 @@ export function Landing() {
             <Icon name="voice" size={14} /> 38 responses · a small cohort is withheld, never shown as zero
           </figcaption>
         </figure>
+
+        <Link className="lv-code-card lv-rise lv-rise-3" to="/join">
+          <div>
+            <div className="lv-code-title">Have a join code?</div>
+            <span className="lv-code-hint ui-mono">Six characters, on your invitation</span>
+          </div>
+          <span className="lv-code-cells" aria-hidden="true">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <i key={i} />
+            ))}
+          </span>
+          <Icon name="arrow" size={18} />
+        </Link>
+        </div>
       </section>
 
       {/* ---------- ticker ---------- */}

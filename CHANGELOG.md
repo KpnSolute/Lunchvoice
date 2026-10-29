@@ -6,6 +6,22 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (adopt the v2 design handoff's type and tactile layer)
+
+- Type now comes from the v2 design handoff (`tokens/lunchvoice-tokens.css`, `ASSET_MANIFEST.md`): **Bricolage Grotesque**
+  for display at weight 800 with -0.045em tracking and 0.88–0.96 leading, **Geist** for UI and body, **Space Mono** kept for
+  labels, codes and numbers. Fraunces and Space Grotesk are gone. Fonts load from Google Fonts for now; the manifest asks for
+  self-hosting before launch, which is a dependency change and is not done here.
+- Adopted the handoff palette and radii: page `#EEEDEA`, line `#DAD8D4`, well `#E9E8E5`, ink gradient `#2E2A25 → #14110F`,
+  accent `#FF9A18` with `#E98207` deep, fields at 16px, cards at 24px, hero at 28px.
+- Adopted the tactile surface layer everywhere: raised gradient cards with an inner top light, pressed amber CTA
+  (`#FFBE5C → #FF9A18 → #F58C0C` with the three-layer shadow), ink-gradient primary buttons, inset wells for inputs,
+  segmented tabs with a raised thumb, and spring press motion (`cubic-bezier(.34,1.56,.64,1)`).
+- Landing hero rebuilt to the handoff's `7d` treatment: floating pill nav, marker-highlight phrase instead of the italic
+  accent, and a "Have a join code?" well card linking to `/join`. The v1 layer (grain, ticker, ghost numerals, reveal)
+  stays and matches the handoff's landing.
+- Documented the source of the tokens in `index.css` so the next agent can trace them.
+
 ### Added (v1 design DNA, and the last UI phases)
 
 - Marketing surface now carries the retired v1 visual language instead of a plain landing: paper grain (SVG turbulence,
