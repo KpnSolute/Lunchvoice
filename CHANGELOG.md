@@ -6,6 +6,29 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (v1 design DNA, and the last UI phases)
+
+- Marketing surface now carries the retired v1 visual language instead of a plain landing: paper grain (SVG turbulence,
+  no asset), the amber mono ticker band, amber italic display accent in the hero, a hero gradient with a citrus glow,
+  oversized ghost numerals on the how-it-works steps, hover-lift cards, ruled section eyebrows and scroll-reveal in
+  `src/pages/Landing.tsx` + `src/styles/landing.css`. Reveals are skipped under `prefers-reduced-motion`.
+- Typography hardened: `preconnect` for `fonts.gstatic.com`, hero scale that fits its column at every width, and a
+  mobile marketing nav (the desktop links become a scrollable strip) instead of hiding navigation below 720px.
+- Full-width sticky marketing header aligned to the 1120px column, at 96% opacity so content cannot bleed through it.
+- `src/pages/Pricing.tsx` rebuilt as a real surface: all six canonical plans, the Starter/Team entitlement table, the
+  two Campaign windows (Plus stays unpriced), and Hub Name Reservation with its ACTIVE → GRACE → RELEASED lifecycle.
+  Every checkout stays disabled with the reason shown; the page says up front that nothing can charge you.
+- Hub tabs now expose Billing, Reservation and Discover for the Owner (they had routes but no way in), and a mobile
+  bottom tab bar (`ui-bottom-nav`) gives the five most-used Hub surfaces thumb reach.
+- Billing, Reservation and Discover surfaces are filled out with the canonical prices, the reservation lifecycle and a
+  real member meter toward 700, each still failing closed on the missing endpoint.
+- `src/pages/Analytics.tsx` rebuilt on the design system: ink participation panel, per-question distribution bars, and
+  suppressed answers grouped into an explicit withheld state. Export stays disabled until an authorized export exists.
+- Component gallery covers the new marketing pieces (ticker, price card, lifecycle) and the withheld bar treatment.
+- `src/lib/errors.ts`: `lv_policy_undecided` now says an anonymous Campaign publishes results once it closes, instead of
+  referring to an unsettled policy.
+- Removed dead surfaces: `src/pages/Me.tsx`, `NotFound` in `Public.tsx`, `ComingSoon` in `Pricing.tsx`.
+
 ### Added (public landing page)
 
 - Replaced the placeholder hero with a real marketing page: hero with an example Campaign card (including a withheld

@@ -1,10 +1,50 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Icon } from "../components/Icon";
 import { MadeBy } from "../components/MakerMark";
 import { PLANS } from "../config/pricing";
 
 const TEASER_PLANS = PLANS.filter((p) => p.id === "free" || p.id === "starter" || p.id === "team");
+
+// The amber ticker band is carried over from v1: it states the product in one line
+// and gives the page its printed-sheet rhythm.
+const TICKER = [
+  "Ask your community",
+  "Five answer modes",
+  "Results you can defend",
+  "Withheld is never zero",
+  "Guests stay guests",
+  "Hubs from $13 a month",
+];
+
+// Adds .in to .lv-reveal as it scrolls in. Honours reduced motion and no-observer browsers
+// by revealing everything immediately.
+function useReveal() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    const els = Array.from(root.querySelectorAll(".lv-reveal"));
+    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (still || !("IntersectionObserver" in window)) {
+      els.forEach((el) => el.classList.add("in"));
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add("in");
+            io.unobserve(e.target);
+          }
+        }),
+      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+  return ref;
+}
 
 const STEPS = [
   {
@@ -72,6 +112,7 @@ const FAQ = [
 
 export function Landing() {
   const { hash } = useLocation();
+  const revealRef = useReveal();
 
   // The header links to in-page sections (/#how, /#use-cases). Router navigation does not
   // scroll to a hash on its own, so honour it whenever it changes.
@@ -81,21 +122,21 @@ export function Landing() {
   }, [hash]);
 
   return (
-    <div className="lv-landing">
+    <div className="lv-landing" ref={revealRef}>
       {/* ---------- hero ---------- */}
       <section className="lv-hero" aria-labelledby="lv-hero-title">
         <div className="lv-hero-copy">
-          <p className="lv-eyebrow">Community feedback, private by design</p>
-          <h1 id="lv-hero-title" className="lv-h1">
+          <p className="lv-eyebrow lv-rise">Community feedback, private by design</p>
+          <h1 id="lv-hero-title" className="lv-h1 lv-rise lv-rise-2">
             Ask your community.
             <br />
             <em>Hear the whole room.</em>
           </h1>
-          <p className="lv-sub">
+          <p className="lv-sub lv-rise lv-rise-3">
             LunchVoice gives any group a Hub and a set of Campaigns — ratings, polls, surveys and open
             ideas — with results that stay honest about who answered.
           </p>
-          <div className="lv-cta-row">
+          <div className="lv-cta-row lv-rise lv-rise-4">
             <Link className="btn btn-primary lv-btn-lg" to="/signin">
               Get started
               <Icon name="arrow" size={18} />
@@ -107,6 +148,12 @@ export function Landing() {
           <p className="lv-micro">
             Free for participants · Hubs from $13/month · No credit card to create an account
           </p>
+
+          <div className="lv-metrics" aria-label="At a glance">
+            <div><b>$0</b><span>to answer, always</span></div>
+            <div><b>5</b><span>answer modes</span></div>
+            <div><b>0</b><span>names in results</span></div>
+          </div>
         </div>
 
         <figure className="lv-preview" aria-label="Example of a Campaign and its results">
@@ -143,6 +190,15 @@ export function Landing() {
         </figure>
       </section>
 
+      {/* ---------- ticker ---------- */}
+      <div className="lv-ticker" aria-hidden="true">
+        <div className="lv-ticker-track">
+          {[...TICKER, ...TICKER].map((t, i) => (
+            <span key={`${t}-${i}`}>{t} ◆</span>
+          ))}
+        </div>
+      </div>
+
       {/* ---------- how it works ---------- */}
       <section id="how" className="lv-section" aria-labelledby="lv-how-title">
         <header className="lv-section-head">
@@ -153,7 +209,7 @@ export function Landing() {
         </header>
         <ol className="lv-steps">
           {STEPS.map((s, i) => (
-            <li key={s.title}>
+            <li key={s.title} className="lv-reveal" data-step={String(i + 1).padStart(2, "0")} style={{ transitionDelay: `${i * 80}ms` }}>
               <span className="lv-step-num" aria-hidden="true">
                 {String(i + 1).padStart(2, "0")}
               </span>
@@ -181,8 +237,8 @@ export function Landing() {
             </p>
           </header>
           <div className="lv-grid-3">
-            {PRIVACY.map((p) => (
-              <article key={p.title} className="lv-card">
+            {PRIVACY.map((p, i) => (
+              <article key={p.title} className="lv-card lv-reveal" style={{ transitionDelay: `${i * 80}ms` }}>
                 <span className="lv-icon-dot">
                   <Icon name={p.icon} size={20} />
                 </span>
@@ -203,8 +259,8 @@ export function Landing() {
           </h2>
         </header>
         <div className="lv-grid-3">
-          {USE_CASES.map((u) => (
-            <article key={u.name} className="lv-card lv-card-quiet">
+          {USE_CASES.map((u, i) => (
+            <article key={u.name} className="lv-card lv-card-quiet lv-reveal" style={{ transitionDelay: `${i * 60}ms` }}>
               <span className="lv-icon-dot">
                 <Icon name={u.icon} size={20} />
               </span>
@@ -224,8 +280,8 @@ export function Landing() {
           </h2>
         </header>
         <div className="lv-grid-3">
-          {TEASER_PLANS.map((p) => (
-            <article key={p.id} className="lv-card lv-plan">
+          {TEASER_PLANS.map((p, i) => (
+            <article key={p.id} className="lv-card lv-plan lv-reveal" style={{ transitionDelay: `${i * 80}ms` }}>
               <h3>{p.name}</h3>
               <p className="lv-price">
                 <span>{p.priceLabel}</span>

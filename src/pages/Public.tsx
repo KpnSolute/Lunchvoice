@@ -6,7 +6,10 @@ import "../styles/landing.css";
 
 // The marketing chrome (full nav, footer, maker's mark) belongs to the public pages.
 // In-product routes keep the compact header so Hub chrome stays the focus.
-const MARKETING_ROUTES = new Set(["/", "/pricing"]);
+const MARKETING_ROUTES = new Set([
+  "/", "/how-it-works", "/use-cases", "/pricing", "/beta", "/about",
+  "/status", "/terms", "/privacy", "/support", "/discover",
+]);
 
 export function Shell() {
   const { session, signOut } = useIdentity();
@@ -23,9 +26,10 @@ export function Shell() {
 
         {marketing && (
           <nav className="lv-nav" aria-label="Main">
-            <Link to="/#how">How it works</Link>
-            <Link to="/#use-cases">Use cases</Link>
+            <Link to="/how-it-works">How it works</Link>
+            <Link to="/use-cases">Use cases</Link>
             <Link to="/pricing">Pricing</Link>
+            <Link to="/discover">Discover</Link>
           </nav>
         )}
 
@@ -56,9 +60,15 @@ export function Shell() {
               <strong style={{ fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>LunchVoice</strong>
             </span>
             <nav className="lv-footer-nav" aria-label="Footer">
+              <Link to="/how-it-works">How it works</Link>
+              <Link to="/use-cases">Use cases</Link>
               <Link to="/pricing">Pricing</Link>
-              <Link to="/#how">How it works</Link>
-              <Link to="/#use-cases">Use cases</Link>
+              <Link to="/discover">Discover</Link>
+              <Link to="/about">About</Link>
+              <Link to="/privacy">Privacy</Link>
+              <Link to="/terms">Terms</Link>
+              <Link to="/support">Support</Link>
+              <Link to="/status">Status</Link>
               <Link to="/signin">Sign in</Link>
             </nav>
             <MadeBy />
@@ -102,11 +112,3 @@ export function RequireSignIn({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-export function NotFound() {
-  return (
-    <div className="stack center" style={{ paddingTop: 60 }}>
-      <h2>Nothing here</h2>
-      <Link to="/">Back to LunchVoice</Link>
-    </div>
-  );
-}

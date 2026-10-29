@@ -218,7 +218,78 @@ export function createLvApi(transport: LvTransport) {
       call<SubmitReceipt>("lv_submit_response", { p_campaign: campaign, p_answers: answers }),
     analytics: (campaign: string, metric: "participant_count" | "answer_distribution", question?: string) =>
       call<AnalyticsResult>("lv_analytics_query", { p_campaign: campaign, p_metric: metric, p_question: question ?? null }),
+
+    /* ---- membership ---- */
+    hubJoin: (hub: string) => call<{ membership_id: string; status: "accepted" | "pending" }>("lv_hub_join", { p_hub: hub }),
+    memberLeave: (hub: string) => call<object>("lv_member_leave", { p_hub: hub }),
+    memberAdmit: (membership: string) => call<object>("lv_member_admit", { p_membership: membership }),
+    memberReject: (membership: string) => call<object>("lv_member_reject", { p_membership: membership }),
+    memberRemove: (membership: string) => call<object>("lv_member_remove", { p_membership: membership }),
+    memberRoleAssign: (membership: string, role: string) => call<object>("lv_member_role_assign", { p_membership: membership, p_role: role }),
+    memberRoleUnassign: (membership: string, role: string) => call<object>("lv_member_role_unassign", { p_membership: membership, p_role: role }),
+
+    /* ---- roles ---- */
+    capabilityCatalog: () =>
+      call<{ groups: { key: string; label: string; capabilities: { key: string; label: string }[] }[] }>("lv_capability_catalog"),
+    roleList: (hub: string) => call<{ roles: Role[]; custom_slots: number | null; slots_used: number }>("lv_role_list", { p_hub: hub }),
+    roleCreate: (hub: string, name: string, icon: string, capabilities: string[]) =>
+      call<{ role_id: string }>("lv_role_create", { p_hub: hub, p_name: name, p_icon: icon, p_capabilities: capabilities }),
+    roleUpdate: (role: string, patch: { name?: string; icon?: string; capabilities?: string[] }) =>
+      call<object>("lv_role_update", { p_role: role, p_name: patch.name ?? null, p_icon: patch.icon ?? null, p_capabilities: patch.capabilities ?? null }),
+    roleDelete: (role: string) => call<object>("lv_role_delete", { p_role: role }),
+
+    /* ---- campaign lifecycle ---- */
+    campaignUpdate: (campaign: string, patch: { title?: string }) => call<object>("lv_campaign_update", { p_campaign: campaign, p_title: patch.title ?? null }),
+    questionUpdate: (question: string, patch: { prompt?: string; config?: object; position?: number }) =>
+      call<object>("lv_campaign_question_update", { p_question: question, p_prompt: patch.prompt ?? null, p_config: patch.config ?? null, p_position: patch.position ?? null }),
+    questionRemove: (question: string) => call<object>("lv_campaign_question_remove", { p_question: question }),
+    setParticipation: (campaign: string, anonymity: Anonymity, audience: "members" | "members_and_guests", guestLimit?: number | null) =>
+      call<object>("lv_campaign_set_participation", { p_campaign: campaign, p_anonymity: anonymity, p_audience: audience, p_guest_limit: guestLimit ?? null }),
+    schedule: (campaign: string, opensAt: string | null, closesAt: string | null) =>
+      call<object>("lv_campaign_schedule", { p_campaign: campaign, p_opens_at: opensAt, p_closes_at: closesAt }),
+    campaignPause: (campaign: string) => call<object>("lv_campaign_pause", { p_campaign: campaign }),
+    campaignResume: (campaign: string) => call<object>("lv_campaign_resume", { p_campaign: campaign }),
+    campaignArchive: (campaign: string) => call<object>("lv_campaign_archive", { p_campaign: campaign }),
+    campaignVersions: (campaign: string) => call<{ versions: { revision: number; created_at: string; note?: string }[] }>("lv_campaign_versions", { p_campaign: campaign }),
+
+    /* ---- guests ---- */
+    guestCampaignGet: (joinCode: string) => call<CampaignDetailData>("lv_guest_campaign_get", { p_join_code: joinCode }),
+    guestSubmit: (joinCode: string, guestKey: string, answers: Answer[]) =>
+      call<SubmitReceipt>("lv_guest_submit", { p_join_code: joinCode, p_guest_key: guestKey, p_answers: answers }),
+
+    /* ---- no backend yet: fail closed with an honest code ----------------
+       Each of these names the function it expects. Do not fake a success. */
+    pending: (fn: string) =>
+      call<never>(fn).then(() => ({ ok: false as const, error: { code: "lv_server_error" as const, message: `TODO(real: ${fn}) is not available yet.` } })),
   };
 }
+
+export interface Role {
+  role_id: string;
+  key: string;
+  name: string;
+  icon: string;
+  capabilities: string[];
+  member_count: number;
+  is_owner?: boolean;
+}
+
+/* Contract gaps (docs/frontend/CONTRACT_REQUESTS.md): no lv_api function exists yet.
+   The UI renders these as "Not available yet" rather than pretending. */
+export const PENDING_API = {
+  hubUpdate: "lv_hub_update",
+  hubDomainRestriction: "lv_hub_domain_restriction",
+  hubDelete: "lv_hub_delete",
+  ownerTransfer: "lv_owner_transfer",
+  reservationStatus: "lv_hub_reservation_status",
+  billingSummary: "lv_billing_summary",
+  discoverApply: "lv_discover_apply",
+  profileUpdate: "lv_profile_update",
+  accountDelete: "lv_account_delete",
+  waitlistStatus: "lv_waitlist_status",
+  waitlistJoin: "lv_waitlist_join",
+  exportResults: "lv_analytics_export",
+} as const;
+
 
 export type LvApi = ReturnType<typeof createLvApi>;

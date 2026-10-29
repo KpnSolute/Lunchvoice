@@ -10,6 +10,7 @@
 }
 
 /* ---------- header ---------- */
+/* Full-width bar, content aligned to the 1120px marketing column. */
 .lv-header {
   position: sticky;
   top: 0;
@@ -18,12 +19,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 14px 20px;
-  background: color-mix(in oklch, var(--bg) 88%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  padding: 14px max(20px, calc((100% - 1120px) / 2 + 20px));
+  background: color-mix(in oklch, var(--bg) 96%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--line);
 }
 
@@ -75,10 +74,8 @@
   letter-spacing: -0.035em;
   margin: 0 0 20px;
 }
-.lv-h1 em {
-  font-style: italic;
-  background: linear-gradient(transparent 64%, color-mix(in oklch, var(--accent) 60%, transparent) 64%);
-}
+/* The v1 move: the second half of the headline is amber italic, not a highlighter. */
+.lv-h1 em { font-style: italic; color: var(--accent); font-weight: 800; }
 
 .lv-h2 {
   font-family: var(--font-display);
@@ -112,12 +109,28 @@
 
 /* ---------- hero ---------- */
 .lv-hero {
+  position: relative;
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
+  grid-template-columns: 1.08fr 0.92fr;
   align-items: center;
   gap: 56px;
-  padding: 72px 0 84px;
+  margin: 0 -20px;
+  padding: 64px 20px 68px;
+  background: linear-gradient(180deg, oklch(1 0 0) 0%, var(--bg) 48%, var(--surface-2) 100%);
+  border-bottom: 1px solid var(--line);
 }
+.lv-hero::before {
+  content: "";
+  position: absolute;
+  right: -4%;
+  bottom: -34%;
+  width: min(620px, 70vw);
+  height: min(620px, 70vw);
+  border-radius: 50%;
+  background: radial-gradient(circle, oklch(0.76 0.185 66 / 0.2), transparent 66%);
+  pointer-events: none;
+}
+.lv-hero > * { position: relative; }
 .lv-cta-row { display: flex; flex-wrap: wrap; gap: 12px; }
 
 /* example campaign card */
@@ -223,6 +236,12 @@
   border-radius: var(--r);
   padding: 22px;
   box-shadow: var(--shadow);
+  transition: transform 240ms var(--ease), box-shadow 240ms var(--ease), border-color 240ms;
+}
+.lv-grid-3 > .lv-card:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in oklch, var(--accent) 60%, var(--line));
+  box-shadow: 0 16px 34px oklch(0.18 0.012 60 / 0.1);
 }
 .lv-card h3 {
   font-family: var(--font-display);
@@ -237,12 +256,13 @@
 .lv-icon-dot {
   display: inline-grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: color-mix(in oklch, var(--accent) 18%, var(--surface));
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: var(--accent);
   color: var(--accent-ink);
 }
+.lv-card:hover .lv-icon-dot { background: var(--ink); color: var(--accent); }
 
 /* steps */
 .lv-steps {
@@ -256,18 +276,36 @@
 }
 .lv-steps li {
   position: relative;
+  overflow: hidden;
   padding: 22px;
   border-top: 2px solid var(--ink);
   background: var(--surface);
   border-radius: 0 0 var(--r) var(--r);
 }
+/* Oversized ghost numeral, the v1 step treatment. */
+.lv-steps li::after {
+  content: attr(data-step);
+  position: absolute;
+  top: -16px;
+  right: 10px;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 84px;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: oklch(0.76 0.185 66 / 0.24);
+  pointer-events: none;
+}
 .lv-step-num {
+  position: relative;
+  z-index: 1;
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.1em;
   color: var(--muted);
 }
+.lv-steps li > * { position: relative; z-index: 1; }
 .lv-step-icon { display: inline-grid; place-items: center; color: var(--accent-ink); margin: 10px 0 4px; }
 .lv-steps h3 {
   font-family: var(--font-display);
@@ -399,9 +437,194 @@
 .made-by .maker-mark { font-size: 0.98em; color: var(--muted); }
 .lv-cta-made, .lv-cta-made .maker-mark { color: color-mix(in oklch, var(--bg) 70%, transparent); }
 
+/* ---------- page frame for marketing subpages ---------- */
+.lv-page { max-width: 960px; margin: 0 auto; padding: 44px 20px 88px; }
+
+/* ---------- pricing ---------- */
+.lv-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(272px, 1fr));
+  gap: 14px;
+}
+.lv-price-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  transition: transform 240ms var(--ease), border-color 240ms, box-shadow 240ms;
+}
+.lv-price-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in oklch, var(--accent) 55%, var(--line));
+  box-shadow: 0 16px 34px oklch(0.18 0.012 60 / 0.1);
+}
+.lv-price-card-feature {
+  border-color: color-mix(in oklch, var(--accent) 55%, var(--line));
+  box-shadow: 0 12px 30px oklch(0.76 0.185 66 / 0.16);
+}
+.lv-price-figure {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+.lv-price-figure span {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 38px;
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+.lv-price-figure small { color: var(--muted); font-size: 12.5px; }
+.lv-price-card .lv-plan-list { flex: 1; align-content: start; margin-bottom: 18px; }
+
+.lv-lifecycle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+.lv-lifecycle span {
+  padding: 5px 10px;
+  border: 1px solid oklch(0.36 0.015 62);
+  border-radius: var(--r-pill);
+}
+.lv-lifecycle i { font-style: normal; color: var(--on-ink-muted); }
+
+/* ---------- v1 hero-card DNA: the example sits on ink with a citrus glow ---------- */
+.lv-preview {
+  position: relative;
+  overflow: hidden;
+  background: var(--ink-panel);
+  border: 1px solid oklch(0.28 0.015 62);
+  color: var(--on-ink);
+}
+.lv-preview::after {
+  content: "";
+  position: absolute;
+  top: -34%;
+  right: -12%;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--glow), transparent 70%);
+  pointer-events: none;
+}
+.lv-preview > * { position: relative; }
+.lv-preview .lv-preview-q { color: var(--on-ink); }
+.lv-preview .lv-bar-label { color: var(--on-ink); }
+.lv-preview .lv-bar-value { color: var(--on-ink); }
+.lv-preview .lv-bar-track { background: oklch(0.32 0.015 62); }
+.lv-preview .lv-bar-track.lv-bar-withheld {
+  background: repeating-linear-gradient(135deg, oklch(0.32 0.015 62), oklch(0.32 0.015 62) 4px, oklch(0.4 0.015 62) 4px, oklch(0.4 0.015 62) 8px);
+}
+.lv-preview .lv-withheld { color: var(--on-ink-muted); }
+.lv-preview .lv-lock { background: oklch(0.70 0.16 150 / 0.18); color: oklch(0.85 0.13 150); }
+.lv-preview .lv-preview-note {
+  color: var(--on-ink-muted);
+  border-top: 1px dashed oklch(0.36 0.015 62);
+}
+
+/* ---------- hero metric strip ---------- */
+.lv-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 34px 0 0;
+  border-top: 2px solid var(--ink);
+}
+.lv-metrics div {
+  flex: 1 1 140px;
+  padding: 14px 16px 4px;
+  border-right: 1px solid var(--line);
+}
+.lv-metrics div:last-child { border-right: 0; }
+.lv-metrics b {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.lv-metrics span {
+  display: block;
+  margin-top: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ============================================================
+   v1 DNA layer: paper grain, an amber ticker, ruled section marks.
+   ============================================================ */
+
+/* One reusable grain, SVG turbulence, no asset. Sits above the paper, below nothing clickable. */
+.lv-landing::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0.55;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.lv-ticker {
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-block: 1px solid var(--accent-ink);
+  padding: 11px 0;
+  margin: 0 -20px;
+}
+.lv-ticker-track { display: inline-block; animation: lv-ticker 28s linear infinite; }
+.lv-ticker span {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0 22px;
+}
+@keyframes lv-ticker { to { transform: translateX(-50%); } }
+
+/* Section heads get a ruled index so the page reads like a printed sheet. */
+.lv-section-head .lv-eyebrow { display: flex; align-items: center; gap: 12px; }
+.lv-section-head .lv-eyebrow::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* Scroll reveal — opt-in; content is visible when motion is reduced. */
+.lv-reveal { opacity: 0; transform: translateY(26px); transition: opacity 620ms var(--ease), transform 620ms var(--ease); }
+.lv-reveal.in { opacity: 1; transform: none; }
+
+/* Hero stagger */
+.lv-rise { animation: lv-rise 620ms var(--ease) both; }
+.lv-rise-2 { animation-delay: 90ms; }
+.lv-rise-3 { animation-delay: 190ms; }
+.lv-rise-4 { animation-delay: 300ms; }
+@keyframes lv-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
 /* ---------- responsive ---------- */
 @media (max-width: 960px) {
-  .lv-hero { grid-template-columns: 1fr; gap: 40px; padding: 52px 0 64px; }
+  .lv-hero { grid-template-columns: 1fr; gap: 40px; padding: 48px 20px 56px; }
   .lv-preview { max-width: 520px; }
 }
 
@@ -412,14 +635,33 @@
 }
 
 @media (max-width: 720px) {
-  .lv-nav { display: none; }
-  .lv-header { padding: 12px 16px; }
+  /* Mobile keeps navigation: desktop links become a chip strip under the bar. */
+  .lv-nav {
+    display: flex;
+    order: 3;
+    width: 100%;
+    gap: 16px;
+    overflow-x: auto;
+    padding: 2px 0 10px;
+    font-size: 13px;
+    scrollbar-width: none;
+  }
+  .lv-nav::-webkit-scrollbar { display: none; }
+  .lv-header { flex-wrap: wrap; padding: 10px 16px 0; row-gap: 2px; }
+  .lv-header .lv-header-actions .btn { padding: 10px 14px; font-size: 14px; }
   .lv-landing { padding: 0 16px; }
+  .lv-hero { margin: 0 -16px; padding: 36px 16px 44px; }
+  .lv-h1 { font-size: clamp(2.15rem, 9.6vw, 3rem); }
+  .lv-ticker { margin: 0 -16px; }
   .lv-band { margin: 0 -16px; }
   .lv-cta-band { padding: 44px 20px; margin-bottom: 64px; }
   .lv-bars li { grid-template-columns: 1fr 1.1fr auto; font-size: 12.5px; }
+  .lv-steps li::after { font-size: 66px; top: -8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .lv-header *, .lv-landing a, .lv-faq summary svg { transition: none; }
+  .lv-reveal { opacity: 1; transform: none; transition: none; }
+  .lv-rise { animation: none; }
+  .lv-ticker-track { animation: none; }
 }
