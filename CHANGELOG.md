@@ -6,6 +6,12 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed
+
+- Production build: `src/lib/reservedSlugs.test.ts` imports `node:test`, and `tsc -b` type-checks everything under
+  `src/`, but `@types/node` was only present transitively through `vite`. A cold Render install resolved it as missing
+  and the deploy build failed. Declared `@types/node` in `devDependencies` and committed the lockfile.
+
 ### Frontend baseline rebased onto `main` (`uiv2`)
 
 - The v2 frontend branch is rebased onto `main` at `d45b449` and renamed `uiv2`. Conflicts were resolved in `main`'s
