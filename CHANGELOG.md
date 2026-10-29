@@ -12,6 +12,20 @@ categories and the repository's decimal `X.X.X` release policy.
   `src/`, but `@types/node` was only present transitively through `vite`. A cold Render install resolved it as missing
   and the deploy build failed. Declared `@types/node` in `devDependencies` and committed the lockfile.
 
+### Removed (v1 residue)
+
+- Deleted `graphify-out/`: 34 generated files that mapped the v1 app (`Menu_Data_&_Student_Pages`, `Auth_&_App_Shell`,
+  `Admin_&_DB_Types`, `Edge_Function_HTTP_Utils`, `Home()`, and a `graph.json` whose v1 vocabulary outweighs everything
+  else in the repo). Regenerate it with `/graphify` once the v2 architecture settles; `AGENTS.md` still points at
+  `graphify-out/wiki/index.md`, so that reference is dangling until the backend thread regenerates or drops it.
+- Deleted `time-log.md`, the v1 work log that opens with the `MJCC-Portal/Interact` clone. Git history keeps it.
+- Renamed the package from `lunch-line-survey` to `lunchvoice` and synced the lockfile; the name was the retired
+  product's.
+- `render.yaml`: replaced the v1 route comment (`/join`, `/survey/:id`, `/admin/*`) with the v2 routes. The service
+  `name` stays `lunch-line-survey` on purpose - it is the existing Render service identifier and renaming it here would
+  provision a new service, so that change belongs in the Render dashboard.
+- `index.html`: `og:title` was `Lunch Voice`; it now matches the brand, `LunchVoice`.
+
 ### Frontend baseline rebased onto `main` (`uiv2`)
 
 - The v2 frontend branch is rebased onto `main` at `d45b449` and renamed `uiv2`. Conflicts were resolved in `main`'s
