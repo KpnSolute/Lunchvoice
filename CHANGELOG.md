@@ -17,6 +17,9 @@ categories and the repository's decimal `X.X.X` release policy.
   CI enforces it.
 - `src/lib/reservedSlugs.test.ts` fixtures renamed to synthetic names (`acme-test`, `example-hub`) so the test no longer
   needs a customer name to prove that a business name is not reserved.
+- Removed the `edge-functions` Deno job from `.github/workflows/pr-checks.yml`. It ran
+  `deno test supabase/functions/_shared/`, but v2 has no `supabase/functions` directory, so it failed on every pull
+  request for code that does not exist. Overlaps the intent of draft PR #27; land one or the other, not both.
 
 ### Security
 
