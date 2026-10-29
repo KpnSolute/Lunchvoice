@@ -1,0 +1,25 @@
+{
+  "name": "LunchVoice",
+  "short_name": "LunchVoice",
+  "description": "Hubs and Campaigns for any community: surveys, polls, ratings and ideas with privacy-safe results.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eeedea",
+  "theme_color": "#eeedea",
+  "icons": [
+    {
+      "src": "/android-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
