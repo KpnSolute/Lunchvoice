@@ -143,7 +143,7 @@ hr {
   outline-offset: 3px;
   border-radius: 6px;
 }
-[data-theme="dark"] :where(:focus-visible) {
+[data-theme="ink"] :where(:focus-visible) {
   outline-color: var(--lv-focus);
 }
 @media (forced-colors: active) {

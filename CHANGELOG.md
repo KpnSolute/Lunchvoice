@@ -8,16 +8,18 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added — v2 UI rebuilt from the design system (BUILD_PROMPT phases 1–7)
 
-- **One design system in `src/ui/`.** `tokens.css` ports the handoff's token file (light, dark, high contrast),
-  `base.css` holds the reset, the nine type roles, the five surfaces, controls and layout utilities, and
-  `index.ts` is the only import surface a page may use. `src/components/`, `src/styles/` and `src/index.css` are
+- **One design system in `src/ui/`.** `tokens.css` ports the handoff's token file into two named palettes — **page**
+  (light) and **ink** (dark) — plus machine-set high contrast, `base.css` holds the reset, the nine type roles, the
+  five surfaces, controls and layout utilities, and `index.ts` is the only import surface a page may use. `src/components/`, `src/styles/` and `src/index.css` are
   deleted, so there is no second place a colour, shadow or type size can come from.
 - **Self-hosted fonts.** Bricolage Grotesque, Geist and Space Mono are served from `/fonts` (latin + latin-ext only,
   `font-display: swap`) with Bricolage 800 and Geist 400 preloaded. The Google Fonts links and both preconnects are
   gone; `public/licenses/` carries the three OFL texts.
-- **Theme system.** `ThemeProvider` resolves light / dark / system (live `prefers-color-scheme`) plus a high-contrast
-  toggle, persisted in `localStorage`, with a no-flash inline script in `index.html`. Tokens remap every surface, so
-  nothing hand-picks a colour.
+- **Appearance is machine-set.** There are two palettes and no user setting: **page** (light paper, ink text) and
+  **ink** (dark ink page, paper text). `ThemeProvider` picks one from `prefers-color-scheme`, updates live when the OS
+  does, and omits any stored preference; the inline script in `index.html` resolves the same value before first paint
+  so nobody sees a flash of the wrong palette. High contrast is not a third palette: `prefers-contrast: more` turns
+  the current one monochrome and adds borders. Tokens remap every surface, so nothing hand-picks a colour.
 - **Component library** (`src/ui/components/`): Button (primary / raised / ink / quiet / danger, three sizes,
   icon-only), IconToggleGroup, Field and text controls, Select (listbox with `↑↓`, Home/End, type-ahead, Esc),
   Combobox, Checkbox, RadioGroup (roving tabindex), Switch, Segmented with a measured sliding thumb, Slider,
@@ -42,7 +44,8 @@ categories and the repository's decimal `X.X.X` release policy.
   unpriced, beta, about, fixture status, placeholder legal pages, support, Discover eligibility and a neutral 404.
 - **Account.** Sign-in with the KpnIdentity button and an honest fail-closed state naming the missing env var, join
   and invitation redemption with invalid/expired/already-member states, My Hubs with empty states, a four-step create
-  flow with a live slug check, and settings for theme, contrast, profile, session and typed-confirm deletion.
+  flow with a live slug check, and settings that report which palette the device asked for, plus profile, session and
+  typed-confirm deletion.
 - **Hub workspace.** Permission-shaped tabs on desktop and five BottomTabs on phones; visitor and manager overviews
   with access gates; Campaign list with phase filters; Studio with question builder (drag and arrow reordering, per-mode
   editors, live phone preview), audience/anonymity, schedule, publish dialog and share panel; Campaign detail with the
@@ -53,16 +56,20 @@ categories and the repository's decimal `X.X.X` release policy.
   they never count as members.
 - **Tests.** Playwright with axe: the full acceptance path (sign in → create Hub → build and publish a Campaign →
   answer as a guest → read results), axe and horizontal-overflow assertions on every public route, every signed-in
-  route and every Hub tab, dark-mode axe passes, the gallery, and a screenshot matrix in `e2e/shots` at 390 and 1280 in
-  light and dark.
+  route and every Hub tab, ink-mode axe passes, the gallery, a screenshot matrix in `e2e/shots` at 390 and 1280 in
+  light and dark, and assertions that the palettes come from the machine (both colours, `prefers-contrast: more`, and
+  an empty `localStorage`).
 - `scripts/gen-icons.mjs` regenerates the 20-icon handoff set, stripping its embedded C2PA metadata.
 
 ### Changed
 
-- **Light and dark follow the machine.** The page/ink pair resolves from `prefers-color-scheme` and updates live when
-  the OS does; the in-app Light/Dark/System control is gone, and the no-flash script no longer reads a stored theme.
-  High contrast remains the only appearance choice a person can make. `ThemeProvider` therefore exposes `resolved`
-  (read-only) and `setContrast` only.
+- **`page` and `ink` are the two palettes, and the machine chooses.** `data-theme="page"` is light (paper-cream page,
+  ink text) and `data-theme="ink"` is dark (ink page, paper text); `[data-theme="page"]` and `[data-theme="ink"]` in
+  `tokens.css` replace the old `light`/`dark` selectors. They resolve from `prefers-color-scheme` and update live when
+  the OS does, with no stored theme and no in-app control of any kind.
+- **High contrast is machine-set too.** The persisted High-contrast switch is gone from Settings; the token override
+  now lives in `@media (prefers-contrast: more)`, so the OS "increase contrast" setting turns it on and off.
+  `ThemeProvider` exposes one read-only value, `appearance: "page" | "ink"`.
 - `index.html` preloads two font files instead of calling Google, and resolves the theme before first paint.
 - `src/lib/reservedSlugs.ts` also reserves `c`, `j`, `g`, `brand`, `fonts`, `licenses`, `how-it-works` and `use-cases`,
   so no Hub can claim a path the app serves.

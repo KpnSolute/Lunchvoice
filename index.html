@@ -18,28 +18,23 @@
   <link rel="preload" href="/fonts/bricolage-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin />
 
-  <!-- Light and dark follow the machine, not a stored preference: resolve the tokens
-       from prefers-color-scheme before first paint so a dark-mode user never sees a
-       white flash. High contrast is the only appearance choice the user makes.
+  <!-- Appearance is machine-set, never user-set. The machine's light/dark preference
+       picks one of the two palettes before first paint — page (light) or ink (dark) —
+       so nobody sees a flash of the wrong one, and nothing stored can override it.
        Keep this in sync with src/ui/theme.tsx. -->
   <script>
     (function () {
       var root = document.documentElement;
-      var dark = false;
+      var ink = false;
       try {
-        dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        ink = window.matchMedia("(prefers-color-scheme: dark)").matches;
       } catch (e) {
-        dark = false;
+        ink = false;
       }
-      root.dataset.theme = dark ? "dark" : "light";
-      root.style.colorScheme = dark ? "dark" : "light";
-      var contrast = "normal";
-      try {
-        contrast = localStorage.getItem("lv.contrast") === "high" ? "high" : "normal";
-      } catch (e) {
-        contrast = "normal";
-      }
-      root.dataset.contrast = contrast;
+      root.dataset.theme = ink ? "ink" : "page";
+      root.style.colorScheme = ink ? "dark" : "light";
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", ink ? "#17140F" : "#EEEDEA");
     })();
   </script>
 </head>

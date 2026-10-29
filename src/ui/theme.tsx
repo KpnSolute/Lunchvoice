@@ -1,70 +1,55 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
-// Light and dark follow the machine. There is no in-app theme switch: the page and
-// ink colours are decided by `prefers-color-scheme` and change live when the OS does.
-// High contrast is a separate accessibility treatment and stays a user choice.
+// Appearance is machine-set, never user-set. Two palettes exist and the machine's own
+// light/dark preference decides which one the page is written in:
 //
-// The same resolution runs in the inline script in index.html so the first paint
-// already has the right tokens; keep the two in sync.
+//   page — light. Paper-cream page, ink text.  (prefers-color-scheme: light, the default)
+//   ink  — dark.  Ink page, paper text.        (prefers-color-scheme: dark)
+//
+// There is no stored theme, no switch and no override: when the OS changes, the page
+// changes with it. High contrast is not a third palette either — it is a border-and-ink
+// treatment that CSS applies from `prefers-contrast: more`.
+//
+// The inline script in index.html resolves the same value before first paint so nobody
+// sees a flash of the wrong palette; keep the two in sync.
 
-export type Contrast = "normal" | "high";
-
-const CONTRAST_KEY = "lv.contrast";
+export type Appearance = "page" | "ink";
 
 interface ThemeApi {
-  resolved: "light" | "dark";
-  contrast: Contrast;
-  setContrast: (c: Contrast) => void;
+  /** The palette the machine is asking for right now. */
+  appearance: Appearance;
 }
 
 const Ctx = createContext<ThemeApi | null>(null);
 
-function readContrast(): Contrast {
-  try {
-    return localStorage.getItem(CONTRAST_KEY) === "high" ? "high" : "normal";
-  } catch {
-    return "normal";
-  }
-}
-
-function prefersDark(): boolean {
+function machineWantsInk(): boolean {
   return typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches === true;
 }
 
+function applyAppearance(appearance: Appearance) {
+  const root = document.documentElement;
+  root.dataset.theme = appearance;
+  root.style.colorScheme = appearance === "ink" ? "dark" : "light";
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", appearance === "ink" ? "#17140F" : "#EEEDEA");
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [contrast, setContrastState] = useState<Contrast>(readContrast);
-  const [dark, setDark] = useState(prefersDark);
+  const [appearance, setAppearance] = useState<Appearance>(() => (machineWantsInk() ? "ink" : "page"));
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const on = () => setDark(mq.matches);
+    const on = () => setAppearance(mq.matches ? "ink" : "page");
     on();
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
   }, []);
 
   useEffect(() => {
-    const root = document.documentElement;
-    root.dataset.theme = dark ? "dark" : "light";
-    root.dataset.contrast = contrast === "high" ? "high" : "normal";
-    root.style.colorScheme = dark ? "dark" : "light";
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", dark ? "#17140F" : "#EEEDEA");
-  }, [dark, contrast]);
+    applyAppearance(appearance);
+  }, [appearance]);
 
-  const setContrast = useCallback((c: Contrast) => {
-    setContrastState(c);
-    try {
-      localStorage.setItem(CONTRAST_KEY, c);
-    } catch {
-      /* storage unavailable: applies to this page only */
-    }
-  }, []);
-
-  const value = useMemo<ThemeApi>(
-    () => ({ resolved: dark ? "dark" : "light", contrast, setContrast }),
-    [dark, contrast, setContrast],
-  );
+  const value = useMemo<ThemeApi>(() => ({ appearance }), [appearance]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

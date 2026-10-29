@@ -50,7 +50,7 @@ import {
 } from "../ui";
 
 // Dev-only component gallery (/__gallery): every component, every state, in the
-// order of the handoff's UI Kit. Light, dark and high contrast are checked here.
+// order of the handoff's UI Kit. The page and ink palettes are checked here.
 
 function Section({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
   return (

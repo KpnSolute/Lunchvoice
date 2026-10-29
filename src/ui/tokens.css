@@ -1,7 +1,14 @@
 /* LunchVoice v2 design tokens — the single source.
    Ported from design handoff v2.2.1 (tokens/lunchvoice-tokens.css).
-   Light is the default; the ThemeProvider sets data-theme="dark" and/or
-   data-contrast="high" on <html>. Nothing else may hand-pick a colour. */
+
+   There are exactly two palettes and the machine picks one; no user setting exists:
+     page — light. Paper-cream page, ink text.   data-theme="page"  (default)
+     ink  — dark.  Ink page, paper text.         data-theme="ink"
+   The ThemeProvider sets data-theme from prefers-color-scheme; the inline script in
+   index.html does the same before first paint. High contrast is not a third palette:
+   `prefers-contrast: more` turns the palette monochrome and adds borders.
+
+   Nothing else may hand-pick a colour. */
 
 :root {
   /* surfaces */
@@ -75,7 +82,7 @@
 }
 
 :root,
-[data-theme="light"] {
+[data-theme="page"] {
   --lv-page: #eeedea;
   --lv-surface: #ffffff;
   --lv-surface2: #f2f1ee;
@@ -101,7 +108,7 @@
   --lv-bottom-tabs-bg: #f8f7f5;
 }
 
-[data-theme="dark"] {
+[data-theme="ink"] {
   --lv-page: #17140f;
   --lv-surface: #34302a;
   --lv-surface2: #2a2620;
@@ -136,44 +143,47 @@
   --lv-bottom-tabs-bg: #211d18;
 }
 
-/* High contrast wins over the theme: it is a border-and-ink treatment, not a palette. */
-[data-contrast="high"] {
-  --lv-page: #ffffff;
-  --lv-surface: #ffffff;
-  --lv-surface2: #ffffff;
-  --lv-popover: #ffffff;
-  --lv-well: #ffffff;
-  --lv-text: #000000;
-  --lv-muted: #262320;
-  --lv-subtle: #3a3632;
-  --lv-line: #000000;
-  --lv-control-off: #000000;
-  --lv-primary: #000000;
-  --lv-on-primary: #ffffff;
-  --lv-accent: #ffb347;
-  --lv-accent-deep: #ffb347;
-  --lv-accent-light: #ffb347;
-  --lv-on-accent: #000000;
-  --lv-danger: #a3140a;
-  --lv-danger-ink: #a3140a;
-  --lv-success: #0b5e2a;
-  --lv-success-ink: #0b5e2a;
-  --lv-focus: #000000;
-  --lv-marker: #ffd08a;
-  --lv-raised-bg: #ffffff;
-  --lv-raised-shadow: none;
-  --lv-pressed-bg: #ffb347;
-  --lv-pressed-shadow: none;
-  --lv-well-shadow: none;
-  --lv-card-shadow: none;
-  --lv-popover-shadow: none;
-  --lv-ink-bg: #000000;
-  --lv-ink-text: #ffffff;
-  --lv-ink-shadow: none;
-  --lv-accent-cta-bg: #ffb347;
-  --lv-accent-cta-shadow: none;
-  --lv-control-border: 2px solid #000000;
-  --lv-bottom-tabs-bg: #ffffff;
+/* High contrast is machine-set too (the OS "increase contrast" setting). It wins over
+   both palettes because it comes last: it is a border-and-ink treatment, not a palette. */
+@media (prefers-contrast: more) {
+  :root {
+    --lv-page: #ffffff;
+    --lv-surface: #ffffff;
+    --lv-surface2: #ffffff;
+    --lv-popover: #ffffff;
+    --lv-well: #ffffff;
+    --lv-text: #000000;
+    --lv-muted: #262320;
+    --lv-subtle: #3a3632;
+    --lv-line: #000000;
+    --lv-control-off: #000000;
+    --lv-primary: #000000;
+    --lv-on-primary: #ffffff;
+    --lv-accent: #ffb347;
+    --lv-accent-deep: #ffb347;
+    --lv-accent-light: #ffb347;
+    --lv-on-accent: #000000;
+    --lv-danger: #a3140a;
+    --lv-danger-ink: #a3140a;
+    --lv-success: #0b5e2a;
+    --lv-success-ink: #0b5e2a;
+    --lv-focus: #000000;
+    --lv-marker: #ffd08a;
+    --lv-raised-bg: #ffffff;
+    --lv-raised-shadow: none;
+    --lv-pressed-bg: #ffb347;
+    --lv-pressed-shadow: none;
+    --lv-well-shadow: none;
+    --lv-card-shadow: none;
+    --lv-popover-shadow: none;
+    --lv-ink-bg: #000000;
+    --lv-ink-text: #ffffff;
+    --lv-ink-shadow: none;
+    --lv-accent-cta-bg: #ffb347;
+    --lv-accent-cta-shadow: none;
+    --lv-control-border: 2px solid #000000;
+    --lv-bottom-tabs-bg: #ffffff;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

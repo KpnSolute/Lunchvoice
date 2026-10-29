@@ -582,7 +582,7 @@ export function CreateHub() {
 
 export function Settings() {
   const { session, signOut } = useIdentity();
-  const { resolved, contrast, setContrast } = useTheme();
+  const { appearance } = useTheme();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [profileName, setProfileName] = useState(session?.name ?? "");
   const [notify, setNotify] = useState(true);
@@ -595,15 +595,10 @@ export function Settings() {
       <Card className="stack">
         <h2 className="t-title">Appearance</h2>
         <p className="t-small muted">
-          Light and dark follow this device, currently <strong>{resolved}</strong>. LunchVoice keeps no theme setting of
-          its own: change your system appearance and this page follows it.
+          This device asks for the <strong>{appearance}</strong> palette — <strong>page</strong> is the light one,{" "}
+          <strong>ink</strong> the dark one. LunchVoice keeps no theme setting of its own, so change your system
+          appearance and this page follows it. High contrast follows the system&rsquo;s contrast setting too.
         </p>
-        <Switch
-          label="High contrast"
-          description="Adds hard borders and pure ink. Useful on projectors and in bright rooms."
-          checked={contrast === "high"}
-          onChange={(v) => setContrast(v ? "high" : "normal")}
-        />
       </Card>
 
       <Card className="stack">

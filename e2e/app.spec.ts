@@ -74,13 +74,31 @@ test.describe("public routes", () => {
     await expect(page.getByRole("heading", { name: "Hub not available" })).toBeVisible();
   });
 
-  test("dark mode keeps contrast on the landing and pricing pages", async ({ page }) => {
+  test("the machine's dark preference paints the ink palette on landing and pricing", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
     for (const route of ["/", "/pricing"]) {
       await page.goto(route);
-      await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "ink");
+      await expect(page.locator("body")).toHaveCSS("background-color", "rgb(23, 20, 15)");
       await axe(page);
     }
+  });
+
+  test("the system contrast preference turns on high contrast, and nothing else can", async ({ page }) => {
+    // No palette is stored and no control exists: both palettes come from the machine.
+    await page.goto("/pricing");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "page");
+    expect(await page.evaluate(() => localStorage.length)).toBe(0);
+
+    await page.emulateMedia({ colorScheme: "dark", contrast: "more" });
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "ink");
+    await expect(page.locator("body")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await axe(page);
+
+    await page.emulateMedia({ colorScheme: "light", contrast: "more" });
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "page");
+    await expect(page.locator("body")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await axe(page);
   });
 });
 
@@ -97,13 +115,14 @@ test.describe("signed-in surfaces", () => {
 
     await page.goto("/settings");
     await expect(page.getByRole("heading", { name: /Your account/ })).toBeVisible();
-    // Light and dark follow the machine: changing the OS preference changes the page,
-    // and there is no in-app theme control to override it.
+    // Page and ink follow the machine: changing the OS preference changes the page,
+    // and there is no in-app appearance control to override it.
     await page.emulateMedia({ colorScheme: "dark" });
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "ink");
     await page.emulateMedia({ colorScheme: "light" });
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-    await expect(page.getByRole("tab", { name: "Dark" })).toHaveCount(0);
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "page");
+    await expect(page.getByRole("switch", { name: /high contrast/i })).toHaveCount(0);
+    await expect(page.getByRole("tab", { name: /dark|light/i })).toHaveCount(0);
     await noHorizontalOverflow(page);
     await axe(page);
   });
