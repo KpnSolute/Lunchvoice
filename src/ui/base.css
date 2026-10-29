@@ -2018,6 +2018,155 @@ b {
   position: relative;
   z-index: 1;
 }
+/* ---------------------------------------------------------------- social layer */
+/* The poster illustration: flat fills, heavy outlines, halftone. Every colour is an
+   --lv-art-* token, so the art stays in tokens.css with everything else. */
+.art-sky { fill: var(--lv-art-sky); }
+.art-ray-0 { fill: var(--lv-art-ray-0); }
+.art-ray-1 { fill: var(--lv-art-ray-1); }
+.art-ray-2 { fill: var(--lv-art-ray-2); }
+.art-ray-3 { fill: var(--lv-art-ray-3); }
+.art-head-cool { fill: var(--lv-art-cool); }
+.art-head-warm { fill: var(--lv-art-warm); }
+.art-hair-magenta { fill: var(--lv-art-magenta); }
+.art-shoulder-cool { fill: var(--lv-art-cool-deep); }
+.art-shoulder-warm { fill: var(--lv-art-warm-deep); }
+.art-cheek { fill: var(--lv-art-warm-deep); opacity: 0.45; }
+.art-hair-line { fill: none; stroke: var(--lv-art-cream); stroke-width: 4; stroke-linecap: round; opacity: 0.55; }
+.art-hair-plum { fill: var(--lv-art-plum); }
+.art-shades-cool { fill: var(--lv-art-teal); }
+.art-shades-warm { fill: var(--lv-art-lime); }
+.art-lips { fill: var(--lv-art-warm-deep); }
+.art-lips-warm { fill: var(--lv-art-cream); }
+.art-bubble-cool { fill: var(--lv-art-teal); stroke: var(--lv-art-ink); stroke-width: 4; stroke-linejoin: round; }
+.art-bubble-warm { fill: var(--lv-art-cream); stroke: var(--lv-art-ink); stroke-width: 4; stroke-linejoin: round; }
+.art-dot-ink { fill: var(--lv-art-ink); }
+.art-heart { fill: var(--lv-art-magenta); stroke: var(--lv-art-ink); stroke-width: 3; }
+.art-halftone { opacity: 0.45; }
+.art-halftone-dot { fill: var(--lv-art-ink); }
+.art-outline { fill: none; stroke: var(--lv-art-ink); stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; }
+.art-outline-thin { fill: none; stroke: var(--lv-art-ink); stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; opacity: 0.85; }
+.art-confetti circle { fill: var(--lv-art-magenta); }
+.art-confetti circle:nth-child(2) { fill: var(--lv-art-teal); }
+.art-confetti circle:nth-child(3) { fill: var(--lv-art-ink); }
+.art-confetti circle:nth-child(4) { fill: var(--lv-art-warm-deep); }
+
+/* The bubbles drift a little: enough that the poster feels alive, never enough to
+   pull the eye off the copy. */
+@keyframes art-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+.art-bob {
+  animation: art-bob 6s var(--lv-ease) infinite;
+}
+.art-bob-slow {
+  animation-duration: 7.5s;
+  animation-delay: -2.6s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .art-bob { animation: none; }
+}
+
+.social-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 48px;
+  align-items: center;
+}
+.social-art {
+  border-radius: var(--lv-radius-hero);
+  overflow: hidden;
+  box-shadow: var(--lv-raised-shadow);
+  transform: rotate(-1.4deg);
+  border: 1px solid color-mix(in srgb, var(--lv-art-ink) 20%, transparent);
+}
+.social-art svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.social-cards {
+  display: grid;
+  gap: 12px;
+}
+.social-card {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: var(--lv-surface);
+  box-shadow: var(--lv-card-shadow);
+  border: 1px solid color-mix(in srgb, var(--lv-line) 70%, transparent);
+}
+.social-card .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--lv-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--lv-accent) 22%, transparent);
+  animation: live-pulse 2.4s var(--lv-ease) infinite;
+}
+.social-avatars {
+  display: inline-flex;
+}
+.social-avatars span {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font: 700 12px/1 var(--lv-font-mono);
+  color: var(--lv-on-accent);
+  background: var(--lv-accent-deep);
+  border: 2px solid var(--lv-surface);
+  margin-left: -8px;
+}
+.social-avatars span:first-child { margin-left: 0; }
+.social-avatars span:nth-child(2) { background: var(--lv-primary); color: var(--lv-on-primary); }
+.social-avatars span:nth-child(3) { background: var(--lv-success); color: #fff; }
+.social-avatars span:nth-child(4) { background: var(--lv-surface2); color: var(--lv-text); }
+@keyframes live-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.82); opacity: 0.7; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .social-card .dot { animation: none; }
+  .social-art { transform: none; }
+}
+@media (max-width: 899px) {
+  .social-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+}
+
+/* Poster type: one step bigger than the display scale, tighter, for the social band. */
+.t-poster {
+  font-family: var(--lv-font-display);
+  font-weight: 800;
+  font-size: clamp(38px, 5.4vw, 72px);
+  line-height: 0.92;
+  letter-spacing: -0.045em;
+  margin: 0;
+  text-wrap: balance;
+}
+.sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 15px;
+  border-radius: 999px;
+  background: var(--lv-primary);
+  color: var(--lv-on-primary);
+  font: 700 11px/1 var(--lv-font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  transform: rotate(-2.5deg);
+  box-shadow: 0 6px 0 color-mix(in srgb, var(--lv-primary) 32%, transparent);
+}
+
 /* The signature gets its own row above a CTA row: it draws itself in the space and
    drops its tail onto the button below. Inside the CTA row there is no room to its
    left, so the component would clamp to its minimum scale and clip. */

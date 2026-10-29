@@ -9,6 +9,7 @@ import {
   Icon,
   MakerSignature,
   Pill,
+  TalkArt,
   replaySignature,
   useReveal,
   useRotator,
@@ -88,6 +89,7 @@ export function Landing() {
   const ticker = useTickerPause<HTMLDivElement>();
   const steps = useReveal<HTMLDivElement>();
   const cases = useReveal<HTMLDivElement>();
+  const social = useReveal<HTMLDivElement>();
 
   const starter = PLANS.find((p) => p.id === "starter")!;
   const team = PLANS.find((p) => p.id === "team")!;
@@ -271,6 +273,60 @@ export function Landing() {
           <ButtonLink to="/use-cases" variant="quiet" iconRight="arrow-right">
             All use cases
           </ButtonLink>
+        </div>
+      </section>
+
+      <section className="section" ref={social.ref}>
+        <div className="social-grid">
+          <figure className="social-art" style={{ margin: 0 }}>
+            <TalkArt />
+          </figure>
+          <div className="stack reveal" style={{ gap: 18 }} data-shown={social.shown}>
+            <p className="t-label muted">Always in the loop</p>
+            <h2 className="t-poster">
+              Your people, <span className="marker">talking.</span>
+            </h2>
+            <p className="lede" style={{ maxWidth: "44ch" }}>
+              A Hub is not a form you fill in once. Answers arrive while people are still in the room, a poll can be
+              two taps from a poster, and the next question is already up. It should feel like your group chat, with
+              the numbers kept honest.
+            </p>
+            <div className="social-cards">
+              <div className="social-card">
+                <span className="dot" aria-hidden="true" />
+                <div className="stack stack-sm grow">
+                  <p className="t-ui">Saturday ride is live</p>
+                  <p className="t-small subtle">42 answers in · 3 minutes ago · closes Sunday</p>
+                </div>
+                <Pill tone="accent">Live</Pill>
+              </div>
+              <div className="social-card">
+                <span className="social-avatars" aria-hidden="true">
+                  <span>DM</span>
+                  <span>KO</span>
+                  <span>AT</span>
+                  <span>+9</span>
+                </span>
+                <div className="stack stack-sm grow">
+                  <p className="t-ui">128 reactions this week</p>
+                  <p className="t-small subtle">Only members your managers admitted, never a bot or a duplicate.</p>
+                </div>
+              </div>
+              <div className="social-card">
+                <Icon name="members" size={20} />
+                <div className="stack stack-sm grow">
+                  <p className="t-ui">In your pocket</p>
+                  <p className="t-small subtle">
+                    iOS and Android apps are in build. Until they land, add LunchVoice to your home screen: it opens
+                    like an app, full screen and one tap away.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p>
+              <span className="sticker">No ads · No algorithm</span>
+            </p>
+          </div>
         </div>
       </section>
 

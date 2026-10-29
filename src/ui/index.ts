@@ -13,4 +13,5 @@ export * from "./components/overlays";
 export * from "./components/answers";
 export * from "./components/nav";
 export * from "./components/brand";
+export * from "./components/talk-art";
 export * from "./charts";

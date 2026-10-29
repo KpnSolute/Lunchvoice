@@ -64,6 +64,14 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Changed
 
+- **A social layer, so the product reads like something people want to open.** The landing gains an "Always in the
+  loop" band: a bespoke pop-art illustration of two people talking (`TalkArt`, inline SVG, heavy outlines, sunburst,
+  halftone floor, drifting speech bubbles) beside a poster-scale headline and three cards that show the product
+  moving — a live poll, reactions from admitted members, and the mobile story (iOS and Android in build, add to home
+  screen today). Illustration inks live in `--lv-art-*` tokens, so the palette is still defined in one place even
+  though it is deliberately louder than the UI.
+- **Two new type roles carry the energy.** `.t-poster` is a step above the display scale (clamp 38–72 px, 0.92
+  line-height, tight tracking) and `.sticker` is a rotated mono label for the small loud lines.
 - **Joining from the home page works in both directions.** The hero's join card is a real form now: a typed code is
   normalised to upper case and the same six characters open the Campaign player whether the person presses the button
   or Enter. `/join` promised both kinds of code in its own copy but only resolved invitations, so a Campaign join code

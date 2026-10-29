@@ -33,6 +33,24 @@
   --lv-font-ui: "Geist", system-ui, sans-serif;
   --lv-font-mono: "Space Mono", ui-monospace, monospace;
 
+  /* Poster art (TalkArt only). Deliberately louder than the UI palette: these are the
+     illustration's inks, not interface colours. */
+  --lv-art-sky: #ffd23f;
+  --lv-art-ray-0: #ff8a3d;
+  --lv-art-ray-1: #f4593b;
+  --lv-art-ray-2: #ffd23f;
+  --lv-art-ray-3: #ff5fa2;
+  --lv-art-cool: #1f7ae0;
+  --lv-art-cool-deep: #0f4fa8;
+  --lv-art-warm: #f47b20;
+  --lv-art-warm-deep: #d94f18;
+  --lv-art-magenta: #c2186b;
+  --lv-art-plum: #6c2bd9;
+  --lv-art-teal: #12a594;
+  --lv-art-lime: #9ed21e;
+  --lv-art-cream: #fdf3e3;
+  --lv-art-ink: #1a0d2e;
+
   /* radius */
   --lv-radius-field: 16px;
   --lv-radius-card: 24px;
