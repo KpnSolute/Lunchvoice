@@ -3,16 +3,16 @@ import assert from "node:assert/strict";
 import { slugProblem } from "./reservedSlugs.ts";
 
 test("accepts ordinary slugs", () => {
-  assert.equal(slugProblem("mjcc"), null);
-  assert.equal(slugProblem("Lion-Cafe-2"), null);
+  assert.equal(slugProblem("acme-test"), null);
+  assert.equal(slugProblem("Acme-Hub-2"), null);
 });
 
 test("rejects every live route as a slug", () => {
   for (const s of ["me", "ME", "api", "analytics", "campaigns", "signin"]) assert.equal(slugProblem(s), "reserved");
 });
 
-test("no customer name is special-cased", () => {
-  for (const s of ["lioncafe", "mjcc", "mjcc-admin", "lioncafe-admin"]) assert.equal(slugProblem(s), null);
+test("a business name is not reserved just because it is a business name", () => {
+  for (const s of ["example-hub", "acme-admin", "example-hub-admin"]) assert.equal(slugProblem(s), null);
 });
 
 test("rejects malformed slugs", () => {

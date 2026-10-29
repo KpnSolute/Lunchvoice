@@ -6,6 +6,18 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Frontend baseline rebased onto `main` (`uiv2`)
+
+- The v2 frontend branch is rebased onto `main` at `d45b449` and renamed `uiv2`. Conflicts were resolved in `main`'s
+  favour for everything the backend thread owns (`AGENTS.md`, `CLAUDE.md`, `docs/backend/*`, `docs/v2/PRODUCT_SPEC.md`,
+  `scripts/db-test-canonical.sh`, `supabase/tests/*`), because the branch copies were older and still pointed the brain
+  at the retired repo; the v2 `.env.example` template and this changelog's UI entries were kept.
+- Added `scripts/check-customer-names.mjs`, a source guard that fails on `LionCafe`, `MCC`-style customer names,
+  `Miami` or `Job Corps` anywhere under `src/`, including tests and fixtures. Wired into `test:pr` and `test:light` so
+  CI enforces it.
+- `src/lib/reservedSlugs.test.ts` fixtures renamed to synthetic names (`acme-test`, `example-hub`) so the test no longer
+  needs a customer name to prove that a business name is not reserved.
+
 ### Security
 
 - The dev mock API and the simulated sign-in no longer ship in production bundles: they are gated on `import.meta.env.DEV`, a
