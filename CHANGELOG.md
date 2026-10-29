@@ -12,6 +12,14 @@ categories and the repository's decimal `X.X.X` release policy.
   `src/`, but `@types/node` was only present transitively through `vite`. A cold Render install resolved it as missing
   and the deploy build failed. Declared `@types/node` in `devDependencies` and committed the lockfile.
 
+### Fixed
+
+- `AGENTS.md`/`CLAUDE.md`: the architecture-map line pointed at `graphify-out/wiki/index.md`, deleted with the v1 map.
+  It now says no map exists yet and names `/graphify` as the way to rebuild the v2 one. Both files stay identical.
+- Restored the `database` PR job ("Canonical v2 database suite") that PR #26 added and a later squash-merge dropped:
+  it runs `scripts/db-test-canonical.sh` against a throwaway Postgres container. Verified locally: 356 checks, 0 failed,
+  slug race and rollback rehearsal included.
+
 ### Removed (v1 residue)
 
 - Deleted `graphify-out/`: 34 generated files that mapped the v1 app (`Menu_Data_&_Student_Pages`, `Auth_&_App_Shell`,
