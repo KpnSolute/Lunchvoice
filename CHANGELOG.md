@@ -6,6 +6,16 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added
+
+- Added `supabase/migrations/000021_v2_waitlist.sql` (with rollback and `21_waitlist` tests): a signed-out, email-only public waitlist for
+  the waitlist-first launch (`lv_waitlist_status`, `lv_waitlist_join`). Ported from the prototype's waitlist and adapted to the canonical
+  schema and error envelope. It fails closed until the founder sets `waitlist.open`, `waitlist.consent_version`, `waitlist.retention` and
+  `waitlist.removal`; never reveals whether an address was already listed; throttles per caller (provisional 5 per address per day and
+  30 per origin per hour, hashes only in the ledger); and exposes no read of the list. Documented in `docs/backend/API_CONTRACT.md`.
+  Open before launch: the four decisions, and verifying `waitlist.trusted_ip` against the live edge.
+
+
 ### Changed
 
 - **Founder reset, 2026-10-25 (supersedes every earlier entry that preserves, migrates or special-cases v1 or LionCafe).**

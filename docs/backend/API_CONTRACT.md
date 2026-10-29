@@ -283,3 +283,29 @@ a guest and their answers. Per-network limits (per IP) belong at the edge in fro
 `{ ok, participant_count: {...}, participation_rate: {...}, questions: [{ question_id, position, kind, prompt, result }] }`,
 where each `result` is the `answer_distribution` envelope (plus `summary` for rating questions) or that question's own
 refusal (for example free text). A whole-Campaign refusal (`lv_policy_undecided`, `lv_lifecycle_invalid`) is returned as is.
+
+## Waitlist (signed out, email only)
+
+v2 launches in waitlist mode. Both functions work for signed-out visitors (`anon`); neither needs an account or a KpnIdentity
+sign-in.
+
+### `lv_waitlist_status()`
+`{ ok, status }` where `status` is `open`, `closed` or `pending`. When `open` it also returns `consent_version`, `retention_days` and
+`removal_channel`, so the form can show the founder-approved consent wording and how to be removed. `pending` means the founder
+decisions below are not set yet and the form must not be shown as live.
+
+### `lv_waitlist_join(p_email, p_intended_hub_name?)`
+Success: `{ ok:true, status:"queued" }` (also for an address already on the list: the answer never reveals whether an address was
+listed) or `{ ok:true, status:"closed" }` when the list is deliberately closed. Errors: `lv_invalid_input` (bad email, over-long or
+control-character Hub name), `lv_rate_limited` with `retry_after_seconds` (5 attempts per address per day from one origin and 30 per
+origin per hour; provisional), `lv_policy_undecided` with `missing: [...]` while any of the four decisions is unset.
+
+The list stays closed until the founder sets four policy keys in `lv.policy`: `waitlist.open` (true or false),
+`waitlist.consent_version` (identifier of the approved privacy wording), `waitlist.retention` (`{"days": n}`) and `waitlist.removal`
+(`{"channel": "text"}`). Engineering does not invent consent wording, retention or a removal channel. `waitlist.trusted_ip`
+(`{"header":"x-forwarded-for","hops_from_right":1}`) must be verified against the live edge before launch; until set, all callers share
+one origin bucket, so a flood can use up the shared hourly limit. Stored data: the address, an optional intended Hub name, the consent
+version and a deletion date; the throttle ledger holds salted hashes only. Nothing links a waitlist entry to an account, and no API
+function reads entries back. Removal and retention purge are operator-only SQL functions (`lv.remove_waitlist_entry`,
+`lv.purge_expired_waitlist`).
+
