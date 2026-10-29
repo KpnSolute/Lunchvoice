@@ -97,6 +97,15 @@ export function Landing() {
     navigate(to);
   };
 
+  // One entry point for joining from the marketing site: a join code opens the
+  // Campaign player, the same page the Campaign's own link opens.
+  const joinCode = code.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  const openSession = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (joinCode.length < 4) return;
+    go(`/c/${joinCode}`);
+  };
+
   return (
     <div className="wrap">
       <section className="hero">
@@ -145,16 +154,15 @@ export function Landing() {
                 <p className="t-label muted">Have a join code?</p>
                 <Pill tone="accent">No account needed</Pill>
               </div>
-              <CodeInput label="Join code" value={code} onChange={setCode} length={6} />
-              <Button
-                variant="raised"
-                disabled={code.replace(/\s/g, "").length < 4}
-                onClick={() => navigate(`/c/${code.replace(/\s/g, "")}`)}
-              >
-                Open the Campaign
-              </Button>
+              <form className="stack" style={{ gap: 12 }} onSubmit={openSession}>
+                <CodeInput label="Join code" value={joinCode} onChange={setCode} length={6} />
+                <Button type="submit" variant="raised" disabled={joinCode.length < 4}>
+                  Open the Campaign
+                </Button>
+              </form>
               <p className="t-small subtle">
-                Joining a Hub with an invitation? <a href="/join">Use the invite link</a>.
+                Code from a poster or a message? It opens the Campaign here, no account needed. Joining a Hub with an
+                invitation? <a href="/join">Use the invite link</a>.
               </p>
             </Card>
 

@@ -79,6 +79,29 @@ test.describe("public routes", () => {
     await noHorizontalOverflow(page);
   });
 
+  test("a code typed on the home page opens the Campaign player", async ({ page }) => {
+    await page.goto("/");
+    const cells = page.locator(".code-cells input");
+    await cells.first().click();
+    await page.keyboard.type("ab12cd");
+    await expect(cells.first()).toHaveValue("A");
+    // Enter submits the card's form, the same way the button does.
+    await cells.nth(5).press("Enter");
+    await expect(page).toHaveURL(/\/c\/AB12CD$/);
+    await expect(page.getByText("This Campaign cannot be answered.")).toBeVisible();
+    await noHorizontalOverflow(page);
+  });
+
+  test("/join opens a Campaign join code as well as an invitation", async ({ page }) => {
+    await page.goto("/join");
+    await page.locator(".code-cells input").first().click();
+    await page.keyboard.type("AB12CD");
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page).toHaveURL(/\/c\/AB12CD$/);
+    await expect(page.getByText("This Campaign cannot be answered.")).toBeVisible();
+    await noHorizontalOverflow(page);
+  });
+
   test("a missing route gets the neutral 404", async ({ page }) => {
     await page.goto("/this-hub-does-not-exist-9f2");
     await expect(page.getByRole("heading", { name: "Hub not available" })).toBeVisible();

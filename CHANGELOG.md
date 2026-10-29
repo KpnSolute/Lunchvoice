@@ -64,6 +64,11 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Changed
 
+- **Joining from the home page works in both directions.** The hero's join card is a real form now: a typed code is
+  normalised to upper case and the same six characters open the Campaign player whether the person presses the button
+  or Enter. `/join` promised both kinds of code in its own copy but only resolved invitations, so a Campaign join code
+  failed there with "not valid"; an unknown invitation now falls through to `/c/{code}`, where the player says why it
+  cannot be answered.
 - **Signature v1.0.0 is final, and it now carries the boot screen.** `public/brand/kpn-signature@1.js` and
   `kpn-signature.js` are the approved single-stroke vector — every PLACEHOLDER note is gone. The component gained
   `mode`: `hero` (unchanged), `footer` (draws once on scroll-in, then rests) and `loader` (writes, holds, un-writes,

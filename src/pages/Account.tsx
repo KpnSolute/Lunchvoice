@@ -143,8 +143,14 @@ export function Join() {
       navigate(`/j/${clean}`);
       return;
     }
+    // The same six characters can be a Campaign join code instead of an invitation.
+    // The player resolves it and explains itself if the Campaign is closed or unknown.
+    if (r.error.code === "lv_invalid_code") {
+      navigate(`/c/${clean}`);
+      return;
+    }
     setState("error");
-    setError(r.error.code === "lv_invalid_code" ? "That code is not valid, has expired, or has been used up." : r.error.message);
+    setError(r.error.message);
   }
 
   return (
