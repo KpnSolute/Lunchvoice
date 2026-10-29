@@ -6,6 +6,83 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Frontend baseline rebased onto `main` (`uiv2`)
+
+- The v2 frontend branch is rebased onto `main` at `d45b449` and renamed `uiv2`. Conflicts were resolved in `main`'s
+  favour for everything the backend thread owns (`AGENTS.md`, `CLAUDE.md`, `docs/backend/*`, `docs/v2/PRODUCT_SPEC.md`,
+  `scripts/db-test-canonical.sh`, `supabase/tests/*`), because the branch copies were older and still pointed the brain
+  at the retired repo; the v2 `.env.example` template and this changelog's UI entries were kept.
+- Added `scripts/check-customer-names.mjs`, a source guard that fails on `LionCafe`, `MCC`-style customer names,
+  `Miami` or `Job Corps` anywhere under `src/`, including tests and fixtures. Wired into `test:pr` and `test:light` so
+  CI enforces it.
+- `src/lib/reservedSlugs.test.ts` fixtures renamed to synthetic names (`acme-test`, `example-hub`) so the test no longer
+  needs a customer name to prove that a business name is not reserved.
+- Removed the `edge-functions` Deno job from `.github/workflows/pr-checks.yml`. It ran
+  `deno test supabase/functions/_shared/`, but v2 has no `supabase/functions` directory, so it failed on every pull
+  request for code that does not exist. Overlaps the intent of draft PR #27; land one or the other, not both.
+
+### Security
+
+- The dev mock API and the simulated sign-in no longer ship in production bundles: they are gated on `import.meta.env.DEV`, a
+  production build without Supabase configuration fails closed, and `scripts/check-bundle.mjs` now fails on dev-only strings.
+  Adopted the backend's v2 `AGENTS.md`/`CLAUDE.md`; removed `public/tenants`, `legacy/`, the v1 `.env.example` values and
+  `docs/backend/DATA_AND_MIGRATION_PLAN.md`.
+
+### Added (read APIs and screens)
+
+- Typed client now covers the full `lv_api` contract (hub get, members, invites, campaigns, submit, analytics, beta). Screens:
+  public Hub landing (readable signed out), Campaign list, Campaign Studio (add questions, publish, close, share code),
+  respondent player (one question per screen, anonymity notice, receipt), results with explicit "Withheld" states, Members and
+  Invitations, `/pricing` from `src/config/pricing.ts` (Campaign Plus has no price; checkout disabled), placeholder
+  `/discover`, `/billing`, `/settings`. Create Hub handles `lv_beta_required` with a beta application.
+  Walked in the browser against the dev mock (create Hub, publish Campaign, respond, results); no console errors.
+
+### Documentation
+
+- Frontend docs reset to the v2 canonical master spec (2026-10-25): `README.md`, `PRODUCT.md` and `DESIGN.md` rewritten for the
+  Hub/Campaign SaaS (Hybrid design direction, canonical pricing, Campaign Plus has no numeric price, Hub Name Reservation);
+  new `docs/frontend/FRONTEND.md` (routes, boundaries, mock-to-real replacement table, work order, acceptance test) and
+  `docs/frontend/HANDOFF.md`; `MULTI_TENANT_PLAN.md` (v1 plan) removed; history keeps it. `discover` added to the reserved slugs;
+  `lioncafe` and `mjcc-admin` removed from them so no customer name is special-cased (regression test added).
+  `AGENTS.md`, `CLAUDE.md` and the spec/API contract remain with the backend thread.
+
+### Changed
+
+- **v2 frontend reset (branch `feat/v2-ui`).** Removed every v1 screen and its support code: student/cafeteria routes,
+  Content Central and the other admin screens, the `/LionCafe` and subdomain redirects, `AuthProvider`/`Gate`, the MJCC staff
+  SSO callback, the organization provider, menu/QR/workbook libraries and the v1 `public.*` types. `src/index.css` was trimmed
+  to the shared tokens, buttons, forms, cards, pills and chart styles. Unused dependencies `fflate`, `qrcode` and
+  `@types/qrcode` were dropped. Legacy behaviour lives in Git history only. No database, deployment or MJCC data was touched.
+- `scripts/check-bundle.mjs` and its test now require `lv_api` markers instead of v1 Supabase markers.
+- `AGENTS.md` / `CLAUDE.md` still describe v1 and are intentionally unchanged here (they must stay byte-identical); updating
+  them is pending an owner decision on v2 agent notes.
+
+### Added
+
+- v2 frontend foundation: routes `/`, `/signin`, `/me`, `/:hub`, `/:hub/campaigns`, `/:hub/campaigns/:id`, `/:hub/analytics`;
+  `src/lib/lvApi.ts` typed client over the 13 `lv_api` functions; `src/lib/reservedSlugs.ts` (system-path reservation, mirrored
+  to the backend) with `npm run test:unit`; `src/identity/IdentityProvider.tsx` (simulated sign-in in mock mode only, since the
+  KpnIdentity issuer does not exist yet); an in-memory mock transport used when no Supabase env is set.
+
+- Added the canonical v2 fresh-install baseline: `supabase/migrations/000001_v2_core.sql` through `000006_v2_platform.sql`
+  (core identity/Hubs/memberships, authorization, campaigns, participation, privacy analytics, platform), each with a matching
+  `supabase/rollbacks/*.down.sql`. A **blank database plus these six files is a complete LunchVoice v2 installation**; the
+  legacy `public/` migrations in the same directory are v1 and are not part of it. Identity is `(issuer, subject)` with
+  `UNIQUE(identity_issuer, identity_subject)`; there is no auth-user-keyed identity, no legacy-auth-user synthesis, no
+  `public.profiles` mirror trigger and no dependency on `public.orgs`. For an anonymous Campaign the submission stores no
+  account and the participation stores no submission, enforced by triggers, so there is no stored join path from a person to
+  their answers. Tables live in schema `lv` and are never exposed; the whole API surface is 13 `lv_api` functions.
+- Added `scripts/db-test-canonical.sh`, a fresh-install runner that applies only the canonical migrations to a throwaway
+  Postgres, runs every suite, then applies and reverses the full baseline. It **fails on a zero-check run** rather than
+  reporting a false green.
+- Added tests: `supabase/tests/setup.sql` plus `01_identity` (25), `02_authorization` (28), `03_privacy` (26),
+  `04_analytics` (22), `05_acceptance` (50) and `06_concurrency` (11). **162 checks executed, 0 failed**, and the full
+  baseline applies to a blank database and rolls back completely.
+- Added `docs/backend/PRODUCTION_RESET_RUNBOOK.md`: the not-approved, not-executed procedure for resetting the v1 database,
+  including what is destroyed (137 users, 72 responses, 639 answers, 803 ratings, 14 orders), what is preserved, the
+  dependency of all six live Edge Functions on `profiles`/`orgs`, how the first v2 administrator and MJCC Hub are created, how
+  to prove no old student data survived, and the fact that there is **no rollback** after the schema drop.
+
 ### Changed
 
 - **Founder reset, 2026-10-25 (supersedes every earlier entry that preserves, migrates or special-cases v1 or LionCafe).**

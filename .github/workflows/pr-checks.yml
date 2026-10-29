@@ -54,19 +54,3 @@ jobs:
       - name: Security audit (dependency, auth, migration, function, workflow or hook changes)
         if: steps.policy.outputs.heavy == 'true'
         run: npm audit --audit-level=high
-
-  edge-functions:
-    name: Edge function unit tests (Deno)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: 2.9.6
-
-      - name: Run Deno tests for shared edge-function code
-        run: deno test --no-prompt supabase/functions/_shared/

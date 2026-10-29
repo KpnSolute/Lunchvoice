@@ -11,10 +11,11 @@ const policyScript = resolve(import.meta.dirname, "release-policy.mjs");
 
 test("heavy tests are required for auth, org, supabase, dependency, workflow and hook paths", () => {
   for (const file of [
-    "src/auth/AuthProvider.tsx",
-    "src/org/OrgProvider.tsx",
-    "src/lib/supabase.ts",
-    "supabase/functions/staff-login/index.ts",
+    "src/identity/IdentityProvider.tsx",
+    "src/lib/lvApi.ts",
+    "src/lib/transport.ts",
+    "src/lib/mockTransport.ts",
+    "supabase/functions/example/index.ts",
     "supabase/migrations/20261101000000_example.sql",
     "supabase/config.toml",
     "package.json",
@@ -30,8 +31,8 @@ test("heavy tests are required for auth, org, supabase, dependency, workflow and
 
 test("heavy tests are not required for UI, docs or changelog-only changes", () => {
   for (const file of [
-    "src/routes/student/Home.tsx",
-    "src/components/Layout.tsx",
+    "src/pages/Me.tsx",
+    "src/lib/reservedSlugs.ts",
     "src/index.css",
     "docs/backend/EXECUTION_ROADMAP.md",
     "CHANGELOG.md",
@@ -41,9 +42,9 @@ test("heavy tests are not required for UI, docs or changelog-only changes", () =
   }
 });
 
-test("regression: the stale src/contexts/Auth path no longer matters, the real auth provider does", () => {
-  assert.equal(filesNeedHeavyTests(["src/auth/AuthProvider.tsx"]), true);
-  assert.equal(filesNeedHeavyTests(["src/contexts/AuthProvider.tsx"]), false);
+test("regression: removed v1 auth/org paths no longer matter, the v2 identity provider does", () => {
+  assert.equal(filesNeedHeavyTests(["src/identity/IdentityProvider.tsx"]), true);
+  assert.equal(filesNeedHeavyTests(["src/auth/AuthProvider.tsx"]), false);
 });
 
 function makeRepo() {
@@ -76,14 +77,14 @@ test("pr mode fails when CHANGELOG.md is not updated", () => {
   }
 });
 
-test("pr mode passes with a changelog and flags heavy tests for auth changes", () => {
+test("pr mode passes with a changelog and flags heavy tests for identity changes", () => {
   const { dir, git, base } = makeRepo();
   try {
-    mkdirSync(join(dir, "src", "auth"), { recursive: true });
-    writeFileSync(join(dir, "src", "auth", "AuthProvider.tsx"), "export {};\n");
+    mkdirSync(join(dir, "src", "identity"), { recursive: true });
+    writeFileSync(join(dir, "src", "identity", "IdentityProvider.tsx"), "export {};\n");
     writeFileSync(join(dir, "CHANGELOG.md"), "# Changelog\n");
     git("add", ".");
-    git("commit", "-q", "-m", "auth change with changelog");
+    git("commit", "-q", "-m", "identity change with changelog");
     const result = runPr(dir, base);
     assert.equal(result.status, 0);
     assert.match(result.stdout, /changelog\ttrue/);
@@ -109,15 +110,17 @@ test("pr mode does not require heavy tests for a docs-and-changelog change", () 
 });
 
 test("bundle check reports missing markers and passes when all are present", () => {
-  assert.deepEqual(findMissingMarkers("createClient GoTrueClient submit_response login-start survey_templates"), []);
-  assert.deepEqual(findMissingMarkers("createClient"), ["GoTrueClient", "submit_response", "login-start", "survey_templates"]);
+  assert.deepEqual(findMissingMarkers("lv_my_context lv_hub_create lv_submit_response lv_analytics_query"), []);
+  assert.deepEqual(findMissingMarkers("lv_my_context"), ["lv_hub_create", "lv_submit_response", "lv_analytics_query"]);
 
   const dir = mkdtempSync(join(tmpdir(), "lv-bundle-"));
   try {
     writeFileSync(join(dir, "index.js"), "throw Error(`Missing VITE_SUPABASE_URL`)");
     assert.equal(checkBundleDir(dir).ok, false);
-    writeFileSync(join(dir, "index.js"), "createClient GoTrueClient submit_response login-start survey_templates");
+    writeFileSync(join(dir, "index.js"), "lv_my_context lv_hub_create lv_submit_response lv_analytics_query");
     assert.equal(checkBundleDir(dir).ok, true);
+    writeFileSync(join(dir, "index.js"), "lv_my_context lv_hub_create lv_submit_response lv_analytics_query Sign in (simulated)");
+    assert.equal(checkBundleDir(dir).ok, false);
     assert.equal(checkBundleDir(join(dir, "missing")).ok, false);
   } finally {
     rmSync(dir, { recursive: true, force: true });

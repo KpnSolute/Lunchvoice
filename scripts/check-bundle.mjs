@@ -1,17 +1,22 @@
 // Smoke check that a production build actually contains the application.
 //
-// Without VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY at build time,
-// src/lib/supabase.ts throws at module load and the bundler drops everything
-// after it, so `vite build` still "succeeds" with a near-empty bundle. CI
-// supplies placeholder (non-secret) values; this check proves they took effect.
+// A build that silently drops the app would still "succeed". This check proves the
+// bundle contains the v2 `lv_api` operations the app calls (required markers) and none
+// of the dev-only mock or simulated sign-in code (forbidden markers).
 //
-// Markers are stable identifiers: the Supabase client factory, the auth client,
-// and RPC/function names the app calls. If one is renamed on purpose, update the
-// list here in the same change.
+// Markers are stable identifiers. If one is renamed on purpose, update the lists here
+// in the same change.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const REQUIRED_MARKERS = ["createClient", "GoTrueClient", "submit_response", "login-start", "survey_templates"];
+const REQUIRED_MARKERS = ["lv_my_context", "lv_hub_create", "lv_submit_response", "lv_analytics_query"];
+
+// Dev-only code that must never reach a production bundle.
+const FORBIDDEN_MARKERS = ["Sign in (simulated)", "mock-account", "Mock does not implement"];
+
+export function findForbiddenMarkers(source, markers = FORBIDDEN_MARKERS) {
+  return markers.filter((marker) => source.includes(marker));
+}
 
 export function findMissingMarkers(source, markers = REQUIRED_MARKERS) {
   return markers.filter((marker) => !source.includes(marker));
@@ -34,6 +39,10 @@ export function checkBundleDir(dir) {
         `Bundle is missing expected markers: ${missing.join(", ")}. ` +
         "Was the build run without VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY?",
     };
+  }
+  const forbidden = findForbiddenMarkers(source);
+  if (forbidden.length > 0) {
+    return { ok: false, message: `Bundle ships dev-only code: ${forbidden.join(", ")}.` };
   }
   return { ok: true, message: `Bundle contains all ${REQUIRED_MARKERS.length} expected markers (${source.length} bytes).` };
 }

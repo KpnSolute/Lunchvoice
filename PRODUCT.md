@@ -1,49 +1,54 @@
-# PRODUCT.md — Lunch Voice
+# PRODUCT.md — LunchVoice v2
 
 ## Register
 
-**Product.** Design serves a task. This is a consumer-facing student app (rate meals,
-take surveys, earn points, redeem rewards), not an admin tool — so it earns a more
-expressive, brand-forward treatment than a typical dashboard while keeping task flow
-fast and legible.
+**Product, hybrid.** An expressive public brand (homepage, pricing, sign-in) over a calm,
+legible application (account, Hub workspace, Campaign Studio, analytics), with a
+mobile-first respondent experience.
 
 ## What it is
 
-A mobile-first web app for Miami Job Corps Center students to rate the cafeteria's
-28-day cycle menu, complete survey sessions, earn points, and redeem them in a reward
-store. Staff (MJCC sudo) get an admin surface for sessions, stats, roster, store, orders.
+A SaaS where anyone with an account can join or create Hubs (community spaces) and run
+Campaigns: surveys, polls, ratings, ideas, elections and other modes. Creators see
+privacy-safe, aggregate analytics. Participation is always free.
+
+LunchVoice builds the platform, not customer Hubs. Nothing about any one customer
+(including Miami Job Corps / LionCafe) is built into the product; that Hub is created by its
+manager through the same onboarding as every other customer.
 
 ## Users
 
-- **Students** (primary): Gen-Z, on phones, in a cafeteria or dorm. Quick interactions
-  between classes/meals. Motivated by points + feeling heard. Responses are anonymous.
-- **Staff/admin** (secondary): cafeteria + food-service team reviewing feedback and
-  running the rewards program.
+- **Participants** — free account; join Hubs, answer Campaigns (anonymous, authenticated or
+  guest where the creator allows it).
+- **Creators / Owners** — pay for a Hub subscription or a duration-based Campaign plan;
+  configure branding, pages, roles, members; build and schedule Campaigns; read analytics.
+- **Role holders** — up to 3 (Starter) or 6 (Team) custom roles per Hub with discrete
+  capabilities. The Owner is protected and outside the role count.
 
-## Desired outcome
+## Pricing (canonical; the backend entitlement map is the authority)
 
-Students actually *want* to open it and rate food — it should feel like a product they'd
-use unprompted, not a form the school made them fill out. Engagement is the metric.
+| Plan | Price | Includes |
+| --- | --- | --- |
+| Free participant | $0 | account, join authorized Hubs, participate |
+| Starter Hub | $13 / month | 3 roles, 3 custom pages, 15 active Campaigns, 2 active surveys, >50% participation threshold |
+| Team Hub | $29 / month | 6 roles, expanded pages, enhanced modes, advanced targeting and analytics, 5 active surveys, ≥20% threshold, Discover eligibility at 700 active members |
+| Campaign Starter | $19 for the first 2 weeks, $13 per extra week | Starter features during the paid window |
+| Campaign Plus | no numeric price yet | Team features during the paid window. **Do not show a price; checkout stays disabled** |
+| Hub Name Reservation ("Reserve your Hub URL") | $25 / 12 months, $25 renewal | 25-day grace, then released; grants no paid features |
+
+## Privacy language
+
+"Anonymous" means the creator cannot resolve who answered. Never use the word where
+exports, timestamps or joins could reverse it. Suppressed or withheld results are shown as
+their own state, never as zero. Guests never become members.
 
 ## Brand personality
 
-Bold editorial / food-zine. High-contrast, confident typography-as-graphic, one electric
-accent, generous negative space, real motion. Think streetwear-drop meets indie food
-magazine. Energetic and current without being juvenile.
+Ink, amber and bone. Confident display type on public surfaces, restrained UI type in the
+app. No emoji as UI; custom line icons carry meaning. Playful is fine, juvenile is not.
 
-## Anti-references (do NOT look like)
+## Anti-references
 
-- The "AI cream" warm-neutral SaaS default (the palette we're replacing).
-- Emoji as UI. **No emoji anywhere** — custom line icons and type carry meaning.
-- Generic Material/Bootstrap card grids; institutional government-form energy.
-- Cutesy y2k blobs / candy — playful is fine, juvenile is not.
-
-## Design principles
-
-- **Type is the graphic.** Oversized, tight, confident headings do the decorating.
-- **One accent, used with intent.** Electric citrus for actions/current/points only.
-- **Light + dark, first-class.** Auto by system; both fully themed via tokens.
-- **Motion conveys state.** Springy tap feedback, animated rating/point fills, tab and
-  page transitions — lively but never in the way (150–260ms).
-- **No emoji.** A cohesive custom icon set instead.
-- **Accessible.** Body ≥4.5:1 contrast in both themes; visible focus; reduced-motion path.
+- v1's cafeteria page structure and copy.
+- Generic admin-template dashboards.
+- Tenant branding that breaks contrast: Hub colors must pass 4.5:1 or fall back.

@@ -1,171 +1,45 @@
-# Lunch Voice - MJCC Survey + Rewards
+# LunchVoice v2 — frontend
 
-A TypeScript (Vite + React) web app for Miami Job Corps Center students to rate
-the 28-day cycle menu, earn points, and redeem them for rewards. Staff use
-Content Central to manage menus, build surveys, launch sessions, review results,
-and fulfill rewards.
+LunchVoice is a multi-tenant SaaS for interactive community feedback. People sign in with
+Google through KpnIdentity, create or join **Hubs**, and run **Campaigns** (surveys, polls,
+ratings, elections and other modes) with privacy-safe analytics. Dining is one use case,
+not the product.
 
-Backend is Supabase (Postgres + Auth). Students sign in with an email code;
-their email is their only identity. Staff sign in with their MJCCv1 sudo
-username and password. Point, survey, and redemption logic runs in the database
-with RLS and controlled RPC functions so it cannot be forged from the browser.
+V1 (the cafeteria app, its users, data and tenant model) is retired and is **not**
+migrated. The canonical product definition is
+`docs/v2/LunchVoice_v2_CANONICAL_MASTER_SPEC_2026-10-25.md` (owned by the backend thread).
+The frontend contract is `docs/frontend/FRONTEND.md`.
 
-## Features
-
-- Students: email-code login, join sessions by code/QR, rate dishes, answer
-  dynamic surveys, leave feedback, earn points/streaks, spend points in the
-  store, and track order status live.
-- Staff: Content Central for 28-day menu cycles, survey templates/questions,
-  active sessions, QR/join codes, real-time results, store items, and orders.
-- Engagement UI: animated ratings, points count-up, confetti, streaks, and
-  student-friendly survey surfaces.
-
-## Local Development
+## Local development
 
 ```bash
-cp .env.example .env
+cp .env.example .env     # optional: with no Supabase env the UI runs on the dev-only mock API
 npm install
 npm run dev
 ```
 
-The anon/publishable key is safe to expose. Row Level Security and edge
-functions are the actual guardrails.
+| Variable | Purpose |
+| --- | --- |
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | the v2 `lv_api` backend. Without both, the in-memory mock is used |
+| `VITE_LV_MOCK=1` | force the mock even when the variables are set |
+| `VITE_KPNIDENTITY_ISSUER` | KpnIdentity issuer URL; enables the real sign-in flow when it exists |
 
-## Authentication
+The mock and the simulated sign-in are development tools. They must never be reachable in a
+production build that has the real variables set (`src/lib/transport.ts`).
 
-- Students enter their personal email every time. The `login-start` edge
-  function checks whether the email already has a MJCCv2 student profile, sends
-  the Supabase OTP code, and tells the UI whether to show the one-time name
-  field. Supabase Auth still owns verification through `verifyOtp`.
-- Staff select **Continue with MJCC** and authenticate at `mjcc.kpnsolute.com`.
-  KpnCompute issues a short-lived one-time code after verifying the live
-  LionCafe role grant. `staff-sso` exchanges it server-to-server, then
-  provisions or updates the MJCCv2 admin profile and starts a MJCCv2 session.
-- `staff-status` revalidates persisted staff sessions against the same live
-  MJCCv1 LionCafe role grant, so removing that permission removes site access.
-
-### Required Supabase Setup
-
-`login-start`, the legacy `staff-login` rollback path, and `staff-status` need
-MJCCv1 credentials. `staff-sso` and KpnCompute derive a purpose-specific HMAC
-bridge key from that existing server-only credential. A separately rotatable
-bridge secret can optionally be configured on both services:
+## Checks
 
 ```bash
-supabase secrets set MJCCV1_SERVICE_ROLE_KEY=<mjccv1 service_role key> \
-  --project-ref qprfonxvthmaoxfixigk
-supabase secrets set LUNCHVOICE_SSO_SECRET=<32+ byte random secret> \
-  --project-ref qprfonxvthmaoxfixigk
+npm run build         # tsc -b && vite build
+npm run test:unit     # src/lib/*.test.ts
+npm run test:scripts  # release-policy and bundle-check scripts
+npm run check:bundle  # build contains the lv_api markers
+npm run check:brain   # AGENTS.md and CLAUDE.md are byte-identical
 ```
 
-`MJCCV1_URL` and `MJCCV1_ANON_KEY` must also be set. Configure allowed frontend
-origins for the auth edge functions:
+## Rules for contributors
 
-```bash
-supabase secrets set \
-  APP_ORIGINS='http://localhost:5173,http://127.0.0.1:5173,https://interact-3npi.onrender.com,https://lunch-line-survey.onrender.com,https://lunchvoice.com,https://www.lunchvoice.com' \
-  --project-ref qprfonxvthmaoxfixigk
-```
-
-The `send-email` function delivers OTP codes through Supabase's Send Email
-hook, using Azure Communication Services Email as the mail provider. Deploy it
-with JWT verification disabled because Supabase Auth signs the webhook payload
-instead of sending a user JWT.
-
-```bash
-supabase secrets set \
-  SEND_EMAIL_HOOK_SECRET='v1,whsec_...' \
-  ACS_ENDPOINT='https://...communication.azure.com' \
-  ACS_ACCESS_KEY='...' \
-  MAIL_FROM='DoNotReply@...azurecomm.net' \
-  MAIL_FROM_NAME='Lunch Voice' \
-  --project-ref qprfonxvthmaoxfixigk
-
-supabase secrets unset AWS_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY \
-  --project-ref qprfonxvthmaoxfixigk
-supabase secrets unset MAILERSEND_API_KEY --project-ref qprfonxvthmaoxfixigk
-supabase functions deploy send-email --no-verify-jwt --project-ref qprfonxvthmaoxfixigk
-```
-
-Check the setup at any time. This prints secret names/status only, never secret
-values:
-
-```bash
-npm run check:email
-```
-
-#### Azure Communication Services Email
-
-The Azure Communication Services resource must be connected to an Email
-Communication Services domain, and `MAIL_FROM` must be a sender address from
-that verified Azure domain or custom domain. `ACS_ENDPOINT` and
-`ACS_ACCESS_KEY` come from the Communication Services resource's Keys page.
-
-If Azure rejects a message, `send-email` logs `azure_email_send_failed`. If the
-request cannot reach Azure or signing fails, it logs `azure_email_send_error`.
-
-#### Once Azure credentials exist
-
-1. Set the Azure email secrets.
-   ```bash
-   supabase secrets set \
-     ACS_ENDPOINT='https://...communication.azure.com' \
-     ACS_ACCESS_KEY='...' \
-     MAIL_FROM='DoNotReply@...azurecomm.net' \
-     --project-ref qprfonxvthmaoxfixigk
-   ```
-2. Run `npm run check:email` and confirm every check passes.
-3. Redeploy with `npm run deploy:functions`.
-4. Trigger a test sign-in and confirm a real LionCafe student OTP is delivered.
-
-## Database
-
-Schema lives in Supabase project `qprfonxvthmaoxfixigk`.
-
-Key tables:
-
-- `profiles`
-- `sessions`, `session_members`
-- `survey_templates`, `survey_questions`, `survey_answers`
-- `responses`, `response_ratings`
-- `menu_cycles`, `menu_cycle_days`
-- `dish_ratings`, `voice_notes`
-- `store_items`, `orders`
-
-Key RPC functions:
-
-- `join_session`
-- `submit_response`
-- `redeem_item`
-- `is_admin`
-
-Views:
-
-- `dish_stats`
-- `dish_rating_stats`
-- `student_roster`
-
-`orders` is on the realtime publication so students see status changes live.
-Authenticated students can update only `profiles.display_name` and
-`profiles.email`; role, points, staff flags, and MJCC usernames are controlled
-by database functions or service-role edge functions.
-
-Regenerate types after schema changes and paste them into `src/types/db.ts`.
-
-## Deploying On Render
-
-1. Push this repo to GitHub.
-2. In Render, create a Blueprint from this repo. `render.yaml` defines the
-   static site.
-3. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-4. Point the custom domain `lunchvoice.com` (and `www.lunchvoice.com`) at the
-   Render static site, and add both to Supabase Auth URL configuration and
-   `APP_ORIGINS` (see above).
-
-## The Menu
-
-The 28-day cycle is managed from Content Central and stored in `menu_cycles`
-plus `menu_cycle_days`. Students read the active cycle from Supabase.
-`src/lib/menu.ts` is fallback/legacy reference data.
-
-The original single-file prototype is kept for reference in `legacy/index.html`.
+- All application data goes through `lv_api` functions. No direct table access.
+- Never hardcode a customer Hub (no LionCafe, no MJCC). Customers create their own Hubs.
+- Authorization is the backend's job. The UI hides or disables controls for clarity only.
+- Update `CHANGELOG.md` with every meaningful change.
