@@ -2,7 +2,7 @@ import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { IdentityProvider } from "./identity/IdentityProvider";
-import { Loading, ThemeProvider, ToastProvider } from "./ui";
+import { BootLoader, ThemeProvider, ToastProvider } from "./ui";
 import { AccountShell, PublicShell, RequireSignIn } from "./pages/Shell";
 import { Landing } from "./pages/Landing";
 import { About, Beta, Discover, HowItWorks, LegalPage, NotFoundPage, Status, Support, UseCases } from "./pages/Marketing";
@@ -40,10 +40,12 @@ createRoot(document.getElementById("root")!).render(
       <ToastProvider>
         <BrowserRouter>
           <IdentityProvider>
+            {/* A fast route never flashes the loader: the signature only appears
+                after 400 ms of real waiting. */}
             <Suspense
               fallback={
                 <Wrap>
-                  <Loading rows={4} label="Loading" />
+                  <BootLoader label="Loading" />
                 </Wrap>
               }
             >

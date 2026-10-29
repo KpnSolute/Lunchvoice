@@ -1,11 +1,13 @@
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
-// The KpnSolute maker's signature is one shared web component, served from
-// /brand/kpn-signature@1.js (immutable) and /brand/kpn-signature.js (latest).
-// This wrapper only loads it and reserves its box so nothing shifts.
+// The KpnSolute maker's signature is one shared web component — v1.0.0, final —
+// served from /brand/kpn-signature@1.js (immutable) and /brand/kpn-signature.js
+// (latest). This wrapper only loads it and reserves its box so nothing shifts.
 //
-// PLACEHOLDER: the path inside the component is a stand-in until the founder
-// supplies the real single-stroke vector. Do not invent a new signature.
+// Three modes, all implemented by the component:
+//   hero   (default) the tail lands on `target` and the stroke loops in a wave
+//   footer draws once when scrolled into view, then rests
+//   loader writes, holds, un-writes and loops with role="progressbar"
 
 declare global {
   namespace JSX {
@@ -20,6 +22,7 @@ declare global {
         amp?: string;
         tail?: string;
         ghosts?: string;
+        mode?: string;
         static?: string;
         label?: string;
         href?: string;
@@ -45,7 +48,10 @@ function loadSignature(): Promise<void> {
   return loading;
 }
 
+export type SignatureMode = "hero" | "footer" | "loader";
+
 export function MakerSignature({
+  mode = "hero",
   target,
   color,
   still = true,
@@ -59,6 +65,7 @@ export function MakerSignature({
   duration,
   period,
 }: {
+  mode?: SignatureMode;
   target?: string;
   color?: string;
   still?: boolean;
@@ -80,18 +87,44 @@ export function MakerSignature({
     <div style={{ width, height, position: "relative", ...style }} className={className}>
       <kpn-signature
         ref={ref as never}
-        target={target}
+        mode={mode}
+        target={mode === "hero" ? target : undefined}
         color={color}
         href={href}
         label={label}
         tail={tail !== undefined ? String(tail) : undefined}
         duration={duration !== undefined ? String(duration) : undefined}
         period={period !== undefined ? String(period) : undefined}
-        {...(still ? { static: "" } : {})}
+        {...(still && mode !== "loader" ? { static: "" } : {})}
         style={{ width: "100%", height: "100%" }}
       />
     </div>
   );
+}
+
+/**
+ * The boot screen: the signature writing itself while the app starts. Used by the
+ * static shell in index.html and by route Suspense fallbacks, which only show it
+ * after 400 ms so a fast load never flashes it.
+ */
+export function BootLoader({
+  delay = 400,
+  width = 160,
+  height = 64,
+  label = "Loading",
+}: {
+  delay?: number;
+  width?: number;
+  height?: number;
+  label?: string;
+}) {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setShown(true), delay);
+    return () => window.clearTimeout(t);
+  }, [delay]);
+  if (!shown) return null;
+  return <MakerSignature mode="loader" label={label} width={width} height={height} color="currentColor" />;
 }
 
 /** Replays the drawn signature, e.g. when the hero CTA is clicked. */
@@ -100,10 +133,11 @@ export function replaySignature(): void {
   el?.replay?.();
 }
 
-/** Footer mark: static size, links to kpnsolute.com, labelled for screen readers. */
-export function MakerMark({ href = "https://kpnsolute.com", still = true }: { href?: string; still?: boolean }) {
+/** Footer mark: draws once on scroll-in, links to kpnsolute.com, labelled for screen readers. */
+export function MakerMark({ href = "https://kpnsolute.com", still = false }: { href?: string; still?: boolean }) {
   return (
     <MakerSignature
+      mode="footer"
       href={href}
       label="Made by KpnSolute"
       still={still}

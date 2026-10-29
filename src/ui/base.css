@@ -1027,6 +1027,14 @@ b {
 .s-ink .s-card {
   color: var(--lv-text);
 }
+/* A quiet button on the ink surface takes ink text, not page text: page text is the
+   same near-black as the panel in the page palette and disappears on it. */
+.s-ink .cta-row .btn-quiet {
+  color: var(--lv-ink-text);
+}
+.s-ink .cta-row .btn-quiet:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--lv-ink-text) 12%, transparent);
+}
 .panel .t-display-xl,
 .panel .t-display-lg,
 .panel .t-display-md {
@@ -2010,17 +2018,14 @@ b {
   position: relative;
   z-index: 1;
 }
-.hero-signature {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
+/* The signature gets its own row above a CTA row: it draws itself in the space and
+   drops its tail onto the button below. Inside the CTA row there is no room to its
+   left, so the component would clamp to its minimum scale and clip. */
+.cta-signature {
+  position: relative;
+  height: 56px;
+  margin-bottom: -8px;
   opacity: 0.85;
-}
-@media (max-width: 719px) {
-  .hero-signature {
-    display: none;
-  }
 }
 kpn-signature {
   display: block;

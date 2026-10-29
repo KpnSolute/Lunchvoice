@@ -78,7 +78,9 @@ test("capture every route at 390 and 1280, light and dark", async ({ page }) => 
   for (const [w, h] of SIZES) {
     for (const scheme of SCHEMES) {
       await page.setViewportSize({ width: w, height: h });
-      await page.emulateMedia({ colorScheme: scheme });
+      // Reduced motion renders every signature in its final frame, so a shot never
+      // catches the stroke mid-draw (the draw-on, the loop and the reveals).
+      await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
       const dir = `e2e/shots/${w}-${scheme}`;
       mkdirSync(dir, { recursive: true });
 

@@ -17,6 +17,7 @@ import {
   IconButton,
   IconToggleGroup,
   Lifecycle,
+  MakerMark,
   MakerSignature,
   Menu,
   Metric,
@@ -338,8 +339,12 @@ export function Gallery() {
       <Section title="Brand">
         <Card className="stack">
           <MakerSignature still width={200} height={64} />
-          <p className="t-small subtle">The KpnSolute signature: placeholder path until the real vector arrives.</p>
+          <p className="t-small subtle">The KpnSolute signature, v1.0.0 final: hero, footer and loader modes.</p>
         </Card>
+        <div className="grid grid-2">
+          <Card className="stack"><Pill>mode="footer"</Pill><MakerMark still={false} /></Card>
+          <Card className="stack"><Pill>mode="loader"</Pill><MakerSignature mode="loader" width={200} height={64} color="currentColor" /></Card>
+        </div>
       </Section>
     </div>
   );

@@ -113,6 +113,17 @@ export function Landing() {
               Participation is free, always.
             </p>
 
+            <div className="cta-signature" aria-hidden="true">
+              <MakerSignature
+                target="[data-lv-cta=hero]"
+                still={false}
+                color="currentColor"
+                width="100%"
+                height="100%"
+                duration={2000}
+              />
+            </div>
+
             <div className="cta-row">
               <span data-lv-cta-anchor="" />
               <Button variant="primary" size="lg" data-lv-cta="hero" onClick={() => go("/create")}>
@@ -121,16 +132,6 @@ export function Landing() {
               <ButtonLink to="/how-it-works" variant="raised" size="lg">
                 See how it works
               </ButtonLink>
-              <div className="hero-signature" aria-hidden="true">
-                <MakerSignature
-                  target="[data-lv-cta=hero]"
-                  still={false}
-                  color="currentColor"
-                  width="100%"
-                  height="100%"
-                  duration={2000}
-                />
-              </div>
             </div>
 
             <p className="t-small muted" aria-live="polite" style={{ minHeight: 20 }}>
@@ -342,6 +343,9 @@ export function Landing() {
             Ready when you are
           </p>
           <h2 className="t-display-lg">Give your community a place to answer.</h2>
+          <div className="cta-signature" aria-hidden="true">
+            <MakerSignature target="[data-lv-cta=closing]" still={false} color="currentColor" width="100%" height="100%" />
+          </div>
           <div className="cta-row">
             <Button variant="primary" size="lg" data-lv-cta="closing" onClick={() => go("/create")}>
               Create your Hub
@@ -349,9 +353,6 @@ export function Landing() {
             <ButtonLink to="/pricing" variant="quiet" size="lg">
               See pricing
             </ButtonLink>
-            <div className="hero-signature" aria-hidden="true">
-              <MakerSignature target="[data-lv-cta=closing]" still={false} color="currentColor" width="100%" height="100%" />
-            </div>
           </div>
           <p className="t-small" style={{ opacity: 0.72 }}>
             Free to join. No advertising. Your community's data stays yours.

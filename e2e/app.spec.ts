@@ -69,6 +69,16 @@ test.describe("public routes", () => {
     });
   }
 
+  test("the signature boots the app and the boot screen is cleared", async ({ page }) => {
+    await page.goto("/");
+    // Hero and closing band each carry a signature row.
+    await expect(page.locator(".cta-signature kpn-signature").first()).toBeVisible();
+    // The static shell shows the loader signature; React's first commit removes it.
+    await expect(page.locator("#boot")).toHaveCount(0);
+    expect(await page.evaluate(() => !!customElements.get("kpn-signature"))).toBe(true);
+    await noHorizontalOverflow(page);
+  });
+
   test("a missing route gets the neutral 404", async ({ page }) => {
     await page.goto("/this-hub-does-not-exist-9f2");
     await expect(page.getByRole("heading", { name: "Hub not available" })).toBeVisible();

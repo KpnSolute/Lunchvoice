@@ -35,8 +35,8 @@ categories and the repository's decimal `X.X.X` release policy.
 - **KpnSolute signature.** `public/brand/kpn-signature@1.js` (immutable) and `/brand/kpn-signature.js` (latest) ship
   the shared web component; `MakerSignature` wraps it for React with a typed intrinsic element. It appears on the
   landing hero, the closing CTA band, every footer, and the Hub About panel — never in the respondent player.
-  `public/brand/README.md` documents the attributes, `replay()` and the `kpn-signature:drawn` event. The path
-  remains a marked PLACEHOLDER until the founder supplies the real vector.
+  `public/brand/README.md` documents the modes, attributes, `replay()` and the `kpn-signature:drawn` event. The
+  path data is the final approved vector (component v1.0.0).
 - **Public site.** Landing rebuilt to the handoff composition (hero with marker highlight, CTA row with signature,
   join-code card, example result with a withheld bar, amber ticker, three steps, ink privacy band, use cases, pricing
   teaser from `config/pricing.ts`, spring FAQ, closing band), plus how-it-works, use cases, pricing with the
@@ -58,11 +58,26 @@ categories and the repository's decimal `X.X.X` release policy.
   answer as a guest → read results), axe and horizontal-overflow assertions on every public route, every signed-in
   route and every Hub tab, ink-mode axe passes, the gallery, a screenshot matrix in `e2e/shots` at 390 and 1280 in
   light and dark, and assertions that the palettes come from the machine (both colours, `prefers-contrast: more`, and
-  an empty `localStorage`).
+  an empty `localStorage`). The screenshot matrix emulates reduced motion, so every signature is captured in its
+  final frame instead of mid-stroke, and a test asserts the shell's boot screen is cleared once React commits.
 - `scripts/gen-icons.mjs` regenerates the 20-icon handoff set, stripping its embedded C2PA metadata.
 
 ### Changed
 
+- **Signature v1.0.0 is final, and it now carries the boot screen.** `public/brand/kpn-signature@1.js` and
+  `kpn-signature.js` are the approved single-stroke vector — every PLACEHOLDER note is gone. The component gained
+  `mode`: `hero` (unchanged), `footer` (draws once on scroll-in, then rests) and `loader` (writes, holds, un-writes,
+  loops; `role="progressbar"`, label `Loading`, ~160×64). `index.html` paints `mode="loader"` before React mounts and
+  `createRoot` clears it on the first commit, so the first screen is the signature rather than a white page.
+  `MakerSignature` passes `mode`, `MakerMark` uses `mode="footer"`, and route Suspense fallbacks show `BootLoader`,
+  which waits 400 ms so a fast navigation never flashes it. Every marketing footer now draws on scroll-in.
+- **The hero signature gets the room the final vector needs.** It was absolutely positioned inside the CTA row, whose
+  first button starts at the row's left edge, so the component clamped to its minimum scale and drew a sliver behind
+  the label. `.cta-signature` gives it a 56 px row above the buttons on the landing hero and the closing band, where
+  the component's compact geometry applies: the mark draws at full size and the tail drops onto the button. It now
+  shows on phones too instead of being hidden below 719 px.
+- **Quiet buttons on an ink surface take ink text.** `See pricing` inside the closing band was page-ink on near-black
+  and effectively invisible; `.s-ink .cta-row .btn-quiet` now uses `--lv-ink-text`.
 - **`page` and `ink` are the two palettes, and the machine chooses.** `data-theme="page"` is light (paper-cream page,
   ink text) and `data-theme="ink"` is dark (ink page, paper text); `[data-theme="page"]` and `[data-theme="ink"]` in
   `tokens.css` replace the old `light`/`dark` selectors. They resolve from `prefers-color-scheme` and update live when
