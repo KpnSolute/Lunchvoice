@@ -1,0 +1,425 @@
+/* ============================================================
+   Marketing surface: header, landing page, footer.
+   Tokens come from index.css; nothing here introduces a new palette.
+   ============================================================ */
+
+:root {
+  /* PLACEHOLDER: KpnSolute's typeface is not supplied yet (see src/components/MakerMark.tsx).
+     Falls back to the product sans until the real family arrives. */
+  --font-maker: var(--font-sans);
+}
+
+/* ---------- header ---------- */
+.lv-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  background: color-mix(in oklch, var(--bg) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+
+.lv-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+.lv-brand img { display: block; }
+
+.lv-nav {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  font-size: 14.5px;
+  font-weight: 500;
+}
+.lv-nav a { color: var(--muted); transition: color var(--dur) var(--ease); }
+.lv-nav a:hover { color: var(--ink); }
+
+.lv-header-actions { display: flex; align-items: center; gap: 12px; }
+.lv-link-quiet { color: var(--ink); font-weight: 600; font-size: 14.5px; }
+.lv-link-quiet:hover { color: var(--accent); }
+
+/* ---------- landing frame ---------- */
+.lv-main { padding: 0; }
+.lv-landing { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+
+.lv-eyebrow {
+  margin: 0 0 14px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+
+.lv-h1 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(2.4rem, 6vw, 4.05rem);
+  line-height: 0.99;
+  letter-spacing: -0.035em;
+  margin: 0 0 20px;
+}
+.lv-h1 em {
+  font-style: italic;
+  background: linear-gradient(transparent 64%, color-mix(in oklch, var(--accent) 60%, transparent) 64%);
+}
+
+.lv-h2 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(1.65rem, 3.4vw, 2.45rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin: 0;
+  max-width: 22ch;
+}
+
+.lv-sub {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 52ch;
+  margin: 0 0 26px;
+}
+
+.lv-lead { color: var(--muted); max-width: 58ch; margin: 14px 0 0; }
+
+.lv-btn-lg { padding: 15px 22px; font-size: 15.5px; border-radius: 12px; }
+
+.lv-micro {
+  margin: 18px 0 0;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+/* ---------- hero ---------- */
+.lv-hero {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  align-items: center;
+  gap: 56px;
+  padding: 72px 0 84px;
+}
+.lv-cta-row { display: flex; flex-wrap: wrap; gap: 12px; }
+
+/* example campaign card */
+.lv-preview {
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 22px;
+}
+.lv-preview-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.lv-chip {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  background: var(--accent);
+  padding: 4px 9px;
+  border-radius: var(--r-pill);
+}
+.lv-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pop);
+  background: var(--ok-bg);
+  padding: 5px 10px;
+  border-radius: var(--r-pill);
+}
+.lv-preview-q {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 18px;
+}
+.lv-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 11px; }
+.lv-bars li {
+  display: grid;
+  grid-template-columns: minmax(84px, 1fr) 1.4fr auto;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+.lv-bar-label { color: var(--ink); }
+.lv-bar-track {
+  display: block;
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.lv-bar-track b { display: block; height: 100%; background: var(--accent); border-radius: var(--r-pill); }
+.lv-bar-track.lv-bar-withheld {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--surface-2),
+    var(--surface-2) 4px,
+    var(--line) 4px,
+    var(--line) 8px
+  );
+}
+.lv-bar-value { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
+.lv-withheld { color: var(--muted); font-weight: 500; font-size: 12px; }
+.lv-preview-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 18px 0 0;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ---------- sections ---------- */
+.lv-section { padding: 76px 0; }
+
+/* Anchor targets must clear the sticky header when jumped to. */
+.lv-section[id], .lv-band { scroll-margin-top: 84px; }
+.lv-section-head { margin-bottom: 34px; }
+
+.lv-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.lv-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+.lv-card h3 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 14px 0 8px;
+}
+.lv-card p { margin: 0; font-size: 14.5px; line-height: 1.55; color: var(--muted); }
+.lv-card-quiet { box-shadow: none; }
+
+.lv-icon-dot {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: color-mix(in oklch, var(--accent) 18%, var(--surface));
+  color: var(--accent-ink);
+}
+
+/* steps */
+.lv-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  counter-reset: step;
+}
+.lv-steps li {
+  position: relative;
+  padding: 22px;
+  border-top: 2px solid var(--ink);
+  background: var(--surface);
+  border-radius: 0 0 var(--r) var(--r);
+}
+.lv-step-num {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.lv-step-icon { display: inline-grid; place-items: center; color: var(--accent-ink); margin: 10px 0 4px; }
+.lv-steps h3 {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 6px 0 8px;
+}
+.lv-steps p { margin: 0; font-size: 14.5px; line-height: 1.55; color: var(--muted); }
+
+/* band */
+.lv-band {
+  background: var(--surface-2);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 76px 0;
+  margin: 0 -20px;
+}
+.lv-band-inner { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+
+/* pricing teaser */
+.lv-plan { display: flex; flex-direction: column; }
+.lv-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0 16px;
+}
+.lv-price span {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+.lv-price small { font-size: 12.5px; color: var(--muted); }
+.lv-plan-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.lv-plan-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ink);
+}
+.lv-plan-list li svg { flex: none; margin-top: 3px; color: var(--accent-ink); }
+.lv-pricing-foot { margin: 22px 0 0; font-weight: 600; }
+.lv-pricing-foot a { display: inline-flex; align-items: center; gap: 7px; color: var(--ink); }
+.lv-pricing-foot a:hover { color: var(--accent-ink); }
+
+/* faq */
+.lv-faq { border-top: 1px solid var(--line); }
+.lv-faq details { border-bottom: 1px solid var(--line); }
+.lv-faq summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 4px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.lv-faq summary::-webkit-details-marker { display: none; }
+.lv-faq summary svg { flex: none; color: var(--muted); transition: transform var(--dur) var(--ease); }
+.lv-faq details[open] summary svg { transform: rotate(45deg); }
+.lv-faq details p {
+  margin: 0;
+  padding: 0 4px 22px;
+  max-width: 70ch;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* closing cta */
+.lv-cta-band {
+  margin: 20px 0 84px;
+  padding: 56px 32px;
+  border-radius: var(--r-lg);
+  background: var(--ink);
+  color: var(--bg);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.lv-cta-band .lv-h2 { color: var(--bg); max-width: none; }
+.lv-cta-band p { margin: 0 0 8px; color: color-mix(in oklch, var(--bg) 78%, transparent); max-width: 46ch; }
+.lv-cta-made { margin-top: 10px; }
+
+/* ---------- footer + maker mark ---------- */
+.lv-footer {
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+.lv-footer-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px 20px 34px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.lv-footer-nav { display: flex; flex-wrap: wrap; gap: 18px; font-size: 13.5px; }
+.lv-footer-nav a { color: var(--muted); }
+.lv-footer-nav a:hover { color: var(--ink); }
+
+.maker-mark {
+  font-family: var(--font-maker);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+.made-by {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+.made-by .maker-mark { font-size: 0.98em; color: var(--muted); }
+.lv-cta-made, .lv-cta-made .maker-mark { color: color-mix(in oklch, var(--bg) 70%, transparent); }
+
+/* ---------- responsive ---------- */
+@media (max-width: 960px) {
+  .lv-hero { grid-template-columns: 1fr; gap: 40px; padding: 52px 0 64px; }
+  .lv-preview { max-width: 520px; }
+}
+
+@media (max-width: 800px) {
+  .lv-grid-3, .lv-steps { grid-template-columns: 1fr; }
+  .lv-section { padding: 56px 0; }
+  .lv-band { padding: 56px 0; }
+}
+
+@media (max-width: 720px) {
+  .lv-nav { display: none; }
+  .lv-header { padding: 12px 16px; }
+  .lv-landing { padding: 0 16px; }
+  .lv-band { margin: 0 -16px; }
+  .lv-cta-band { padding: 44px 20px; margin-bottom: 64px; }
+  .lv-bars li { grid-template-columns: 1fr 1.1fr auto; font-size: 12.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lv-header *, .lv-landing a, .lv-faq summary svg { transition: none; }
+}
