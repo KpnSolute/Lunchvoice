@@ -59,6 +59,10 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Changed
 
+- **Light and dark follow the machine.** The page/ink pair resolves from `prefers-color-scheme` and updates live when
+  the OS does; the in-app Light/Dark/System control is gone, and the no-flash script no longer reads a stored theme.
+  High contrast remains the only appearance choice a person can make. `ThemeProvider` therefore exposes `resolved`
+  (read-only) and `setContrast` only.
 - `index.html` preloads two font files instead of calling Google, and resolves the theme before first paint.
 - `src/lib/reservedSlugs.ts` also reserves `c`, `j`, `g`, `brand`, `fonts`, `licenses`, `how-it-works` and `use-cases`,
   so no Hub can claim a path the app serves.

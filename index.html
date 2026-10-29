@@ -18,21 +18,28 @@
   <link rel="preload" href="/fonts/bricolage-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin />
 
-  <!-- Resolve the theme before first paint so a dark-mode user never sees a white flash.
-       Keys must match src/ui/theme.tsx. -->
+  <!-- Light and dark follow the machine, not a stored preference: resolve the tokens
+       from prefers-color-scheme before first paint so a dark-mode user never sees a
+       white flash. High contrast is the only appearance choice the user makes.
+       Keep this in sync with src/ui/theme.tsx. -->
   <script>
     (function () {
+      var root = document.documentElement;
+      var dark = false;
       try {
-        var mode = localStorage.getItem("lv.theme") || "system";
-        var dark = mode === "dark" || (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-        var root = document.documentElement;
-        root.dataset.theme = dark ? "dark" : "light";
-        root.dataset.contrast = localStorage.getItem("lv.contrast") === "high" ? "high" : "normal";
-        root.style.colorScheme = dark ? "dark" : "light";
+        dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       } catch (e) {
-        document.documentElement.dataset.theme = "light";
-        document.documentElement.dataset.contrast = "normal";
+        dark = false;
       }
+      root.dataset.theme = dark ? "dark" : "light";
+      root.style.colorScheme = dark ? "dark" : "light";
+      var contrast = "normal";
+      try {
+        contrast = localStorage.getItem("lv.contrast") === "high" ? "high" : "normal";
+      } catch (e) {
+        contrast = "normal";
+      }
+      root.dataset.contrast = contrast;
     })();
   </script>
 </head>

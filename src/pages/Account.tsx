@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
@@ -21,12 +21,10 @@ import {
   PendingNote,
   Pill,
   RadioGroup,
-  Segmented,
   Switch,
   TextInput,
   TypedConfirm,
   useTheme,
-  type ThemeMode,
 } from "../ui";
 
 /* ------------------------------------------------------------------ sign in */
@@ -584,20 +582,11 @@ export function CreateHub() {
 
 export function Settings() {
   const { session, signOut } = useIdentity();
-  const { mode, setMode, contrast, setContrast } = useTheme();
+  const { resolved, contrast, setContrast } = useTheme();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [profileName, setProfileName] = useState(session?.name ?? "");
   const [notify, setNotify] = useState(true);
   const nameRef = useRef<HTMLInputElement>(null);
-
-  const themes = useMemo(
-    () => [
-      { key: "light", label: "Light" },
-      { key: "dark", label: "Dark" },
-      { key: "system", label: "System" },
-    ],
-    [],
-  );
 
   return (
     <div className="stack" style={{ gap: 24, maxWidth: 720 }}>
@@ -605,14 +594,10 @@ export function Settings() {
 
       <Card className="stack">
         <h2 className="t-title">Appearance</h2>
-        <Field label="Theme" htmlFor="theme">
-          <Segmented
-            label="Theme"
-            items={themes}
-            value={mode}
-            onChange={(k) => setMode(k as ThemeMode)}
-          />
-        </Field>
+        <p className="t-small muted">
+          Light and dark follow this device, currently <strong>{resolved}</strong>. LunchVoice keeps no theme setting of
+          its own: change your system appearance and this page follows it.
+        </p>
         <Switch
           label="High contrast"
           description="Adds hard borders and pure ink. Useful on projectors and in bright rooms."

@@ -97,10 +97,13 @@ test.describe("signed-in surfaces", () => {
 
     await page.goto("/settings");
     await expect(page.getByRole("heading", { name: /Your account/ })).toBeVisible();
-    await page.getByRole("tab", { name: "Dark" }).click();
+    // Light and dark follow the machine: changing the OS preference changes the page,
+    // and there is no in-app theme control to override it.
+    await page.emulateMedia({ colorScheme: "dark" });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-    await page.getByRole("tab", { name: "Light" }).click();
+    await page.emulateMedia({ colorScheme: "light" });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await expect(page.getByRole("tab", { name: "Dark" })).toHaveCount(0);
     await noHorizontalOverflow(page);
     await axe(page);
   });
