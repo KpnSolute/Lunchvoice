@@ -206,7 +206,7 @@ select {
 .brand { display: flex; align-items: center; gap: 11px; cursor: pointer; }
 .brand-mark {
   width: 40px; height: 40px; border-radius: 12px; background: var(--ink); color: var(--accent);
-  font-family: var(--font-display); font-weight: 900; font-size: 17px; display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 800; font-size: 17px; display: grid; place-items: center;
   letter-spacing: -0.03em;
 }
 .brand-name { font-family: var(--font-display); font-weight: 800; font-size: 17px; letter-spacing: -0.02em; }
@@ -222,13 +222,13 @@ select {
 /* page heading */
 .page-head { margin-bottom: 18px; }
 .page-head h1, .page-head h2 {
-  font-family: var(--font-display); font-weight: 900; letter-spacing: -0.03em;
+  font-family: var(--font-display); font-weight: 800; letter-spacing: -0.03em;
   font-size: clamp(1.9rem, 7vw, 2.6rem); line-height: 1.03; margin: 8px 0 6px;
 }
 .page-head .hint { margin-bottom: 0; font-size: 14.5px; max-width: 60ch; }
 
 /* ---------- stat / number ---------- */
-.stat-num { font-family: var(--font-display); font-weight: 900; font-size: 40px; letter-spacing: -0.03em; line-height: 1; color: var(--accent); }
+.stat-num { font-family: var(--font-display); font-weight: 800; font-size: 40px; letter-spacing: -0.03em; line-height: 1; color: var(--accent); }
 .stat-lbl { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-top: 4px; display: flex; align-items: center; gap: 6px; justify-content: center; }
 
 /* ---------- admin charts (single accent series) ---------- */

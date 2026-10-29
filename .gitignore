@@ -11,3 +11,4 @@ tsconfig.tsbuildinfo
 .impeccable/hook.cache.json
 supabase/.temp/
 graphify-out/cache/
+.commit-msg

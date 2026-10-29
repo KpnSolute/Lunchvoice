@@ -6,6 +6,14 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed (tactile surfaces after the handoff pass)
+
+- Price cards were left flat white with a hairline while every other surface moved to the raised gradient, and display
+  text asked for weight 900, which the Bricolage variable font clamps to 800. Cards now use the raised surface at the
+  28px hero radius and display weight is stated as 800 everywhere.
+- The reservation lifecycle on an ink panel needed light rules; it now has that override instead of invisible borders.
+- `.commit-msg` is ignored so a temporary commit message can never be committed again.
+
 ### Changed (adopt the v2 design handoff's type and tactile layer)
 
 - Type now comes from the v2 design handoff (`tokens/lunchvoice-tokens.css`, `ASSET_MANIFEST.md`): **Bricolage Grotesque**
