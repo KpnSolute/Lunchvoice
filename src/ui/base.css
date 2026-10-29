@@ -1603,6 +1603,18 @@ b {
   max-width: 62ch;
   color: var(--lv-muted);
 }
+/* 0fr → 1fr animates the real height, so open and close are the same motion. */
+.faq-panel-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--lv-d3) var(--lv-ease);
+}
+.faq-panel-wrap[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+.faq-panel-inner {
+  overflow: hidden;
+}
 .reveal {
   opacity: 0;
   transform: translateY(12px);
@@ -1611,6 +1623,24 @@ b {
 .reveal[data-shown="true"] {
   opacity: 1;
   transform: none;
+}
+/* A card lifts a hair under the pointer. Only where a pointer exists, and never
+   when the machine asked for less motion. */
+.s-card,
+.social-card {
+  transition: transform var(--lv-d2) var(--lv-ease), box-shadow var(--lv-d2) var(--lv-ease);
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .s-card:hover,
+  .social-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--lv-popover-shadow);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .faq-panel-wrap {
+    transition: none;
+  }
 }
 
 /* ---------------------------------------------------------------- motion */
@@ -2245,9 +2275,121 @@ b {
    left, so the component would clamp to its minimum scale and clip. */
 .cta-signature {
   position: relative;
+  width: 172px;
   height: 56px;
   margin-bottom: -8px;
   opacity: 0.85;
+}
+
+/* ---------------------------------------------------------------- hero */
+/* The brand states itself in the hero: the lockup, who makes it, and the one
+   interactive thing on the page — a real join code. */
+.brand-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.brand-name {
+  font-family: var(--lv-font-display);
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+.brand-by {
+  padding-left: 10px;
+  border-left: 1px solid var(--lv-line);
+  line-height: 1;
+}
+.hero-title {
+  margin: 0 0 clamp(20px, 3vw, 34px);
+}
+.join-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: clamp(16px, 2vw, 22px);
+  border-radius: var(--lv-radius-card);
+  background: var(--lv-surface);
+  box-shadow: var(--lv-card-shadow);
+  border: 1px solid color-mix(in srgb, var(--lv-line) 70%, transparent);
+}
+.join-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.join-bar-row .code-cells {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.join-bar-row > .btn {
+  flex: 0 0 auto;
+}
+@media (max-width: 460px) {
+  .join-bar-row > .btn {
+    width: 100%;
+  }
+}
+
+/* The brand poster: the art on top, the promise on a plate beneath it. */
+.hero-poster {
+  margin: 0;
+  border-radius: var(--lv-radius-hero);
+  overflow: hidden;
+  background: var(--lv-surface);
+  box-shadow: var(--lv-raised-shadow);
+  border: 1px solid color-mix(in srgb, var(--lv-art-ink) 16%, transparent);
+}
+/* A different crop from the full-bleed band below, so the two posters read as a
+   series rather than the same picture twice. */
+.hero-poster-art {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+}
+.hero-poster-art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.hero-poster-plate {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: clamp(18px, 2vw, 24px);
+}
+.t-poster-sm {
+  font-family: var(--lv-font-display);
+  font-weight: 800;
+  font-size: clamp(24px, 2.6vw, 32px);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  margin: 0;
+}
+.hero-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 700 11px/1 var(--lv-font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--lv-muted);
+}
+.hero-facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.hero-facts li::before {
+  content: "◆";
+  color: var(--lv-accent);
+  font-size: 9px;
 }
 kpn-signature {
   display: block;

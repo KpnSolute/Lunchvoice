@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Bars,
   Button,
   ButtonLink,
   Card,
@@ -28,10 +27,14 @@ const TICKER = [
   "You own the data",
 ];
 
-const PROOFS = [
-  "Harbor Book Circle collected 212 responses in a week.",
-  "Oakridge Parents replaced a survey after 61% participation.",
-  "Northside Running Club runs a rating every month.",
+// What the product promises, not what customers have done: there is no customer data on
+// this page, so it never invents a Hub, a member count or a result.
+const FACTS = [
+  "Every answer is anonymous by default; a creator sees totals, never names.",
+  "A withheld result is never shown as zero.",
+  "Guests can answer an open Campaign and never count as members.",
+  "Participation is free for everyone, always.",
+  "You can export every response you received, in CSV.",
 ];
 
 const STEPS = [
@@ -84,12 +87,15 @@ const FAQ = [
 export function Landing() {
   const navigate = useNavigate();
   const [code, setCode] = useState("");
-  const proof = useRotator(PROOFS.length);
+  const fact = useRotator(FACTS.length);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const ticker = useTickerPause<HTMLDivElement>();
   const steps = useReveal<HTMLDivElement>();
   const cases = useReveal<HTMLDivElement>();
   const social = useReveal<HTMLDivElement>();
+  const pricing = useReveal<HTMLElement>();
+  const questions = useReveal<HTMLElement>();
+  const close = useReveal<HTMLElement>();
 
   const starter = PLANS.find((p) => p.id === "starter")!;
   const team = PLANS.find((p) => p.id === "team")!;
@@ -111,85 +117,85 @@ export function Landing() {
   return (
     <div className="wrap">
       <section className="hero">
+        <div className="brand-line stagger">
+          <img src="/brand/lunchvoice-mark.svg" alt="" width={22} height={22} />
+          <span className="brand-name">LunchVoice</span>
+          <span className="t-small subtle brand-by">by KpnSolute</span>
+        </div>
+        <h1 className="t-display-xl hero-title">
+          Ask your community.
+          <br />
+          <span className="marker">Hear the whole room.</span>
+        </h1>
         <div className="hero-grid">
-          <div className="stack stagger" style={{ gap: 20 }}>
-            <p className="t-label muted">Hubs · Campaigns · Private results</p>
-            <h1 className="t-display-xl">
-              Ask your community.
-              <br />
-              <span className="marker">Keep it private.</span>
-            </h1>
+          <div className="stack stagger hero-copy" style={{ gap: 18 }}>
             <p className="lede">
-              LunchVoice gives any community a Hub of its own: surveys, polls, ratings and ideas with privacy-safe results.
-              Participation is free, always.
+              LunchVoice gives your community a Hub of its own: surveys, polls, ratings and ideas, with results that stay
+              honest about who answered. Participation is free, always.
             </p>
+
+            {/* The one live thing on this page: a real join code opens a real session. */}
+            <form className="join-bar" onSubmit={openSession}>
+              <div className="row-between">
+                <p className="t-label">Have a join code?</p>
+                <span className="t-small subtle">No account needed</span>
+              </div>
+              <div className="join-bar-row">
+                <CodeInput label="Join code" value={joinCode} onChange={setCode} length={6} />
+                <Button type="submit" variant="primary" size="lg" disabled={joinCode.length < 4}>
+                  Join the session
+                </Button>
+              </div>
+              <p className="t-small subtle">
+                Six characters from a poster, a text or an invitation. Joining a Hub with an invitation instead?{" "}
+                <a href="/join">Use the invite link</a>.
+              </p>
+            </form>
 
             <div className="cta-signature" aria-hidden="true">
               <MakerSignature
                 target="[data-lv-cta=hero]"
                 still={false}
                 color="currentColor"
-                width="100%"
-                height="100%"
+                width={172}
+                height={56}
                 duration={2000}
               />
             </div>
 
             <div className="cta-row">
               <span data-lv-cta-anchor="" />
-              <Button variant="primary" size="lg" data-lv-cta="hero" onClick={() => go("/create")}>
-                Create your Hub
+              <Button variant="raised" size="lg" data-lv-cta="hero" onClick={() => go("/create")}>
+                Create a Hub
               </Button>
-              <ButtonLink to="/how-it-works" variant="raised" size="lg">
+              <ButtonLink to="/how-it-works" variant="quiet" size="lg">
                 See how it works
               </ButtonLink>
             </div>
 
-            <p className="t-small muted" aria-live="polite" style={{ minHeight: 20 }}>
-              {PROOFS[proof]}
+            <p className="t-small subtle" aria-live="polite" style={{ minHeight: 20 }}>
+              {FACTS[fact]}
             </p>
           </div>
 
-          <div className="stack" style={{ gap: 16 }}>
-            <Card className="stack">
-              <div className="row-between">
-                <p className="t-label muted">Have a join code?</p>
-                <Pill tone="accent">No account needed</Pill>
-              </div>
-              <form className="stack" style={{ gap: 12 }} onSubmit={openSession}>
-                <CodeInput label="Join code" value={joinCode} onChange={setCode} length={6} />
-                <Button type="submit" variant="raised" disabled={joinCode.length < 4}>
-                  Open the Campaign
-                </Button>
-              </form>
-              <p className="t-small subtle">
-                Code from a poster or a message? It opens the Campaign here, no account needed. Joining a Hub with an
-                invitation? <a href="/join">Use the invite link</a>.
+          {/* The brand gets a poster of its own: the whole promise on one card. */}
+          <figure className="hero-poster">
+            <div className="hero-poster-art" aria-hidden="true">
+              <TalkArt fit="slice" />
+            </div>
+            <figcaption className="hero-poster-plate">
+              <p className="t-poster-sm">
+                One Hub.<br />
+                One link.<br />
+                Everyone answers.
               </p>
-            </Card>
-
-            <Card className="stack">
-              <div className="row-between">
-                <div className="stack stack-sm">
-                  <p className="t-label muted">Example result</p>
-                  <p className="t-title">Which session should we add on Saturdays?</p>
-                </div>
-                <Pill>Rating</Pill>
-              </div>
-              <Bars
-                items={[
-                  { label: "Morning run", value: 41 },
-                  { label: "Track session", value: 28 },
-                  { label: "Long trail", value: 19 },
-                  { label: "New members", value: null, withheld: true },
-                ]}
-                format={(v) => String(v)}
-              />
-              <p className="t-small subtle">
-                Small groups are withheld, never shown as zero. 88 of 154 members answered.
-              </p>
-            </Card>
-          </div>
+              <ul className="hero-facts">
+                <li>Anonymous by default</li>
+                <li>Withheld is never zero</li>
+                <li>No app to install</li>
+              </ul>
+            </figcaption>
+          </figure>
         </div>
       </section>
 
@@ -297,27 +303,26 @@ export function Landing() {
           </div>
           <div className="social-cards">
             <div className="social-card">
-              <span className="dot" aria-hidden="true" />
+              <Icon name="campaign" size={20} />
               <div className="stack stack-sm grow">
-                <p className="t-ui">Saturday ride is live</p>
-                <p className="t-small subtle">42 answers in · 3 minutes ago · closes Sunday</p>
-              </div>
-              <Pill tone="accent">Live</Pill>
-            </div>
-            <div className="social-card">
-              <span className="social-avatars" aria-hidden="true">
-                <span>DM</span>
-                <span>KO</span>
-                <span>AT</span>
-                <span>+9</span>
-              </span>
-              <div className="stack stack-sm grow">
-                <p className="t-ui">128 reactions this week</p>
-                <p className="t-small subtle">Only members your managers admitted, never a bot or a duplicate.</p>
+                <p className="t-ui">Answers while it's open</p>
+                <p className="t-small subtle">
+                  People answer from the link or the six-character code, and the tally moves with them. A closed Campaign
+                  stops collecting.
+                </p>
               </div>
             </div>
             <div className="social-card">
               <Icon name="members" size={20} />
+              <div className="stack stack-sm grow">
+                <p className="t-ui">Only your people</p>
+                <p className="t-small subtle">
+                  Roles decide who can answer, and a guest never counts toward a member total or a threshold.
+                </p>
+              </div>
+            </div>
+            <div className="social-card">
+              <Icon name="home" size={20} />
               <div className="stack stack-sm grow">
                 <p className="t-ui">In your pocket</p>
                 <p className="t-small subtle">
@@ -330,12 +335,12 @@ export function Landing() {
         </div>
       </section>
 
-      <section className="section-sm">
+      <section className="section-sm" ref={pricing.ref}>
         <div className="section-head">
           <p className="t-label muted">Pricing</p>
           <h2 className="t-display-lg">Start small. Grow when it works.</h2>
         </div>
-        <div className="grid grid-2">
+        <div className="grid grid-2 reveal" data-shown={pricing.shown}>
           {[starter, team].map((p) => (
             <Card key={p.id} className="stack" style={{ padding: 28 }}>
               <div className="row-between">
@@ -367,12 +372,12 @@ export function Landing() {
         </p>
       </section>
 
-      <section className="section">
+      <section className="section" ref={questions.ref}>
         <div className="section-head">
           <p className="t-label muted">Questions</p>
           <h2 className="t-display-lg">Before you start.</h2>
         </div>
-        <div>
+        <div className="reveal" data-shown={questions.shown}>
           {FAQ.map((f, i) => {
             const open = openFaq === i;
             return (
@@ -390,18 +395,21 @@ export function Landing() {
                     <Icon name="chevron-down" size={20} />
                   </span>
                 </button>
-                {open && (
-                  <div className="faq-panel t-small" role="region" id={`faq-${i}`} aria-labelledby={`faq-btn-${i}`}>
-                    {f.a}
+                {/* Height animates in both directions, so closing is as smooth as opening. */}
+                <div className="faq-panel-wrap" data-open={open}>
+                  <div className="faq-panel-inner">
+                    <div className="faq-panel t-small" role="region" id={`faq-${i}`} aria-labelledby={`faq-btn-${i}`}>
+                      {f.a}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
         </div>
       </section>
 
-      <section className="section-sm" style={{ paddingBottom: 64 }}>
+      <section className="section-sm reveal" style={{ paddingBottom: 64 }} ref={close.ref} data-shown={close.shown}>
         <div className="s-ink panel stack" style={{ gap: 20 }}>
           <p className="t-label" style={{ opacity: 0.75 }}>
             Ready when you are

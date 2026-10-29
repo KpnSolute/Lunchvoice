@@ -64,6 +64,19 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Changed
 
+- **The landing leads with the one live thing it has: a join code.** The hero is a cover now — brand line
+  (mark, LunchVoice, by KpnSolute), one poster headline, then a join bar with six cells and a primary
+  "Join the session" button. The maker's signature draws above the create CTA and a poster card carries the
+  promise. The example-result card is gone.
+- **Nothing on the landing invents a number.** The fabricated proof lines ("Harbor Book Circle collected 212
+  responses") became rotating statements of what the product promises, and the band's tiles no longer show a
+  fake live survey or a reaction count; they describe how answers, membership and thresholds work. The only
+  real data on the page is whatever a visitor's own join code opens, which reads a Campaign through `lv_api`.
+- **The signature is visible and correctly proportioned in the hero.** It was stretched into a full-width box
+  and drew as a sliver; it now renders at 172×56 with its tail landing on the CTA.
+- **Smoother motion.** FAQ answers animate open and closed on a `grid-template-rows` transition instead of
+  popping, cards lift 2 px under a hover-capable pointer, and pricing, questions and the closing band reveal on
+  scroll. `prefers-reduced-motion` turns all three off.
 - **The poster art is the band's background, not a picture hanging beside the copy.** `TalkArt` runs off the
   right and bottom of the "Always in the loop" band and dissolves into the page along the two edges that stay
   inside it (a two-axis mask, so there is no visible frame or rectangle). The copy holds a paper column on the left
