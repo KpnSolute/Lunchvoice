@@ -62,9 +62,17 @@ function Person({ tone }: { tone: "cool" | "warm" }) {
   );
 }
 
-export function TalkArt({ className }: { className?: string }) {
+// `fit="slice"` is for the poster used as a section background: the art fills whatever
+// box it is given and crops, instead of letterboxing inside it.
+export function TalkArt({ className, fit = "meet" }: { className?: string; fit?: "meet" | "slice" }) {
   return (
-    <svg viewBox="0 0 800 520" className={className} role="img" aria-label="Two people talking">
+    <svg
+      viewBox="0 0 800 520"
+      className={className}
+      preserveAspectRatio={`xMidYMid ${fit}`}
+      role="img"
+      aria-label="Two people talking"
+    >
       <defs>
         <clipPath id="talk-frame">
           <rect x="0" y="0" width="800" height="520" rx="0" />

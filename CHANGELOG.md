@@ -64,9 +64,16 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Changed
 
+- **The poster art is the band's background, not a picture hanging beside the copy.** `TalkArt` runs off the
+  right and bottom of the "Always in the loop" band and dissolves into the page along the two edges that stay
+  inside it (a two-axis mask, so there is no visible frame or rectangle). The copy holds a paper column on the left
+  under a page-coloured scrim, and the three cards became a feed row along the bottom with the pair read behind
+  them. On a phone the poster leads the section at its own proportions and fades into the paper the copy sits on.
+  `TalkArt` gained `fit="slice"` for backgrounds; text never sits on raw art, so contrast does not depend on which
+  palette the machine picked.
 - **A social layer, so the product reads like something people want to open.** The landing gains an "Always in the
   loop" band: a bespoke pop-art illustration of two people talking (`TalkArt`, inline SVG, heavy outlines, sunburst,
-  halftone floor, drifting speech bubbles) beside a poster-scale headline and three cards that show the product
+  halftone floor, drifting speech bubbles) behind a poster-scale headline and three cards that show the product
   moving — a live poll, reactions from admitted members, and the mobile story (iOS and Android in build, add to home
   screen today). Illustration inks live in `--lv-art-*` tokens, so the palette is still defined in one place even
   though it is deliberately louder than the UI.
