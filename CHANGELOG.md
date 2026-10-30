@@ -18,6 +18,95 @@ categories and the repository's decimal `X.X.X` release policy.
 
 - Added `.github/pull_request_template.md`: scope, required checks, v2 rules (no v1, no customer hardcoding, error contract, server-side
   enforcement, no production mocks) and an explicit production-impact statement.
+### Fixed (tactile surfaces after the handoff pass)
+
+- Price cards were left flat white with a hairline while every other surface moved to the raised gradient, and display
+  text asked for weight 900, which the Bricolage variable font clamps to 800. Cards now use the raised surface at the
+  28px hero radius and display weight is stated as 800 everywhere.
+- The reservation lifecycle on an ink panel needed light rules; it now has that override instead of invisible borders.
+- `.commit-msg` is ignored so a temporary commit message can never be committed again.
+
+### Changed (adopt the v2 design handoff's type and tactile layer)
+
+- Type now comes from the v2 design handoff (`tokens/lunchvoice-tokens.css`, `ASSET_MANIFEST.md`): **Bricolage Grotesque**
+  for display at weight 800 with -0.045em tracking and 0.88–0.96 leading, **Geist** for UI and body, **Space Mono** kept for
+  labels, codes and numbers. Fraunces and Space Grotesk are gone. Fonts load from Google Fonts for now; the manifest asks for
+  self-hosting before launch, which is a dependency change and is not done here.
+- Adopted the handoff palette and radii: page `#EEEDEA`, line `#DAD8D4`, well `#E9E8E5`, ink gradient `#2E2A25 → #14110F`,
+  accent `#FF9A18` with `#E98207` deep, fields at 16px, cards at 24px, hero at 28px.
+- Adopted the tactile surface layer everywhere: raised gradient cards with an inner top light, pressed amber CTA
+  (`#FFBE5C → #FF9A18 → #F58C0C` with the three-layer shadow), ink-gradient primary buttons, inset wells for inputs,
+  segmented tabs with a raised thumb, and spring press motion (`cubic-bezier(.34,1.56,.64,1)`).
+- Landing hero rebuilt to the handoff's `7d` treatment: floating pill nav, marker-highlight phrase instead of the italic
+  accent, and a "Have a join code?" well card linking to `/join`. The v1 layer (grain, ticker, ghost numerals, reveal)
+  stays and matches the handoff's landing.
+- Documented the source of the tokens in `index.css` so the next agent can trace them.
+
+### Added (v1 design DNA, and the last UI phases)
+
+- Marketing surface now carries the retired v1 visual language instead of a plain landing: paper grain (SVG turbulence,
+  no asset), the amber mono ticker band, amber italic display accent in the hero, a hero gradient with a citrus glow,
+  oversized ghost numerals on the how-it-works steps, hover-lift cards, ruled section eyebrows and scroll-reveal in
+  `src/pages/Landing.tsx` + `src/styles/landing.css`. Reveals are skipped under `prefers-reduced-motion`.
+- Typography hardened: `preconnect` for `fonts.gstatic.com`, hero scale that fits its column at every width, and a
+  mobile marketing nav (the desktop links become a scrollable strip) instead of hiding navigation below 720px.
+- Full-width sticky marketing header aligned to the 1120px column, at 96% opacity so content cannot bleed through it.
+- `src/pages/Pricing.tsx` rebuilt as a real surface: all six canonical plans, the Starter/Team entitlement table, the
+  two Campaign windows (Plus stays unpriced), and Hub Name Reservation with its ACTIVE → GRACE → RELEASED lifecycle.
+  Every checkout stays disabled with the reason shown; the page says up front that nothing can charge you.
+- Hub tabs now expose Billing, Reservation and Discover for the Owner (they had routes but no way in), and a mobile
+  bottom tab bar (`ui-bottom-nav`) gives the five most-used Hub surfaces thumb reach.
+- Billing, Reservation and Discover surfaces are filled out with the canonical prices, the reservation lifecycle and a
+  real member meter toward 700, each still failing closed on the missing endpoint.
+- `src/pages/Analytics.tsx` rebuilt on the design system: ink participation panel, per-question distribution bars, and
+  suppressed answers grouped into an explicit withheld state. Export stays disabled until an authorized export exists.
+- Component gallery covers the new marketing pieces (ticker, price card, lifecycle) and the withheld bar treatment.
+- `src/lib/errors.ts`: `lv_policy_undecided` now says an anonymous Campaign publishes results once it closes, instead of
+  referring to an unsettled policy.
+- Removed dead surfaces: `src/pages/Me.tsx`, `NotFound` in `Public.tsx`, `ComingSoon` in `Pricing.tsx`.
+
+### Added (public landing page)
+
+- Replaced the placeholder hero with a real marketing page: hero with an example Campaign card (including a withheld
+  cohort), how-it-works steps, a privacy section explaining anonymous-by-default / withheld-never-zero / guests-stay-guests,
+  six use cases (dining only as one), a pricing teaser read from `src/config/pricing.ts`, an FAQ, a closing call to action
+  and a footer. Type-led layout in the existing ink/amber/bone tokens.
+- Marketing chrome in `Shell`: nav (How it works, Use cases, Pricing) on `/` and `/pricing` only, so in-product Hub routes
+  keep the compact header; footer carries the maker's mark.
+- `src/components/MakerMark.tsx`: `MakerMark`/`MadeBy` for the KpnSolute signature, using `currentColor` and a documented
+  placeholder until the real SVG and typeface are supplied (`--font-maker` token added in `src/styles/landing.css`).
+- Anchor targets carry `scroll-margin-top` so sections do not hide under the sticky header; hash links scroll on navigation.
+- Verified in the browser at 1280px and 390px: no console errors, no horizontal overflow at 390px.
+
+
+### Fixed
+
+- Production build: `src/lib/reservedSlugs.test.ts` imports `node:test`, and `tsc -b` type-checks everything under
+  `src/`, but `@types/node` was only present transitively through `vite`. A cold Render install resolved it as missing
+  and the deploy build failed. Declared `@types/node` in `devDependencies` and committed the lockfile.
+
+### Fixed
+
+- `AGENTS.md`/`CLAUDE.md`: the architecture-map line pointed at `graphify-out/wiki/index.md`, deleted with the v1 map.
+  It now says no map exists yet and names `/graphify` as the way to rebuild the v2 one. Both files stay identical.
+- Restored the `database` PR job ("Canonical v2 database suite") that PR #26 added and a later squash-merge dropped:
+  it runs `scripts/db-test-canonical.sh` against a throwaway Postgres container. Verified locally: 356 checks, 0 failed,
+  slug race and rollback rehearsal included.
+
+### Removed (v1 residue)
+
+- Deleted `graphify-out/`: 34 generated files that mapped the v1 app (`Menu_Data_&_Student_Pages`, `Auth_&_App_Shell`,
+  `Admin_&_DB_Types`, `Edge_Function_HTTP_Utils`, `Home()`, and a `graph.json` whose v1 vocabulary outweighs everything
+  else in the repo). Regenerate it with `/graphify` once the v2 architecture settles; `AGENTS.md` still points at
+  `graphify-out/wiki/index.md`, so that reference is dangling until the backend thread regenerates or drops it.
+- Deleted `time-log.md`, the v1 work log that opens with the `MJCC-Portal/Interact` clone. Git history keeps it.
+- Renamed the package from `lunch-line-survey` to `lunchvoice` and synced the lockfile; the name was the retired
+  product's.
+- `render.yaml`: replaced the v1 route comment (`/join`, `/survey/:id`, `/admin/*`) with the v2 routes. The service
+  `name` stays `lunch-line-survey` on purpose - it is the existing Render service identifier and renaming it here would
+  provision a new service, so that change belongs in the Render dashboard.
+- `index.html`: `og:title` was `Lunch Voice`; it now matches the brand, `LunchVoice`.
+
 ### Frontend baseline rebased onto `main` (`uiv2`)
 
 - The v2 frontend branch is rebased onto `main` at `d45b449` and renamed `uiv2`. Conflicts were resolved in `main`'s

@@ -29,8 +29,8 @@ Dining is one customer use case, not the product.
 - Supabase refs: Lunchvoice `qprfonxvthmaoxfixigk`, KpnIdentity
   `axzwdbizblfkspduqilj`. Production is not mutated without the approvals below.
 - GitHub: `KpnSolute/Lunchvoice`. Local frontend: `npm run dev`.
-- Architecture map: `graphify-out/wiki/index.md` (generated; may describe v1
-  until rebuilt).
+- Architecture map: none yet. The v1 map was deleted with the v1 code; rebuild
+  the v2 graph with `/graphify` when that tool is available.
 
 ## Canonical Pricing and Entitlements
 

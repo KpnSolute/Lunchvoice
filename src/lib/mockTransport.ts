@@ -14,6 +14,7 @@ type C = {
 export function createMockTransport(displayName = "Dana"): LvTransport {
   const hubs: { hub_id: string; slug: string; name: string }[] = [];
   const campaigns: C[] = [];
+  const roles: { hub: string; role_id: string; key: string; name: string; icon: string; capabilities: string[]; member_count: number }[] = [];
   const invites = new Map<string, { hub: string; invite_id: string; uses: number }>();
   let beta = "none";
   let n = 0;
@@ -137,6 +138,95 @@ export function createMockTransport(displayName = "Dana"): LvTransport {
           for (const r of c.responses) for (const x of r.answers) if (x.question_id === a.p_question) counts.set(String(x.value), (counts.get(String(x.value)) ?? 0) + 1);
           return { ok: true, metric: "answer_distribution", question_id: a.p_question, cells: [...counts].map(([key, k]) => ({ key, n: k >= MIN_COHORT ? k : null, suppressed: k < MIN_COHORT, reason: k < MIN_COHORT ? "below_min_cohort" : null })) };
         }
+        /* ---- roles and capabilities ---- */
+        case "lv_capability_catalog":
+          return {
+            ok: true,
+            groups: [
+              { key: "hub", label: "Hub", capabilities: [{ key: "hub.settings.manage", label: "Manage Hub settings" }] },
+              { key: "members", label: "Members", capabilities: [
+                { key: "admin.members.admit", label: "Admit and reject requests" },
+                { key: "admin.members.remove", label: "Remove members" }] },
+              { key: "roles", label: "Roles", capabilities: [{ key: "admin.roles.manage", label: "Create and edit roles" }] },
+              { key: "campaigns", label: "Campaigns", capabilities: [{ key: "campaign.manage", label: "Create and run Campaigns" }] },
+              { key: "analytics", label: "Analytics", capabilities: [{ key: "analytics.read", label: "Read results" }] },
+            ],
+          };
+        case "lv_role_list":
+          return { ok: true, roles: roles.filter((r) => r.hub === a.p_hub).map(({ hub, ...r }) => ({ ...r, is_owner: false })), custom_slots: 3, slots_used: roles.filter((r) => r.hub === a.p_hub).length };
+        case "lv_role_create": {
+          const r = { hub: String(a.p_hub), role_id: id("role"), key: String(a.p_name).toLowerCase().replace(/\s+/g, "-"), name: String(a.p_name), icon: String(a.p_icon), capabilities: (a.p_capabilities as string[]) ?? [], member_count: 0 };
+          roles.push(r);
+          return { ok: true, role_id: r.role_id };
+        }
+        case "lv_role_update": {
+          const r = roles.find((x) => x.role_id === a.p_role);
+          if (!r) return err("lv_not_found", "Role not found");
+          if (a.p_name) r.name = String(a.p_name);
+          if (a.p_icon) r.icon = String(a.p_icon);
+          if (a.p_capabilities) r.capabilities = a.p_capabilities as string[];
+          return { ok: true };
+        }
+        case "lv_role_delete": {
+          const i = roles.findIndex((x) => x.role_id === a.p_role);
+          if (i >= 0) roles.splice(i, 1);
+          return { ok: true };
+        }
+
+        /* ---- membership ---- */
+        case "lv_hub_join":
+          return { ok: true, membership_id: id("mem"), status: "accepted" };
+        case "lv_member_leave":
+          return err("lv_owner_protected", "The Owner cannot leave");
+        case "lv_member_admit":
+        case "lv_member_reject":
+        case "lv_member_remove":
+        case "lv_member_role_assign":
+        case "lv_member_role_unassign":
+          return { ok: true };
+
+        /* ---- campaign lifecycle extras ---- */
+        case "lv_campaign_update": {
+          const c = campaigns.find((x) => x.campaign_id === a.p_campaign);
+          if (!c) return err("lv_not_found", "Campaign not found");
+          if (c.status !== "draft") return err("lv_locked", "Only a draft can be edited");
+          if (a.p_title) c.title = String(a.p_title);
+          return { ok: true };
+        }
+        case "lv_campaign_set_participation": {
+          const c = campaigns.find((x) => x.campaign_id === a.p_campaign);
+          if (!c) return err("lv_not_found", "Campaign not found");
+          c.anonymity = String(a.p_anonymity);
+          return { ok: true };
+        }
+        case "lv_campaign_schedule":
+        case "lv_campaign_pause":
+        case "lv_campaign_resume":
+        case "lv_campaign_archive":
+        case "lv_campaign_question_update":
+        case "lv_campaign_question_remove":
+          return { ok: true };
+        case "lv_campaign_versions":
+          return { ok: true, versions: [{ revision: 1, created_at: new Date().toISOString(), note: "initial" }] };
+
+        /* ---- guests ---- */
+        case "lv_guest_campaign_get": {
+          const c = campaigns.find((x) => x.join_code === a.p_join_code);
+          if (!c) return err("lv_not_found", "Campaign not found");
+          return {
+            ok: true,
+            campaign: { campaign_id: c.campaign_id, hub_id: c.hub_id, title: c.title, mode: c.mode, anonymity: c.anonymity, status: c.status, revision: 1, opens_at: null, closes_at: null },
+            questions: c.questions, has_responded: false, receipt_id: null, can_respond: c.status === "active", can_manage: false, join_code: c.join_code,
+          };
+        }
+        case "lv_guest_submit": {
+          const c = campaigns.find((x) => x.join_code === a.p_join_code);
+          if (!c) return err("lv_not_found", "Campaign not found");
+          if (c.status !== "active") return err("lv_closed", "This Campaign is not accepting responses");
+          c.responses.push({ receipt: id("rcpt"), answers: a.p_answers as C["responses"][number]["answers"] });
+          return { ok: true, receipt_id: c.responses[c.responses.length - 1].receipt, duplicate: false };
+        }
+
         default:
           return err("lv_not_found", `Mock does not implement ${fn}`);
       }

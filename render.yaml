@@ -1,10 +1,12 @@
 services:
   - type: web
     runtime: static
+    # Existing Render service identifier. Renaming it here would provision a new
+    # service, so it keeps its historical value; change it in the Render dashboard.
     name: lunch-line-survey
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
-    # SPA: serve index.html for client-side routes (/join, /survey/:id, /admin/*)
+    # SPA: serve index.html for client-side routes (/signin, /{hubSlug}, /c/:joinCode)
     routes:
       - type: rewrite
         source: /*
