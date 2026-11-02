@@ -2,7 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { IdentityProvider } from "./identity/IdentityProvider";
-import { RequireSignIn, Shell, SignIn } from "./pages/Public";
+import { AuthCallback, RequireSignIn, Shell, SignIn } from "./pages/Public";
 import { Landing } from "./pages/Landing";
 import { About, Beta, Discover, HowItWorks, NotFoundPage, Privacy, Status, Support, Terms, UseCases } from "./pages/Marketing";
 import { CreateHub, Join, Me, RedeemInvite, Settings } from "./pages/Account";
@@ -39,6 +39,7 @@ createRoot(document.getElementById("root")!).render(
 
             {/* auth and account */}
             <Route path="signin" element={<SignIn />} />
+            <Route path="auth/callback" element={<AuthCallback />} />
             <Route path="join" element={<Join />} />
             <Route path="j/:code" element={<RedeemInvite />} />
             <Route path="me" element={<RequireSignIn><Me /></RequireSignIn>} />
