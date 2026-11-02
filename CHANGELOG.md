@@ -8,6 +8,8 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added (KpnIdentity sign-in)
 
+- `[functions.session] verify_jwt = false` in `supabase/config.toml` so redeploys keep the function reachable before sign-in; setup guide records the LunchVoice OAuth client id and the KpnIdentity issuer.
+
 - Real sign-in: **Continue with Google** redirects to KpnIdentity (Supabase Auth OAuth 2.1 server) with
   PKCE S256, state and nonce; `/auth/callback` exchanges the code for an ID token and the new `session`
   Edge Function turns it into a one-hour LunchVoice session with the same `(issuer, subject)`.

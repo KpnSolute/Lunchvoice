@@ -24,7 +24,7 @@ holds a secret; values live in the vault, Supabase secrets and Render environmen
 | KpnIdentity Supabase project | OAuth 2.1 server | enabled; authorization URL `https://auth.kpnsolute.com/oauth/consent` (the consent app) |
 | KpnIdentity Supabase project | JWT signing keys | asymmetric (ES256 or RS256) |
 | KpnIdentity Supabase project | Google provider | Google Cloud OAuth web client id and secret |
-| KpnIdentity Supabase project | OAuth client | public client "LunchVoice", redirect `https://lunchvoice.com/auth/callback` (exact) |
+| KpnIdentity Supabase project | OAuth client | public client "LunchVoice", redirect `https://lunchvoice.com/auth/callback` (exact). Client ID `7d7de52f-48e7-4b33-8c88-a6c940ca0335` (not a secret). Project `axzwdbizblfkspduqilj`, issuer `https://axzwdbizblfkspduqilj.supabase.co/auth/v1` |
 | LunchVoice Supabase project | JWT signing keys | import the public half of the session key (private half stays in the function secret) |
 | LunchVoice Supabase secrets | `KPNIDENTITY_ISSUERS` | `https://<kpnidentity-ref>.supabase.co/auth/v1` (comma-separated allow-list) |
 | LunchVoice Supabase secrets | `KPNIDENTITY_CLIENT_ID` | the LunchVoice client id from KpnIdentity |

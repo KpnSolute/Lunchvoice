@@ -1,1 +1,6 @@
 project_id = "qprfonxvthmaoxfixigk"
+
+# The session function verifies the KpnIdentity ID token itself (JWKS, issuer, audience, nonce),
+# so the platform's own JWT check on the request is off. See docs/v2/KPNIDENTITY_SETUP.md.
+[functions.session]
+verify_jwt = false
