@@ -57,7 +57,7 @@ in the [execution roadmap](../backend/EXECUTION_ROADMAP.md)). Nothing here appro
 | ID | Product/rule | Confirmed requirement |
 | --- | --- | --- |
 | V2-02 | Participation account | Free; one identity can join multiple Hubs |
-| V2-03 | Identity | Central KpnSolute Identity at `auth.kpnsolute.com`; Google OAuth/OIDC first, Apple later |
+| V2-03 | Identity | Central KpnSolute Identity at `auth.kpnsolute.com`; Google OAuth/OIDC and the person's own email address at launch (open public sign-up, no KpnSolute team or organization membership required), Apple later. Hub plans, including Team Hub, are independent of KpnSolute team membership |
 | V2-04 | Hub URL | Canonical `lunchvoice.com/{hubSlug}` |
 | V2-05 | Starter Hub | **$13/month**, **3 custom role slots**, **3 custom page slots**, **15 simultaneously active Campaigns**, subject to mode-specific limits |
 | V2-06 | Team Hub | **$29/month**, **6 custom role slots**, expanded community pages, advanced analytics and Campaign modes |
