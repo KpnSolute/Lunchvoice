@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
 import { MadeBy } from "../components/MakerMark";
@@ -80,7 +80,9 @@ export function Shell() {
 }
 
 export function SignIn() {
-  const { session, issuerConfigured, canSimulate, signInSimulated } = useIdentity();
+  const { session, issuerConfigured, canSimulate, signInSimulated, signIn } = useIdentity();
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [name, setName] = useState("Dana");
   const location = useLocation();
   const nav = useNavigate();
@@ -89,7 +91,24 @@ export function SignIn() {
     <div className="card stack" style={{ maxWidth: 420, margin: "40px auto" }}>
       <h2>Sign in</h2>
       {issuerConfigured ? (
-        <p className="muted">Continue with Google through KpnIdentity.</p>
+        <>
+          <p className="muted">Continue with Google through KpnIdentity, the KpnSolute account.</p>
+          <button
+            className="btn btn-solid"
+            disabled={busy}
+            onClick={() => {
+              setBusy(true);
+              setError(null);
+              signIn((location.state as { from?: string } | null)?.from ?? "/me").catch((e: unknown) => {
+                setBusy(false);
+                setError(e instanceof Error ? e.message : "Sign-in could not start.");
+              });
+            }}
+          >
+            {busy ? "Opening KpnIdentity…" : "Continue with Google"}
+          </button>
+          {error ? <div className="notice">{error}</div> : null}
+        </>
       ) : (
         <div className="notice">KpnIdentity is not configured for this build, so Google sign-in is unavailable.</div>
       )}
@@ -112,3 +131,31 @@ export function RequireSignIn({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+
+/** /auth/callback: finishes the KpnIdentity redirect, then returns the person where they were going. */
+export function AuthCallback() {
+  const { completeSignIn } = useIdentity();
+  const nav = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    completeSignIn(window.location.search)
+      .then((to) => nav(to, { replace: true }))
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Sign-in failed."));
+  }, [completeSignIn, nav]);
+  return (
+    <div className="card stack" style={{ maxWidth: 420, margin: "40px auto" }}>
+      <h2>{error ? "Sign-in did not finish" : "Signing you in…"}</h2>
+      {error ? (
+        <>
+          <div className="notice">{error}</div>
+          <Link className="btn btn-solid" to="/signin">Try again</Link>
+        </>
+      ) : (
+        <p className="muted">Checking your KpnIdentity sign-in.</p>
+      )}
+    </div>
+  );
+}

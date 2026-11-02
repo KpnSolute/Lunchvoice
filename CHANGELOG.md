@@ -6,6 +6,16 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (KpnIdentity sign-in)
+
+- Real sign-in: **Continue with Google** redirects to KpnIdentity (Supabase Auth OAuth 2.1 server) with
+  PKCE S256, state and nonce; `/auth/callback` exchanges the code for an ID token and the new `session`
+  Edge Function turns it into a one-hour LunchVoice session with the same `(issuer, subject)`.
+- `session` Edge Function: verifies signature (KpnIdentity JWKS, ES256/RS256 only), allow-listed issuer,
+  audience, expiry, UUID subject and nonce before anything else; fails closed when unconfigured.
+  Tested with `npm run test:functions` (now part of `test:pr`).
+- `docs/v2/KPNIDENTITY_SETUP.md`: the flow and every setting it needs. Expired sessions are dropped on load.
+
 ### Fixed (tactile surfaces after the handoff pass)
 
 - Price cards were left flat white with a hairline while every other surface moved to the raised gradient, and display

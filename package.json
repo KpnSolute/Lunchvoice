@@ -15,11 +15,12 @@
     "check:bundle": "node scripts/check-bundle.mjs dist/assets",
     "check:names": "node scripts/check-customer-names.mjs",
     "test:scripts": "node --test scripts/*.test.mjs",
-    "test:pr": "npm run check:brain && npm run check:names && npm run test:scripts && npm run build && npm run check:bundle",
+    "test:pr": "npm run check:brain && npm run check:names && npm run test:scripts && npm run test:functions && npm run build && npm run check:bundle",
     "test:light": "npm run check:brain && npm run check:names && npm run build",
     "test:heavy": "npm run test:light && npm audit --audit-level=high",
     "preview": "vite preview",
-    "postinstall": "git config core.hooksPath .githooks || true"
+    "postinstall": "git config core.hooksPath .githooks || true",
+    "test:functions": "node --import tsx --test supabase/functions/_shared/*.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",
@@ -32,6 +33,7 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^6.0.3",
+    "jose": "^5.9.6",
     "tsx": "^4.23.15",
     "typescript": "^5.6.3",
     "vite": "^8.1.3"
