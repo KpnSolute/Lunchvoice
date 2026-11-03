@@ -12,11 +12,18 @@
   <meta property="og:title" content="LunchVoice" />
   <meta property="og:description" content="Hubs, campaigns and aggregate results." />
   <meta property="og:image" content="/brand/lunchvoice-mark.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <!-- Display: Bricolage Grotesque · UI: Geist · Labels/numbers: Space Mono (all OFL 1.1).
-       Self-host these before launch; see the design handoff's ASSET_MANIFEST.md. -->
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <!-- Fonts are self-hosted (src/ui/fonts.css, SIL OFL 1.1; licenses in /licenses). -->
+  <script>
+    /* Apply the saved theme before first paint (same rules as src/ui/theme.ts). */
+    (function () {
+      try {
+        var pref = localStorage.getItem('lv.theme');
+        var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = pref === 'light' || pref === 'dark' || pref === 'hc' ? pref : dark ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
   <div id="root"></div>

@@ -7,49 +7,52 @@
    Surfaces are deliberately soft: a raised gradient with an inner white top light, a recessed
    well for fields, and an ink gradient for dark panels. */
 :root {
-  --bg: #EEEDEA;
-  --surface: #FFFFFF;
-  --surface-2: #F2F1EE;
-  --ink: #14110F;
-  --muted: #4A4540;
-  --subtle: #6A645E;
-  --line: #DAD8D4;
-  --well: #E9E8E5;
-  --shadow: 0 1px 0 #fff inset, 0 18px 40px rgba(20, 17, 15, 0.08), 0 2px 6px rgba(20, 17, 15, 0.05);
-  --shadow-sm: 0 1px 0 #fff inset, 0 8px 18px rgba(20, 17, 15, 0.10), 0 2px 4px rgba(20, 17, 15, 0.08);
-  --raised-bg: linear-gradient(180deg, #FFFFFF 0%, #F2F1EE 100%);
-  --well-shadow: inset 0 2px 5px rgba(20, 17, 15, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.9);
-  --ink-bg: linear-gradient(180deg, #2E2A25 0%, #14110F 100%);
-  --ink-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 18px 48px rgba(20, 17, 15, 0.28);
-  --cta-bg: linear-gradient(180deg, #FFBE5C 0%, #FF9A18 55%, #F58C0C 100%);
+  /* Older names, now mapped onto the design tokens in src/ui/tokens.css (light, dark and high contrast). */
+  --bg: var(--lv-page);
+  --surface: var(--lv-surface);
+  --surface-2: var(--lv-surface2);
+  --ink: var(--lv-text);
+  --on-ink: var(--lv-on-primary);
+  --muted: var(--lv-muted);
+  --subtle: var(--lv-subtle);
+  --line: var(--lv-line);
+  --well: var(--lv-well);
+  --well-hover: var(--lv-well-hover);
+  --well-focus: var(--lv-well-focus);
+  --rim: var(--lv-rim);
+  --shadow: var(--lv-card-shadow);
+  --shadow-sm: var(--lv-raised-shadow);
+  --raised-bg: var(--lv-raised-bg);
+  --well-shadow: var(--lv-well-shadow);
+  --ink-bg: var(--lv-ink-bg);
+  --ink-shadow: var(--lv-ink-shadow);
+  --cta-bg: var(--lv-accent-cta-bg);
   --cta-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), inset 0 -3px 6px rgba(160, 80, 0, 0.18), 0 8px 22px rgba(255, 154, 24, 0.40);
   --hero-bg: var(--bg);
   --hero-ink: var(--ink);
   --hero-muted: var(--muted);
 
-  /* brand — shared across themes */
-  --accent: #FF9A18;
-  --accent-hi: #FFB347;
-  --accent-deep: #E98207;
-  --accent-ink: #14110F;
-  --pop: #2E8A4E;
-  --danger: #C2382B;
-  --danger-bg: rgba(194, 56, 43, 0.12);
-  --ok-bg: rgba(46, 138, 78, 0.14);
+  /* brand */
+  --accent: var(--lv-accent);
+  --accent-hi: var(--lv-accent-light);
+  --accent-deep: var(--lv-accent-deep);
+  --accent-ink: var(--lv-on-accent);
+  --pop: var(--lv-success);
+  --danger: var(--lv-danger);
+  --danger-bg: color-mix(in srgb, var(--lv-danger) 14%, transparent);
+  --ok-bg: color-mix(in srgb, var(--lv-success) 16%, transparent);
 
-  --r-sm: 12px; --r: 24px; --r-lg: 28px; --r-field: 16px; --r-pill: 999px;
-  --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --r-sm: 12px; --r: var(--lv-radius-card); --r-lg: var(--lv-radius-hero); --r-field: var(--lv-radius-field); --r-pill: var(--lv-radius-pill);
+  --ease: var(--lv-ease-out);
+  --spring: var(--lv-ease-spring);
   --dur: 200ms;
 
-  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
-  --font-sans: 'Geist', system-ui, sans-serif;
-  --font-mono: 'Space Mono', ui-monospace, monospace;
-
-  color-scheme: light;
+  --font-display: var(--lv-font-display);
+  --font-sans: var(--lv-font-ui);
+  --font-mono: var(--lv-font-mono);
 }
 
-/* Light mode only — dark theme intentionally removed. */
+/* Themes: light (default), dark and high contrast come from src/ui/tokens.css via [data-theme] on <html>. */
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -102,9 +105,9 @@ button { font-family: var(--font-sans); cursor: pointer; }
 .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 .btn-primary { background: var(--cta-bg); box-shadow: var(--cta-shadow); color: var(--accent-ink); }
 .btn-primary:hover:not(:disabled) { transform: translateY(-2px) scale(1.02); }
-.btn-solid { background: var(--ink-bg); color: #F7F3EA; box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 6px 18px rgba(20,17,15,.25); }
+.btn-solid { background: var(--ink-bg); color: var(--on-ink); box-shadow: var(--ink-shadow); }
 .btn-solid:hover:not(:disabled) { transform: translateY(-2px); }
-.btn-ghost { background: var(--raised-bg); box-shadow: var(--shadow-sm); border: 1px solid rgba(255,255,255,.9); color: var(--ink); }
+.btn-ghost { background: var(--raised-bg); box-shadow: var(--shadow-sm); border: 1px solid var(--rim); color: var(--ink); }
 .btn-block { width: 100%; }
 .link-btn {
   background: none; border: none; color: var(--muted); text-decoration: underline;
@@ -121,7 +124,7 @@ button { font-family: var(--font-sans); cursor: pointer; }
 
 /* ---------- cards ---------- */
 .card {
-  background: var(--raised-bg); border: 1px solid rgba(255,255,255,.8);
+  background: var(--raised-bg); border: 1px solid var(--rim);
   border-radius: var(--r); padding: 20px 22px; margin-bottom: 16px; box-shadow: var(--shadow);
 }
 .card h2 { font-family: var(--font-display); font-weight: 800; font-size: 22px; letter-spacing: -0.035em; margin: 0 0 4px; }
@@ -143,9 +146,9 @@ input:not([type]), input[type=text], input[type=email], input[type=password], in
   transition: border-color var(--dur), box-shadow var(--dur), background var(--dur);
 }
 input::placeholder, textarea::placeholder { color: var(--subtle); opacity: 1; }
-input:hover:not(:focus), textarea:hover:not(:focus), select:hover:not(:focus) { background: #E4E2DE; }
+input:hover:not(:focus), textarea:hover:not(:focus), select:hover:not(:focus) { background: var(--well-hover); }
 input:focus, textarea:focus, select:focus {
-  outline: none; background: #F3F2EF;
+  outline: none; background: var(--well-focus);
   box-shadow: inset 0 0 0 1.5px var(--ink), 0 0 0 5px rgba(255, 154, 24, 0.35);
 }
 input[type=file] { padding: 10px; cursor: pointer; }

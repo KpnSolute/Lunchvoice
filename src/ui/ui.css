@@ -1,0 +1,19 @@
+/* Shared UI primitives from the design system (src/ui). The selected state is the pressed amber surface. */
+
+/* Segmented radiogroup */
+.lv-seg {
+  display: inline-flex; flex-wrap: wrap; gap: 6px; padding: 6px;
+  background: var(--lv-well); box-shadow: var(--lv-well-shadow); border-radius: var(--lv-radius-pill);
+}
+.lv-seg-item {
+  min-height: var(--lv-target-min); padding: 0 18px; border: var(--lv-control-border); border-radius: var(--lv-radius-pill);
+  background: var(--lv-raised-bg); box-shadow: var(--lv-raised-shadow); color: var(--lv-text);
+  font: 500 14.5px/1.4 var(--lv-font-ui); cursor: pointer;
+  transition: transform var(--lv-dur-press) var(--lv-ease-spring), box-shadow var(--lv-dur-press) var(--lv-ease-spring), background var(--lv-dur-press) var(--lv-ease-out);
+}
+.lv-seg-item:active { transform: scale(0.94, 0.88); }
+.lv-seg-item[aria-checked='true'] {
+  background: var(--lv-pressed-bg); box-shadow: var(--lv-pressed-shadow); color: var(--lv-on-accent); font-weight: 600;
+}
+[data-theme='hc'] .lv-seg-item[aria-checked='true'] { border-width: 3px; text-decoration: underline; }
+.lv-seg-item:focus-visible { outline: 2px solid var(--lv-focus); outline-offset: 3px; }

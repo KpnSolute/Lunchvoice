@@ -11,9 +11,15 @@ import { HubBilling, HubDiscover, HubLayout, HubOverview, HubReservation, HubSet
 import { CampaignDetail, Campaigns, GuestCampaign, NewCampaign, Results, Studio } from "./pages/Campaigns";
 import { Analytics } from "./pages/Analytics";
 import { Gallery } from "./pages/Gallery";
+import { initTheme } from "./ui/theme";
+import "./ui/fonts.css";
+import "./ui/tokens.css";
 import "./index.css";
+import "./ui/ui.css";
 import "./styles/system.css";
 import "./styles/landing.css";
+
+initTheme();
 
 // Static routes outrank the dynamic :hub segment, and RESERVED_SLUGS keeps every static path
 // from ever being claimable as a Hub address. Hubs are readable signed out; the backend decides

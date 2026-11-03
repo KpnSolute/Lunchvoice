@@ -6,6 +6,19 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (v2 UI foundations)
+
+- `src/ui/tokens.css`: the design system's tokens (core v1.1) as the single source, with light, dark and high-contrast themes selected by `data-theme` on `<html>`. The older variable names in `index.css` now map onto these tokens, so every existing page gains dark and high contrast without per-page CSS.
+- `src/ui/theme.ts`, `ThemeControl` and a pre-paint script in `index.html`: Appearance in Settings (System, Light, Dark, High contrast), saved on the device only, no flash of the wrong theme. Selected is the pressed amber surface; the group is a radiogroup with arrow-key navigation.
+- Self-hosted fonts (Bricolage Grotesque, Geist, Space Mono; latin and latin-ext only) replace Google Fonts; OFL licence texts ship in `/licenses`. The page now contacts no third-party host.
+- `src/ui/ui.css` (shared primitives; first is the segmented control).
+
+### Fixed (v2 UI foundations)
+
+- The landing page scrolled sideways at phone and tablet widths; it no longer does (checked at 320 to 1600 px on 14 public routes).
+- The hero eyebrow, step and plan icons and empty-state icon used the on-amber ink colour as foreground on the page, which disappeared in dark mode; they now use the page ink.
+- Hard-coded surface colors in `index.css`, `system.css` and `landing.css` now use tokens.
+
 ### Added (KpnIdentity sign-in)
 
 - `supabase/functions/session/deno.json`: the function's own import map, so the Supabase deploy bundles `jose` (the shared `supabase/functions/deno.json` is not read by the deploy).
