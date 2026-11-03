@@ -6,6 +6,11 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (Campaign Studio)
+
+- Campaign Studio rebuilt as three panes: a numbered questions outline, an editor (prompt and options save when you leave a field) with a live respondent preview, and a Share panel (link, join code, QR placeholder, facts). On phones it is one pane at a time with Outline, Edit and Share tabs. Published Campaigns stay locked and say so.
+- In dark mode, amber is no longer used as text on the surfaces that turn light.
+
 ### Added (route registry and participant pages)
 
 - `src/config/routes.json`: one entry per route (layout L1 to L11, shell, access, milestone) from the Core Routes map, and `scripts/check-route-layouts.mjs` (in `test:pr` and `test:light`) which fails when a route has no entry or an entry has no route. Tested in `scripts/check-route-layouts.test.mjs`.

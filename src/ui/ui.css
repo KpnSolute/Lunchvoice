@@ -254,3 +254,52 @@ a.lv-row:hover .lv-row-title { text-decoration: underline; text-underline-offset
 .lv-preview-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; border-radius: 999px; background: var(--lv-well); box-shadow: var(--lv-well-shadow); }
 .lv-preview-tab { padding: 8px 14px; border-radius: 999px; background: var(--lv-raised-bg); box-shadow: var(--lv-raised-shadow); font: 500 13.5px/1 var(--lv-font-ui); }
 @media (prefers-reduced-motion: reduce) { .lv-switch, .lv-switch::after { transition: none; } }
+
+/* ---------- Campaign Studio (L6) ---------- */
+.lv-studio { display: flex; flex-direction: column; gap: 16px; }
+.lv-studio-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.lv-studio-title { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lv-studio-title h1 { margin: 0; font: 800 clamp(24px, 4vw, 34px)/1.05 var(--lv-font-display); letter-spacing: -0.035em; overflow-wrap: anywhere; }
+.lv-studio-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.lv-studio-grid { display: grid; gap: 16px; align-items: start; }
+@media (min-width: 961px) { .lv-studio-grid { grid-template-columns: 280px minmax(0, 1fr) 280px; } }
+.lv-pane { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.lv-pane-tabs, .lv-pane-tab { display: none; }
+@media (max-width: 960px) {
+  .lv-pane-tabs { display: inline-flex; gap: 6px; padding: 6px; border-radius: 999px; background: var(--lv-well); box-shadow: var(--lv-well-shadow); align-self: flex-start; }
+  .lv-pane-tab { display: block; min-height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: none; color: var(--lv-muted); font: 500 14.5px/1 var(--lv-font-ui); cursor: pointer; }
+  .lv-pane-tab[aria-selected='true'] { background: var(--lv-raised-bg); box-shadow: var(--lv-raised-shadow); color: var(--lv-text); font-weight: 600; }
+  .lv-studio[data-pane='outline'] .lv-pane-edit, .lv-studio[data-pane='outline'] .lv-pane-share,
+  .lv-studio[data-pane='edit'] .lv-pane-outline, .lv-studio[data-pane='edit'] .lv-pane-share,
+  .lv-studio[data-pane='share'] .lv-pane-outline, .lv-studio[data-pane='share'] .lv-pane-edit { display: none; }
+}
+.lv-outline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.lv-outline-item {
+  width: 100%; display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 0; border-radius: 18px; cursor: pointer; text-align: left;
+  background: transparent; color: var(--lv-text); font: 500 15px/1.3 var(--lv-font-ui); transition: transform var(--lv-dur-press) var(--lv-ease-spring), background var(--lv-dur-press) var(--lv-ease-out);
+}
+.lv-outline-item:hover { background: var(--lv-well); }
+.lv-outline-item:active { transform: scale(0.97); }
+.lv-outline-item[aria-current='true'] { background: var(--lv-ink-bg); box-shadow: var(--lv-ink-shadow); color: var(--lv-on-primary); }
+.lv-outline-n { font: 700 12px/1.6 var(--lv-font-mono); opacity: 0.7; }
+.lv-outline-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; overflow-wrap: anywhere; }
+.lv-outline-text small { font: 700 11px/1.2 var(--lv-font-mono); letter-spacing: 0.06em; opacity: 0.7; }
+.lv-add {
+  display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; border-radius: 18px; cursor: pointer; color: var(--lv-text);
+  background: transparent; border: 1.5px dashed var(--lv-line); font: 500 14.5px/1 var(--lv-font-ui);
+}
+.lv-add:hover, .lv-add[aria-current='true'] { border-color: var(--lv-text); }
+.lv-editor { padding: 20px 22px; border-radius: var(--lv-radius-card); background: var(--lv-raised-bg); box-shadow: var(--lv-card-shadow); display: flex; flex-direction: column; gap: 14px; }
+.lv-preview-box { background: var(--lv-surface2); }
+.lv-share-h { margin: 0; font: 600 18px/1.3 var(--lv-font-ui); }
+.lv-qr { aspect-ratio: 1; max-width: 220px; display: grid; place-items: center; text-align: center; border-radius: 22px; background: var(--lv-well); box-shadow: var(--lv-well-shadow); font: 700 13px/1.4 var(--lv-font-mono); color: var(--lv-subtle); }
+.lv-qr small { font-weight: 400; }
+.lv-facts { list-style: none; margin: 0; padding: 0; }
+.lv-facts li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 0; border-top: 1px solid var(--lv-line); font: 400 14.5px/1.3 var(--lv-font-ui); }
+.lv-facts strong { font-weight: 700; }
+
+/* In dark mode the ink surfaces turn light, and amber is never text on light: use the surface's own text color. */
+[data-theme='dark'] .lv-panel-ink .lv-eyebrow-mono,
+[data-theme='dark'] .lv-player-hero .lv-eyebrow-mono,
+[data-theme='dark'] .lv-thanks-title em { color: inherit !important; }
+[data-theme='dark'] .lv-player-ink { border-top-color: var(--lv-text); }

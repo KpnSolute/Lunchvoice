@@ -8,6 +8,7 @@ import { Icon } from "../components/Icon";
 import { describeError, describeGate } from "../lib/errors";
 import { can, useHubCtx } from "./Hub";
 import { Player } from "./Player";
+import { QuestionInput } from "../ui/QuestionControls";
 
 /* ------------------------------------------------------------------ list */
 
@@ -186,14 +187,20 @@ const KINDS: { key: QuestionKind; label: string }[] = [
   { key: "text", label: "Open answer" },
 ];
 
+type Pane = "outline" | "edit" | "share";
+
 export function Studio() {
   const { hub } = useHubCtx();
   const { api } = useIdentity();
   const { id = "" } = useParams();
   const detail = useLv(() => api.campaignGet(id), [api, id]);
+  const [sel, setSel] = useState<string>("new");
+  const [pane, setPane] = useState<Pane>("outline");
   const [kind, setKind] = useState<QuestionKind>("rating");
   const [prompt, setPrompt] = useState("");
   const [options, setOptions] = useState("");
+  const [edit, setEdit] = useState<{ prompt: string; options: string } | null>(null);
+  const [preview, setPreview] = useState<unknown>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [gate, setGate] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -201,6 +208,15 @@ export function Studio() {
   const d = detail.data;
   const phase = d ? campaignPhase(d.campaign) : null;
   const lockable = phase === "open" || phase === "ended";
+  const current = d?.questions.find((q) => q.question_id === sel) ?? null;
+
+  function select(qid: string) {
+    setSel(qid);
+    setPreview(undefined);
+    const q = d?.questions.find((x) => x.question_id === qid);
+    setEdit(q ? { prompt: q.prompt, options: (q.config?.options ?? []).join("\n") } : null);
+    setPane("edit");
+  }
 
   async function addQuestion() {
     if (!d) return;
@@ -213,6 +229,18 @@ export function Studio() {
     setBusy(false);
     if (r.ok) { setPrompt(""); setOptions(""); detail.reload(); }
     else setError(describeError(r.error));
+  }
+
+  async function saveEdit() {
+    if (!current || !edit || lockable) return;
+    const opts = edit.options.split("\n").map((o) => o.trim()).filter(Boolean);
+    const sameOpts = JSON.stringify(opts) === JSON.stringify(current.config?.options ?? []);
+    if (edit.prompt.trim() === current.prompt && sameOpts) return;
+    const patch: { prompt?: string; config?: object } = {};
+    if (edit.prompt.trim() !== current.prompt) patch.prompt = edit.prompt.trim();
+    if (!sameOpts && (current.kind === "single_choice" || current.kind === "multi_choice")) patch.config = { ...current.config, options: opts };
+    const r = await api.questionUpdate(current.question_id, patch);
+    if (r.ok) detail.reload(); else setError(describeError(r.error));
   }
 
   async function activate() {
@@ -234,21 +262,27 @@ export function Studio() {
   if (!d) return null;
 
   return (
-    <div className="ui-stack ui-gap-16">
-      <div className="ui-spread">
-        <div>
-          <Micro>Studio</Micro>
-          <h1 className="ui-display ui-display-lg" style={{ margin: "6px 0 0" }}>{d.campaign.title}</h1>
-          <div className="ui-row ui-gap-8" style={{ marginTop: 8 }}>
-            <PhaseBadge phase={phase!} />
-            <Micro>{d.questions.length} questions</Micro>
-          </div>
+    <div className="lv-studio" data-pane={pane}>
+      <div className="lv-studio-top">
+        <Link to={`/${hub.slug}/campaigns`} className="lv-circle-btn" aria-label="Back to Campaigns" style={{ width: 44, height: 44 }}><Icon name="back" size={18} /></Link>
+        <div className="lv-studio-title">
+          <span className="lv-row-sub">{hub.name} / Campaigns</span>
+          <h1>{d.campaign.title}</h1>
         </div>
-        <div className="ui-row">
-          {phase === "draft" && <Btn variant="primary" onClick={activate} disabled={busy}>Publish</Btn>}
+        <PhaseBadge phase={phase!} />
+        <div className="lv-studio-actions">
+          {phase === "draft" && <Btn variant="ink" onClick={activate} disabled={busy}>Publish</Btn>}
           {(phase === "open" || phase === "scheduled") && <Btn variant="outline" onClick={close}>Close</Btn>}
           <Link className="ui-btn ui-btn-outline" to={`/${hub.slug}/campaigns/${id}/results`}>Results</Link>
         </div>
+      </div>
+
+      <div className="lv-pane-tabs" role="tablist" aria-label="Studio panes">
+        {(["outline", "edit", "share"] as Pane[]).map((p) => (
+          <button key={p} type="button" role="tab" aria-selected={pane === p} className="lv-pane-tab" onClick={() => setPane(p)}>
+            {p === "outline" ? "Outline" : p === "edit" ? "Edit" : "Share"}
+          </button>
+        ))}
       </div>
 
       {error && <ErrorNote error={{ code: "lv_server_error", message: error }} />}
@@ -258,60 +292,100 @@ export function Studio() {
           <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>{gate.map((g) => <li key={g}>{g}</li>)}</ul>
         </Notice>
       )}
+      {lockable && <Notice tone="info">Published Campaigns can't be edited. Close it to stop answers.</Notice>}
 
-      {d.join_code && (
-        <Card quiet>
-          <Micro>Guest link</Micro>
-          <div style={{ marginTop: 8 }}>
-            <CopyField value={`https://lunchvoice.com/c/${d.join_code}`} />
-          </div>
-        </Card>
-      )}
-
-      <Card>
-        <Micro>Questions</Micro>
-        {d.questions.length === 0 ? (
-          <div style={{ marginTop: 10 }}><Empty icon="survey" title="No questions yet">Add at least one before you publish.</Empty></div>
-        ) : (
-          <ol style={{ margin: "12px 0 0", paddingLeft: 18, lineHeight: 1.9 }}>
-            {d.questions.map((q) => (
+      <div className="lv-studio-grid">
+        <section className="lv-pane lv-pane-outline" aria-label="Questions">
+          <span className="lv-eyebrow-mono" style={{ color: "var(--lv-subtle)" }}>Questions · {d.questions.length}</span>
+          <ol className="lv-outline">
+            {d.questions.map((q, i) => (
               <li key={q.question_id}>
-                <span>{q.prompt}</span>{" "}
-                <Micro>{KINDS.find((k) => k.key === q.kind)?.label ?? q.kind}</Micro>
+                <button type="button" className="lv-outline-item" aria-current={sel === q.question_id ? "true" : undefined} onClick={() => select(q.question_id)}>
+                  <span className="lv-outline-n">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="lv-outline-text">
+                    <span>{q.prompt}</span>
+                    <small>{KINDS.find((k) => k.key === q.kind)?.label ?? q.kind}</small>
+                  </span>
+                </button>
               </li>
             ))}
           </ol>
-        )}
-      </Card>
+          {!lockable && (
+            <button type="button" className="lv-add" aria-current={sel === "new" ? "true" : undefined} onClick={() => { setSel("new"); setEdit(null); setPane("edit"); }}>
+              <Icon name="plus" size={16} /> Add question
+            </button>
+          )}
+        </section>
 
-      <Card>
-        <Micro accent>{lockable ? "Locked — published Campaigns can't be edited" : "Add a question"}</Micro>
-        <div className="ui-grid-2" style={{ marginTop: 12, alignItems: "start" }}>
-          <div>
-            <div className="ui-field">
-              <label className="ui-label" htmlFor="q-kind">Kind</label>
-              <select id="q-kind" className="ui-select" value={kind} onChange={(e) => setKind(e.target.value as QuestionKind)} disabled={lockable}>
-                {KINDS.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
-              </select>
-            </div>
-            <div className="ui-field">
-              <label className="ui-label" htmlFor="q-prompt">Prompt</label>
-              <input id="q-prompt" className="ui-input" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="How was the venue?" disabled={lockable} />
-            </div>
-          </div>
-          <div>
-            {(kind === "single_choice" || kind === "multi_choice") && (
-              <div className="ui-field">
-                <label className="ui-label" htmlFor="q-options">Options, one per line</label>
-                <textarea id="q-options" className="ui-textarea" value={options} onChange={(e) => setOptions(e.target.value)} disabled={lockable} placeholder={"Morning\nAfternoon\nEvening"} />
+        <section className="lv-pane lv-pane-edit" aria-label="Editor">
+          {current && edit ? (
+            <>
+              <div className="lv-editor">
+                <div className="ui-spread">
+                  <span className="lv-eyebrow-mono" style={{ color: "var(--lv-subtle)" }}>Question {String((d.questions.findIndex((q) => q.question_id === current.question_id)) + 1).padStart(2, "0")}</span>
+                  <Pill>{KINDS.find((k) => k.key === current.kind)?.label ?? current.kind}</Pill>
+                </div>
+                <div className="ui-field">
+                  <label className="ui-label" htmlFor="e-prompt">Prompt</label>
+                  <input id="e-prompt" className="ui-input" value={edit.prompt} disabled={lockable} onChange={(e) => setEdit({ ...edit, prompt: e.target.value })} onBlur={saveEdit} />
+                </div>
+                {(current.kind === "single_choice" || current.kind === "multi_choice") && (
+                  <div className="ui-field">
+                    <label className="ui-label" htmlFor="e-options">Options, one per line</label>
+                    <textarea id="e-options" className="ui-textarea" value={edit.options} disabled={lockable} onChange={(e) => setEdit({ ...edit, options: e.target.value })} onBlur={saveEdit} />
+                  </div>
+                )}
+                <p className="ui-help">Changes save when you leave a field. The kind is fixed once a question exists.</p>
               </div>
-            )}
-            <Btn variant="ink" disabled={lockable || !prompt.trim() || busy} onClick={addQuestion} icon="plus">
-              {busy ? "Adding…" : "Add question"}
-            </Btn>
-          </div>
-        </div>
-      </Card>
+              <div className="lv-editor lv-preview-box">
+                <span className="lv-eyebrow-mono" style={{ color: "var(--lv-subtle)" }}>Respondent preview</span>
+                <h2 className="lv-q-title" style={{ fontSize: 26, margin: "8px 0 14px", animation: "none" }}>{edit.prompt || "Your question"}</h2>
+                <QuestionInput q={{ ...current, prompt: edit.prompt, config: { ...current.config, options: edit.options.split("\n").map((o) => o.trim()).filter(Boolean) } }} value={preview} onChange={setPreview} />
+              </div>
+            </>
+          ) : (
+            <div className="lv-editor">
+              <span className="lv-eyebrow-mono" style={{ color: "var(--lv-subtle)" }}>{lockable ? "Locked" : "Add a question"}</span>
+              <div className="ui-field">
+                <label className="ui-label" htmlFor="q-kind">Kind</label>
+                <select id="q-kind" className="ui-select" value={kind} onChange={(e) => setKind(e.target.value as QuestionKind)} disabled={lockable}>
+                  {KINDS.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
+                </select>
+              </div>
+              <div className="ui-field">
+                <label className="ui-label" htmlFor="q-prompt">Prompt</label>
+                <input id="q-prompt" className="ui-input" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="How was the venue?" disabled={lockable} />
+              </div>
+              {(kind === "single_choice" || kind === "multi_choice") && (
+                <div className="ui-field">
+                  <label className="ui-label" htmlFor="q-options">Options, one per line</label>
+                  <textarea id="q-options" className="ui-textarea" value={options} onChange={(e) => setOptions(e.target.value)} disabled={lockable} placeholder={"Morning\nAfternoon\nEvening"} />
+                </div>
+              )}
+              <Btn variant="ink" disabled={lockable || !prompt.trim() || busy} onClick={addQuestion} icon="plus">
+                {busy ? "Adding…" : "Add question"}
+              </Btn>
+            </div>
+          )}
+        </section>
+
+        <aside className="lv-pane lv-pane-share" aria-label="Share">
+          <h2 className="lv-share-h">Share</h2>
+          {d.join_code ? (
+            <>
+              <div className="lv-qr" role="img" aria-label="QR code placeholder">QR code<br /><small>coming with the QR service</small></div>
+              <CopyField value={`https://lunchvoice.com/c/${d.join_code}`} />
+              <ul className="lv-facts">
+                <li><span>Join code</span><strong className="ui-mono">{d.join_code}</strong></li>
+                <li><span>Responses</span><strong>{d.campaign.anonymity === "anonymous" ? "Anonymous" : "Identified"}</strong></li>
+                <li><span>Mode</span><strong>{d.campaign.mode}</strong></li>
+              </ul>
+            </>
+          ) : (
+            <p className="ui-muted" style={{ margin: 0, fontSize: 14.5 }}>The guest link and join code appear after you publish.</p>
+          )}
+        </aside>
+      </div>
     </div>
   );
 }
