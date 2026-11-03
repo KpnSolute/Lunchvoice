@@ -17,3 +17,100 @@
 }
 [data-theme='hc'] .lv-seg-item[aria-checked='true'] { border-width: 3px; text-decoration: underline; }
 .lv-seg-item:focus-visible { outline: 2px solid var(--lv-focus); outline-offset: 3px; }
+
+/* ---------- Hub mark ---------- */
+.lv-hubmark {
+  display: inline-grid; place-items: center; flex: none; background: var(--lv-ink-bg); color: var(--lv-on-primary);
+  font: 800 1em/1 var(--lv-font-display); letter-spacing: -0.02em; box-shadow: var(--lv-ink-shadow);
+}
+
+/* ---------- Bottom tabs (phones only) ---------- */
+.lv-bottom-tabs {
+  position: fixed; inset: auto 0 0 0; z-index: 40; display: none; gap: 4px; padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  background: var(--lv-popover); box-shadow: 0 -1px 0 var(--lv-line), 0 -10px 24px rgba(20, 17, 15, 0.08);
+}
+.lv-tab {
+  flex: 1; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border: 0; background: none; border-radius: 18px; color: var(--lv-muted); text-decoration: none; cursor: pointer;
+  font: 600 11px/1.1 var(--lv-font-ui);
+  transition: transform var(--lv-dur-press) var(--lv-ease-spring), background var(--lv-dur-press) var(--lv-ease-out);
+}
+.lv-tab:active { transform: scale(0.94, 0.88); }
+.lv-tab[aria-current='page'] { background: var(--lv-pressed-bg); box-shadow: var(--lv-pressed-shadow); color: var(--lv-on-accent); }
+[data-theme='hc'] .lv-tab[aria-current='page'] { border: 3px solid #000; }
+.lv-tab:focus-visible { outline: 2px solid var(--lv-focus); outline-offset: 2px; }
+.lv-tab-glyph { display: grid; place-items: center; height: 24px; }
+@media (max-width: 720px) {
+  .lv-bottom-tabs { display: flex; }
+  body { padding-bottom: 76px; }
+}
+.lv-sheet-scrim { position: fixed; inset: 0; z-index: 60; background: rgba(20, 17, 15, 0.45); display: flex; align-items: flex-end; }
+.lv-sheet {
+  width: 100%; padding: 10px 14px calc(18px + env(safe-area-inset-bottom)); border-radius: 28px 28px 0 0;
+  background: var(--lv-popover); box-shadow: var(--lv-popover-shadow); animation: lv-sheet-in var(--lv-dur-popover) var(--lv-ease-spring);
+}
+.lv-sheet-grip { display: block; width: 44px; height: 5px; border-radius: 99px; background: var(--lv-line); margin: 0 auto 12px; }
+.lv-sheet-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
+@keyframes lv-sheet-in { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ---------- Stat tiles (dashboards) ---------- */
+.lv-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 14px; }
+@media (max-width: 720px) { .lv-tile { min-height: 116px; padding: 16px; } .lv-tile-value { font-size: 34px; } }
+.lv-tile {
+  display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; border-radius: var(--lv-radius-card);
+  background: var(--lv-raised-bg); box-shadow: var(--lv-card-shadow); color: var(--lv-text); min-height: 132px;
+}
+.lv-tile-ink { background: var(--lv-ink-bg); box-shadow: var(--lv-ink-shadow); color: var(--lv-on-primary); }
+.lv-tile-accent { background: var(--lv-accent-cta-bg); color: var(--lv-on-accent); }
+.lv-tile-label { font: 700 11.5px/1.2 var(--lv-font-mono); letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.8; }
+.lv-tile-value { font: 800 clamp(34px, 5vw, 46px)/0.95 var(--lv-font-display); letter-spacing: -0.04em; }
+.lv-tile-note { font: 400 13px/1.4 var(--lv-font-ui); opacity: 0.8; margin-top: auto; }
+
+/* ---------- Dashboard layout (L7): main column plus a side rail ---------- */
+.lv-dash { display: grid; gap: 22px; align-items: start; }
+@media (min-width: 960px) { .lv-dash { grid-template-columns: minmax(0, 1fr) 320px; } }
+.lv-stack { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.lv-rail { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.lv-panel {
+  padding: 20px 22px; border-radius: var(--lv-radius-card); background: var(--lv-raised-bg); box-shadow: var(--lv-card-shadow);
+}
+.lv-panel > h2, .lv-panel > h3 { margin: 0 0 12px; font: 600 18px/1.3 var(--lv-font-ui); letter-spacing: -0.01em; }
+.lv-panel-ink { background: var(--lv-ink-bg); box-shadow: var(--lv-ink-shadow); color: var(--lv-on-primary); }
+.lv-panel-dash { background: transparent; box-shadow: none; border: 1.5px dashed var(--lv-line); }
+.lv-eyebrow-mono { font: 700 11.5px/1.2 var(--lv-font-mono); letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.85; }
+
+/* ---------- Rows (hub lists, recent items) ---------- */
+.lv-rows { list-style: none; margin: 0; padding: 0; }
+.lv-row {
+  display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--lv-line);
+  color: inherit; text-decoration: none; min-height: 56px;
+}
+.lv-row:first-child { border-top: 0; }
+a.lv-row:hover .lv-row-title { text-decoration: underline; text-underline-offset: 3px; }
+.lv-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lv-row-title { font: 600 15px/1.3 var(--lv-font-ui); overflow-wrap: anywhere; }
+.lv-row-sub { font: 400 12.5px/1.35 var(--lv-font-mono); color: var(--lv-subtle); overflow-wrap: anywhere; }
+
+/* ---------- Signed-in header pills (desktop) ---------- */
+.lv-appnav { display: none; gap: 6px; margin-right: auto; margin-left: 12px; }
+@media (min-width: 721px) { .lv-appnav { display: flex; } }
+.lv-appnav a {
+  display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; border-radius: var(--lv-radius-pill);
+  color: var(--lv-text); text-decoration: none; font: 500 14.5px/1 var(--lv-font-ui);
+}
+.lv-appnav a:hover { background: var(--lv-well); }
+.lv-appnav a[aria-current='page'] { background: var(--lv-ink-bg); color: var(--lv-on-primary); box-shadow: var(--lv-ink-shadow); font-weight: 600; }
+.lv-appnav a:focus-visible { outline: 2px solid var(--lv-focus); outline-offset: 2px; }
+
+/* ---------- Account home ---------- */
+.lv-hello { margin: 0 0 4px; font: 800 clamp(34px, 6vw, 56px)/0.98 var(--lv-font-display); letter-spacing: -0.045em; text-wrap: balance; }
+.lv-hello-sub { margin: 0 0 22px; color: var(--lv-muted); font: 400 16px/1.5 var(--lv-font-ui); max-width: 62ch; }
+.lv-resume { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; padding: 22px 24px; }
+.lv-resume-title { margin: 6px 0 4px; font: 800 clamp(24px, 3.4vw, 32px)/1.05 var(--lv-font-display); letter-spacing: -0.03em; }
+
+.lv-link { color: var(--lv-text); font: 600 14px/1.2 var(--lv-font-ui); text-decoration: underline; text-underline-offset: 3px; }
+.lv-panel-ink .ui-copy, .lv-panel-ink input { color: var(--lv-text); }
+.lv-panel-ink .ui-btn-outline { color: var(--lv-text); }
+
+/* On phones the Hub sections live in the bottom tabs; the segmented strip is desktop only. */
+@media (max-width: 720px) { .lv-hubtabs { display: none; } }

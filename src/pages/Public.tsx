@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
 import { MadeBy } from "../components/MakerMark";
+import { BottomTabs } from "../ui/BottomTabs";
 import "../styles/landing.css";
 
 // The marketing chrome (full nav, footer, maker's mark) belongs to the public pages.
@@ -11,10 +12,20 @@ const MARKETING_ROUTES = new Set([
   "/status", "/terms", "/privacy", "/support", "/discover",
 ]);
 
+// Account routes get the account shell: header pills on desktop, bottom tabs on phones.
+const ACCOUNT_ROUTES = new Set(["/me", "/join", "/settings", "/create"]);
+const ACCOUNT_TABS = [
+  { to: "/me", label: "Home", icon: "home" as const },
+  { to: "/join", label: "Join", icon: "join" as const },
+  { to: "/create", label: "Create", icon: "plus" as const },
+  { to: "/settings", label: "Settings", icon: "settings" as const },
+];
+
 export function Shell() {
   const { session, signOut } = useIdentity();
   const { pathname } = useLocation();
   const marketing = MARKETING_ROUTES.has(pathname);
+  const account = Boolean(session) && ACCOUNT_ROUTES.has(pathname);
 
   return (
     <>
@@ -23,6 +34,14 @@ export function Shell() {
           <img src="/brand/lunchvoice-mark.svg" alt="" height={28} width={28} />
           <span>LunchVoice</span>
         </Link>
+
+        {account && (
+          <nav className="lv-appnav" aria-label="Account">
+            {ACCOUNT_TABS.map((t) => (
+              <NavLink key={t.to} to={t.to} end>{t.label}</NavLink>
+            ))}
+          </nav>
+        )}
 
         {marketing && (
           <nav className="lv-nav" aria-label="Main">
@@ -51,6 +70,8 @@ export function Shell() {
       <main className={marketing ? "lv-main" : "wrap"}>
         <Outlet />
       </main>
+
+      {account && <BottomTabs label="Account" items={ACCOUNT_TABS} />}
 
       {marketing && (
         <footer className="lv-footer">

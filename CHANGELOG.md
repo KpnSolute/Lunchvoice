@@ -6,6 +6,13 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (v2 UI screens)
+
+- Account home (`/me`) rebuilt to the design: greeting, stat tiles, a "pick up where you left off" card, My Hubs rail with Hub marks, join shortcut. Only data the API provides is shown (no invented streaks or badges).
+- Signed-in header pills (Home, Join, Create, Settings) on desktop; shared `BottomTabs` on phones for account and Hub routes: solid surface, no blur, 52px targets, the current tab is the pressed amber surface with `aria-current`, and a More sheet holds the extra Hub sections. The old blurred bottom nav is gone.
+- Hub overview is the dashboard layout: live Campaigns, members and roles tiles, an All Campaigns list with phase badges, a People rail for managers, and the share panel. The Hub header shows the Hub mark; the segmented tab strip is desktop only.
+- New icons (settings, join, more, back, globe, clock).
+
 ### Added (v2 UI foundations)
 
 - `src/ui/tokens.css`: the design system's tokens (core v1.1) as the single source, with light, dark and high-contrast themes selected by `data-theme` on `<html>`. The older variable names in `index.css` now map onto these tokens, so every existing page gains dark and high contrast without per-page CSS.
