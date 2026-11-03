@@ -7,7 +7,7 @@ import { Landing } from "./pages/Landing";
 import { About, Beta, Discover, HowItWorks, NotFoundPage, Privacy, Status, Support, Terms, UseCases } from "./pages/Marketing";
 import { CreateHub, Join, Me, RedeemInvite, Settings } from "./pages/Account";
 import { Pricing } from "./pages/Pricing";
-import { HubBilling, HubDiscover, HubLayout, HubOverview, HubReservation, HubSettings, Invites, Members, Roles } from "./pages/Hub";
+import { HubAddon, HubBilling, HubBuilder, HubDiscover, HubLayout, HubOverview, HubReservation, HubSettings, Invites, Members, Roles } from "./pages/Hub";
 import { CampaignDetail, Campaigns, NewCampaign, Results, Studio } from "./pages/Campaigns";
 import { GuestCampaign } from "./pages/Player";
 import { Analytics } from "./pages/Analytics";
@@ -72,6 +72,13 @@ createRoot(document.getElementById("root")!).render(
               <Route path="billing" element={<HubBilling />} />
               <Route path="reservation" element={<HubReservation />} />
               <Route path="discover" element={<HubDiscover />} />
+              <Route path="builder" element={<HubBuilder />} />
+              <Route path="shop" element={<HubAddon kind="shop" />} />
+              <Route path="leaderboard" element={<HubAddon kind="leaderboard" />} />
+              <Route path="news" element={<HubAddon kind="news" />} />
+              <Route path="news/:post" element={<HubAddon kind="post" />} />
+              <Route path="comments" element={<HubAddon kind="comments" />} />
+              <Route path="p/:page" element={<HubAddon kind="page" />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Link, Outlet, useOutletContext, useParams } from "react-router-dom";
+import { Link, Outlet, useLocation, useOutletContext, useParams } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import { RESERVED_SLUGS } from "../lib/reservedSlugs";
@@ -7,6 +7,8 @@ import type { HubInfo, HubMembership, Role } from "../lib/lvApi";
 import { PENDING_API } from "../lib/lvApi";
 import { Btn, Card, CopyField, Empty, ErrorNote, Loading, Meter, Metric, Micro, Notice, PageHead, PhaseBadge, Pill, Tabs, campaignPhase } from "../components/ui";
 import { HubMark } from "../ui/HubMark";
+import { HubCover } from "../ui/HubCover";
+import { StateScreen } from "../ui/StateScreen";
 import { Icon, type IconName } from "../components/Icon";
 import { BottomTabs, type TabItem } from "../ui/BottomTabs";
 import { describeError } from "../lib/errors";
@@ -16,11 +18,14 @@ export interface HubCtx {
   hub: HubInfo;
   membership: HubMembership | null;
 }
+// Participant-facing add-on pages (M2). They render in the L10 Hub cover shell for everyone.
+const ADDON_PAGE = /^\/[^/]+\/(shop|leaderboard|news|comments|p)(\/|$)/;
 export const useHubCtx = () => useOutletContext<HubCtx>();
 export const can = (m: HubMembership | null, cap: string) => Boolean(m?.is_owner || m?.capabilities.includes(cap));
 
 export function HubLayout() {
   const { hub: slug } = useParams();
+  const { pathname } = useLocation();
   const { api, session } = useIdentity();
   const reserved = !slug || RESERVED_SLUGS.has(slug.toLowerCase());
   const q = useLv(
@@ -44,6 +49,25 @@ export function HubLayout() {
 
   const { hub, membership } = q.data;
   const base = `/${hub.slug}`;
+
+  // Participants (visitors, and members on a participant page) get the Hub cover, not the workspace chrome (L10).
+  if (!membership || ADDON_PAGE.test(pathname)) {
+    return (
+      <div className="lv-l10">
+        <HubCover
+          name={hub.name}
+          slug={hub.slug}
+          pills={<span className="lv-cover-pill">{hub.visibility === "public" ? "Public" : "Private"} · {hub.membership_mode.replace("_", " ")}</span>}
+          action={!session ? <Link className="ui-btn ui-btn-outline lv-cover-btn" to="/signin" state={{ from: base }}>Sign in</Link> : membership ? <Link className="ui-btn ui-btn-outline lv-cover-btn" to={base}>Open workspace</Link> : undefined}
+        />
+        <div className="lv-l10-body">
+          <Outlet context={{ hub, membership } satisfies HubCtx} />
+        </div>
+        <p className="lv-powered">Powered by <img src="/brand/lunchvoice-mark.svg" alt="" height={16} width={16} /> <strong>LunchVoice</strong></p>
+      </div>
+    );
+  }
+
   const tabs = [
     { to: base, label: "Overview", end: true },
     { to: `${base}/campaigns`, label: "Campaigns" },
@@ -52,6 +76,7 @@ export function HubLayout() {
     ...(can(membership, "admin.members.admit") ? [{ to: `${base}/invites`, label: "Invites" }] : []),
     ...(can(membership, "admin.roles.manage") ? [{ to: `${base}/roles`, label: "Roles" }] : []),
     ...(membership ? [{ to: `${base}/settings`, label: "Settings" }] : []),
+    ...(membership?.is_owner ? [{ to: `${base}/builder`, label: "Builder" }] : []),
     ...(membership?.is_owner
       ? [
           { to: `${base}/billing`, label: "Billing" },
@@ -64,7 +89,7 @@ export function HubLayout() {
   // Phones: Overview, Campaigns, Analytics, Members and a More sheet that holds everything else.
   const ICONS: Record<string, IconName> = {
     Overview: "home", Campaigns: "survey", Analytics: "voice", Members: "roster",
-    Invites: "join", Roles: "roster", Settings: "settings", Billing: "coin", Reservation: "lock", Discover: "sparkle",
+    Invites: "join", Roles: "roster", Settings: "settings", Builder: "dashboard", Billing: "coin", Reservation: "lock", Discover: "sparkle",
   };
   const asTab = (t: { to: string; label: string; end?: boolean }): TabItem => ({ ...t, icon: ICONS[t.label] ?? "dashboard" });
   const primary = ["Overview", "Campaigns", "Analytics", "Members"];
@@ -720,5 +745,87 @@ export function HubDiscover() {
         </div>
       </Card>
     </Pending>
+  );
+}
+
+/* ------------------------------------------------------------------ participant add-on pages (M2) */
+
+const ADDONS: Record<string, { title: string; body: string }> = {
+  shop: { title: "Shop", body: "Members will spend participation points on rewards the Hub offers. Points count completed Campaigns, never the content of answers." },
+  leaderboard: { title: "Leaderboard", body: "Groups will be ranked by participation. Individual names appear only for members who opt in." },
+  news: { title: "Newsroom", body: "Hub managers will post updates here, including what changed because of your answers." },
+  post: { title: "News post", body: "A single Newsroom post will open here." },
+  comments: { title: "Comments", body: "Members will discuss the Hub here. New comments are reviewed before they appear." },
+  page: { title: "Custom page", body: "Hub managers will be able to add their own pages." },
+};
+
+export function HubAddon({ kind }: { kind: keyof typeof ADDONS }) {
+  const { hub } = useHubCtx();
+  const a = ADDONS[kind]!;
+  return (
+    <StateScreen
+      kind="empty"
+      title={`${a.title} is coming with M2.`}
+      detail={a.body}
+      action={<Link className="ui-btn ui-btn-outline" to={`/${hub.slug}`}>Back to {hub.name}</Link>}
+    />
+  );
+}
+
+/* ------------------------------------------------------------------ Hub Builder (owner) */
+
+const PAGE_MODULES = [
+  { key: "home", label: "Home and Campaigns", note: "Always on", fixed: true },
+  { key: "shop", label: "Shop", note: "Coming with M2", fixed: false },
+  { key: "leaderboard", label: "Leaderboard", note: "Coming with M2", fixed: false },
+  { key: "news", label: "Newsroom", note: "Coming with M2", fixed: false },
+  { key: "comments", label: "Comments", note: "Coming with M2", fixed: false },
+  { key: "custom", label: "Custom pages", note: "Coming with M2", fixed: false },
+] as const;
+
+export function HubBuilder() {
+  const { hub, membership } = useHubCtx();
+  const [on, setOn] = useState<Record<string, boolean>>({ home: true });
+  if (!membership?.is_owner) return <Card><Notice tone="warn">Only the Hub owner can change which pages the Hub shows.</Notice></Card>;
+  const tabs = PAGE_MODULES.filter((m) => on[m.key] || m.fixed);
+
+  return (
+    <div className="lv-dash">
+      <div className="lv-stack">
+        <div className="lv-panel">
+          <h2>Hub pages</h2>
+          <p className="ui-muted" style={{ margin: "0 0 8px", fontSize: 14.5 }}>Choose which pages participants see in {hub.name}. Home and Campaigns is always on.</p>
+          <ul className="lv-rows">
+            {PAGE_MODULES.map((m) => (
+              <li key={m.key} className="lv-row">
+                <span className="lv-row-main">
+                  <span className="lv-row-title">{m.label}</span>
+                  <span className="lv-row-sub">{m.note}</span>
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={m.fixed || Boolean(on[m.key])}
+                  aria-label={`${m.label} page`}
+                  disabled={m.fixed}
+                  className="lv-switch"
+                  onClick={() => setOn((s) => ({ ...s, [m.key]: !s[m.key] }))}
+                />
+              </li>
+            ))}
+          </ul>
+          <Notice tone="info">Saving Hub pages needs <code>lv_hub_pages_update</code>, which isn't available yet. Your choices below are a preview only, so nothing is saved.</Notice>
+        </div>
+      </div>
+      <aside className="lv-rail" aria-label="Preview">
+        <div className="lv-panel">
+          <h3 style={{ margin: "0 0 10px", font: "600 16px/1.3 var(--lv-font-ui)" }}>Preview: participant tabs</h3>
+          <div className="lv-preview-tabs" role="list">
+            {tabs.map((m) => <span role="listitem" key={m.key} className="lv-preview-tab">{m.key === "home" ? "Home" : m.label}</span>)}
+          </div>
+          <p className="ui-help" style={{ marginTop: 10 }}>Pages that aren't live yet show a "Coming with M2" screen.</p>
+        </div>
+      </aside>
+    </div>
   );
 }

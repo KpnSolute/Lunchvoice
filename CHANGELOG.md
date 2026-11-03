@@ -6,6 +6,12 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (route registry and participant pages)
+
+- `src/config/routes.json`: one entry per route (layout L1 to L11, shell, access, milestone) from the Core Routes map, and `scripts/check-route-layouts.mjs` (in `test:pr` and `test:light`) which fails when a route has no entry or an entry has no route. Tested in `scripts/check-route-layouts.test.mjs`.
+- Participant Hub shell (L10): a Hub cover (mark, name, address, visibility) for visitors and for the add-on pages. The six M2 pages (`/:hub/shop`, `leaderboard`, `news`, `news/:post`, `comments`, `p/:page`) exist as honest "Coming with M2" states.
+- Hub Builder (`/:hub/builder`, owner): page toggles with a participant tab preview. Saving is disabled and says why (`lv_hub_pages_update` is not available yet).
+
 ### Added (respondent player)
 
 - Respondent player rebuilt to the design (L9): welcome with promises (anonymity, skip anything, time), one question per screen with a segmented progress bar and Skip, a review screen with Edit, and a thanks screen. Bare surface: no app header, no signature, Powered by LunchVoice at the foot. Drafts still resume; offline shows a banner and holds the Submit until you are back online.

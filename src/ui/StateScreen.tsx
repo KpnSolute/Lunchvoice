@@ -15,12 +15,12 @@ const COPY: Record<StateKind, { icon: IconName; title: string; body: string }> =
 };
 
 /** L11: one calm state. It says what happened and what to do next, in plain words. */
-export function StateScreen({ kind, detail, action }: { kind: StateKind; detail?: string; action?: ReactNode }) {
+export function StateScreen({ kind, title, detail, action }: { kind: StateKind; title?: string; detail?: string; action?: ReactNode }) {
   const c = COPY[kind];
   return (
     <div className="lv-state" role={kind === "error" ? "alert" : "status"} aria-live="polite">
       <span className="lv-state-icon" aria-hidden="true"><Icon name={c.icon} size={28} /></span>
-      <h1 className="lv-state-title">{c.title}</h1>
+      <h1 className="lv-state-title">{title ?? c.title}</h1>
       <p className="lv-state-body">{detail ?? c.body}</p>
       {action && <div className="lv-state-action">{action}</div>}
     </div>
