@@ -8,7 +8,8 @@ import { About, Beta, Discover, HowItWorks, NotFoundPage, Privacy, Status, Suppo
 import { CreateHub, Join, Me, RedeemInvite, Settings } from "./pages/Account";
 import { Pricing } from "./pages/Pricing";
 import { HubBilling, HubDiscover, HubLayout, HubOverview, HubReservation, HubSettings, Invites, Members, Roles } from "./pages/Hub";
-import { CampaignDetail, Campaigns, GuestCampaign, NewCampaign, Results, Studio } from "./pages/Campaigns";
+import { CampaignDetail, Campaigns, NewCampaign, Results, Studio } from "./pages/Campaigns";
+import { GuestCampaign } from "./pages/Player";
 import { Analytics } from "./pages/Analytics";
 import { Gallery } from "./pages/Gallery";
 import { initTheme } from "./ui/theme";

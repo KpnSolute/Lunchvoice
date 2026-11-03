@@ -6,6 +6,12 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (respondent player)
+
+- Respondent player rebuilt to the design (L9): welcome with promises (anonymity, skip anything, time), one question per screen with a segmented progress bar and Skip, a review screen with Edit, and a thanks screen. Bare surface: no app header, no signature, Powered by LunchVoice at the foot. Drafts still resume; offline shows a banner and holds the Submit until you are back online.
+- Accessible question controls (`src/ui/QuestionControls.tsx`): rating circles, yes/no tiles, single and multi choice with a max-N message, and open text with a counter. Radiogroups use a roving tabindex with arrow keys; selection is the pressed amber surface plus a glyph; jelly motion respects reduced motion.
+- `StateScreen` (L11) for not found, error, closed, scheduled, ineligible, offline, empty and loading, in plain words with a next step.
+
 ### Changed (v2 UI screens)
 
 - Account home (`/me`) rebuilt to the design: greeting, stat tiles, a "pick up where you left off" card, My Hubs rail with Hub marks, join shortcut. Only data the API provides is shown (no invented streaks or badges).

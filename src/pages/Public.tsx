@@ -26,6 +26,10 @@ export function Shell() {
   const { pathname } = useLocation();
   const marketing = MARKETING_ROUTES.has(pathname);
   const account = Boolean(session) && ACCOUNT_ROUTES.has(pathname);
+  const player = pathname.startsWith("/c/");
+
+  // The respondent player is a bare surface: no app header, no footer, no signature.
+  if (player) return <main className="lv-playermain"><Outlet /></main>;
 
   return (
     <>

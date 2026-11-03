@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
-import type { Answer, CampaignMode, Question, QuestionKind, Anonymity } from "../lib/lvApi";
+import type { CampaignMode, Question, QuestionKind, Anonymity } from "../lib/lvApi";
 import { Btn, Card, CopyField, Empty, ErrorNote, Loading, Metric, Micro, Notice, PageHead, PhaseBadge, Pill, campaignPhase } from "../components/ui";
 import { Icon } from "../components/Icon";
 import { describeError, describeGate } from "../lib/errors";
 import { can, useHubCtx } from "./Hub";
+import { Player } from "./Player";
 
 /* ------------------------------------------------------------------ list */
 
@@ -139,163 +140,6 @@ export function NewCampaign() {
 
 /* ------------------------------------------------------------------ player */
 
-function QuestionInput({ q, value, onChange }: { q: Question; value: unknown; onChange: (v: unknown) => void }) {
-  const options = q.config?.options ?? [];
-  if (q.kind === "rating") {
-    return (
-      <div className="ui-rating" role="group" aria-label={q.prompt}>
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button key={n} type="button" aria-pressed={value === n} onClick={() => onChange(n)} aria-label={`${n} of 5`}>{n}</button>
-        ))}
-      </div>
-    );
-  }
-  if (q.kind === "yes_no") {
-    return (
-      <div className="ui-choices">
-        {["Yes", "No"].map((label, i) => (
-          <button key={label} type="button" className="ui-choice" aria-pressed={value === (i === 0)} onClick={() => onChange(i === 0)}>
-            <Icon name={i === 0 ? "check" : "menu"} size={16} />{label}
-          </button>
-        ))}
-      </div>
-    );
-  }
-  if (q.kind === "text") {
-    return <textarea className="ui-textarea" value={typeof value === "string" ? value : ""} onChange={(e) => onChange(e.target.value)} placeholder="Type your answer" />;
-  }
-  const multi = q.kind === "multi_choice";
-  const arr = Array.isArray(value) ? (value as string[]) : [];
-  return (
-    <div className="ui-choices">
-      {options.map((opt) => {
-        const on = multi ? arr.includes(opt) : value === opt;
-        return (
-          <button key={opt} type="button" className="ui-choice" aria-pressed={on}
-            onClick={() => { if (multi) onChange(on ? arr.filter((v) => v !== opt) : [...arr, opt]); else onChange(opt); }}>
-            <span aria-hidden="true" style={{ width: 16, height: 16, borderRadius: multi ? 4 : 999, border: "1.5px solid var(--line)", background: on ? "var(--accent)" : "transparent", flex: "none" }} />
-            {opt}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function Player({ campaignId, guest }: { campaignId: string; guest?: { joinCode: string; guestKey: string } }) {
-  const { api } = useIdentity();
-  const detail = useLv(
-    () => (guest ? api.guestCampaignGet(guest.joinCode) : api.campaignGet(campaignId)),
-    [api, campaignId, guest?.joinCode],
-  );
-  const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, unknown>>({});
-  const [error, setError] = useState<string | null>(null);
-  const [receipt, setReceipt] = useState<{ id: string; duplicate: boolean } | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const d = detail.data;
-  const questions = d?.questions ?? [];
-  const q = questions[step];
-  const answered = q ? answers[q.question_id] !== undefined && (!Array.isArray(answers[q.question_id]) || (answers[q.question_id] as unknown[]).length > 0) : false;
-
-  useEffect(() => {
-    if (!questions.length) return;
-    const key = `lv-draft-${guest?.joinCode ?? campaignId}`;
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) setAnswers(JSON.parse(raw));
-    } catch { /* storage unavailable: drafts simply do not resume */ }
-  }, [campaignId, guest?.joinCode, questions.length]);
-
-  useEffect(() => {
-    try { localStorage.setItem(`lv-draft-${guest?.joinCode ?? campaignId}`, JSON.stringify(answers)); } catch { /* ignore */ }
-  }, [answers, campaignId, guest?.joinCode]);
-
-  async function submit() {
-    setBusy(true);
-    setError(null);
-    const payload: Answer[] = questions.map((qq) => ({ question_id: qq.question_id, value: answers[qq.question_id] ?? null }));
-    const r = guest ? await api.guestSubmit(guest.joinCode, guest.guestKey, payload) : await api.submit(campaignId, payload);
-    setBusy(false);
-    if (r.ok) {
-      setReceipt({ id: r.receipt_id, duplicate: r.duplicate });
-      try { localStorage.removeItem(`lv-draft-${guest?.joinCode ?? campaignId}`); } catch { /* ignore */ }
-    } else setError(describeError(r.error));
-  }
-
-  if (detail.loading) return <Loading rows={3} label="Loading Campaign" />;
-  if (detail.error) return <Card><ErrorNote error={detail.error} /></Card>;
-  if (!d) return null;
-
-  const phase = campaignPhase(d.campaign);
-
-  if (receipt || d.has_responded) {
-    return (
-      <Card>
-        <div className="ui-stack ui-gap-12" style={{ alignItems: "flex-start" }}>
-          <span style={{ color: "var(--pop)" }}><Icon name="check" size={26} /></span>
-          <h2 className="ui-display ui-display-lg" style={{ margin: 0 }}>Thanks — that's recorded.</h2>
-          <p className="ui-muted" style={{ margin: 0, maxWidth: "52ch" }}>
-            {receipt?.duplicate
-              ? "You had already answered, so we kept your original response and didn't store a second one."
-              : "Your answer is stored. Nothing here links it back to you."}
-          </p>
-          {(receipt?.id || d.receipt_id) && <Micro>Receipt {receipt?.id ?? d.receipt_id}</Micro>}
-        </div>
-      </Card>
-    );
-  }
-
-  if (phase !== "open" || !d.can_respond) {
-    return (
-      <Card>
-        <PhaseBadge phase={phase} />
-        <h2 className="ui-display ui-display-lg" style={{ margin: "10px 0 6px" }}>This Campaign isn't taking answers.</h2>
-        <p className="ui-muted" style={{ margin: 0 }}>
-          {phase === "scheduled" ? "It hasn't opened yet." : phase === "ended" ? "It has ended." : phase === "closed" ? "It has been closed." : "It isn't available to you right now."}
-        </p>
-      </Card>
-    );
-  }
-
-  const pct = Math.round(((step + 1) / Math.max(questions.length, 1)) * 100);
-
-  return (
-    <div className="ui-player ui-stack ui-gap-16">
-      <div className="ui-stack ui-gap-8">
-        <div className="ui-progress" aria-hidden="true">
-          {questions.map((_, i) => <i key={i} className={i <= step ? "on" : ""} />)}
-        </div>
-        <div className="ui-spread">
-          <Micro>Question {step + 1} of {questions.length}</Micro>
-          <Micro>{pct}%</Micro>
-        </div>
-      </div>
-
-      <div className="ui-card">
-        <h2 className="ui-player-q">{q?.prompt}</h2>
-        {q && <QuestionInput q={q} value={answers[q.question_id]} onChange={(v) => setAnswers((a) => ({ ...a, [q.question_id]: v }))} />}
-      </div>
-
-      <Notice tone={d.campaign.anonymity === "anonymous" ? "ok" : "warn"}>
-        {d.campaign.anonymity === "anonymous" ? "Your answers cannot be traced to you." : "Hub managers can see who answered this Campaign."}
-      </Notice>
-
-      {error && <ErrorNote error={{ code: "lv_server_error", message: error }} />}
-
-      <div className="ui-spread">
-        <Btn variant="quiet" disabled={step === 0} onClick={() => setStep((s) => s - 1)}>Back</Btn>
-        {step < questions.length - 1 ? (
-          <Btn variant="primary" disabled={!answered} onClick={() => setStep((s) => s + 1)}>Next</Btn>
-        ) : (
-          <Btn variant="primary" disabled={!answered || busy} onClick={submit} icon="check">{busy ? "Sending…" : "Submit"}</Btn>
-        )}
-      </div>
-    </div>
-  );
-}
-
 /* ------------------------------------------------------------------ detail */
 
 export function CampaignDetail() {
@@ -327,41 +171,7 @@ export function CampaignDetail() {
           </div>
         )}
       </div>
-      <Player campaignId={id} />
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ guest player */
-
-export function GuestCampaign() {
-  const { joinCode = "" } = useParams();
-  const storageKey = `lv-guest-key-${joinCode}`;
-  const [guestKey, setGuestKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    try {
-      const existing = localStorage.getItem(storageKey);
-      if (existing) { setGuestKey(existing); return; }
-      const key = Array.from({ length: 32 }, () => "abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random() * 36)]).join("");
-      localStorage.setItem(storageKey, key);
-      setGuestKey(key);
-    } catch {
-      // Storage blocked: fall back to an in-memory key for this page view only.
-      setGuestKey(Array.from({ length: 32 }, () => "abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random() * 36)]).join(""));
-    }
-  }, [storageKey]);
-
-  if (!guestKey) return <div className="ui-page"><Loading rows={2} /></div>;
-
-  return (
-    <div className="ui-page" style={{ maxWidth: 640 }}>
-      <div className="ui-row ui-gap-8" style={{ marginBottom: 16 }}>
-        <img src="/brand/lunchvoice-mark.svg" alt="" height={24} width={24} />
-        <strong style={{ fontFamily: "var(--font-display)" }}>LunchVoice</strong>
-        <Pill>Guest</Pill>
-      </div>
-      <Player campaignId={joinCode} guest={{ joinCode, guestKey }} />
+      <Player campaignId={id} embedded />
     </div>
   );
 }
