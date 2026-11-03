@@ -1,0 +1,173 @@
+/* LunchVoice v2 design tokens · from the design system (core v1.1, theme.css v2.2.0).
+   Light is the default. [data-theme="dark"] and [data-theme="hc"] are set on <html> by src/ui/theme.ts.
+   prefers-contrast: more and forced-colors fall back to the high-contrast border rules.
+   This is the single source of tokens: index.css maps its older names onto these. */
+:root {
+  /* surfaces (light) */
+  --lv-raised-bg: linear-gradient(180deg, #ffffff 0%, #f2f1ee 100%);
+  --lv-raised-shadow: 0 1px 0 #fff inset, 0 8px 18px rgba(20, 17, 15, 0.1), 0 2px 4px rgba(20, 17, 15, 0.08);
+  --lv-pressed-bg: linear-gradient(180deg, #e98207 0%, #ff9a18 45%, #ffb347 100%);
+  --lv-pressed-shadow: inset 0 3px 7px rgba(110, 50, 0, 0.45), inset 0 -2px 3px rgba(255, 255, 255, 0.35),
+    0 0 0 4px #fff, 0 6px 14px rgba(20, 17, 15, 0.14);
+  --lv-well-shadow: inset 0 2px 5px rgba(20, 17, 15, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.9);
+  --lv-card-shadow: 0 1px 0 #fff inset, 0 18px 40px rgba(20, 17, 15, 0.08), 0 2px 6px rgba(20, 17, 15, 0.05);
+  --lv-popover-shadow: 0 1px 0 #fff inset, 0 22px 48px rgba(20, 17, 15, 0.18), 0 4px 10px rgba(20, 17, 15, 0.08);
+  --lv-ink-bg: linear-gradient(180deg, #2e2a25 0%, #14110f 100%);
+  --lv-ink-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset, 0 10px 24px rgba(20, 17, 15, 0.3);
+  --lv-accent-cta-bg: linear-gradient(180deg, #ffbe5c 0%, #ff9a18 55%, #f58c0c 100%);
+  --lv-control-border: 0 solid transparent;
+  /* page-level extras used by the app chrome */
+  --lv-well-hover: #e4e2de;
+  --lv-well-focus: #f3f2ef;
+  --lv-rim: rgba(255, 255, 255, 0.8);
+  /* type */
+  --lv-font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --lv-font-ui: 'Geist', system-ui, sans-serif;
+  --lv-font-mono: 'Space Mono', ui-monospace, monospace;
+  /* radius */
+  --lv-radius-field: 16px;
+  --lv-radius-card: 24px;
+  --lv-radius-hero: 28px;
+  --lv-radius-pill: 999px;
+  /* space (4px base) */
+  --lv-space-1: 4px;
+  --lv-space-2: 8px;
+  --lv-space-3: 12px;
+  --lv-space-4: 16px;
+  --lv-space-5: 20px;
+  --lv-space-6: 24px;
+  --lv-space-8: 32px;
+  --lv-space-10: 40px;
+  --lv-space-14: 56px;
+  /* motion: the only easings and durations in the app */
+  --lv-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --lv-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --lv-dur-press: 260ms;
+  --lv-dur-toggle: 460ms;
+  --lv-dur-popover: 280ms;
+  --lv-dur-jelly: 560ms;
+  --lv-dur-enter: 420ms;
+  --lv-signature-calm: 9s;
+  --lv-signature-default: 6s;
+  --lv-signature-lively: 4s;
+  /* targets */
+  --lv-target-min: 44px;
+  --lv-circle-control: 58px;
+}
+:root,
+[data-theme='light'] {
+  --lv-page: #eeedea;
+  --lv-surface: #ffffff;
+  --lv-surface2: #f2f1ee;
+  --lv-popover: #f8f7f5;
+  --lv-well: #e9e8e5;
+  --lv-text: #14110f;
+  --lv-muted: #4a4540;
+  --lv-subtle: #6a645e;
+  --lv-line: #dad8d4;
+  --lv-control-off: #7f7972;
+  --lv-primary: #14110f;
+  --lv-on-primary: #f7f3ea;
+  --lv-accent: #ff9a18;
+  --lv-accent-deep: #e98207;
+  --lv-accent-light: #ffb347;
+  --lv-on-accent: #14110f;
+  --lv-danger: #c2382b;
+  --lv-danger-ink: #8a2318;
+  --lv-success: #2e8a4e;
+  --lv-success-ink: #1f5e35;
+  --lv-focus: #14110f;
+  color-scheme: light;
+}
+[data-theme='dark'] {
+  --lv-page: #17140f;
+  --lv-surface: #34302a;
+  --lv-surface2: #2a2620;
+  --lv-popover: #2e2a25;
+  --lv-well: #0f0d0a;
+  --lv-text: #f7f3ea;
+  --lv-muted: #c9c3ba;
+  --lv-subtle: #a39d94;
+  --lv-line: #3a352f;
+  --lv-control-off: #8a847b;
+  --lv-primary: #f7f3ea;
+  --lv-on-primary: #14110f;
+  --lv-accent: #ff9a18;
+  --lv-accent-deep: #e98207;
+  --lv-accent-light: #ffb347;
+  --lv-on-accent: #14110f;
+  --lv-danger: #ff8a7a;
+  --lv-danger-ink: #ffb3a8;
+  --lv-success: #5cc98a;
+  --lv-success-ink: #8ee0b0;
+  --lv-focus: #ffb347;
+  --lv-raised-bg: linear-gradient(180deg, #34302a 0%, #2a2620 100%);
+  --lv-raised-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 8px 18px rgba(0, 0, 0, 0.4);
+  --lv-pressed-shadow: inset 0 3px 7px rgba(110, 50, 0, 0.55), 0 0 0 4px #17140f, 0 6px 14px rgba(0, 0, 0, 0.4);
+  --lv-well-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6);
+  --lv-card-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 18px 40px rgba(0, 0, 0, 0.4);
+  --lv-popover-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 22px 48px rgba(0, 0, 0, 0.5);
+  --lv-ink-bg: linear-gradient(180deg, #f7f3ea 0%, #e4ded3 100%);
+  --lv-ink-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 10px 24px rgba(0, 0, 0, 0.4);
+  --lv-well-hover: #1a1713;
+  --lv-well-focus: #14110d;
+  --lv-rim: rgba(255, 255, 255, 0.06);
+  color-scheme: dark;
+}
+[data-theme='hc'] {
+  --lv-page: #ffffff;
+  --lv-surface: #ffffff;
+  --lv-surface2: #ffffff;
+  --lv-popover: #ffffff;
+  --lv-well: #ffffff;
+  --lv-text: #000000;
+  --lv-muted: #262320;
+  --lv-subtle: #3a3632;
+  --lv-line: #000000;
+  --lv-control-off: #000000;
+  --lv-primary: #000000;
+  --lv-on-primary: #ffffff;
+  --lv-accent: #ffb347;
+  --lv-accent-deep: #ffb347;
+  --lv-accent-light: #ffb347;
+  --lv-on-accent: #000000;
+  --lv-danger: #a3140a;
+  --lv-danger-ink: #a3140a;
+  --lv-success: #0b5e2a;
+  --lv-success-ink: #0b5e2a;
+  --lv-focus: #000000;
+  --lv-raised-bg: #ffffff;
+  --lv-raised-shadow: none;
+  --lv-pressed-bg: #ffb347;
+  --lv-pressed-shadow: none;
+  --lv-well-shadow: none;
+  --lv-card-shadow: none;
+  --lv-popover-shadow: none;
+  --lv-ink-bg: #000000;
+  --lv-ink-shadow: none;
+  --lv-accent-cta-bg: #ffb347;
+  --lv-well-hover: #ffffff;
+  --lv-well-focus: #ffffff;
+  --lv-rim: #000000;
+  --lv-control-border: 2px solid #000000; /* selected controls: 3px solid #000 + a glyph change */
+  color-scheme: light;
+}
+@media (prefers-contrast: more) {
+  :root:not([data-theme]) {
+    --lv-control-border: 1px solid rgba(20, 17, 15, 0.12);
+  }
+}
+@media (forced-colors: active) {
+  :root {
+    --lv-control-border: 1px solid CanvasText;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --lv-dur-press: 0ms;
+    --lv-dur-toggle: 0ms;
+    --lv-dur-popover: 0ms;
+    --lv-dur-jelly: 0ms;
+    --lv-dur-enter: 0ms;
+  }
+}

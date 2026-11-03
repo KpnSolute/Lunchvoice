@@ -5,6 +5,7 @@ import { slugProblem } from "../lib/reservedSlugs";
 import { useLv } from "../lib/useLv";
 import { Btn, Card, Empty, ErrorNote, Loading, Micro, Notice, PageHead, Pill } from "../components/ui";
 import { Icon } from "../components/Icon";
+import { ThemeControl } from "../ui/ThemeControl";
 import { describeError } from "../lib/errors";
 import type { BetaStatus } from "../lib/lvApi";
 
@@ -284,6 +285,13 @@ export function Settings() {
   return (
     <div className="ui-page">
       <PageHead eyebrow="Settings" title="Settings" sub="Local preferences only. Account and notification settings have no API yet." />
+      <Card>
+        <div className="ui-stack ui-gap-8">
+          <strong>Appearance</strong>
+          <p className="ui-muted" style={{ margin: 0 }}>Choose a theme for this device. System follows your device setting.</p>
+          <ThemeControl />
+        </div>
+      </Card>
       <Card>
         <div className="ui-row ui-gap-8" style={{ marginBottom: 8 }}>
           <Icon name="lock" size={18} />
