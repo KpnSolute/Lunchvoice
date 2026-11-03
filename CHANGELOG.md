@@ -8,6 +8,8 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added (KpnIdentity sign-in)
 
+- `supabase/functions/session/deno.json`: the function's own import map, so the Supabase deploy bundles `jose` (the shared `supabase/functions/deno.json` is not read by the deploy).
+
 - `[functions.session] verify_jwt = false` in `supabase/config.toml` so redeploys keep the function reachable before sign-in; setup guide records the LunchVoice OAuth client id and the KpnIdentity issuer.
 
 - Real sign-in: **Continue with Google** redirects to KpnIdentity (Supabase Auth OAuth 2.1 server) with
