@@ -7,6 +7,16 @@
 - **Not legal advice.** Items about law (privacy notices, COPPA, FERPA, state student-privacy law, payments) are
   risks for the founder to take to counsel. They are not statements of what the law requires.
 
+> **Re-review 2026-11-07 (integrated branch `claude/wizardly-meitner-wohkzr` @ `7ea5853`):** see section 7. All
+> original BLOCKER and HIGH findings are closed with runtime evidence. One NEW HIGH (NEW-01, billing grant not
+> bound to the amount paid) is open. It cannot be reached while billing is off, and it must be fixed before
+> `billing.provider_ready` is set to true. Sections 1-6 below are the original review, kept as history.
+
+> **Re-review 2026-11-07 (integrated branch `claude/wizardly-meitner-wohkzr` @ `7ea5853`):** see section 7. All
+> original BLOCKER and HIGH findings are closed with runtime evidence. One NEW HIGH (NEW-01, billing grant not
+> bound to the amount paid) is open. It cannot be reached while billing is off, and it must be fixed before
+> `billing.provider_ready` is set to true. Sections 1-6 below are the original review, kept as history.
+
 ## 1. Summary verdict
 
 **Not ready to launch. 1 BLOCKER and 7 HIGH findings are open.**
@@ -340,3 +350,155 @@ grep -oE 'path="[a-z][a-z0-9-]{2,}' src/main.tsx | sed 's/path="//' | sort -u > 
 | F-13 | Approval scope for applying 000010-000016 to production, and a corrected runbook. | Production | LC-07 |
 | F-14 | Whether free-text questions are offered before a publishing policy exists. | Minimisation | LC-41 |
 | F-15 | Counsel review of the privacy notice and Terms. Name the legal entity and governing law. | Legal surface | LC-08, §5 |
+
+The founder answered these in `docs/v2/LAUNCH_PLAN.md`, under "Founder final decisions" (numbered F-01..F-13 there).
+Section 7 refers to those as "plan F-xx" so they are not confused with the questions above.
+
+## 7. Re-review (integrated branch)
+
+- **Commit reviewed:** `7ea5853` on `claude/wizardly-meitner-wohkzr`. This covers 000014–000016, `billing-webhook`,
+  the runbook rewrite, the shadcn UI and the security headers.
+- **Founder decisions applied:** plan F-01..F-13. These supersede L-08, L-09, L-12 and L-14.
+- **Method:** runtime evidence, not documentation. Every check below was run against throwaway local containers.
+  Production was not touched.
+
+### 7.1 Verdict
+
+**Every original BLOCKER and HIGH is closed. One NEW HIGH (NEW-01) is open, so the plan F-13 gate ("BLOCKER and HIGH
+findings are zero") is not met yet.**
+
+- **What NEW-01 is:** a billing defect. The webhook grants whatever the checkout intent asked for without checking
+  what Stripe actually charged.
+- **Why it cannot be reached at launch:**
+  - `billing.provider_ready` is `false`, so `lv_checkout_start` returns `lv_billing_unavailable`;
+  - `billing.payment_links` is NULL;
+  - `billing-webhook` answers 503 while `STRIPE_WEBHOOK_SECRET` is unset.
+- **Options:** fix it now (small, in the backend; see 7.5), or have the founder record it as DEFERRED, gated on
+  billing enablement. In both cases it must be fixed and tested before `billing.provider_ready` is set to true.
+
+Open findings by severity at `7ea5853`:
+
+| | BLOCKER | HIGH | MEDIUM | LOW |
+| --- | --- | --- | --- | --- |
+| Original findings still OPEN | 0 | 0 | 4 | 5 |
+| NEW findings OPEN | 0 | 1 | 3 | 4 |
+
+The original open MEDIUMs are LC-10, LC-12, LC-13 and LC-14. The original open LOWs are LC-11 (residual), LC-30,
+LC-31, LC-32 and LC-37. Every other original finding is CLOSED, ACCEPTED-for-beta or DEFERRED with a named owner
+(table 7.3).
+
+### 7.2 Runtime evidence gathered
+
+| Check | Result |
+| --- | --- |
+| `bash scripts/db-test-canonical.sh` | **PASS.** 16 migrations; `checks: 628, failed: 0`; slug race 1 winner and 1 `lv_conflict`, with the loser's credit kept; waitlist race on the last seat, 1 admitted and 1 waitlisted, with 1 Founding credit; full rollback rehearsed |
+| `npm run test:pr` with placeholder `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | **PASS.** Brain in sync; names clean; every route has a layout; script tests 16/16; function tests 21/21; build passes; bundle markers present |
+| `npm run test:unit` | 14/14 pass |
+| `npm run check:names` | clean (`src/` only; see LC-31) |
+| Bundle scan of `dist/assets/*.js` for `service_role`, `sb_secret_`, `sk_live_`/`sk_test_`, `whsec_`, private keys, simulated sign-in, `createMockTransport`, `lv.mock.state` | **none found** |
+| CSP hash in `render.yaml:18` against a sha256 of the inline script in the built `dist/index.html` | **identical** (`sha256-kU0Cb4JI…PdyQ=`) |
+| `npm audit --audit-level=high` | exit 0 (moderate and low only) |
+| Catalog audit (§4.2) on a fresh install of 000001–000016 | A1/A2: 0 definer functions without `search_path=''`; A3: **0 `lv` tables without RLS**; A4: 0 table or sequence grants to API roles; **A5b: 0 functions in `lv` or `lv_api` executable by PUBLIC**; A5: only `lv.billing_apply_event` and `lv.retention_sweep` are executable, and only by `service_role`; A7: anon executes exactly 10 of 68 `lv_api` functions (`lv_capability_catalog, lv_guest_campaign_get, lv_guest_submit, lv_hub_get, lv_hub_pages_get, lv_hub_reservation_status, lv_my_context, lv_plan_limits, lv_report_abuse, lv_waitlist_status`); A8: every `lv_api` function is a definer; A9: no views; A10: min cohort 5, guest rate 10, 50 seats, reauth 600 s, slug cooldown 30 days, `billing.provider_ready=false`; A12: no customer name reserved or seeded; products: Campaign Plus 3900 plus 1900 per week |
+| **Reconstruction attacks** (anonymous, min cohort 5; via `lv_analytics_overview`, `lv_analytics_query` **and** `lv_analytics_export`) | S1, the original LC-01 case (5x"5" + 1x"1"): the question is withheld whole in all three paths. There are no cells, no keys, `summary.n` and `mean` are null, and the export has only a withheld row and a null mean row (`participants=6` is still published, which reveals nothing). S2, single choice 6/3/1: withheld whole. S3, unanimous yes/no ×6: withheld (`dominance`). S4, rating 5×5 + 5×4: cells and mean published, which is correct because nothing is withheld. S5, 5/5/4/1: A=5 and B=5 published, plus **one keyless merged withheld bucket** (sum 5, at the cohort). S6, multi choice with A chosen by everyone: withheld (`dominance`). S7, 4 free-text answers: `texts_withheld`; 5 answers: strings in random order, with no ids or times, and listed separately in the export. S9, 37 of 40 members answered: `participation_rate` withheld (`near_full_turnout`). **No published output let a withheld count be derived.** |
+| **Personal-space isolation** | A stranger calling with the personal-space id got 21 Hub-scoped calls refused (`lv_not_found`, `lv_forbidden` or `lv_billing_unavailable`, never `ok`). The owner got 11 Hub-only calls on their own space refused (`lv_not_found` or `lv_not_available`). Respondent views carry `hub_id: null` and `hub.name: null`. The space is never in `lv_my_context.hubs`. A link response creates **no** membership (the space has only the owner's membership) |
+| **Account deletion** | A session 2 hours old gets `lv_reauth_required`; a wrong confirmation gets `lv_confirmation_mismatch`. After deletion, a scan of **every column of every `lv` table** for the account uuid, the identity email and the waitlist email finds **no residue**. The identified free-text answer is deleted; the structured answer stays with `account_id NULL` and a UTC-day timestamp; the personal space, its Quick Surveys, the waitlist row and the contact email are gone. Signing in again with the same `(iss, sub)` gives a new account with nothing attached |
+| **Slug quarantine** | After Owner delete, another person's claim gets `lv_conflict`; `lv_hub_get` gets `lv_hub_gone`; reservation status reads `taken`. After 31 days (tombstone aged) a new claim gets a **new Hub id** with 0 campaigns and none of the old data |
+| **Billing grant binding** (NEW-01) | With `provider_ready=true` and a fixed-price Payment Link, `lv_checkout_start('campaign_starter', null, 104)` records an intent of 134500 cents. Applying `checkout.session.completed` with that `client_reference_id` (exactly as the webhook maps it) gives `applied` and a **728-day** `campaign_starter` credit. No amount, currency or payment status is ever checked. A replay is correctly `duplicate` |
+
+### 7.3 Reconciliation of every original finding
+
+In every row the production-verification column is **pending deploy**. Fix commits: `a928b77` (000014), `c1fa323`
+(000015), `14dd3c0` (000016), `0cb1688` (webhook), `9626d23` and `62c24e6` (UI), `490804f` (headers), and `6aadded`
+(text results and runbook).
+
+| ID | Orig. sev | Fix commit | Implementation evidence | Automated test evidence | Live prod | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| LC-01 | BLOCKER | 14dd3c0, 6aadded | `000016:90-131` `lv.safe_cells` (one merged keyless bucket, grown to the cohort, whole-question withhold); `000016:285` mean and n withheld when anything is withheld; `000016:347-405` export uses the same engine | `16_billing_analytics.sql`: "LC-01: the question is withheld as a whole (no cells, no keys)", "LC-01: the rating mean and n are withheld", "engine: 6 and 1 with cohort 5 withholds the question", "LC-01/export: the export of the 5+1 case holds no option key, no count and no mean", "export: differencing export against query and overview reveals nothing extra"; my S1, S2 and S5 runs | pending deploy | **CLOSED** |
+| LC-02 | HIGH | 14dd3c0 | `000016:105-108` dominance rule; `000016:233-249` participation rate withheld at 100% and when non-respondents are below the cohort | "LC-02: a unanimous small cohort (3) is withheld", "…large cohort (7) is withheld by the dominance rule", "participation rate is withheld when eligible minus respondents is below the cohort (12 of 13)", "…withheld at 100% turnout"; my S3, S6 and S9 runs | pending deploy | **CLOSED** |
+| LC-03 | HIGH | 9626d23 | `src/pages/Player.tsx:152-160` privacy promise per mode (member anonymous now says "you sign in only so we can count you once"); `:177,218,229` "Every question needs an answer" and Required, matching `lv.validate_answers`; `Marketing.tsx:44` FAQ | none automated (copy); manual read | pending deploy | **CLOSED** (residual NEW-06) |
+| LC-04 | HIGH | 490804f | `render.yaml:15-33`: CSP (script hash, `connect-src` = the LunchVoice and KpnIdentity Supabase hosts, which matches the issuer `https://axzwdbizblfkspduqilj.supabase.co/auth/v1` in `docs/v2/KPNIDENTITY_SETUP.md:27`), `frame-ancestors 'none'`, HSTS, nosniff, Referrer-Policy, Permissions-Policy, XFO | my hash check against `dist/index.html`; coordinator's zero-violation browser test | pending deploy (`curl -I https://lunchvoice.com/` must show all 6 headers) | **CLOSED.** The session stays in `localStorage`, mitigated by the strict `script-src`; accepted |
+| LC-05 | HIGH | a928b77, c1fa323, 14dd3c0 | `000014:1680-1704` (revoke from PUBLIC, per-function anon allow-list); `000015:589-601`; `000016:851-875` | `14_entitlements.sql` "grants: no lv_api function is executable by PUBLIC", "grants: anon executes exactly the signed-out allow-list", "grants: as anon, every lv_api function outside the allow-list is denied"; catalog A5b and A7 | pending deploy (runbook §2) | **CLOSED** |
+| LC-06 | HIGH | a928b77, c1fa323 | `000014:107-121` (kind, slug CHECKs, personal space always private and invite-only); `000014:332-365` `premium_guard`/`require_community`; `000014:1484-1530` wrappers; `000015:559-579`; `000014:403-413` eligibility without membership | `14_entitlements.sql` "personal: Hub-scoped operations answer lv_not_found …", "personal (LC-06): …", "link: answering never creates a membership in the personal space"; `15_hub_management.sql` "personal: update, pages, transfer and delete answer lv_not_found"; my 32-call isolation run | pending deploy | **CLOSED** |
+| LC-07 | HIGH | 6aadded | `docs/backend/PRODUCTION_RESET_RUNBOOK.md:1-130`: rewritten for the real state (000001–000013 applied); apply 000014–000016; post-apply grant audit; policy check; secrets by name; "never configure KpnIdentity as third-party auth"; Auth sign-ups disabled; `lv_api` exposed last | n/a (procedure) | pending deploy | **CLOSED** |
+| LC-08 | HIGH | 62c24e6 | `Marketing.tsx:141-245`: Terms, Privacy and Support carry what is stored, anonymity, guests, a per-key storage table, retention, deletion, processors and a contact; `LegalPending` "Legal text pending review" (`:27-29`); `Waitlist.tsx:115-127` notice and consent at collection | none (copy) | pending deploy | **ACCEPTED-for-beta.** Founder inputs outstanding: legal operator name (`Marketing.tsx:15` is a placeholder, as plan F-12 requires) and confirmation that `support@lunchvoice.com` (`src/config/contact.ts:3`) is a monitored mailbox. Both must be in place before the waitlist URL is shared. Remaining content gaps: NEW-03, NEW-04 |
+| LC-09 | MEDIUM | a928b77 | `000014:1654-1666` participation coarsened to the UTC day (submissions were already coarsened) | db suite (privacy files) | pending deploy | **ACCEPTED-for-beta.** Physical insertion order is still a linkage path for database operators; disclosure tracked in NEW-04 (backend / founder) |
+| LC-10 | MEDIUM | a928b77 | `000014:1636-1652` join codes from `lv.random_bytes` | "join codes come from the CSPRNG" | pending deploy | **OPEN (MEDIUM, before public beta).** There is still no separate high-entropy link token and no rate limit on `lv_guest_campaign_get` (backend) |
+| LC-11 | MEDIUM | 14dd3c0, 62c24e6 | plan F-02 accepts guests at 10/min; results labelled (`000016:338-341` `includes_guests`; `Results.tsx:62-66`) | "survey gate: a guest answer leaves the threshold unmet" | pending deploy | **ACCEPTED-for-beta** (plan F-02). Residual: the guest key still comes from `Math.random` (`Player.tsx:19`), OPEN LOW (UI) |
+| LC-12 | MEDIUM | – | `lv.caller_identity` (000001:162-196) still checks neither `aud` nor `session_kind`; mitigated procedurally in the runbook ("never configure KpnIdentity as third-party auth") | – | pending deploy | **OPEN (MEDIUM, before public beta)** (backend) |
+| LC-13 | MEDIUM | – | `_shared/session.ts` unchanged (nonce is client-supplied) | – | – | **OPEN (MEDIUM, before public beta)** (backend) |
+| LC-14 | MEDIUM | – | `src/lib/kpnIdentity.ts:68-70` still accepts `/\`; react-router 6.30.6 | – | – | **OPEN (MEDIUM, before public beta)** (UI): reject `\` and upgrade react-router |
+| LC-15 | MEDIUM | 62c24e6 | disclosed in the Privacy storage table (`Marketing.tsx:170-176`) | – | – | **ACCEPTED-for-beta.** Drafts are still in `localStorage`; a shared-device option is still to come (UI) |
+| LC-16 | MEDIUM | c1fa323 | `000015:502-552` (plan F-05: free text deleted, structured answers unlinked and coarsened, audit scrubbed, waitlist and email cascade, personal space deleted) | `15_hub_management.sql` "delete: no lv row references the deleted account id or identity subject", "delete: the unlinked submission keeps no exact time…", "delete: signing in again starts a fresh account"; my full-table residue scan | pending deploy | **CLOSED** (copy accuracy: NEW-03) |
+| LC-17 | MEDIUM | 14dd3c0 | `000016:806-828` `lv.retention_sweep()` (logs 365 days, guest hashes 7 days); Privacy retention list | db suite | pending deploy: **the sweep is not scheduled** (runbook:174-176 pg_cron step) | **ACCEPTED-for-beta.** Founder or backend schedules it within 12 months of launch at the latest |
+| LC-18 | MEDIUM | a928b77, 62c24e6 | `000014:960-1068` (separate column, consent version, global advisory lock, unique per account); `Waitlist.tsx:115-127` | "waitlist: a contact email needs the current consent version", "waitlist: the 51st joiner is waitlisted…", waitlist race in db-test | pending deploy | **CLOSED** |
+| LC-19 | MEDIUM | 0cb1688 | `_shared/billing.ts:65-125` (raw body, HMAC-SHA256, constant-time, 300 s tolerance, all v1 values); `billing-webhook/index.ts:21-31` 503 without a secret, 256 KB cap, no payload logs; `000016:580-597` idempotent on `(provider, event_id)` | `billing.test.ts`: "a stale or future timestamp beyond 300 s fails…", "an unset secret fails closed", "timing-safe comparison", "bad metadata values are dropped"; my replay gives `duplicate` | pending (secret unset) | **CLOSED** for verification and idempotency. **Grant semantics: NEW-01, NEW-02** |
+| LC-20 | MEDIUM | 14dd3c0 | `000016:870-875` service_role gets `usage on lv` and execute on 2 functions only; webhook uses `set local role service_role` | "grants: service-only functions never live in lv_api", "…not executable by anon or authenticated"; catalog A5 | pending deploy | **CLOSED** |
+| LC-21 | MEDIUM | 490804f | `Referrer-Policy: strict-origin-when-cross-origin` (`render.yaml:26-27`): paths never leave the origin | – | pending deploy | **ACCEPTED-for-beta.** Codes stay in paths and in Render access logs; disclosure tracked in NEW-04 |
+| LC-22 | MEDIUM | c1fa323 | `000015:58-80` `lv.require_recent_auth` (session `iat` within 600 s) on transfer, Hub delete and account delete | "transfer: a stale session is lv_reauth_required", "hub delete: …", "delete: …"; my 2-hour-old-iat run | pending deploy | **CLOSED** |
+| LC-23 | MEDIUM | 62c24e6 | `src/config/pricing.ts` is the single display source; its values match `lv.products` (catalog). Checkout amounts come only from `lv.products` | "products: prices are the canonical cents" | – | **ACCEPTED-for-beta.** Display copy is not read from `lv_plan_limits()`, so drift is possible (UI) |
+| LC-24 | MEDIUM | a928b77 | `000014:1381-1407` | "reserved: every top-level UI and launch route is reserved", "reserved: whitelist and how-it-works cannot be claimed"; my route-against-table query found no gaps | pending deploy | **CLOSED** |
+| LC-25 | MEDIUM | – | `render.yaml:39-45` still declares no `VITE_KPNIDENTITY_*`; the runbook states production sign-in works, so they are set in the dashboard | – | pending deploy (smoke sign-in) | **ACCEPTED-for-beta** (governing: declare them with `sync: false`) |
+| LC-26 | MEDIUM | a928b77, 62c24e6 | `000014:1313-1380` report (signed out, rate-limited, same answer for unknown codes) and admin block; `src/pages/ReportSurvey.tsx` | "abuse: reporting is rate-limited", "moderation: … nothing was deleted" | pending deploy | **CLOSED** (plan F-07) |
+| LC-27 | MEDIUM | c1fa323 | `000015:185-205` tombstones, 30-day quarantine, `lv_hub_gone` | "quarantine: nobody can claim it for 30 days", "after quarantine: the new Hub shows none of the old data"; my run | pending deploy | **CLOSED** (plan F-06) |
+| LC-28 | MEDIUM | 62c24e6 | plan F-11; Terms say "LunchVoice isn't aimed at children" (`Marketing.tsx:147`) | – | – | **DEFERRED** (founder and counsel: minors workflows). The children line should also appear in Privacy (NEW-04) |
+| LC-29 | MEDIUM | a928b77 | `000014:1668-1678` | "rls: every lv table has row level security enabled"; catalog A3 | pending deploy | **CLOSED** |
+| LC-30 | LOW | – | `scripts/check-bundle.mjs:15` markers unchanged | – | – | **OPEN (LOW)** (UI). My manual grep was clean |
+| LC-31 | LOW | – | `supabase/tests/08_error_contract.sql:46-56` still claims `lioncafe`; the names check covers `src/` only | – | – | **OPEN (LOW)** (backend): rename the fixture to `acme-test` |
+| LC-32 | LOW | – | `npm audit` shows moderate only; react-router 6.30.6 | – | – | **OPEN (LOW)**, together with LC-14 (UI) |
+| LC-33 | LOW | c1fa323 | reauth (LC-22) covers the destructive operations | – | – | **ACCEPTED** |
+| LC-34 | LOW | 62c24e6 | `Marketing.tsx:27-29` exact "Legal text pending review"; Terms facts corrected (`:147-151`) | – | – | **CLOSED** |
+| LC-35 | LOW | 9626d23 | `src/pages/Public.tsx:118` skip link to `#main` | – | – | **CLOSED** |
+| LC-36 | LOW | 165ccf6, 62c24e6 | `src/ui/tokens.css:167` `@media (forced-colors: active)`; `src/ui/ui.css:204` focus-visible outlines | – | pending (visual check in forced colours) | **CLOSED** |
+| LC-37 | LOW | – | `src/ui/BottomTabs.tsx:50-51` is still a custom dialog without `aria-modal` or a focus trap | – | – | **OPEN (LOW)** (UI): use the Radix Sheet |
+| LC-38 | LOW | 9626d23 | `src/pages/Results.tsx:61` renders `null` (Withheld) when suppressed | – | – | **CLOSED** |
+| LC-39 | LOW | – | comment in an applied migration (000006) | – | – | **ACCEPTED** (applied migrations are immutable) |
+| LC-40 | LOW | – | actions are still pinned by tag | – | – | **DEFERRED** (governing) |
+| LC-41 | LOW | 14dd3c0, 62c24e6 | plan F-01: free text only at 5 or more, random order, no ids or times (`000016:152-167`); creator warning (`src/pages/Studio.tsx:45,262,312`) | "text: below 5 answers the list is withheld", "text: the list carries no ids or timestamps"; my S7 run | pending deploy | **CLOSED** |
+
+### 7.4 New findings
+
+| ID | Sev | Area | File:line | Finding | Required fix | Owner | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| NEW-01 | **HIGH** | Payments / integrity | `supabase/migrations/000016_v2_billing_ready.sql:520-578,580-650`; `supabase/functions/_shared/billing.ts:129-136` | **A grant is not bound to what was paid.** `lv_checkout_start` lets the buyer pick `p_weeks` (up to 104) and returns a static Payment Link, whose price is fixed in Stripe. On `checkout.session.completed` the webhook maps only `client_reference_id`, metadata, subscription and payment_intent. `lv.billing_apply_event` then grants the intent's weeks with no check of `amount_total`, `currency`, `payment_status` or `mode`. Reproduced: a 104-week intent (134500 cents) paid through a fixed $19 link would grant a **728-day** credit. A session that completes with `payment_status = 'unpaid'` (delayed payment methods) also grants access before any money arrives. | See 7.5 | backend | **OPEN.** Not reachable in the launch configuration (`billing.provider_ready=false`, no payment links, webhook 503). Blocks enabling billing; the plan F-13 gate needs it fixed or explicitly DEFERRED by the founder |
+| NEW-02 | MEDIUM | Payments / refunds | `000016:696-707` | `charge.refunded` revokes everything bought with that payment on **any** refund, including a partial or goodwill refund, and ends a Hub subscription immediately. Plan F-08 makes only Campaign plans refundable (and only before activation), and says Hub plans run to the end of the period. | Act only when `amount_refunded = amount` (full refund), and only for Campaign plans and reservations. For Hub subscriptions, rely on `customer.subscription.deleted` and the period end. Add tests. | backend | OPEN (before billing) |
+| NEW-03 | MEDIUM | Privacy / representations | `src/pages/Account.tsx:430-431` (`DELETE_COPY`, shown on Settings and Privacy) | It says "your written answers are deleted" and "multiple-choice and rating answers stay only as anonymous totals". Free-text answers given on **anonymous** surveys cannot be found (by design) and remain, and creators can still read them at 5 or more. Structured answers remain as unlinked rows, not only as totals. | Say: "Written answers you gave on identified surveys are deleted. Answers on anonymous surveys were never linked to you, so they can't be found and stay part of the results. Your other answers stay without any link to you." | UI | OPEN (before public beta) |
+| NEW-04 | MEDIUM | Legal surface | `src/pages/Marketing.tsx:181-245` | The Privacy summary is missing four things. (a) The operator and backup caveat to "results can't be traced back to you" (LC-09 residual). (b) Server and hosting logs (Render and Supabase), which record URL paths that carry join and invite codes (LC-21). (c) The data region (Supabase us-west-2). (d) The children statement, which is in Terms only. Rights wording ("access or deletion requests") is minimal. | Add these lines. Counsel review is still question F-15 in section 6. | UI, founder | OPEN (before public beta) |
+| NEW-05 | LOW | Security | `000014:375-389,1229` | Campaign invite tokens (96-bit) are stored in plaintext and are readable by managers through `lv_campaign_invite_list`. Hub invites, by contrast, store a hash. | Store the hash, show the token once, and keep a short prefix for listing. | backend | OPEN |
+| NEW-06 | LOW | Product consistency | `src/pages/Player.tsx:152-155,218,229`; `000004:125-127` | The Player honours `config.optional` (it shows Skip), but `lv.validate_answers` rejects any missing answer. A question created through the API with `optional: true` therefore makes every skipped submission fail. | Either support `optional` in `validate_answers` or ignore it in the Player. | backend or UI | OPEN |
+| NEW-07 | LOW | Export | `src/pages/Results.tsx:123-124` | The CSV escape does not neutralise leading `=`, `+`, `-` or `@` (formula injection) in creator-authored prompts and option labels. | Prefix such cells with `'`. | UI | OPEN |
+| NEW-08 | LOW | Waitlist | `000014:1040-1047`; `000015:540-546` | Deleting an admitted account frees a seat, and positions are computed by count, so later joiners can get a duplicate position and more than 50 Founding grants can be issued over time. | Decide whether seats are re-issued, and use a sequence or `max(position)+1`. | backend, founder | OPEN |
+
+### 7.5 Still open at BLOCKER or HIGH, with the exact fix
+
+1. **NEW-01 (HIGH):** bind every billing grant to the confirmed payment.
+   - `supabase/functions/_shared/billing.ts`, `mapStripeEvent` case `checkout.session.completed`: add
+     `amount_subtotal: num(object.amount_subtotal)`, `currency: str(object.currency)`,
+     `payment_status: str(object.payment_status)`, `mode: str(object.mode)`. Also handle
+     `checkout.session.async_payment_succeeded` (and add it to `HANDLED_TYPES`).
+   - A new migration `000017` (applied migrations stay immutable), `create or replace lv.billing_apply_event`:
+     - before any grant, record `rejected` unless `payment_status` is `paid` or `no_payment_required`, `currency` is
+       `usd`, an intent exists, and `amount_subtotal` (pre-tax, since Stripe Tax adds tax on top) equals
+       `checkout_intents.amount_cents`;
+     - reject a session that has no intent rather than trusting metadata for the product, weeks, account or Hub.
+   - Alternatively, create Checkout Sessions server-side with the Stripe price and `quantity = weeks`, instead of a
+     static Payment Link.
+   - Tests in `16_billing_analytics.sql` and `billing.test.ts`:
+     - a 104-week intent paid with `amount_subtotal = 1900` is rejected;
+     - `payment_status = 'unpaid'` grants nothing;
+     - `async_payment_succeeded` grants exactly once;
+     - a matching amount grants the intent's weeks.
+   - Until this ships, `billing.provider_ready` must stay `false` and `billing.payment_links` must stay NULL.
+
+No BLOCKER is open.
+
+### 7.6 To verify on production after deploy
+
+- The 6 security headers are present on `/` and on a deep link (`/c/ABC234`). There are no CSP violations during
+  sign-in, waitlist join, Quick Survey creation and answering, and results.
+- Runbook §2 grant audit returns exactly A3, A5, A5b and A7 above. `lv_api` is exposed only after it passes.
+- `lv.policy` matches A10. `billing.provider_ready` is `false` and `billing.payment_links` is NULL.
+- The `billing-webhook` POST answers 503 (secret unset).
+- Real Google → KpnIdentity → LunchVoice sign-in works (plan F-13 smoke test). A fresh session can delete a test
+  account; a session older than 10 minutes gets `lv_reauth_required`.
+- The legal operator name is filled in (`src/pages/Marketing.tsx:15`), and `support@lunchvoice.com` receives mail.
+- The retention sweep is scheduled (runbook:174-176), or a date is recorded for scheduling it.
