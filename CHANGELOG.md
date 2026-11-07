@@ -6,6 +6,30 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (Campaign Studio)
+
+- Campaign Studio rebuilt as three panes: a numbered questions outline, an editor (prompt and options save when you leave a field) with a live respondent preview, and a Share panel (link, join code, QR placeholder, facts). On phones it is one pane at a time with Outline, Edit and Share tabs. Published Campaigns stay locked and say so.
+- In dark mode, amber is no longer used as text on the surfaces that turn light.
+
+### Added (route registry and participant pages)
+
+- `src/config/routes.json`: one entry per route (layout L1 to L11, shell, access, milestone) from the Core Routes map, and `scripts/check-route-layouts.mjs` (in `test:pr` and `test:light`) which fails when a route has no entry or an entry has no route. Tested in `scripts/check-route-layouts.test.mjs`.
+- Participant Hub shell (L10): a Hub cover (mark, name, address, visibility) for visitors and for the add-on pages. The six M2 pages (`/:hub/shop`, `leaderboard`, `news`, `news/:post`, `comments`, `p/:page`) exist as honest "Coming with M2" states.
+- Hub Builder (`/:hub/builder`, owner): page toggles with a participant tab preview. Saving is disabled and says why (`lv_hub_pages_update` is not available yet).
+
+### Added (respondent player)
+
+- Respondent player rebuilt to the design (L9): welcome with promises (anonymity, skip anything, time), one question per screen with a segmented progress bar and Skip, a review screen with Edit, and a thanks screen. Bare surface: no app header, no signature, Powered by LunchVoice at the foot. Drafts still resume; offline shows a banner and holds the Submit until you are back online.
+- Accessible question controls (`src/ui/QuestionControls.tsx`): rating circles, yes/no tiles, single and multi choice with a max-N message, and open text with a counter. Radiogroups use a roving tabindex with arrow keys; selection is the pressed amber surface plus a glyph; jelly motion respects reduced motion.
+- `StateScreen` (L11) for not found, error, closed, scheduled, ineligible, offline, empty and loading, in plain words with a next step.
+
+### Changed (v2 UI screens)
+
+- Account home (`/me`) rebuilt to the design: greeting, stat tiles, a "pick up where you left off" card, My Hubs rail with Hub marks, join shortcut. Only data the API provides is shown (no invented streaks or badges).
+- Signed-in header pills (Home, Join, Create, Settings) on desktop; shared `BottomTabs` on phones for account and Hub routes: solid surface, no blur, 52px targets, the current tab is the pressed amber surface with `aria-current`, and a More sheet holds the extra Hub sections. The old blurred bottom nav is gone.
+- Hub overview is the dashboard layout: live Campaigns, members and roles tiles, an All Campaigns list with phase badges, a People rail for managers, and the share panel. The Hub header shows the Hub mark; the segmented tab strip is desktop only.
+- New icons (settings, join, more, back, globe, clock).
+
 ### Added (v2 UI foundations)
 
 - `src/ui/tokens.css`: the design system's tokens (core v1.1) as the single source, with light, dark and high-contrast themes selected by `data-theme` on `<html>`. The older variable names in `index.css` now map onto these tokens, so every existing page gains dark and high contrast without per-page CSS.

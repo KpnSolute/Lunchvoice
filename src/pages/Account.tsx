@@ -3,9 +3,10 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
 import { slugProblem } from "../lib/reservedSlugs";
 import { useLv } from "../lib/useLv";
-import { Btn, Card, Empty, ErrorNote, Loading, Micro, Notice, PageHead, Pill } from "../components/ui";
+import { Btn, Card, ErrorNote, Loading, Micro, Notice, PageHead, Pill } from "../components/ui";
 import { Icon } from "../components/Icon";
 import { ThemeControl } from "../ui/ThemeControl";
+import { HubMark } from "../ui/HubMark";
 import { describeError } from "../lib/errors";
 import type { BetaStatus } from "../lib/lvApi";
 
@@ -20,78 +21,114 @@ const BETA_COPY: Record<BetaStatus, { tone: "muted" | "accent" | "ok" | "danger"
 };
 
 export function Me() {
-  const { session } = useIdentity();
-  const { api } = useIdentity();
+  const { session, api } = useIdentity();
   const ctx = useLv(() => api.myContext(), [api]);
   const c = ctx.data;
   const beta = c ? BETA_COPY[c.beta_status] : null;
+  const name = c?.display_name || session?.name || "";
+  const first = name.split(/\s+/)[0] || "there";
+  const owned = c ? c.hubs.filter((h) => h.is_owner).length : 0;
+  const lead = c?.hubs[0];
 
   return (
-    <div className="ui-page">
-      <PageHead
-        eyebrow="Account"
-        title={c?.display_name ? `Hi, ${c.display_name}` : session?.name ? `Hi, ${session.name}` : "Your account"}
-        sub="Your Hubs, your beta state, and everything waiting on you."
-        actions={<Link className="ui-btn ui-btn-primary" to="/create">Create a Hub</Link>}
-      />
+    <div className="ui-page lv-l7">
+      <h1 className="lv-hello">Hey {first}.</h1>
+      <p className="lv-hello-sub">Your Hubs, your beta state, and everything waiting on you.</p>
 
       {ctx.error && <ErrorNote error={ctx.error} />}
-      {ctx.loading && <Loading rows={2} />}
+      {ctx.loading && <Loading rows={3} />}
 
       {c && (
-        <>
-          <div className="ui-grid-2" style={{ marginBottom: 18 }}>
-            <Card quiet>
-              <Micro>Beta application</Micro>
-              <div className="ui-row ui-gap-8" style={{ margin: "8px 0 6px" }}>
+        <div className="lv-dash">
+          <div className="lv-stack">
+            <div className="lv-tiles">
+              <div className="lv-tile lv-tile-ink">
+                <span className="lv-tile-label">Hubs</span>
+                <span className="lv-tile-value">{c.hubs.length}</span>
+                <span className="lv-tile-note">{c.hubs.length === 1 ? "You belong to one Hub" : "You belong to these Hubs"}</span>
+              </div>
+              <div className="lv-tile lv-tile-accent">
+                <span className="lv-tile-label">Owned</span>
+                <span className="lv-tile-value">{owned}</span>
+                <span className="lv-tile-note">{owned ? "Hubs you run" : "Hubs you run appear here"}</span>
+              </div>
+              <div className="lv-tile">
+                <span className="lv-tile-label">Beta</span>
+                <span className="lv-tile-value" style={{ fontSize: 26, lineHeight: 1.05 }}>{beta!.label}</span>
+                <span className="lv-tile-note">Needed to create a Hub</span>
+              </div>
+            </div>
+
+            {lead ? (
+              <div className="lv-panel lv-panel-ink lv-resume">
+                <div>
+                  <span className="lv-eyebrow-mono" style={{ color: "var(--lv-accent)" }}>Pick up where you left off</span>
+                  <h2 className="lv-resume-title">{lead.name}</h2>
+                  <span className="lv-row-sub" style={{ color: "inherit", opacity: 0.7 }}>lunchvoice.com/{lead.slug}</span>
+                </div>
+                <Link className="ui-btn ui-btn-primary" to={`/${lead.slug}`}>Continue</Link>
+              </div>
+            ) : (
+              <div className="lv-panel lv-panel-ink lv-resume">
+                <div>
+                  <span className="lv-eyebrow-mono" style={{ color: "var(--lv-accent)" }}>Start here</span>
+                  <h2 className="lv-resume-title">Create your first Hub</h2>
+                  <span className="lv-row-sub" style={{ color: "inherit", opacity: 0.7 }}>
+                    {c.beta_status === "approved" ? "Your beta is approved." : "Creating a Hub needs an approved beta application."}
+                  </span>
+                </div>
+                <Link className="ui-btn ui-btn-primary" to="/create">Create a Hub</Link>
+              </div>
+            )}
+
+            <div className="lv-panel">
+              <h2>Beta application</h2>
+              <div className="ui-row ui-gap-8" style={{ marginBottom: 8 }}>
                 <Pill tone={beta!.tone}>{beta!.label}</Pill>
               </div>
-              <p className="ui-muted" style={{ margin: 0, fontSize: 14 }}>{beta!.body}</p>
-            </Card>
-            <Card quiet>
-              <Micro>Identity</Micro>
-              <p className="ui-muted" style={{ margin: "8px 0 0", fontSize: 14 }}>
+              <p className="ui-muted" style={{ margin: 0, fontSize: 14.5 }}>{beta!.body}</p>
+            </div>
+          </div>
+
+          <aside className="lv-rail" aria-label="My Hubs">
+            <div className="lv-panel">
+              <h2>My Hubs</h2>
+              {c.hubs.length === 0 ? (
+                <p className="ui-muted" style={{ margin: 0, fontSize: 14.5 }}>
+                  You're not in any Hubs yet. A Hub is your community's home: its Campaigns, its members and its results.
+                </p>
+              ) : (
+                <ul className="lv-rows">
+                  {c.hubs.map((h) => (
+                    <li key={h.hub_id}>
+                      <Link to={`/${h.slug}`} className="lv-row">
+                        <HubMark name={h.name} />
+                        <span className="lv-row-main">
+                          <span className="lv-row-title">{h.name}</span>
+                          <span className="lv-row-sub">lunchvoice.com/{h.slug}</span>
+                        </span>
+                        {h.is_owner && <Pill tone="accent">Owner</Pill>}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="lv-panel lv-panel-dash">
+              <h3 style={{ margin: "0 0 10px", font: "600 16px/1.3 var(--lv-font-ui)" }}>Got a join code?</h3>
+              <div className="ui-row ui-gap-8">
+                <Link className="ui-btn ui-btn-ink" to="/join">Join a Hub</Link>
+                <Link className="ui-btn ui-btn-outline" to="/create">Create a Hub</Link>
+              </div>
+            </div>
+            <div className="lv-panel">
+              <h3 style={{ margin: "0 0 6px", font: "600 16px/1.3 var(--lv-font-ui)" }}>Identity</h3>
+              <p className="ui-muted" style={{ margin: 0, fontSize: 13.5 }}>
                 Signed in through KpnIdentity. LunchVoice keeps your verified issuer and subject, never your email as an identity key.
               </p>
-            </Card>
-          </div>
-
-          <h2 className="ui-display ui-display-md" style={{ margin: "26px 0 12px" }}>Your Hubs</h2>
-          {c.hubs.length === 0 ? (
-            <Empty
-              icon="home"
-              title="You're not in any Hubs yet"
-              action={
-                <div className="ui-row">
-                  <Link className="ui-btn ui-btn-primary" to="/create">Create a Hub</Link>
-                  <Link className="ui-btn ui-btn-outline" to="/join">Join with an invite code</Link>
-                </div>
-              }
-            >
-              A Hub is your community's home: its Campaigns, its members, and its results. Create one, or redeem an invite someone sent you.
-            </Empty>
-          ) : (
-            <div className="ui-grid-2">
-              {c.hubs.map((h) => (
-                <Link key={h.hub_id} to={`/${h.slug}`} className="ui-card" style={{ color: "inherit" }}>
-                  <div className="ui-spread">
-                    <h3 className="ui-display ui-display-md" style={{ margin: 0 }}>{h.name}</h3>
-                    {h.is_owner && <Pill tone="accent">Owner</Pill>}
-                  </div>
-                  <Micro>/{h.slug}</Micro>
-                  <div className="ui-row ui-gap-8" style={{ marginTop: 10 }}>
-                    {h.roles.length === 0 ? <span className="ui-muted" style={{ fontSize: 13 }}>No custom roles</span> : h.roles.map((r) => <Pill key={r.key}>{r.name}</Pill>)}
-                  </div>
-                </Link>
-              ))}
             </div>
-          )}
-
-          <div className="ui-row" style={{ marginTop: 22 }}>
-            <Link className="ui-btn ui-btn-outline" to="/join">Join with an invite code</Link>
-            <Link className="ui-btn ui-btn-quiet" to="/settings">Settings</Link>
-          </div>
-        </>
+          </aside>
+        </div>
       )}
     </div>
   );

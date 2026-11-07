@@ -4,9 +4,16 @@
 export type IconName =
   | "home" | "star" | "star-fill" | "fork" | "menu" | "survey" | "voice"
   | "store" | "orders" | "roster" | "dashboard" | "logout" | "check"
-  | "chevron" | "arrow" | "coin" | "flame" | "bulb" | "plus" | "lock" | "sparkle";
+  | "chevron" | "arrow" | "coin" | "flame" | "bulb" | "plus" | "lock" | "sparkle"
+  | "settings" | "join" | "more" | "back" | "globe" | "clock";
 
 const paths: Record<IconName, React.ReactNode> = {
+  settings: <path d="M4 7h9m4 0h3M4 17h3m4 0h9M15 4.5v5m-6 5v5" />,
+  join: <path d="M15 7h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-3M10 8l-4 4 4 4M6 12h9" />,
+  more: <path d="M6 12h.01M12 12h.01M18 12h.01" />,
+  back: <path d="M19 12H5M11 6l-6 6 6 6" />,
+  globe: <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3.5 12h17M12 3c2.5 2.6 3.7 5.6 3.7 9s-1.2 6.4-3.7 9c-2.5-2.6-3.7-5.6-3.7-9S9.5 5.6 12 3z" />,
+  clock: <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2" />,
   home: <path d="M3 10.5 12 3l9 7.5M5.5 9v11h13V9" />,
   star: <path d="m12 3.6 2.55 5.5 5.95.7-4.4 4.1 1.2 5.9L12 16.9l-5.3 2.9 1.2-5.9-4.4-4.1 5.95-.7L12 3.6z" />,
   "star-fill": (

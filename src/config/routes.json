@@ -1,0 +1,334 @@
+{
+  "version": "core-1.3",
+  "note": "Every route in src/main.tsx has one entry. scripts/check-route-layouts.mjs enforces it. Layouts L1-L11 and shells follow the design system.",
+  "routes": [
+    {
+      "path": "/",
+      "name": "Landing",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M1"
+    },
+    {
+      "path": "/how-it-works",
+      "name": "How it works",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M1"
+    },
+    {
+      "path": "/use-cases",
+      "name": "Use cases",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M1"
+    },
+    {
+      "path": "/pricing",
+      "name": "Pricing",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M2"
+    },
+    {
+      "path": "/beta",
+      "name": "Beta",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M1"
+    },
+    {
+      "path": "/about",
+      "name": "About",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M1"
+    },
+    {
+      "path": "/status",
+      "name": "Status",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M1"
+    },
+    {
+      "path": "/support",
+      "name": "Support",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M1"
+    },
+    {
+      "path": "/terms",
+      "name": "Terms",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M1"
+    },
+    {
+      "path": "/privacy",
+      "name": "Privacy",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M1"
+    },
+    {
+      "path": "/discover",
+      "name": "Discover",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M2"
+    },
+    {
+      "path": "/signin",
+      "name": "Sign in",
+      "layout": "L2",
+      "shell": "none",
+      "access": "public",
+      "milestone": "M1"
+    },
+    {
+      "path": "/auth/callback",
+      "name": "Sign-in callback",
+      "layout": "L2",
+      "shell": "none",
+      "access": "public",
+      "milestone": "M1"
+    },
+    {
+      "path": "/join",
+      "name": "Join with code",
+      "layout": "L2",
+      "shell": "none",
+      "access": "public",
+      "milestone": "M1"
+    },
+    {
+      "path": "/j/:code",
+      "name": "Invite preview",
+      "layout": "L2",
+      "shell": "none",
+      "access": "public",
+      "milestone": "M1"
+    },
+    {
+      "path": "/create",
+      "name": "Create Hub (stepper)",
+      "layout": "L2",
+      "shell": "none",
+      "access": "signed-in",
+      "milestone": "M1"
+    },
+    {
+      "path": "/me",
+      "name": "My home",
+      "layout": "L7",
+      "shell": "account",
+      "access": "signed-in",
+      "milestone": "M1"
+    },
+    {
+      "path": "/settings",
+      "name": "Account settings",
+      "layout": "L8",
+      "shell": "account",
+      "access": "signed-in",
+      "milestone": "M1"
+    },
+    {
+      "path": "/:hub",
+      "name": "Overview (manager) / Hub landing (visitor, L10)",
+      "layout": "L7",
+      "shell": "hub",
+      "access": "manager",
+      "milestone": "M1"
+    },
+    {
+      "path": "/:hub/campaigns",
+      "name": "Campaigns",
+      "layout": "L4",
+      "shell": "hub",
+      "access": "manager",
+      "milestone": "M1"
+    },
+    {
+      "path": "/:hub/campaigns/new",
+      "name": "Template picker",
+      "layout": "L4",
+      "shell": "hub",
+      "access": "manager",
+      "milestone": "M1"
+    },
+    {
+      "path": "/:hub/campaigns/:id",
+      "name": "Campaign detail",
+      "layout": "L5",
+      "shell": "hub",
+      "access": "manager",
+      "milestone": "M1"
+    },
+    {
+      "path": "/:hub/campaigns/:id/studio",
+      "name": "Campaign Studio",
+      "layout": "L6",
+      "shell": "none",
+      "access": "manager",
+      "milestone": "M1"
+    },
+    {
+      "path": "/:hub/campaigns/:id/results",
+      "name": "Results",
+      "layout": "L7",
+      "shell": "hub",
+      "access": "manager",
+      "milestone": "M1"
+    },
+    {
+      "path": "/:hub/analytics",
+      "name": "Analytics",
+      "layout": "L7",
+      "shell": "hub",
+      "access": "manager",
+      "milestone": "M1"
+    },
+    {
+      "path": "/:hub/members",
+      "name": "Members",
+      "layout": "L4",
+      "shell": "hub",
+      "access": "manager",
+      "milestone": "M1"
+    },
+    {
+      "path": "/:hub/invites",
+      "name": "Invites",
+      "layout": "L4",
+      "shell": "hub",
+      "access": "manager",
+      "milestone": "M1"
+    },
+    {
+      "path": "/:hub/roles",
+      "name": "Roles",
+      "layout": "L8",
+      "shell": "hub",
+      "access": "owner",
+      "milestone": "M1"
+    },
+    {
+      "path": "/:hub/settings",
+      "name": "Hub settings",
+      "layout": "L8",
+      "shell": "hub",
+      "access": "owner",
+      "milestone": "M1"
+    },
+    {
+      "path": "/:hub/builder",
+      "name": "Hub Builder",
+      "layout": "L6",
+      "shell": "none",
+      "access": "owner",
+      "milestone": "M1"
+    },
+    {
+      "path": "/:hub/billing",
+      "name": "Billing",
+      "layout": "L7",
+      "shell": "hub",
+      "access": "owner",
+      "milestone": "M2"
+    },
+    {
+      "path": "/:hub/reservation",
+      "name": "Name reservation",
+      "layout": "L5",
+      "shell": "hub",
+      "access": "owner",
+      "milestone": "M2"
+    },
+    {
+      "path": "/:hub/discover",
+      "name": "Discover eligibility",
+      "layout": "L5",
+      "shell": "hub",
+      "access": "owner",
+      "milestone": "M2"
+    },
+    {
+      "path": "/:hub/shop",
+      "name": "Shop",
+      "layout": "L10",
+      "shell": "hub-public",
+      "access": "member",
+      "milestone": "M2"
+    },
+    {
+      "path": "/:hub/leaderboard",
+      "name": "Leaderboard",
+      "layout": "L10",
+      "shell": "hub-public",
+      "access": "member",
+      "milestone": "M2"
+    },
+    {
+      "path": "/:hub/news",
+      "name": "Newsroom",
+      "layout": "L10",
+      "shell": "hub-public",
+      "access": "public",
+      "milestone": "M2"
+    },
+    {
+      "path": "/:hub/news/:post",
+      "name": "News post",
+      "layout": "L10",
+      "shell": "hub-public",
+      "access": "public",
+      "milestone": "M2"
+    },
+    {
+      "path": "/:hub/comments",
+      "name": "Comments",
+      "layout": "L10",
+      "shell": "hub-public",
+      "access": "member",
+      "milestone": "M2"
+    },
+    {
+      "path": "/:hub/p/:page",
+      "name": "Custom page",
+      "layout": "L10",
+      "shell": "hub-public",
+      "access": "public",
+      "milestone": "M2"
+    },
+    {
+      "path": "/c/:joinCode",
+      "name": "Respondent player (welcome, question, review, thanks)",
+      "layout": "L9",
+      "shell": "none",
+      "access": "public",
+      "milestone": "M1"
+    },
+    {
+      "path": "*",
+      "name": "404, error, closed, offline, empty, loading",
+      "layout": "L11",
+      "shell": "inherits",
+      "access": "any",
+      "milestone": "M1"
+    }
+  ]
+}
