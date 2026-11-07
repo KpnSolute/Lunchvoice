@@ -6,6 +6,15 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Security (LC-04)
+
+- `render.yaml` sets production headers on every path: a Content-Security-Policy built from the app's real runtime
+  origins (self, the Lunchvoice Supabase project, the KpnIdentity issuer; the theme pre-paint script pinned by
+  sha256; `frame-ancestors 'none'`, `object-src 'none'`, `base-uri`/`form-action 'self'`), HSTS (1 year),
+  `nosniff`, `strict-origin-when-cross-origin`, a restrictive Permissions-Policy and `X-Frame-Options: DENY`.
+  Verified against a production build served with these headers: 10 routes and the sign-in redirect to KpnIdentity
+  ran with zero CSP violations. Must be re-verified on the live site after deploy.
+
 ### Added (launch UI on the shadcn layer)
 
 - One UI system: shadcn components (button, inputs, select, checkbox, radio, switch, tabs, dialog, alert-dialog,

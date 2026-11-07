@@ -6,6 +6,31 @@ services:
     name: lunch-line-survey
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
+    # Security headers (LC-04). Built from what the app actually contacts: its own origin, the Lunchvoice
+    # Supabase project (Data API + session function) and the KpnIdentity issuer (token exchange). The sign-in
+    # redirect to KpnIdentity/Google is a top-level navigation, which CSP does not restrict. script-src pins the
+    # theme pre-paint script in index.html by hash: if that script changes, recompute the hash (see
+    # docs/backend/PRODUCTION_RESET_RUNBOOK.md). style-src keeps 'unsafe-inline' because toasts inject a style
+    # element and React/Radix set inline styles; scripts stay strict.
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self' 'sha256-kU0Cb4JIx44Xq6Y1Z0qnsT36nfN1wDLltqHWX/KPdyQ='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://qprfonxvthmaoxfixigk.supabase.co https://axzwdbizblfkspduqilj.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests"
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=31536000
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
     # SPA: serve index.html for client-side routes (/signin, /{hubSlug}, /c/:joinCode)
     routes:
       - type: rewrite
