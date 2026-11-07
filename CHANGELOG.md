@@ -6,6 +6,16 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-07)
+
+- Applied 000014-000017 to the LunchVoice production project (`qprfonxvthmaoxfixigk`) under the founder's
+  conditional approval (F-13) after the gate was met. Pre-checks passed (chain 000001-000013, no data, no slug
+  conflicts); backup 2184898828 recorded; files hash-verified from `e375fca`. Migration history versions set to
+  000014-000017. Grant audit A-F and policy values matched the runbook exactly.
+- Exposed `lv_api` through the Data API (`public,graphql_public,lv_api`; `lv` stays private). This fixes the HTTP 406
+  that blocked every app call after sign-in. Signed-out smoke: `lv_my_context` answers `lv_unauthenticated`,
+  `lv_waitlist_status` shows 50 open seats, `lv_plan_limits` is public, signed-in functions are refused (401).
+
 ### Compliance (launch gate met)
 
 - `docs/compliance/LAUNCH_COMPLIANCE_REVIEW.md` §7.7: targeted re-review at 5c665e1 confirms 0 BLOCKER and 0 HIGH

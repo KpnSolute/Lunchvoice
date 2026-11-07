@@ -1,9 +1,11 @@
 # Production runbook — LunchVoice v2 launch apply (000014–000017)
 
-**Status: NOT EXECUTED.** Applying anything below to production needs the founder's explicit written approval
-naming this runbook, its date and the commit being applied. A passing local test never authorizes it. Launch gate:
-no production apply while any BLOCKER or HIGH compliance finding is open (LC-01, LC-02, LC-05, LC-06, LC-07 must
-be closed with tests; see `docs/compliance/LAUNCH_COMPLIANCE_REVIEW.md`).
+**Status: EXECUTED 2026-11-07 (steps 0–3, 6, 7.1) under the founder's conditional approval F-13**, after the compliance
+re-review confirmed 0 BLOCKER and 0 HIGH. Applied from commit `e375fca` (file hashes verified before apply). Backup
+before apply: `2184898828` (2026-11-06 10:40 UTC). The Management API recorded the files under timestamp versions;
+`supabase_migrations.schema_migrations` was corrected to `000014`–`000017`. Grant audit A–F and the policy check
+matched exactly; `lv_api` was then exposed. `billing-webhook` is not deployed yet (answers nothing until Stripe is
+wired; deploy it together with the Stripe setup). Future runs: a new procedure needs fresh founder approval.
 
 Project: LunchVoice Supabase project, ref `qprfonxvthmaoxfixigk`. Identity provider: KpnIdentity
 (`axzwdbizblfkspduqilj`, `auth.kpnsolute.com`). Verify the ref before every step.
