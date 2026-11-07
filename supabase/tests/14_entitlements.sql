@@ -1,4 +1,4 @@
--- 14: ENTITLEMENTS, WHITELIST, PERSONAL SPACE AND QUICK SURVEYS (000014, launch plan step 2).
+-- 14: ENTITLEMENTS, WAITLIST, PERSONAL SPACE AND QUICK SURVEYS (000014, launch plan step 2).
 select set_config('t.file', '14_entitlements', false);
 begin;
 
@@ -34,8 +34,9 @@ select t.check('products: prices are the canonical cents',
      from jsonb_array_elements(lv_api.lv_plan_limits()->'products') e
     where e->>'product' in ('starter_hub', 'team_hub', 'campaign_starter', 'hub_reservation'))
   = 'campaign_starter=1900,hub_reservation=2500,starter_hub=1300,team_hub=2900');
-select t.check('products: Campaign Plus has no invented price and is not purchasable',
-  (select (e->'price_cents' is null) and (e->>'purchasable') = 'false' and (e->>'family') = 'team'
+select t.check('products: Campaign Plus is $39 for 2 weeks + $19 per extra week, Team family, purchasable',
+  (select (e->>'price_cents') = '3900' and (e->>'extra_week_cents') = '1900' and (e->>'first_period_weeks') = '2'
+          and (e->>'purchasable') = 'true' and (e->>'family') = 'team'
      from jsonb_array_elements(lv_api.lv_plan_limits()->'products') e where e->>'product' = 'campaign_plus'));
 select t.check('products: Campaign Starter extends at 1300 per extra week after 2 weeks',
   (select (e->>'first_period_weeks') = '2' and (e->>'extra_week_cents') = '1300'
@@ -43,49 +44,53 @@ select t.check('products: Campaign Starter extends at 1300 per extra week after 
 select t.as_pg();
 select t.check('policy: launch policies are set (min cohort 5, guest rate 10, 50 seats)',
   t.q($$select string_agg(value::text, ',' order by key) from lv.policy
-         where key in ('campaign.min_cohort', 'participation.guest_rate_per_minute', 'whitelist.seats')$$) = '5,10,50');
+         where key in ('campaign.min_cohort', 'participation.guest_rate_per_minute', 'waitlist.seats')$$) = '5,10,50');
 select t.check('policy: the retired limit policies are gone', t.q($$select count(*)::text from lv.policy
          where key in ('campaign.max_active_per_hub', 'roles.max_custom_per_hub')$$) = '0');
 
--- ===== whitelist =========================================================================================
+-- ===== waitlist =========================================================================================
 select t.as_anon();
-select t.check('whitelist: status works signed out and omits me',
-  t.code(lv_api.lv_whitelist_status()) = 'ok' and not (lv_api.lv_whitelist_status() ? 'me')
-  and (lv_api.lv_whitelist_status() ->> 'seats_total') = '50' and (lv_api.lv_whitelist_status() ->> 'open') = 'true');
-select t.check('whitelist: joining signed out is impossible', t.raises('select lv_api.lv_whitelist_join()', '42501'));
+select t.check('waitlist: status works signed out and omits me',
+  t.code(lv_api.lv_waitlist_status()) = 'ok' and not (lv_api.lv_waitlist_status() ? 'me')
+  and (lv_api.lv_waitlist_status() ->> 'seats_total') = '50' and (lv_api.lv_waitlist_status() ->> 'open') = 'true');
+select t.check('waitlist: joining signed out is impossible', t.raises('select lv_api.lv_waitlist_join()', '42501'));
 select t.as_kpn(1);
-select t.check('whitelist: a bad contact email is lv_invalid_input', t.code(lv_api.lv_whitelist_join('not-an-email')) = 'lv_invalid_input');
-select t.put('wl1', lv_api.lv_whitelist_join('founder@example.invalid', 'We run a club')::text);
-select t.check('whitelist: the first joiner is admitted at position 1 with a Founding grant',
+select t.check('waitlist: a bad contact email is lv_invalid_input', t.code(lv_api.lv_waitlist_join('not-an-email')) = 'lv_invalid_input');
+select t.put('wl1', lv_api.lv_waitlist_join('founder@example.invalid', 'We run a club')::text);
+select t.check('waitlist: the first joiner is admitted at position 1 with a Founding grant',
   (t.get('wl1')::jsonb ->> 'status') = 'admitted' and (t.get('wl1')::jsonb ->> 'position') = '1'
   and (t.get('wl1')::jsonb #>> '{granted,product}') = 'founding' and (t.get('wl1')::jsonb #>> '{granted,family}') = 'starter'
   and (t.get('wl1')::jsonb #>> '{granted,state}') = 'active' and not ((t.get('wl1')::jsonb -> 'granted') ? 'ends_at'));
-select t.check('whitelist: joining again is idempotent and grants nothing new',
-  (lv_api.lv_whitelist_join() ->> 'already_joined') = 'true'
+select t.check('waitlist: joining again is idempotent and grants nothing new',
+  (lv_api.lv_waitlist_join() ->> 'already_joined') = 'true'
   and t.q(format($q$select count(*)::text from lv.hub_credits where account_id = %L::uuid$q$, t.get('founder'))) = '1');
-select t.check('whitelist: context reports the seat and one Hub credit',
-  (lv_api.lv_my_context() #>> '{whitelist,status}') = 'admitted' and (lv_api.lv_my_context() ->> 'hub_credits') = '1'
+select t.check('waitlist: context reports the seat and one Hub credit',
+  (lv_api.lv_my_context() #>> '{waitlist,status}') = 'admitted' and (lv_api.lv_my_context() ->> 'hub_credits') = '1'
   and jsonb_array_length(lv_api.lv_my_context() -> 'entitlements') = 1);
-select t.check('whitelist: status shows me', (lv_api.lv_whitelist_status() #>> '{me,status}') = 'admitted');
+select t.check('waitlist: status shows me', (lv_api.lv_waitlist_status() #>> '{me,status}') = 'admitted');
 
 -- Fill the list to 49 admitted, then the 50th joiner is admitted and the 51st is waitlisted.
 select t.as_pg();
 insert into lv.accounts (id, display_name) select gen_random_uuid(), 'Filler ' || g from generate_series(1, 48) g;
-insert into lv.whitelist_entries (account_id, status, position)
+insert into lv.waitlist_entries (account_id, status, position)
 select a.id, 'admitted', 1 + row_number() over (order by a.display_name) from lv.accounts a where a.display_name like 'Filler %';
 select t.as_kpn(2);
-select t.check('whitelist: the 50th joiner is admitted', (lv_api.lv_whitelist_join() ->> 'position') = '50');
-select t.check('whitelist: the list is now full', (lv_api.lv_whitelist_status() ->> 'open') = 'false');
+select t.check('waitlist: the 50th joiner is admitted', (lv_api.lv_waitlist_join() ->> 'position') = '50');
+select t.check('waitlist: the list is now full', (lv_api.lv_waitlist_status() ->> 'open') = 'false');
 select t.as_kpn(3);
-select t.put('wl51', lv_api.lv_whitelist_join()::text);
-select t.check('whitelist: the 51st joiner is waitlisted at position 1 with no grant',
+select t.put('wl51', lv_api.lv_waitlist_join()::text);
+select t.check('waitlist: the 51st joiner is waitlisted at position 1 with no grant',
   (t.get('wl51')::jsonb ->> 'status') = 'waitlisted' and (t.get('wl51')::jsonb ->> 'position') = '1'
   and not (t.get('wl51')::jsonb ? 'granted') and (lv_api.lv_my_context() ->> 'hub_credits') = '0');
 select t.as_pg();
-select t.check('whitelist: admission takes an advisory lock',
-  t.q($$select (prosrc like '%pg_advisory_xact_lock%lv_whitelist%')::text from pg_proc where proname = 'api_whitelist_join'$$) = 'true');
-select t.check('whitelist: one seat per account (unique constraint backstop)',
-  t.raises(format($q$insert into lv.whitelist_entries (account_id, status, position) values (%L::uuid, 'admitted', 99)$q$, t.get('founder')), '23505'));
+select t.check('waitlist: admission takes an advisory lock',
+  t.q($$select (prosrc like '%pg_advisory_xact_lock%lv_waitlist%')::text from pg_proc where proname = 'api_waitlist_join'$$) = 'true');
+select t.check('waitlist: no authorization check reads the waitlist table',
+  t.q($$select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'lv' and p.prosrc like '%waitlist_entries%'
+           and p.proname not in ('api_waitlist_status', 'api_waitlist_join', 'waitlist_me')$$) = '0');
+select t.check('waitlist: one seat per account (unique constraint backstop)',
+  t.raises(format($q$insert into lv.waitlist_entries (account_id, status, position) values (%L::uuid, 'admitted', 99)$q$, t.get('founder')), '23505'));
 
 -- ===== Hub credits =======================================================================================
 select t.as_kpn(3);
@@ -303,10 +308,45 @@ select t.check('invite: a revoked invite lists as revoked', (lv_api.lv_campaign_
 select t.check('invite: participation rate counts invited people only',
   t.q(format($q$select lv.campaign_member_participation(%L::uuid)::text$q$, t.get('inv_c')))::jsonb = '{"eligible": 1, "participants": 1}'::jsonb);
 
+-- ===== abuse reports and moderation ======================================================================
+select t.as_anon();
+select t.check('abuse: a signed-out visitor can report a survey', t.code(lv_api.lv_report_abuse(t.get('q1code'), 'Asks for passwords')) = 'ok');
+select t.check('abuse: an unknown code answers the same and stores nothing', t.code(lv_api.lv_report_abuse('ZZZZZZ', 'x')) = 'ok'
+  and t.q($$select count(*)::text from lv.abuse_reports$$) = '1');
+select t.check('abuse: an empty reason is lv_invalid_input', t.code(lv_api.lv_report_abuse(t.get('q1code'), '  ')) = 'lv_invalid_input');
+select t.as_pg();
+update lv.policy set value = '1'::jsonb where key = 'abuse.reports_per_minute';
+select t.as_anon();
+select t.check('abuse: reporting is rate-limited', t.code(lv_api.lv_report_abuse(t.get('q1code'), 'again')) = 'lv_rate_limited');
+select t.as_kpn(3);
+select t.put('blk', (lv_api.lv_quick_survey_create('To block', 'link') #>> '{campaign,campaign_id}'));
+select lv_api.lv_campaign_question_add(t.id('blk'), 1, 'yes_no', 'Password?');
+select lv_api.lv_campaign_close(t.id('inv_c'));
+select t.check('moderation: the survey is live', t.code(lv_api.lv_campaign_activate(t.id('blk'))) = 'ok');
+select t.put('blkcode', t.q(format($q$select join_code from lv.campaigns where id = %L::uuid$q$, t.get('blk'))));
+select t.check('moderation: a non-admin cannot block', t.code(lv_api.lv_admin_campaign_block(t.id('blk'), 'x')) = 'lv_forbidden');
+select t.as_pg();
+select lv.grant_platform_admin(t.id('founder'), null);
+select t.as_kpn(1);
+select t.check('moderation: a platform admin blocks it with a reason', t.code(lv_api.lv_admin_campaign_block(t.id('blk'), 'Phishing')) = 'ok');
+select t.as_anon();
+select t.check('moderation: a blocked survey is hidden from guests', t.code(lv_api.lv_guest_campaign_get(t.get('blkcode'))) = 'lv_not_found');
+select t.as_kpn(2);
+select t.check('moderation: a blocked survey refuses responses',
+  t.code(lv_api.lv_submit_response(t.id('blk'), '[]'::jsonb)) = 'lv_closed' and t.code(lv_api.lv_campaign_get(t.id('blk'))) = 'lv_not_found');
+select t.as_kpn(3);
+select t.check('moderation: the creator still sees it, marked blocked', (lv_api.lv_campaign_get(t.id('blk')) ->> 'blocked') = 'true');
+select t.as_pg();
+select t.check('moderation: nothing was deleted', t.q(format($q$select count(*)::text from lv.campaign_questions where campaign_id = %L::uuid$q$, t.get('blk'))) = '1');
+select t.as_kpn(1);
+select t.check('moderation: unblocking restores it', t.code(lv_api.lv_admin_campaign_unblock(t.id('blk'))) = 'ok');
+select t.as_anon();
+select t.check('moderation: unblocked, it is visible again', t.code(lv_api.lv_guest_campaign_get(t.get('blkcode'))) = 'ok');
+
 -- ===== reserved slugs ====================================================================================
 select t.as_pg();
 select t.check('reserved: every top-level UI and launch route is reserved',
-  t.q($$select count(*)::text from unnest(array['whitelist','how-it-works','use-cases','surveys','licenses','brand','__gallery',
+  t.q($$select count(*)::text from unnest(array['whitelist','waitlist','how-it-works','use-cases','surveys','licenses','brand','__gallery',
          'pricing','discover','billing','reservation','builder','news','studio','signin','me','join','invites','quick',
          'favicon.ico','.well-known','signup','status','support','terms','privacy','about','create','settings']) s
          where not exists (select 1 from lv.reserved_slugs r where r.slug = s)$$) = '0');
@@ -325,7 +365,7 @@ select t.check('grants: anon executes only the signed-out allow-list',
   t.q($$select coalesce(string_agg(p.proname, ',' order by p.proname), '') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
          where n.nspname = 'lv_api' and has_function_privilege('anon', p.oid, 'execute')
            and p.proname not in ('lv_hub_get', 'lv_guest_campaign_get', 'lv_guest_submit', 'lv_capability_catalog', 'lv_plan_limits',
-                                 'lv_whitelist_status', 'lv_hub_reservation_status', 'lv_hub_pages_get')$$) = '');
+                                 'lv_waitlist_status', 'lv_hub_reservation_status', 'lv_hub_pages_get', 'lv_report_abuse')$$) = '');
 select t.check('grants: no lv function is executable by anon or authenticated',
   t.q($$select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
          where n.nspname = 'lv' and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))$$) = '0');

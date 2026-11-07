@@ -58,8 +58,8 @@ select t.check('STEP 3: the reviewer approves the application',
 select t.check('STEP 3: deciding an unknown application is refused',
   t.code(lv_api.lv_beta_decide(gen_random_uuid(), true)) = 'lv_not_found');
 select t.as_kpn(2);
-select t.check('STEP 3: the applicant joins the whitelist and is admitted with a Founding Hub credit',
-  (lv_api.lv_whitelist_join() ->> 'status') = 'admitted' and (lv_api.lv_my_context() ->> 'hub_credits') = '1');
+select t.check('STEP 3: the applicant joins the waitlist and is admitted with a Founding Hub credit',
+  (lv_api.lv_waitlist_join() ->> 'status') = 'admitted' and (lv_api.lv_my_context() ->> 'hub_credits') = '1');
 
 -- =========================================================================================================
 -- STEP 4. Create the Hub; the creator becomes its Owner automatically

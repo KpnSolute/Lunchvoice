@@ -1,5 +1,5 @@
 -- Rollback for 000014_v2_entitlements. Restores the 000013 function bodies (captured with pg_get_functiondef),
--- drops entitlements, credits, whitelist, Campaign invites and the personal-space kind, and restores the retired
+-- drops entitlements, credits, waitlist, Campaign invites and the personal-space kind, and restores the retired
 -- policies as NULL (fail closed). Canonical rehearsal only: it refuses to run while personal spaces exist,
 -- because their Quick Surveys and answers have no place in the 000013 model.
 do $$ begin
@@ -662,9 +662,15 @@ end $$;
 -- The 000006-000013 grant posture.
 grant execute on all functions in schema lv_api to public;
 
+drop function if exists lv_api.lv_report_abuse(text, text);
+drop function if exists lv_api.lv_admin_campaign_block(uuid, text);
+drop function if exists lv_api.lv_admin_campaign_unblock(uuid);
+drop function if exists lv.api_report_abuse(text, text);
+drop function if exists lv.api_admin_campaign_block(uuid, text, boolean);
+drop table if exists lv.abuse_reports;
 drop function if exists lv_api.lv_plan_limits();
-drop function if exists lv_api.lv_whitelist_status();
-drop function if exists lv_api.lv_whitelist_join(text, text);
+drop function if exists lv_api.lv_waitlist_status();
+drop function if exists lv_api.lv_waitlist_join(text, text);
 drop function if exists lv_api.lv_quick_survey_create(text, text, text, boolean);
 drop function if exists lv_api.lv_quick_survey_list();
 drop function if exists lv_api.lv_campaign_invite_create(uuid, int, timestamptz);
@@ -680,10 +686,10 @@ drop function if exists lv.campaign_invite_json(uuid);
 drop function if exists lv.api_quick_survey_list();
 drop function if exists lv.api_quick_survey_create(text, text, text, boolean);
 drop function if exists lv.api_plan_limits();
-drop function if exists lv.api_whitelist_join(text, text);
-drop function if exists lv.api_whitelist_status();
-drop function if exists lv.whitelist_me(uuid);
-drop function if exists lv.whitelist_seats();
+drop function if exists lv.api_waitlist_join(text, text);
+drop function if exists lv.api_waitlist_status();
+drop function if exists lv.waitlist_me(uuid);
+drop function if exists lv.waitlist_seats();
 drop function if exists lv.valid_credit(uuid);
 drop function if exists lv.slug_claim_blocked(text, uuid);
 drop function if exists lv.campaign_summary(uuid, boolean);
@@ -706,7 +712,7 @@ drop function if exists lv.plan_limit(text, text);
 drop function if exists lv.err_x(text, text, jsonb);
 drop function if exists lv.fail(text, text, jsonb);
 
-drop table if exists lv.whitelist_entries;
+drop table if exists lv.waitlist_entries;
 drop table if exists lv.campaign_eligibility;
 drop table if exists lv.campaign_invites;
 drop table if exists lv.hub_credits;
@@ -716,6 +722,8 @@ drop table if exists lv.plan_limits;
 
 alter table lv.campaigns drop constraint if exists campaigns_invite_no_guests;
 alter table lv.campaigns drop column if exists access;
+alter table lv.campaigns drop column if exists blocked_reason;
+alter table lv.campaigns drop column if exists blocked_at;
 
 drop index if exists lv.hubs_one_personal_idx;
 alter table lv.hubs drop constraint if exists hubs_personal_closed;
@@ -730,7 +738,7 @@ alter table lv.hubs add constraint hubs_slug_length check (length(slug) between 
 alter table lv.hubs add constraint hubs_slug_no_double_hyphen check (slug !~ '--');
 
 delete from lv.reserved_slugs where reason in ('ui route', 'launch route');
-delete from lv.policy where key in ('billing.launched_at', 'whitelist.seats');
+delete from lv.policy where key in ('billing.launched_at', 'waitlist.seats', 'abuse.reports_per_minute');
 insert into lv.policy (key, value, note) values
   ('campaign.max_active_per_hub', null,
    'Maximum simultaneously active Campaigns per Hub. NULL means activation is refused until an owner sets it (no invented plan numbers).'),

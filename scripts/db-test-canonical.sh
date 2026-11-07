@@ -114,9 +114,9 @@ SQL
   rm -f /tmp/lv-race-1.$$ /tmp/lv-race-2.$$
 fi
 
-# 3c. Parallel whitelist race: one seat left, two signed-in people join at the same instant. Exactly one is
+# 3c. Parallel waitlist race: one seat left, two signed-in people join at the same instant. Exactly one is
 # admitted (with exactly one Founding credit); the other is waitlisted.
-echo "== parallel whitelist race"
+echo "== parallel waitlist race"
 WL_FAIL=$RACE_FAIL
 if [ "$WL_FAIL" = "0" ]; then
   qdb lv_race >/dev/null 2>&1 <<'SQL' || WL_FAIL=1
@@ -124,7 +124,7 @@ select t.trust_test_issuer();
 select t.as_kpn(3); select lv_api.lv_my_context();
 select t.as_kpn(4); select lv_api.lv_my_context();
 select t.as_pg();
-update lv.policy set value = '1'::jsonb where key = 'whitelist.seats';
+update lv.policy set value = '1'::jsonb where key = 'waitlist.seats';
 SQL
 fi
 if [ "$WL_FAIL" = "0" ]; then
@@ -140,20 +140,20 @@ SQL
     ( docker exec -i "$NAME" psql -U postgres -d lv_race -X -q -At > "/tmp/lv-wl-$n.$$" 2>&1 <<SQL
 select t.as_kpn($n);
 select pg_advisory_lock_shared(434343);
-select 'RESULT|' || (lv_api.lv_whitelist_join() ->> 'status');
+select 'RESULT|' || (lv_api.lv_waitlist_join() ->> 'status');
 SQL
     ) &
   done
   wait
   ADM=$(cat /tmp/lv-wl-3.$$ /tmp/lv-wl-4.$$ | grep -c '^RESULT|admitted$')
   WAIT=$(cat /tmp/lv-wl-3.$$ /tmp/lv-wl-4.$$ | grep -c '^RESULT|waitlisted$')
-  ROWS=$(qdb lv_race -At -c "select count(*) from lv.whitelist_entries where status = 'admitted'" 2>/dev/null)
+  ROWS=$(qdb lv_race -At -c "select count(*) from lv.waitlist_entries where status = 'admitted'" 2>/dev/null)
   FOUNDING=$(qdb lv_race -At -c "select count(*) from lv.hub_credits where product = 'founding'" 2>/dev/null)
   echo "   admitted=$ADM waitlisted=$WAIT admitted_rows=$ROWS founding_credits=$FOUNDING"
   if [ "$ADM" = "1" ] && [ "$WAIT" = "1" ] && [ "$ROWS" = "1" ] && [ "$FOUNDING" = "1" ]; then
     echo "   exactly one joiner took the last seat; the other was waitlisted"
   else
-    echo "   WHITELIST RACE FAILED"; cat /tmp/lv-wl-3.$$ /tmp/lv-wl-4.$$ | head -10; WL_FAIL=1
+    echo "   WAITLIST RACE FAILED"; cat /tmp/lv-wl-3.$$ /tmp/lv-wl-4.$$ | head -10; WL_FAIL=1
   fi
   kill "$CONTROLLER" 2>/dev/null
   rm -f /tmp/lv-wl-3.$$ /tmp/lv-wl-4.$$

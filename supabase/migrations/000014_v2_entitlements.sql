@@ -1,4 +1,4 @@
--- LunchVoice v2 canonical 14: entitlements, whitelist, personal space and Quick Surveys (launch plan step 2).
+-- LunchVoice v2 canonical 14: entitlements, waitlist, personal space and Quick Surveys (launch plan step 2).
 --
 -- Binding source: docs/v2/LAUNCH_PLAN.md (founder direction 2026-11-07, decisions L-01..L-06, A-01, A-02, A-04).
 --
@@ -9,12 +9,16 @@
 --    reader now asks the map (lv.custom_role_limit, lv.gate_evaluate, lv.api_campaign_resume, the version
 --    snapshot).
 -- 2. Products and Hub credits. lv_hub_create no longer needs a beta approval: it consumes one Hub credit
---    atomically and attaches a hub entitlement of the credit's family. Credits come from the whitelist (Founding)
+--    atomically and attaches a hub entitlement of the credit's family. Credits come from the waitlist (Founding)
 --    and, later, from billing (000016).
 -- 3. Founding entitlements (L-01) have no stored end. Their effective end is policy 'billing.launched_at' plus
 --    30 days once that policy is set; until then they are open-ended.
--- 4. Whitelist (L-02, L-03): the first 'whitelist.seats' (50) signed-in joiners are admitted under an advisory
---    lock and get one Founding Hub credit; later joiners are waitlisted. Joining twice returns the first row.
+-- 4. Waitlist (L-02, L-03; named "waitlist" by the founder): the first 'waitlist.seats' (50) signed-in joiners are
+--    admitted under an advisory lock and get one Founding Hub credit; later joiners wait. Joining twice returns the
+--    first row. The waitlist is never authorization: every check reads entitlements and credits only.
+-- 10. Abuse controls for free surveys: lv_report_abuse (signed out allowed, rate-limited) and platform-admin
+--    lv_admin_campaign_block / lv_admin_campaign_unblock, which stop responses and hide a Campaign from
+--    respondents while keeping its data.
 -- 5. Personal space (A-01): a lv.hubs row with kind = 'personal', no slug, never resolvable by slug, never listed,
 --    never joinable, created lazily on the first Quick Survey. It always evaluates to family 'free'.
 -- 6. Quick Surveys: survey-mode Campaigns in the personal space with access 'link' (anyone with the link or code,
@@ -172,11 +176,11 @@ alter table lv.products enable row level security;
 
 insert into lv.products (product, family, price_cents, interval, first_period_weeks, extra_week_cents, period_months, purchasable, note) values
   ('quick', 'free', 0, 'none', null, null, null, false, 'Quick Surveys in the personal space; always free.'),
-  ('founding', 'starter', null, 'none', null, null, null, false, 'Whitelist grant: free until billing launches, then 30 more days.'),
+  ('founding', 'starter', null, 'none', null, null, null, false, 'Waitlist grant: free until billing launches, then 30 more days.'),
   ('starter_hub', 'starter', 1300, 'month', null, null, null, true, 'Starter Hub: $13/month.'),
   ('team_hub', 'team', 2900, 'month', null, null, null, true, 'Team Hub: $29/month.'),
   ('campaign_starter', 'starter', 1900, 'weeks', 2, 1300, null, true, 'Campaign Starter: $19 for the first 2 weeks, $13 per extra week.'),
-  ('campaign_plus', 'team', null, 'weeks', null, null, null, false, 'Campaign Plus: price unknown; never invented; checkout fails closed.'),
+  ('campaign_plus', 'team', 3900, 'weeks', 2, 1900, null, true, 'Campaign Plus: $39 for the first 2 weeks, $19 per extra week (founder, 2026-11-07).'),
   ('hub_reservation', null, 2500, 'year', null, null, 12, true, 'Hub Name Reservation: $25 per 12 months; grants no features.');
 
 -- ---------------------------------------------------------------------------------------------------------
@@ -189,7 +193,7 @@ create table lv.entitlements (
   hub_id uuid references lv.hubs (id) on delete set null,
   family text not null check (family in ('free', 'starter', 'team')),
   product text not null references lv.products (product),
-  source text not null check (source in ('whitelist', 'billing', 'grant')),
+  source text not null check (source in ('waitlist', 'billing', 'grant')),
   starts_at timestamptz not null default now(),
   ends_at timestamptz,
   external_ref text,
@@ -207,7 +211,7 @@ create table lv.hub_credits (
   account_id uuid not null references lv.accounts (id) on delete cascade,
   family text not null check (family in ('starter', 'team')),
   product text not null references lv.products (product),
-  source text not null check (source in ('whitelist', 'billing', 'grant')),
+  source text not null check (source in ('waitlist', 'billing', 'grant')),
   entitlement_id uuid references lv.entitlements (id) on delete set null,
   ends_at timestamptz,          -- fixed end for the Hub entitlement it becomes (e.g. a paid period end)
   duration interval,            -- or a duration counted from Hub creation (e.g. Campaign Starter weeks)
@@ -223,7 +227,7 @@ alter table lv.hub_credits enable row level security;
 insert into lv.policy (key, value, note) values
   ('billing.launched_at', null,
    'ISO timestamp when paid billing went live. NULL = not launched: Founding entitlements stay open-ended. Once set, they end 30 days later.'),
-  ('whitelist.seats', '50'::jsonb, 'L-02: the first 50 signed-in whitelist joiners are admitted automatically.');
+  ('waitlist.seats', '50'::jsonb, 'L-02: the first 50 signed-in waitlist joiners are admitted automatically.');
 
 -- Retired: limits come from lv.plan_limits now.
 delete from lv.policy where key in ('campaign.max_active_per_hub', 'roles.max_custom_per_hub');
@@ -362,6 +366,9 @@ $$;
 -- ---------------------------------------------------------------------------------------------------------
 alter table lv.campaigns add column access text not null default 'members' check (access in ('members', 'link', 'invite'));
 alter table lv.campaigns add constraint campaigns_invite_no_guests check (access <> 'invite' or audience = 'members');
+-- Platform moderation: a blocked Campaign accepts no responses and is hidden from respondents; nothing is deleted.
+alter table lv.campaigns add column blocked_at timestamptz;
+alter table lv.campaigns add column blocked_reason text check (blocked_reason is null or length(blocked_reason) <= 500);
 
 create table lv.campaign_invites (
   id uuid primary key default gen_random_uuid(),
@@ -450,7 +457,7 @@ $$;
 -- ---------------------------------------------------------------------------------------------------------
 -- Activation gate, now driven by the map. Reasons (data): not_found, not_draft, already_closed, no_questions,
 -- entitlement_required, limit_undefined, limit_reached, survey_limit_reached, too_many_questions,
--- kind_not_allowed. limit/used describe the first slot limit that blocked.
+-- kind_not_allowed, blocked (a platform administrator stopped this Campaign). limit/used describe the first slot limit that blocked.
 -- ---------------------------------------------------------------------------------------------------------
 create function lv.capacity_check(p_campaign uuid) returns jsonb
 language plpgsql stable security definer set search_path = ''
@@ -467,6 +474,9 @@ declare
 begin
   select * into c from lv.campaigns where id = p_campaign;
   if c.id is null then return jsonb_build_object('reasons', jsonb_build_array('not_found')); end if;
+  if c.blocked_at is not null then
+    v_reasons := v_reasons || to_jsonb('blocked'::text);
+  end if;
   v_kind := lv.hub_kind(c.hub_id);
   v_family := lv.hub_family(c.hub_id);
   if v_family is null then
@@ -670,7 +680,7 @@ begin
   select * into c from lv.campaigns where id = p_campaign;
   if c is null then raise exception 'lv_not_found: no such Campaign' using errcode = '23503'; end if;
 
-  if c.status <> 'active'
+  if c.status <> 'active' or c.blocked_at is not null
      or (c.opens_at is not null and c.opens_at > now())
      or (c.closes_at is not null and c.closes_at <= now()) then
     raise exception 'lv_closed: this Campaign is not accepting responses' using errcode = '42501';
@@ -722,6 +732,7 @@ as $$
      and c.audience = 'members_and_guests'
      and c.access <> 'invite'
      and c.status = 'active'
+     and c.blocked_at is null
 $$;
 
 -- The join-code entry point. Guests see a guest-enabled Campaign as before. A signed-in caller also finds a
@@ -741,7 +752,7 @@ declare
   v_signed_ok boolean;
   v_responded boolean := false;
 begin
-  select * into c from lv.campaigns x where x.join_code = upper(btrim(coalesce(p_join_code, ''))) and x.status = 'active';
+  select * into c from lv.campaigns x where x.join_code = upper(btrim(coalesce(p_join_code, ''))) and x.status = 'active' and x.blocked_at is null;
   if c.id is null then return lv.err('lv_not_found', 'No such Campaign.'); end if;
   v_guest_ok := c.audience = 'members_and_guests' and c.access <> 'invite';
   v_signed_ok := v_account is not null and lv.can_participate(c.id, v_account);
@@ -795,7 +806,7 @@ begin
     return lv.err('lv_not_found', 'No such Campaign.');
   end if;
   v_manage := v_member and lv.has_capability(v_account, c.hub_id, 'campaign.manage');
-  if c.status = 'draft' and not v_manage then return lv.err('lv_not_found', 'No such Campaign.'); end if;
+  if (c.status = 'draft' or c.blocked_at is not null) and not v_manage then return lv.err('lv_not_found', 'No such Campaign.'); end if;
 
   select true, p.receipt_id into v_responded, v_receipt
     from lv.participation p where p.campaign_id = c.id and p.account_id = v_account;
@@ -815,11 +826,12 @@ begin
         from lv.campaign_questions q where q.campaign_id = c.id), jsonb_build_array()),
     'has_responded', v_responded,
     'receipt_id', v_receipt,
-    'can_respond', v_open and not v_responded and lv.can_participate(c.id, v_account),
+    'can_respond', v_open and c.blocked_at is null and not v_responded and lv.can_participate(c.id, v_account),
     'can_manage', v_manage);
 
   if v_manage then
-    v_out := v_out || jsonb_build_object('join_code', c.join_code, 'gate', lv.gate_evaluate(c.id));
+    v_out := v_out || jsonb_build_object('join_code', c.join_code, 'gate', lv.gate_evaluate(c.id),
+                                         'blocked', c.blocked_at is not null, 'blocked_reason', c.blocked_reason);
   end if;
   return v_out;
 end;
@@ -861,7 +873,7 @@ as $$
            'campaign_id', c.id, 'title', c.title, 'mode', c.mode, 'anonymity', c.anonymity, 'status', c.status,
            'phase', lv.campaign_phase(c.status, c.opens_at, c.closes_at), 'access', c.access,
            'guests', c.audience = 'members_and_guests', 'opens_at', c.opens_at, 'closes_at', c.closes_at,
-           'created_at', c.created_at,
+           'created_at', c.created_at, 'blocked', c.blocked_at is not null,
            'question_count', (select count(*) from lv.campaign_questions q where q.campaign_id = c.id),
            'join_code', case when p_manage then c.join_code end)
     from lv.campaigns c where c.id = p_campaign
@@ -917,7 +929,7 @@ begin
   perform pg_advisory_xact_lock(hashtextextended('lv_credit:' || v_account::text, 0));
   select * into cr from lv.hub_credits c where c.id = lv.valid_credit(v_account) for update;
   if cr.id is null then
-    return lv.err_x('lv_entitlement_required', 'Creating a Hub needs a Hub credit: join the whitelist or buy a Hub plan.',
+    return lv.err_x('lv_entitlement_required', 'Creating a Hub needs a Hub credit: join the waitlist or buy a Hub plan.',
                     jsonb_build_object('product', 'starter_hub'));
   end if;
 
@@ -940,9 +952,9 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------------------------------------
--- Whitelist (L-02, L-03)
+-- Waitlist (L-02, L-03)
 -- ---------------------------------------------------------------------------------------------------------
-create table lv.whitelist_entries (
+create table lv.waitlist_entries (
   id uuid primary key default gen_random_uuid(),
   account_id uuid not null references lv.accounts (id) on delete cascade,
   status text not null check (status in ('admitted', 'waitlisted')),
@@ -950,26 +962,26 @@ create table lv.whitelist_entries (
   contact_email text check (contact_email is null or (length(contact_email) <= 254 and contact_email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$')),
   note text check (note is null or length(note) <= 500),
   created_at timestamptz not null default now(),
-  constraint whitelist_entries_account_key unique (account_id)
+  constraint waitlist_entries_account_key unique (account_id)
 );
-create index whitelist_entries_status_idx on lv.whitelist_entries (status, position);
-alter table lv.whitelist_entries enable row level security;
-comment on column lv.whitelist_entries.contact_email is
+create index waitlist_entries_status_idx on lv.waitlist_entries (status, position);
+alter table lv.waitlist_entries enable row level security;
+comment on column lv.waitlist_entries.contact_email is
   'Optional contact address the person typed. Never an identity key; the seat is bound to the account ((issuer, subject)).';
 
-create function lv.whitelist_seats() returns int
+create function lv.waitlist_seats() returns int
 language sql stable security definer set search_path = ''
-as $$ select coalesce(greatest((lv.policy_json('whitelist.seats'))::int, 0), 0) $$;
+as $$ select coalesce(greatest((lv.policy_json('waitlist.seats'))::int, 0), 0) $$;
 
-create function lv.whitelist_me(p_account uuid) returns jsonb
+create function lv.waitlist_me(p_account uuid) returns jsonb
 language sql stable security definer set search_path = ''
 as $$
   select case when w.id is null then jsonb_build_object('status', 'none')
               else jsonb_build_object('status', w.status, 'position', w.position, 'joined_at', w.created_at) end
-    from (select 1) one left join lv.whitelist_entries w on w.account_id = p_account
+    from (select 1) one left join lv.waitlist_entries w on w.account_id = p_account
 $$;
 
-create function lv.api_whitelist_status() returns jsonb
+create function lv.api_waitlist_status() returns jsonb
 language plpgsql stable security definer set search_path = ''
 as $$
 declare
@@ -977,15 +989,15 @@ declare
   v_taken int;
   v_out jsonb;
 begin
-  select count(*) into v_taken from lv.whitelist_entries w where w.status = 'admitted';
-  v_out := jsonb_build_object('ok', true, 'seats_total', lv.whitelist_seats(), 'seats_taken', v_taken,
-                              'open', v_taken < lv.whitelist_seats());
-  if v_account is not null then v_out := v_out || jsonb_build_object('me', lv.whitelist_me(v_account)); end if;
+  select count(*) into v_taken from lv.waitlist_entries w where w.status = 'admitted';
+  v_out := jsonb_build_object('ok', true, 'seats_total', lv.waitlist_seats(), 'seats_taken', v_taken,
+                              'open', v_taken < lv.waitlist_seats());
+  if v_account is not null then v_out := v_out || jsonb_build_object('me', lv.waitlist_me(v_account)); end if;
   return v_out;
 end;
 $$;
 
-create function lv.api_whitelist_join(p_contact_email text, p_note text) returns jsonb
+create function lv.api_waitlist_join(p_contact_email text, p_note text) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
@@ -1005,37 +1017,37 @@ begin
   if v_note is not null and length(v_note) > 500 then return lv.err('lv_invalid_input', 'Keep the note under 500 characters.'); end if;
 
   -- One global lock: the seat count and the admission decision are a single serial step.
-  perform pg_advisory_xact_lock(hashtextextended('lv_whitelist', 0));
+  perform pg_advisory_xact_lock(hashtextextended('lv_waitlist', 0));
 
-  select * into w from lv.whitelist_entries x where x.account_id = v_account;
+  select * into w from lv.waitlist_entries x where x.account_id = v_account;
   if w.id is not null then
     return jsonb_build_object('ok', true, 'status', w.status, 'position', w.position, 'already_joined', true)
       || case when w.status = 'admitted' then jsonb_build_object('granted', (
             select lv.entitlement_json(e.id) from lv.entitlements e
-             where e.account_id = v_account and e.scope = 'account' and e.product = 'founding' and e.source = 'whitelist'
+             where e.account_id = v_account and e.scope = 'account' and e.product = 'founding' and e.source = 'waitlist'
              order by e.created_at limit 1)) else '{}'::jsonb end;
   end if;
 
-  select count(*) into v_taken from lv.whitelist_entries x where x.status = 'admitted';
-  if v_taken < lv.whitelist_seats() then
+  select count(*) into v_taken from lv.waitlist_entries x where x.status = 'admitted';
+  if v_taken < lv.waitlist_seats() then
     v_status := 'admitted';
     v_pos := v_taken + 1;
   else
     v_status := 'waitlisted';
-    select count(*) + 1 into v_pos from lv.whitelist_entries x where x.status = 'waitlisted';
+    select count(*) + 1 into v_pos from lv.waitlist_entries x where x.status = 'waitlisted';
   end if;
 
-  insert into lv.whitelist_entries (account_id, status, position, contact_email, note)
+  insert into lv.waitlist_entries (account_id, status, position, contact_email, note)
   values (v_account, v_status, v_pos, v_email, v_note);
 
   if v_status = 'admitted' then
     insert into lv.entitlements (scope, account_id, family, product, source, starts_at, ends_at)
-    values ('account', v_account, 'starter', 'founding', 'whitelist', now(), null)
+    values ('account', v_account, 'starter', 'founding', 'waitlist', now(), null)
     returning id into v_ent;
     insert into lv.hub_credits (account_id, family, product, source, entitlement_id)
-    values (v_account, 'starter', 'founding', 'whitelist', v_ent);
+    values (v_account, 'starter', 'founding', 'waitlist', v_ent);
   end if;
-  perform lv.audit(v_account, null, 'whitelist.' || v_status, v_account::text, jsonb_build_object('position', v_pos));
+  perform lv.audit(v_account, null, 'waitlist.' || v_status, v_account::text, jsonb_build_object('position', v_pos));
 
   return jsonb_build_object('ok', true, 'status', v_status, 'position', v_pos, 'already_joined', false)
     || case when v_ent is not null then jsonb_build_object('granted', lv.entitlement_json(v_ent)) else '{}'::jsonb end;
@@ -1062,7 +1074,7 @@ as $$
 $$;
 
 -- ---------------------------------------------------------------------------------------------------------
--- Context: entitlements, credits, Quick Survey usage, whitelist; only community Hubs are listed
+-- Context: entitlements, credits, Quick Survey usage, waitlist; only community Hubs are listed
 -- ---------------------------------------------------------------------------------------------------------
 create or replace function lv.api_my_context() returns jsonb
 language plpgsql volatile security definer set search_path = ''
@@ -1102,7 +1114,7 @@ begin
       'active', (select count(*) from lv.campaigns c where c.hub_id = v_personal and c.status = 'active'),
       'limit', (lv.plan_limit('free', 'quick.max_active'))::int,
       'question_limit', (lv.plan_limit('free', 'quick.max_questions'))::int),
-    'whitelist', lv.whitelist_me(v_account));
+    'waitlist', lv.waitlist_me(v_account));
 end;
 $$;
 
@@ -1271,6 +1283,74 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------------------------------------
+-- Abuse reports and platform moderation
+-- ---------------------------------------------------------------------------------------------------------
+create table lv.abuse_reports (
+  id uuid primary key default gen_random_uuid(),
+  campaign_id uuid references lv.campaigns (id) on delete cascade,
+  reason text not null check (length(btrim(reason)) between 1 and 1000),
+  reporter_account_id uuid references lv.accounts (id) on delete set null,
+  status text not null default 'open' check (status in ('open', 'actioned', 'dismissed')),
+  created_at timestamptz not null default now()
+);
+create index abuse_reports_campaign_idx on lv.abuse_reports (campaign_id, created_at);
+create index abuse_reports_recent_idx on lv.abuse_reports (created_at);
+alter table lv.abuse_reports enable row level security;
+
+insert into lv.policy (key, value, note) values
+  ('abuse.reports_per_minute', '20'::jsonb, 'Maximum abuse reports accepted per minute across the platform (signed-out reporting is allowed).');
+
+-- Answers identically for unknown and known codes, so reporting cannot be used to discover codes.
+create function lv.api_report_abuse(p_join_code text, p_reason text) returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  v_reason text := btrim(p_reason);
+  v_campaign uuid;
+  v_recent int;
+begin
+  if v_reason is null or v_reason = '' or length(v_reason) > 1000 then
+    return lv.err('lv_invalid_input', 'Tell us briefly what is wrong (up to 1000 characters).');
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended('lv_abuse', 0));
+  select count(*) into v_recent from lv.abuse_reports r where r.created_at > now() - interval '1 minute';
+  if v_recent >= coalesce((lv.policy_json('abuse.reports_per_minute'))::int, 0) then
+    return lv.err('lv_rate_limited', 'Too many reports right now. Try again in a minute.');
+  end if;
+  select c.id into v_campaign from lv.campaigns c where c.join_code = upper(btrim(coalesce(p_join_code, '')));
+  if v_campaign is not null then
+    insert into lv.abuse_reports (campaign_id, reason, reporter_account_id) values (v_campaign, v_reason, lv.current_account_id());
+  end if;
+  return jsonb_build_object('ok', true, 'received', true);
+end;
+$$;
+
+create function lv.api_admin_campaign_block(p_campaign uuid, p_reason text, p_block boolean) returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  v_account uuid := lv.ensure_account();
+  c record;
+begin
+  if v_account is null then return lv.err('lv_unauthenticated', 'Sign in with KpnIdentity first.'); end if;
+  if not lv.is_platform_admin(v_account) then return lv.err('lv_forbidden', 'Platform moderation requires an administrator.'); end if;
+  select * into c from lv.campaigns x where x.id = p_campaign for update;
+  if c.id is null then return lv.err('lv_not_found', 'No such Campaign.'); end if;
+  if p_block and (btrim(coalesce(p_reason, '')) = '' or length(p_reason) > 500) then
+    return lv.err('lv_invalid_input', 'A block needs a reason of up to 500 characters.');
+  end if;
+  update lv.campaigns
+     set blocked_at = case when p_block then coalesce(blocked_at, now()) end,
+         blocked_reason = case when p_block then btrim(p_reason) end
+   where id = c.id;
+  if p_block then update lv.abuse_reports set status = 'actioned' where campaign_id = c.id and status = 'open'; end if;
+  perform lv.audit(v_account, c.hub_id, case when p_block then 'campaign.blocked' else 'campaign.unblocked' end, c.id::text,
+                   jsonb_build_object('reason', btrim(p_reason)));
+  return jsonb_build_object('ok', true, 'blocked', p_block);
+end;
+$$;
+
+-- ---------------------------------------------------------------------------------------------------------
 -- Reserved slugs: every top-level UI route (src/lib/reservedSlugs.ts) plus the launch routes
 -- ---------------------------------------------------------------------------------------------------------
 insert into lv.reserved_slugs (slug, reason) values
@@ -1305,13 +1385,25 @@ create function lv_api.lv_plan_limits() returns jsonb
 language plpgsql stable security definer set search_path = ''
 as $$ begin return lv.api_plan_limits(); exception when others then return lv.api_error(sqlerrm, sqlstate); end; $$;
 
-create function lv_api.lv_whitelist_status() returns jsonb
+create function lv_api.lv_waitlist_status() returns jsonb
 language plpgsql stable security definer set search_path = ''
-as $$ begin return lv.api_whitelist_status(); exception when others then return lv.api_error(sqlerrm, sqlstate); end; $$;
+as $$ begin return lv.api_waitlist_status(); exception when others then return lv.api_error(sqlerrm, sqlstate); end; $$;
 
-create function lv_api.lv_whitelist_join(p_contact_email text default null, p_note text default null) returns jsonb
+create function lv_api.lv_waitlist_join(p_contact_email text default null, p_note text default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
-as $$ begin return lv.api_whitelist_join(p_contact_email, p_note); exception when others then return lv.api_error(sqlerrm, sqlstate); end; $$;
+as $$ begin return lv.api_waitlist_join(p_contact_email, p_note); exception when others then return lv.api_error(sqlerrm, sqlstate); end; $$;
+
+create function lv_api.lv_report_abuse(p_join_code text, p_reason text) returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$ begin return lv.api_report_abuse(p_join_code, p_reason); exception when others then return lv.api_error(sqlerrm, sqlstate); end; $$;
+
+create function lv_api.lv_admin_campaign_block(p_campaign uuid, p_reason text) returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$ begin return lv.api_admin_campaign_block(p_campaign, p_reason, true); exception when others then return lv.api_error(sqlerrm, sqlstate); end; $$;
+
+create function lv_api.lv_admin_campaign_unblock(p_campaign uuid) returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$ begin return lv.api_admin_campaign_block(p_campaign, null, false); exception when others then return lv.api_error(sqlerrm, sqlstate); end; $$;
 
 create function lv_api.lv_quick_survey_create(p_title text, p_access text default 'link', p_anonymity text default 'anonymous',
                                               p_guests boolean default true) returns jsonb
@@ -1558,7 +1650,7 @@ begin
     for r in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
               where n.nspname = 'lv_api'
                 and p.proname in ('lv_hub_get', 'lv_guest_campaign_get', 'lv_guest_submit', 'lv_capability_catalog',
-                                  'lv_plan_limits', 'lv_whitelist_status') loop
+                                  'lv_plan_limits', 'lv_waitlist_status', 'lv_report_abuse') loop
       execute format('grant execute on function %s to anon', r.sig);
     end loop;
   end if;

@@ -72,7 +72,8 @@ begin
     'role', 'authenticated',
     'email', coalesce(p_email, 'person' || p_n || '@example.invalid'),
     'email_verified', coalesce(p_verified, true),
-    'name', coalesce(p_name, 'Person ' || p_n))::text, false);
+    'name', coalesce(p_name, 'Person ' || p_n),
+    'iat', floor(extract(epoch from now()))::bigint)::text, false);
   set role authenticated;
 end $$;
 
@@ -151,3 +152,11 @@ create or replace function t.set_limit(p_key text, p_value jsonb) returns void
 language sql security definer as $$
   update lv.plan_limits set value = p_value where key = p_key
 $$;
+
+-- Pretend the current session was issued p_seconds ago (for the recent-sign-in checks of 000015).
+create or replace function t.age_session(p_seconds int) returns void language plpgsql as $$
+begin
+  perform set_config('request.jwt.claims',
+    (current_setting('request.jwt.claims')::jsonb || jsonb_build_object('iat', floor(extract(epoch from now()))::bigint - p_seconds))::text, false);
+end $$;
+grant execute on function t.age_session(int) to public;
