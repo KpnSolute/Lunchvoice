@@ -7,15 +7,9 @@
 - **Not legal advice.** Items about law (privacy notices, COPPA, FERPA, state student-privacy law, payments) are
   risks for the founder to take to counsel. They are not statements of what the law requires.
 
-> **Re-review 2026-11-07 (integrated branch `claude/wizardly-meitner-wohkzr` @ `7ea5853`):** see section 7. All
-> original BLOCKER and HIGH findings are closed with runtime evidence. One NEW HIGH (NEW-01, billing grant not
-> bound to the amount paid) is open. It cannot be reached while billing is off, and it must be fixed before
-> `billing.provider_ready` is set to true. Sections 1-6 below are the original review, kept as history.
-
-> **Re-review 2026-11-07 (integrated branch `claude/wizardly-meitner-wohkzr` @ `7ea5853`):** see section 7. All
-> original BLOCKER and HIGH findings are closed with runtime evidence. One NEW HIGH (NEW-01, billing grant not
-> bound to the amount paid) is open. It cannot be reached while billing is off, and it must be fixed before
-> `billing.provider_ready` is set to true. Sections 1-6 below are the original review, kept as history.
+> **Current status (targeted re-review at `5c665e1`, section 7.7): 0 BLOCKER and 0 HIGH open. The F-13 compliance
+> condition is met.** At `7ea5853` (sections 7.1-7.6) one new HIGH, NEW-01, was open. 000017 (`8f300b3`) closes it,
+> with runtime evidence. Sections 1-6 below are the original review, kept as history.
 
 ## 1. Summary verdict
 
@@ -443,7 +437,7 @@ In every row the production-verification column is **pending deploy**. Fix commi
 | LC-28 | MEDIUM | 62c24e6 | plan F-11; Terms say "LunchVoice isn't aimed at children" (`Marketing.tsx:147`) | – | – | **DEFERRED** (founder and counsel: minors workflows). The children line should also appear in Privacy (NEW-04) |
 | LC-29 | MEDIUM | a928b77 | `000014:1668-1678` | "rls: every lv table has row level security enabled"; catalog A3 | pending deploy | **CLOSED** |
 | LC-30 | LOW | – | `scripts/check-bundle.mjs:15` markers unchanged | – | – | **OPEN (LOW)** (UI). My manual grep was clean |
-| LC-31 | LOW | – | `supabase/tests/08_error_contract.sql:46-56` still claims `lioncafe`; the names check covers `src/` only | – | – | **OPEN (LOW)** (backend): rename the fixture to `acme-test` |
+| LC-31 | LOW | – | `supabase/tests/08_error_contract.sql:46-56` still claims `lioncafe`; the names check covers `src/` only | – | – | **CLOSED at 5c665e1** (fixture renamed to `harbor-book-circle`; no customer name left in `08_error_contract.sql`) |
 | LC-32 | LOW | – | `npm audit` shows moderate only; react-router 6.30.6 | – | – | **OPEN (LOW)**, together with LC-14 (UI) |
 | LC-33 | LOW | c1fa323 | reauth (LC-22) covers the destructive operations | – | – | **ACCEPTED** |
 | LC-34 | LOW | 62c24e6 | `Marketing.tsx:27-29` exact "Legal text pending review"; Terms facts corrected (`:147-151`) | – | – | **CLOSED** |
@@ -459,14 +453,14 @@ In every row the production-verification column is **pending deploy**. Fix commi
 
 | ID | Sev | Area | File:line | Finding | Required fix | Owner | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| NEW-01 | **HIGH** | Payments / integrity | `supabase/migrations/000016_v2_billing_ready.sql:520-578,580-650`; `supabase/functions/_shared/billing.ts:129-136` | **A grant is not bound to what was paid.** `lv_checkout_start` lets the buyer pick `p_weeks` (up to 104) and returns a static Payment Link, whose price is fixed in Stripe. On `checkout.session.completed` the webhook maps only `client_reference_id`, metadata, subscription and payment_intent. `lv.billing_apply_event` then grants the intent's weeks with no check of `amount_total`, `currency`, `payment_status` or `mode`. Reproduced: a 104-week intent (134500 cents) paid through a fixed $19 link would grant a **728-day** credit. A session that completes with `payment_status = 'unpaid'` (delayed payment methods) also grants access before any money arrives. | See 7.5 | backend | **OPEN.** Not reachable in the launch configuration (`billing.provider_ready=false`, no payment links, webhook 503). Blocks enabling billing; the plan F-13 gate needs it fixed or explicitly DEFERRED by the founder |
-| NEW-02 | MEDIUM | Payments / refunds | `000016:696-707` | `charge.refunded` revokes everything bought with that payment on **any** refund, including a partial or goodwill refund, and ends a Hub subscription immediately. Plan F-08 makes only Campaign plans refundable (and only before activation), and says Hub plans run to the end of the period. | Act only when `amount_refunded = amount` (full refund), and only for Campaign plans and reservations. For Hub subscriptions, rely on `customer.subscription.deleted` and the period end. Add tests. | backend | OPEN (before billing) |
-| NEW-03 | MEDIUM | Privacy / representations | `src/pages/Account.tsx:430-431` (`DELETE_COPY`, shown on Settings and Privacy) | It says "your written answers are deleted" and "multiple-choice and rating answers stay only as anonymous totals". Free-text answers given on **anonymous** surveys cannot be found (by design) and remain, and creators can still read them at 5 or more. Structured answers remain as unlinked rows, not only as totals. | Say: "Written answers you gave on identified surveys are deleted. Answers on anonymous surveys were never linked to you, so they can't be found and stay part of the results. Your other answers stay without any link to you." | UI | OPEN (before public beta) |
-| NEW-04 | MEDIUM | Legal surface | `src/pages/Marketing.tsx:181-245` | The Privacy summary is missing four things. (a) The operator and backup caveat to "results can't be traced back to you" (LC-09 residual). (b) Server and hosting logs (Render and Supabase), which record URL paths that carry join and invite codes (LC-21). (c) The data region (Supabase us-west-2). (d) The children statement, which is in Terms only. Rights wording ("access or deletion requests") is minimal. | Add these lines. Counsel review is still question F-15 in section 6. | UI, founder | OPEN (before public beta) |
-| NEW-05 | LOW | Security | `000014:375-389,1229` | Campaign invite tokens (96-bit) are stored in plaintext and are readable by managers through `lv_campaign_invite_list`. Hub invites, by contrast, store a hash. | Store the hash, show the token once, and keep a short prefix for listing. | backend | OPEN |
-| NEW-06 | LOW | Product consistency | `src/pages/Player.tsx:152-155,218,229`; `000004:125-127` | The Player honours `config.optional` (it shows Skip), but `lv.validate_answers` rejects any missing answer. A question created through the API with `optional: true` therefore makes every skipped submission fail. | Either support `optional` in `validate_answers` or ignore it in the Player. | backend or UI | OPEN |
-| NEW-07 | LOW | Export | `src/pages/Results.tsx:123-124` | The CSV escape does not neutralise leading `=`, `+`, `-` or `@` (formula injection) in creator-authored prompts and option labels. | Prefix such cells with `'`. | UI | OPEN |
-| NEW-08 | LOW | Waitlist | `000014:1040-1047`; `000015:540-546` | Deleting an admitted account frees a seat, and positions are computed by count, so later joiners can get a duplicate position and more than 50 Founding grants can be issued over time. | Decide whether seats are re-issued, and use a sequence or `max(position)+1`. | backend, founder | OPEN |
+| NEW-01 | **HIGH** | Payments / integrity | `supabase/migrations/000016_v2_billing_ready.sql:520-578,580-650`; `supabase/functions/_shared/billing.ts:129-136` | **A grant is not bound to what was paid.** `lv_checkout_start` lets the buyer pick `p_weeks` (up to 104) and returns a static Payment Link, whose price is fixed in Stripe. On `checkout.session.completed` the webhook maps only `client_reference_id`, metadata, subscription and payment_intent. `lv.billing_apply_event` then grants the intent's weeks with no check of `amount_total`, `currency`, `payment_status` or `mode`. Reproduced: a 104-week intent (134500 cents) paid through a fixed $19 link would grant a **728-day** credit. A session that completes with `payment_status = 'unpaid'` (delayed payment methods) also grants access before any money arrives. | See 7.5 | backend | **CLOSED at 5c665e1** (000017 `8f300b3`; §7.7) |
+| NEW-02 | MEDIUM | Payments / refunds | `000016:696-707` | `charge.refunded` revokes everything bought with that payment on **any** refund, including a partial or goodwill refund, and ends a Hub subscription immediately. Plan F-08 makes only Campaign plans refundable (and only before activation), and says Hub plans run to the end of the period. | Act only when `amount_refunded = amount` (full refund), and only for Campaign plans and reservations. For Hub subscriptions, rely on `customer.subscription.deleted` and the period end. Add tests. | backend | **CLOSED at 5c665e1** (000017; §7.7) |
+| NEW-03 | MEDIUM | Privacy / representations | `src/pages/Account.tsx:430-431` (`DELETE_COPY`, shown on Settings and Privacy) | It says "your written answers are deleted" and "multiple-choice and rating answers stay only as anonymous totals". Free-text answers given on **anonymous** surveys cannot be found (by design) and remain, and creators can still read them at 5 or more. Structured answers remain as unlinked rows, not only as totals. | Say: "Written answers you gave on identified surveys are deleted. Answers on anonymous surveys were never linked to you, so they can't be found and stay part of the results. Your other answers stay without any link to you." | UI | **CLOSED at 5c665e1** (`798b45f`) |
+| NEW-04 | MEDIUM | Legal surface | `src/pages/Marketing.tsx:181-245` | The Privacy summary is missing four things. (a) The operator and backup caveat to "results can't be traced back to you" (LC-09 residual). (b) Server and hosting logs (Render and Supabase), which record URL paths that carry join and invite codes (LC-21). (c) The data region (Supabase us-west-2). (d) The children statement, which is in Terms only. Rights wording ("access or deletion requests") is minimal. | Add these lines. Counsel review is still question F-15 in section 6. | UI, founder | **CLOSED at 5c665e1** (`798b45f`); counsel review is still F-15 |
+| NEW-05 | LOW | Security | `000014:375-389,1229` | Campaign invite tokens (96-bit) are stored in plaintext and are readable by managers through `lv_campaign_invite_list`. Hub invites, by contrast, store a hash. | Store the hash, show the token once, and keep a short prefix for listing. | backend | OPEN (LOW, after public beta) |
+| NEW-06 | LOW | Product consistency | `src/pages/Player.tsx:152-155,218,229`; `000004:125-127` | The Player honours `config.optional` (it shows Skip), but `lv.validate_answers` rejects any missing answer. A question created through the API with `optional: true` therefore makes every skipped submission fail. | Either support `optional` in `validate_answers` or ignore it in the Player. | backend or UI | **CLOSED at 5c665e1** (000017; §7.7) |
+| NEW-07 | LOW | Export | `src/pages/Results.tsx:123-124` | The CSV escape does not neutralise leading `=`, `+`, `-` or `@` (formula injection) in creator-authored prompts and option labels. | Prefix such cells with `'`. | UI | **CLOSED at 5c665e1** (`798b45f`) |
+| NEW-08 | LOW | Waitlist | `000014:1040-1047`; `000015:540-546` | Deleting an admitted account frees a seat, and positions are computed by count, so later joiners can get a duplicate position and more than 50 Founding grants can be issued over time. | Decide whether seats are re-issued, and use a sequence or `max(position)+1`. | backend, founder | **CLOSED at 5c665e1** (000017; §7.7) |
 
 ### 7.5 Still open at BLOCKER or HIGH, with the exact fix
 
@@ -489,7 +483,7 @@ In every row the production-verification column is **pending deploy**. Fix commi
      - a matching amount grants the intent's weeks.
    - Until this ships, `billing.provider_ready` must stay `false` and `billing.payment_links` must stay NULL.
 
-No BLOCKER is open.
+No BLOCKER is open. **Update:** 000017 implemented this fix at `5c665e1`, and it was verified at runtime (§7.7).
 
 ### 7.6 To verify on production after deploy
 
@@ -502,3 +496,46 @@ No BLOCKER is open.
   account; a session older than 10 minutes gets `lv_reauth_required`.
 - The legal operator name is filled in (`src/pages/Marketing.tsx:15`), and `support@lunchvoice.com` receives mail.
 - The retention sweep is scheduled (runbook:174-176), or a date is recorded for scheduling it.
+
+### 7.7 Targeted re-review at `5c665e1` (000017 `8f300b3`, UI `798b45f`)
+
+**Result: 0 BLOCKER and 0 HIGH open. The plan F-13 compliance condition is met.** The other F-13 conditions (real
+auth smoke test, items in 7.6) are verified on production.
+
+**Suite and build:**
+- `bash scripts/db-test-canonical.sh`: **PASS**, 17 migrations, `checks: 660, failed: 0`; both races pass; full
+  rollback rehearsed (including `000017_v2_billing_hardening.down.sql`).
+- `npm run test:pr` with placeholder env: **PASS**; function tests 24/24.
+- Catalog on a fresh install of 000001–000017: 0 functions executable by PUBLIC; only `lv.billing_apply_event` and
+  `lv.retention_sweep` are executable, and only by `service_role`; 0 `lv` tables without RLS.
+
+**Runtime tests:** run as `service_role` calls to `lv.billing_apply_event`, with the payload shape that
+`mapStripeEvent` now produces (`billing.ts`: `amount_subtotal`, `currency`, `payment_status`, `mode`, `ended_at`,
+`amount`, `amount_refunded`, `refunded`).
+
+| Case | Expected | Observed |
+| --- | --- | --- |
+| NEW-01: 104-week Campaign Starter intent (134500 cents) paid via a fixed $19 link (`amount_subtotal` 1900) | nothing granted | `rejected` / `amount_mismatch`; no credit |
+| NEW-01: correct 2-week intent, `payment_status = 'unpaid'` | nothing granted | `rejected` / `not_paid`; no credit |
+| NEW-01: currency `eur` · metadata only, no intent (104 weeks) · amount missing | nothing granted | `rejected` (`currency`, `no_intent`, `amount_mismatch`); no credit |
+| NEW-01: `async_payment_succeeded` (paid, matching amount), then a second completion event | granted once | `applied` (14-day credit), then `ignored` / `intent_already_used` |
+| NEW-02: partial refund (500 of 1900) on a Campaign credit | kept | `ignored` / `partial_refund_recorded_for_support`; credit stays open |
+| NEW-02: full refund of an unused Campaign credit (plan F-08: before the window) | revoked | `applied`; credit `ends_at = now()` |
+| NEW-02: full refund after the credit became a Hub window (started) | kept | `ignored` / `started_window_recorded_for_support`; Hub family still `starter` |
+| NEW-02: full refund of a Hub subscription payment, then `customer.subscription.deleted` | access to the end of the period | `ignored` / `subscription_refund_recorded`; cancellation `end_of_paid_period`; `ends_at` still the period end (+30 d) |
+| NEW-08: 2 seats; 2 admitted; one admitted account deleted; 2 more join | no re-issue | the next joiners are `waitlisted` at positions 1 and 2; `seats_taken = 2`, `open = false` |
+| NEW-06: a required plus an optional question | optional may be skipped; required enforced | the optional answer alone gives `lv_invalid_input`; an empty submission gives `lv_invalid_input`; the required answer with the optional one skipped is accepted |
+| LC-31 | no customer-name fixture | `08_error_contract.sql` uses `harbor-book-circle`; 0 matches for lioncafe or mjcc |
+| NEW-03 | accurate deletion copy | `src/pages/Account.tsx:430-431` now says identified written answers are deleted and anonymous answers cannot be found and stay in results |
+| NEW-04 | operator access, logs, region, children | `src/pages/Marketing.tsx` Privacy adds "Who can see stored data", request logs, data region (US), and Children (under 13) |
+| NEW-07 | CSV formula neutralised | `src/pages/Results.tsx:123-124` prefixes `'` to cells starting with `=` `+` `-` `@` tab or CR |
+
+**Remaining LOW note (not a finding):** grants check `amount_subtotal`, which is the amount before discounts. A 100%
+promotion code (`no_payment_required`) would still grant access, which is correct if promotion codes are enabled
+deliberately. The founder should keep promotion codes off the Payment Links unless that is intended.
+
+**Still open, none BLOCKER or HIGH:**
+- MEDIUM: LC-10, LC-12, LC-13, LC-14.
+- LOW: LC-11 (residual), LC-30, LC-32, LC-37, NEW-05.
+- Founder inputs before the waitlist link is shared: the legal operator name, and confirmation that
+  `support@lunchvoice.com` is monitored.
