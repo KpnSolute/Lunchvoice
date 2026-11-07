@@ -6,6 +6,27 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (UI/UX correction pass)
+
+- Hub overview: the stat row is one responsive grid; plan names ("Starter") never wrap per character; the Plan tile is
+  a raised card with an amber edge instead of a full orange card, so activity stays primary. The share card states the
+  real join mode (open / approval / invite only), shows the full address without clipping, and offers Copy link, QR
+  code and Invite (for people who can admit members).
+- Campaign Studio rebuilt as Details | Questions | Audience | Schedule | Review with free navigation, a lifecycle
+  badge, autosave state, Preview from the draft (no submission) and a lifecycle-derived action (Schedule or Publish
+  from draft; Pause, Resume, Close, Archive afterwards; never Publish once live). Publish is disabled with an
+  accessible explanation until the Review checklist passes; the server still re-validates and its errors are shown.
+- Questions: one Add question; choice options as editable rows (add, remove, reorder by drag or keyboard, 2-10);
+  a Required switch mapped to `config.optional`; type changes that drop options ask first.
+- Audience, response identity (anonymous / identified) and guest responses are three separate controls; only
+  options the backend supports are offered.
+- Schedule section (start now or later, end never or later, end after start) with real plan limits from the API.
+- Error copy uses the backend's field-specific messages; "Some details need fixing." is only a last resort.
+- Quick Surveys keep their single-page flow (Title, Questions, Who can respond, Publish) and share the question editor.
+- Review summary labels and values no longer overlap at 390px.
+- `npm run test:e2e` (Playwright against the dev mock; not part of `test:pr`): 11 tests covering the corrections,
+  including a painted-text overlap check that fails on the old layout. Dev dependency: `playwright`.
+
 ### Operations (production, 2026-11-07)
 
 - Applied 000014-000017 to the LunchVoice production project (`qprfonxvthmaoxfixigk`) under the founder's

@@ -196,6 +196,22 @@ test("390px: Studio renders without horizontal scroll and the outline becomes a 
     await tab(page, name).click();
     assert.ok(await noHorizontalScroll(page), `${name} fits at 390px`);
   }
+  // The Review summary's labels and values never overlap (a long value once covered "Who can participate").
+  await tab(page, "Review").click();
+  const overlaps = await page.locator("dl.lv-kv").first().evaluate((el) => {
+    const kids = [...el.children];
+    let bad = 0;
+    // Compare where the text is actually painted (a Range), not the grid boxes: an overflowing label paints outside
+    // its box.
+    const textRects = (node) => { const r = document.createRange(); r.selectNodeContents(node); return [...r.getClientRects()]; };
+    for (let i = 0; i + 1 < kids.length; i += 2) {
+      for (const a of textRects(kids[i])) for (const b of textRects(kids[i + 1])) {
+        if (a.top < b.bottom - 1 && b.top < a.bottom - 1 && a.right > b.left + 1 && b.right > a.left + 1) bad++;
+      }
+    }
+    return bad;
+  });
+  assert.equal(overlaps, 0, "Review summary labels and values do not overlap at 390px");
   await tab(page, "Questions").click();
   assert.ok(!(await page.getByRole("region", { name: "Question outline" }).isVisible()));
   await page.getByRole("button", { name: /^Questions · / }).click();

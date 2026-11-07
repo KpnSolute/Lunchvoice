@@ -48,9 +48,10 @@
 .lv-preview-cover b { font: 800 20px/1.05 var(--lv-font-display); letter-spacing: -0.03em; overflow-wrap: anywhere; }
 .lv-preview-cover nav { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12.5px; }
 .lv-preview-cover nav span[data-soon] { opacity: 0.65; }
-.lv-kv { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; margin: 0; font-size: 14.5px; }
-.lv-kv dt { color: var(--lv-muted); }
-.lv-kv dd { margin: 0; font-weight: 600; text-align: right; }
+/* Label column never collapses (a long value used to overlap its label at 390px); long values wrap instead. */
+.lv-kv { display: grid; grid-template-columns: minmax(7.5em, max-content) minmax(0, 1fr); gap: 10px 16px; margin: 0; font-size: 14.5px; }
+.lv-kv dt { color: var(--lv-muted); min-width: 0; }
+.lv-kv dd { margin: 0; font-weight: 600; text-align: right; min-width: 0; overflow-wrap: anywhere; }
 .lv-member-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .lv-caps { display: grid; gap: 14px; }
 @media (min-width: 720px) { .lv-caps { grid-template-columns: 1fr 1fr; } }
