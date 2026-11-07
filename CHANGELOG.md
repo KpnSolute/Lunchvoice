@@ -6,6 +6,12 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (launch compliance review)
+
+- `docs/compliance/LAUNCH_COMPLIANCE_REVIEW.md`: privacy, security, payments-readiness, policy, legal-surface and
+  accessibility review of the launch plan and current code (1 blocker, 7 high, 21 medium, 12 low), a reusable
+  re-review checklist and the founder decisions needed. Findings are assigned to the backend and UI work in progress.
+
 ### Added (launch plan)
 
 - `docs/v2/LAUNCH_PLAN.md`: the founder direction of 2026-11-07 (free Quick Surveys, 50-seat whitelist launch with a
