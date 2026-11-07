@@ -1,161 +1,314 @@
 import { useState, type ReactNode } from "react";
-import { Btn, Card, CopyField, Dialog, Empty, Loading, Meter, Metric, Micro, Notice, PageHead, PhaseBadge, Pill, Tabs, type Phase } from "../components/ui";
+import { toast } from "sonner";
 import { Icon, type IconName } from "../components/Icon";
 import { MadeBy } from "../components/MakerMark";
+import { campaignPhase } from "../components/ui";
+import { ThemeControl } from "../ui/ThemeControl";
+import { QuestionInput } from "../ui/QuestionControls";
+import { StateScreen, type StateKind } from "../ui/StateScreen";
+import { HubMark } from "../ui/HubMark";
+import type { Question } from "../lib/lvApi";
+import { Button } from "@/components/shadcn/button";
+import { Input } from "@/components/shadcn/input";
+import { Textarea } from "@/components/shadcn/textarea";
+import { Label } from "@/components/shadcn/label";
+import { Checkbox } from "@/components/shadcn/checkbox";
+import { Switch } from "@/components/shadcn/switch";
+import { RadioCard, RadioGroup, RadioGroupItem } from "@/components/shadcn/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/shadcn/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shadcn/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/shadcn/dialog";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/shadcn/sheet";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/shadcn/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/shadcn/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/shadcn/tooltip";
+import { Badge } from "@/components/shadcn/badge";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/shadcn/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shadcn/table";
+import { Skeleton } from "@/components/shadcn/skeleton";
+import { Progress } from "@/components/shadcn/progress";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/shadcn/accordion";
+import { Separator } from "@/components/shadcn/separator";
+import { Avatar, AvatarFallback } from "@/components/shadcn/avatar";
+import { ScrollArea } from "@/components/shadcn/scroll-area";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/shadcn/input-otp";
+import {
+  CopyField,
+  DisabledAction,
+  EmptyState,
+  Eyebrow,
+  Field,
+  LoadingRows,
+  Metric,
+  NavTabs,
+  Notice,
+  PageHeader,
+  PhaseBadge,
+  QuotaMeter,
+  Segmented,
+  StatTile,
+  ToggleRow,
+  TypedConfirm,
+  type Phase,
+} from "@/components/shadcn/blocks";
 
-const ICONS: IconName[] = ["home", "star", "survey", "voice", "roster", "dashboard", "bulb", "flame", "sparkle", "lock", "check", "arrow", "plus"];
+const ICONS: IconName[] = ["home", "star", "survey", "voice", "roster", "dashboard", "bulb", "flame", "sparkle", "lock", "check", "arrow", "plus", "settings", "join", "globe", "clock", "coin"];
 const PHASES: Phase[] = ["draft", "scheduled", "open", "ended", "paused", "closed", "archived"];
+const STATES: StateKind[] = ["notfound", "closed", "scheduled", "offline"];
+const SAMPLE_QS: Question[] = [
+  { question_id: "g1", position: 0, kind: "rating", prompt: "How was the long run?", config: {} },
+  { question_id: "g2", position: 1, kind: "single_choice", prompt: "Which night works?", config: { options: ["Tuesday", "Thursday", "Saturday"] } },
+  { question_id: "g3", position: 2, kind: "yes_no", prompt: "Bring a friend?", config: {} },
+];
 
-// Development-only surface for checking every element in one place. Not routed in production.
+// Development-only: every component of the shadcn layer, restyled to the tactile system, in each state.
+// Toggle the theme at the top to check light, dark and high contrast.
 export function Gallery() {
-  const [open, setOpen] = useState(false);
+  const [seg, setSeg] = useState("link");
+  const [radio, setRadio] = useState("anonymous");
+  const [card, setCard] = useState("starter");
+  const [otp, setOtp] = useState("48");
+  const [qv, setQv] = useState<Record<string, unknown>>({});
 
   return (
-    <div className="ui-page">
-      <PageHead eyebrow="Dev only" title="Component gallery" sub="Every element in light, dark, and its states. Not shipped to production routes." />
+    <div className="ui-page lv-gallery">
+      <PageHeader eyebrow="Dev only" title="Component gallery" sub="The one component system: shadcn/ui restyled to the tactile design. Not routed in production." actions={<ThemeControl />} />
 
-      <Section title="Type">
+      <Section title="Type roles">
         <h1 className="ui-display ui-display-xl" style={{ margin: 0 }}>Display XL</h1>
         <h2 className="ui-display ui-display-lg" style={{ margin: 0 }}>Display large</h2>
         <h3 className="ui-display ui-display-md" style={{ margin: 0 }}>Display medium</h3>
-        <p style={{ margin: 0 }}>Body copy in Space Grotesk, the working voice of the product.</p>
-        <Micro>Mono micro label</Micro>
+        <p style={{ margin: 0 }}>Body in Geist, 16px. The working voice of the product, never wider than 62 characters.</p>
+        <Eyebrow>Label role</Eyebrow>
+        <Eyebrow accent>Accent eyebrow</Eyebrow>
+        <code className="lv-code">482913</code>
         <MadeBy />
       </Section>
 
       <Section title="Buttons">
-        <div className="ui-row">
-          <Btn variant="primary">Primary</Btn>
-          <Btn variant="ink">Ink</Btn>
-          <Btn variant="outline">Outline</Btn>
-          <Btn variant="quiet">Quiet</Btn>
-          <Btn variant="danger">Danger</Btn>
-          <Btn variant="primary" disabled>Disabled</Btn>
-          <Btn variant="primary" icon="arrow">With icon</Btn>
-          <Btn size="sm" variant="outline">Small</Btn>
-          <Btn size="lg" variant="primary">Large</Btn>
-        </div>
+        <Row>
+          <Button variant="primary">Primary CTA</Button>
+          <Button variant="secondary">Secondary</Button>
+          <Button variant="ink">Ink</Button>
+          <Button variant="quiet">Quiet</Button>
+          <Button variant="danger">Danger</Button>
+          <Button variant="primary" disabled>Disabled</Button>
+        </Row>
+        <Row>
+          <Button size="sm" variant="secondary">Small</Button>
+          <Button size="md" variant="secondary">Medium</Button>
+          <Button size="lg" variant="ink">Large <Icon name="arrow" size={16} /></Button>
+          <Button size="icon" variant="secondary" aria-label="Add"><Icon name="plus" size={18} /></Button>
+          <Button size="icon-lg" variant="ink" aria-label="Next"><Icon name="arrow" size={20} /></Button>
+        </Row>
+        <DisabledAction reason="Billing is not live yet. Your Founding seat keeps Starter features free until 30 days after billing launches.">Start checkout</DisabledAction>
       </Section>
 
-      <Section title="Pills and phases">
-        <div className="ui-row">
-          <Pill>Default</Pill><Pill tone="accent">Accent</Pill><Pill tone="ok">OK</Pill><Pill tone="danger">Danger</Pill><Pill tone="ink">Ink</Pill>
-        </div>
-        <div className="ui-row">{PHASES.map((p) => <PhaseBadge key={p} phase={p} />)}</div>
-      </Section>
-
-      <Section title="Icons">
-        <div className="ui-row" style={{ gap: 14 }}>
-          {ICONS.map((i) => <span key={i} title={i} style={{ color: "var(--accent-ink)" }}><Icon name={i} size={22} /></span>)}
-        </div>
-      </Section>
-
-      <Section title="Notices">
-        <div className="ui-stack ui-gap-8">
-          <Notice tone="info">Informational note.</Notice>
-          <Notice tone="ok">Success note.</Notice>
-          <Notice tone="warn">Warning note.</Notice>
-          <Notice tone="err">Error note.</Notice>
-        </div>
-      </Section>
-
-      <Section title="Forms">
+      <Section title="Fields">
         <div className="ui-grid-2">
-          <div className="ui-field"><label className="ui-label" htmlFor="g1">Label</label><input id="g1" className="ui-input" placeholder="Placeholder" /><span className="ui-help">Helper text</span></div>
-          <div className="ui-field"><label className="ui-label" htmlFor="g2">Invalid</label><input id="g2" className="ui-input" aria-invalid defaultValue="bad value" /><span className="ui-error">That isn't valid</span></div>
-          <div className="ui-field"><label className="ui-label" htmlFor="g3">Select</label><select id="g3" className="ui-select"><option>One</option><option>Two</option></select></div>
-          <div className="ui-field"><label className="ui-label" htmlFor="g4">Textarea</label><textarea id="g4" className="ui-textarea" placeholder="Write…" /></div>
+          <Field label="Hub name" htmlFor="g-name" help="3 to 60 characters." counter={{ value: 22, max: 60 }}>
+            <Input id="g-name" defaultValue="Northside Running Club" />
+          </Field>
+          <Field label="Address" htmlFor="g-slug" error="That address is reserved for the platform.">
+            <Input id="g-slug" defaultValue="settings" aria-invalid />
+          </Field>
+          <Field label="Disabled" htmlFor="g-dis">
+            <Input id="g-dis" disabled placeholder="Not editable" />
+          </Field>
+          <Field label="Visibility" htmlFor="g-sel">
+            <Select defaultValue="public">
+              <SelectTrigger id="g-sel"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="public">Public</SelectItem>
+                <SelectItem value="private">Private</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
         </div>
-        <div className="ui-row">
-          <label className="ui-check"><input type="checkbox" defaultChecked /> Checkbox</label>
-          <label className="ui-check"><input type="radio" name="g" defaultChecked /> Radio</label>
-        </div>
-        <div className="ui-rating" role="group" aria-label="Rating example">
-          {[1, 2, 3, 4, 5].map((n) => <button key={n} aria-pressed={n === 3}>{n}</button>)}
-        </div>
-        <CopyField label="Copy field" value="ABCD-2345-XYZ" />
+        <Field label="About" htmlFor="g-about" help="Shown on your Hub's landing page.">
+          <Textarea id="g-about" defaultValue="Weekly long runs and a monthly social." />
+        </Field>
+        <Field label="Join code" htmlFor="g-otp">
+          <InputOTP id="g-otp" maxLength={6} value={otp} onChange={setOtp}>
+            <InputOTPGroup>{[0, 1, 2, 3, 4, 5].map((i) => <InputOTPSlot key={i} index={i} />)}</InputOTPGroup>
+          </InputOTP>
+        </Field>
       </Section>
 
-      <Section title="Marketing">
-        <div className="lv-ticker" aria-hidden="true" style={{ margin: 0, borderInline: "none" }}>
-          <div className="lv-ticker-track">
-            {["Amber ticker", "Mono micro-label", "Grain + rules", "Amber ticker", "Mono micro-label", "Grain + rules"].map((t, i) => (
-              <span key={i}>{t} ◆</span>
-            ))}
-          </div>
+      <Section title="Choices">
+        <Row>
+          <Label className="lv-inline-label"><Checkbox defaultChecked /> Checked</Label>
+          <Label className="lv-inline-label"><Checkbox /> Unchecked</Label>
+          <Label className="lv-inline-label"><Checkbox disabled /> Disabled</Label>
+          <Label className="lv-inline-label"><Switch defaultChecked /> On</Label>
+          <Label className="lv-inline-label"><Switch /> Off</Label>
+        </Row>
+        <RadioGroup value={radio} onValueChange={setRadio} aria-label="Anonymity" className="lv-gallery-radios">
+          <Label className="lv-inline-label"><RadioGroupItem value="anonymous" /> Anonymous</Label>
+          <Label className="lv-inline-label"><RadioGroupItem value="identified" /> Identified</Label>
+        </RadioGroup>
+        <Segmented label="Access" value={seg} onValueChange={setSeg} options={[{ value: "link", label: "Anyone with the link" }, { value: "invite", label: "Invite only" }, { value: "off", label: "Disabled", disabled: true }]} />
+        <RadioGroup value={card} onValueChange={setCard} aria-label="Plan" className="ui-grid-3">
+          <RadioCard value="free" title="Quick Survey" description="Free, 5 active, 10 questions." />
+          <RadioCard value="starter" title="Starter Hub" description="3 roles, 3 pages, 15 Campaigns." badge={<Badge variant="ink">Founding</Badge>} />
+          <RadioCard value="team" title="Team Hub" description="Coming with billing." disabled />
+        </RadioGroup>
+        <ToggleRow title="Allow guests" description="Guests answer without an account and never count as members." control={<Switch defaultChecked aria-label="Allow guests" />} />
+      </Section>
+
+      <Section title="Question controls">
+        <div className="ui-grid-3">
+          {SAMPLE_QS.map((q) => (
+            <Card key={q.question_id} size="sm">
+              <strong>{q.prompt}</strong>
+              <QuestionInput q={q} value={qv[q.question_id]} onChange={(v) => setQv((s) => ({ ...s, [q.question_id]: v }))} />
+            </Card>
+          ))}
         </div>
-        <article className="lv-price-card lv-price-card-feature">
-          <Micro accent>Starter Hub</Micro>
-          <p className="lv-price-figure"><span>$13</span><small>per month</small></p>
-          <ul className="lv-plan-list">
-            <li><Icon name="check" size={15} />3 custom roles</li>
-            <li><Icon name="check" size={15} />15 active Campaigns</li>
-          </ul>
-          <button className="ui-btn ui-btn-block ui-btn-outline" disabled aria-disabled="true">Checkout opens soon</button>
-        </article>
-        <div className="lv-lifecycle">
-          <span>ACTIVE</span><i aria-hidden="true">→</i><span>GRACE · 25 days</span><i aria-hidden="true">→</i><span>RELEASED</span>
-        </div>
+      </Section>
+
+      <Section title="Navigation">
+        <NavTabs label="Gallery tabs" items={[{ to: "/__gallery", label: "Overview", end: true }, { to: "/__gallery/x", label: "Campaigns" }, { to: "/__gallery/y", label: "Members" }]} />
+        <Tabs defaultValue="edit">
+          <TabsList>
+            <TabsTrigger value="outline">Outline</TabsTrigger>
+            <TabsTrigger value="edit">Edit</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
+          </TabsList>
+          <TabsContent value="outline">Outline pane</TabsContent>
+          <TabsContent value="edit">Edit pane</TabsContent>
+          <TabsContent value="preview">Preview pane</TabsContent>
+        </Tabs>
+      </Section>
+
+      <Section title="Overlays">
+        <Row>
+          <Dialog>
+            <DialogTrigger asChild><Button variant="secondary">Dialog</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Publish this survey?</DialogTitle>
+                <DialogDescription>Questions lock once answers arrive. You can still close it at any time.</DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose asChild><Button variant="secondary">Cancel</Button></DialogClose>
+                <DialogClose asChild><Button variant="primary">Publish</Button></DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <TypedConfirm
+            trigger={<Button variant="danger">Typed confirm</Button>}
+            title="Delete Northside Running Club?"
+            description="This deletes the Hub, its Campaigns and its results. It cannot be undone."
+            phrase="northside-running"
+            actionLabel="Delete Hub"
+            onConfirm={() => { toast.success("Confirmed (gallery only)"); return true; }}
+          />
+          <Sheet>
+            <SheetTrigger asChild><Button variant="secondary">Bottom sheet</Button></SheetTrigger>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle>More sections</SheetTitle>
+                <SheetDescription>Everything that does not fit in the bottom tabs.</SheetDescription>
+              </SheetHeader>
+              <Button variant="secondary" block>Invites</Button>
+              <Button variant="secondary" block>Roles</Button>
+            </SheetContent>
+          </Sheet>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button variant="secondary">Menu <Icon name="chevron" size={14} /></Button></DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuLabel>Campaign</DropdownMenuLabel>
+              <DropdownMenuItem>Pause</DropdownMenuItem>
+              <DropdownMenuItem>Duplicate</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive">Archive</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Popover>
+            <PopoverTrigger asChild><Button variant="secondary">Popover</Button></PopoverTrigger>
+            <PopoverContent><strong>Withheld</strong><span>Too few answers to publish without exposing who answered.</span></PopoverContent>
+          </Popover>
+          <Tooltip>
+            <TooltipTrigger asChild><Button variant="quiet">Tooltip</Button></TooltipTrigger>
+            <TooltipContent>Guests never count as members</TooltipContent>
+          </Tooltip>
+          <Button variant="ink" onClick={() => toast.success("Survey published", { description: "Share the link or the code." })}>Toast</Button>
+          <Button variant="secondary" onClick={() => toast.error("That address is taken.")}>Error toast</Button>
+        </Row>
+      </Section>
+
+      <Section title="Feedback">
+        <Notice tone="info" title="Billing is not live yet">Nothing here charges money.</Notice>
+        <Notice tone="ok">Saved.</Notice>
+        <Notice tone="warn" title="Over the limit">You have 5 of 5 active Quick Surveys. Close one to start another.</Notice>
+        <Notice tone="error">Something went wrong on our side. Try again.</Notice>
+        <Card variant="well"><EmptyState icon={<Icon name="survey" size={24} />} title="No Quick Surveys yet" action={<Button variant="primary">Create one</Button>}>Ask anything, share a link, read the totals.</EmptyState></Card>
+        <LoadingRows rows={3} />
+        <Row><Skeleton className="lv-skel-circle" /><Skeleton className="lv-skel-line" /></Row>
       </Section>
 
       <Section title="Data">
         <div className="ui-grid-3">
-          <Metric value="356" label="checks passed" hint="database suite" />
-          <div><Meter value={2} max={3} label="role slots" /></div>
-          <div className="ui-stack ui-gap-8">
-            <span className="ui-metric">Withheld</span>
-            <Micro>suppressed value — never rendered as zero</Micro>
-            <div className="chart-bars" style={{ marginTop: 4 }}>
-              <div className="chart-bar-row">
-                <span className="chart-bar-label">Very useful</span>
-                <span className="chart-bar-track"><b style={{ width: "46%" }} /></span>
-                <em className="chart-bar-value">46</em>
-              </div>
-              <div className="chart-bar-row">
-                <span className="chart-bar-label">Not useful</span>
-                <span className="chart-bar-track" style={{ background: "repeating-linear-gradient(135deg, var(--surface-2) 0 4px, var(--line) 4px 8px)" }} />
-                <em className="chart-bar-value"><Icon name="lock" size={12} /></em>
-              </div>
-            </div>
-          </div>
+          <StatTile tone="ink" label="Hubs" value={2} note="You belong to these Hubs" />
+          <StatTile tone="accent" label="Hub credits" value={1} note="Founding seat" />
+          <StatTile label="Quick Surveys" value="3/5" note="Active right now" />
         </div>
-        <div className="ui-table-wrap">
-          <table className="ui-table">
-            <thead><tr><th>Member</th><th>Roles</th><th>State</th></tr></thead>
-            <tbody>
-              <tr><td>Example member</td><td><Pill>Owner</Pill></td><td><Pill tone="ok">accepted</Pill></td></tr>
-              <tr><td>Another member</td><td>—</td><td><Pill>pending</Pill></td></tr>
-            </tbody>
-          </table>
+        <div className="ui-grid-3">
+          <Metric value={128} label="Participants" hint="Guests never count as members." />
+          <Metric value={null} label="Participants" hint="Too few answers to publish." />
+          <Metric tone="raised" value="42%" label="Participation" />
         </div>
-      </Section>
-
-      <Section title="Surfaces">
         <div className="ui-grid-2">
-          <Card><Micro>Card</Micro><p style={{ margin: "8px 0 0" }}>White surface, hairline, soft shadow.</p></Card>
-          <div className="ui-panel">
-            <div className="ui-panel-top"><Micro accent>Panel</Micro><Pill tone="accent">Owner</Pill></div>
-            <p style={{ margin: 0 }}>Ink surface with the citrus glow — the v1 hero-card idea.</p>
-          </div>
+          <QuotaMeter label="Custom roles" used={2} limit={3} />
+          <QuotaMeter label="Active surveys" used={2} limit={2} />
+          <QuotaMeter label="Team active Campaigns" used={4} limit={null} hint="Provisional, set by the backend." />
+          <Progress value={62} aria-label="Progress example" />
+        </div>
+        <Row>{PHASES.map((p) => <PhaseBadge key={p} phase={p} />)}</Row>
+        <Row>
+          <Badge>Neutral</Badge><Badge variant="accent">Accent</Badge><Badge variant="ok">Admitted</Badge><Badge variant="danger">Expired</Badge><Badge variant="ink">Owner</Badge><Badge variant="outline">Outline</Badge>
+        </Row>
+        <Card>
+          <Table>
+            <TableHeader><TableRow><TableHead>Member</TableHead><TableHead>Role</TableHead><TableHead className="lv-num">Answered</TableHead></TableRow></TableHeader>
+            <TableBody>
+              <TableRow><TableCell>Dana Reyes</TableCell><TableCell><Badge variant="ink">Owner</Badge></TableCell><TableCell className="lv-num">12</TableCell></TableRow>
+              <TableRow><TableCell>Sam Okafor</TableCell><TableCell><Badge>Coach</Badge></TableCell><TableCell className="lv-num">9</TableCell></TableRow>
+              <TableRow><TableCell>Priya Nair</TableCell><TableCell>—</TableCell><TableCell className="lv-num">Withheld</TableCell></TableRow>
+            </TableBody>
+          </Table>
+        </Card>
+        <CopyField label="Share link" value="https://lunchvoice.com/c/482913" />
+        <Row>
+          <Avatar><AvatarFallback>NR</AvatarFallback></Avatar>
+          <Avatar size="lg"><AvatarFallback>HB</AvatarFallback></Avatar>
+          <HubMark name="Oakridge Parents" />
+        </Row>
+      </Section>
+
+      <Section title="Cards">
+        <div className="ui-grid-3">
+          <Card><CardHeader><CardTitle>Card</CardTitle><CardDescription>The raised card surface.</CardDescription></CardHeader><CardFooter><Button size="sm">Action</Button></CardFooter></Card>
+          <Card variant="ink"><CardHeader><CardTitle>Ink</CardTitle><CardDescription>The featured card.</CardDescription></CardHeader><CardContent><Button variant="primary" size="sm">Continue</Button></CardContent></Card>
+          <Card variant="dashed"><CardHeader><CardTitle>Dashed</CardTitle><CardDescription>An invitation to add something.</CardDescription></CardHeader></Card>
         </div>
       </Section>
 
-      <Section title="States">
-        <div className="ui-grid-2">
-          <Empty icon="home" title="Empty state" action={<Btn variant="primary" size="sm">Take action</Btn>}>A short explanation of what would appear here.</Empty>
-          <Card><Micro>Loading</Micro><div style={{ marginTop: 10 }}><Loading rows={3} /></div></Card>
-        </div>
+      <Section title="Accordion, separator, scroll area">
+        <Accordion type="single" collapsible>
+          <AccordionItem value="a"><AccordionTrigger>Can anyone trace an answer back to me?</AccordionTrigger><AccordionContent>No. Anonymous Campaigns keep eligibility and answers apart.</AccordionContent></AccordionItem>
+          <AccordionItem value="b"><AccordionTrigger>Why do some results say withheld?</AccordionTrigger><AccordionContent>A cohort below the privacy floor is withheld, never shown as zero.</AccordionContent></AccordionItem>
+        </Accordion>
+        <Separator />
+        <ScrollArea className="lv-gallery-scroll">
+          {ICONS.map((i) => <div key={i} className="lv-gallery-icon"><Icon name={i} size={20} /> {i}</div>)}
+        </ScrollArea>
       </Section>
 
-      <Section title="Tabs and dialog">
-        <Tabs items={[{ to: "/__gallery", label: "Overview", end: true }, { to: "/__gallery?x=1", label: "Second" }]} />
-        <div className="ui-row" style={{ marginTop: 12 }}>
-          <Btn variant="ink" onClick={() => setOpen(true)}>Open dialog</Btn>
-        </div>
-        <Dialog open={open} onClose={() => setOpen(false)} title="Confirm an action"
-          actions={<><Btn variant="quiet" onClick={() => setOpen(false)}>Cancel</Btn><Btn variant="primary" onClick={() => setOpen(false)}>Confirm</Btn></>}>
-          <p className="ui-muted" style={{ margin: 0 }}>Dialogs trap focus and close on Escape.</p>
-        </Dialog>
+      <Section title="States (L11)">
+        <div className="ui-grid-2">{STATES.map((k) => <Card key={k} variant="well"><StateScreen kind={k} /></Card>)}</div>
+        <p className="ui-muted">Phase of a sample Campaign: <PhaseBadge phase={campaignPhase({ status: "active", opens_at: null, closes_at: null })} /></p>
       </Section>
     </div>
   );
@@ -163,9 +316,13 @@ export function Gallery() {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section style={{ marginBottom: 30 }}>
-      <Micro accent>{title}</Micro>
-      <div className="ui-stack ui-gap-12" style={{ marginTop: 10 }}>{children}</div>
+    <section className="lv-gallery-section" aria-label={title}>
+      <h2 className="lv-gallery-h">{title}</h2>
+      <div className="lv-gallery-body">{children}</div>
     </section>
   );
+}
+
+function Row({ children }: { children: ReactNode }) {
+  return <div className="ui-row">{children}</div>;
 }

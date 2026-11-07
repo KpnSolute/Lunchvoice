@@ -35,6 +35,6 @@ export const usingMock: boolean =
   import.meta.env.DEV && (import.meta.env.VITE_LV_MOCK === "1" || !url || !key);
 
 export function createApi(getToken: () => string | null, displayName?: string): LvApi {
-  if (import.meta.env.DEV && usingMock) return createLvApi(createMockTransport(displayName));
+  if (import.meta.env.DEV && usingMock) return createLvApi(createMockTransport(displayName, () => Boolean(getToken())));
   return createLvApi(url && key ? realTransport(getToken) : failClosed);
 }

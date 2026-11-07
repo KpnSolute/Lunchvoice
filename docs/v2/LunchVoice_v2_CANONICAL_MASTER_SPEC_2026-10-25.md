@@ -416,6 +416,27 @@ LunchVoice has two ways to pay for creator capability:
 
 Participation remains free.
 
+### 11.0 Free Quick Survey (founder, 2026-11-07)
+
+**Price:** $0 for any signed-in account.
+
+The free entry point: "I need to ask people something."
+
+- up to **5** active Quick Surveys per account and up to **10** questions each, core question kinds only;
+- access is **anyone with the link** (link, QR, join code; never listed publicly or in Discover) or **invite only**
+  (only invited, signed-in people);
+- anonymous or identified responses; guests allowed on link surveys under a configurable rate limit;
+- simple start/end scheduling, basic totals and charts, survey history, LunchVoice branding;
+- no members, roles, pages, segmentation or exports.
+
+Quick Surveys live in the account's **personal space**: an internal, never-routable, never-listed Hub of kind
+`personal` with the free family. It exists only to reuse the Campaign, participation and analytics engine; every
+Hub-scoped operation (join, members, roles, pages, invites to the Hub, Discover, transfer, delete) refuses it, and
+invited respondents never become members of it. Hub owners can still create Quick Surveys.
+
+The product ladder is Quick Survey → Campaign Starter → Campaign Plus → Starter Hub → Team Hub. Nobody has to create
+a Hub to ask a question.
+
 ### 11.1 Free participant
 
 **Price:** $0
@@ -490,11 +511,10 @@ It inherits the applicable Team feature/entitlement set during the purchased/sch
 
 It is not a separate feature family and does not require a recurring Team subscription.
 
-**Pricing model is final:** first purchased period + additional paid weeks according to the Campaign duration model.
+**Price (founder, 2026-11-07):** **$39 for the first 2 weeks**, **$19 for each additional week**.
 
-**Important source note:** the founder record available to this specification does not contain a recoverable explicit dollar amount for the Campaign Plus first period or additional week. Do not invent one in code, UI, Stripe, migrations, or documentation. Treat the numeric amount as a configuration value that must be supplied from the authoritative pricing record before checkout is enabled.
-
-This is a missing numeric constant, not an open question about what Campaign Plus is or what features it includes.
+The earlier source note that this amount was unknown is superseded. Checkout still stays disabled until billing is
+connected; it no longer fails for a missing price.
 
 ### 11.6 Hub Name Reservation
 
@@ -546,6 +566,13 @@ Duration-based Campaign access must use explicit start/end timestamps and schedu
 Expired paid access must fail closed for premium actions without deleting customer-created data.
 
 Hub Name Reservation is a separate entitlement from feature access.
+
+The free family (Quick Surveys) is part of the same map. The founder's capability table in
+`docs/v2/LAUNCH_PLAN.md` is the authoritative per-family limit list; values it marks TBD fail closed or use the
+provisional value recorded there.
+
+The launch waitlist (50 Founding seats) is a launch tool, never authorization: admission grants a Founding Starter
+Hub credit, and authorization reads only entitlements.
 
 ---
 

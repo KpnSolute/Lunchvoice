@@ -1,5 +1,5 @@
 {
-  "version": "core-1.3",
+  "version": "core-1.4",
   "note": "Every route in src/main.tsx has one entry. scripts/check-route-layouts.mjs enforces it. Layouts L1-L11 and shells follow the design system.",
   "routes": [
     {
@@ -91,6 +91,22 @@
       "milestone": "M2"
     },
     {
+      "path": "/waitlist",
+      "name": "Founding waitlist (seats, join, admitted / waitlisted)",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M1"
+    },
+    {
+      "path": "/whitelist",
+      "name": "Redirect to /waitlist (link already shared)",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M1"
+    },
+    {
       "path": "/signin",
       "name": "Sign in",
       "layout": "L2",
@@ -142,6 +158,38 @@
       "path": "/settings",
       "name": "Account settings",
       "layout": "L8",
+      "shell": "account",
+      "access": "signed-in",
+      "milestone": "M1"
+    },
+    {
+      "path": "/surveys",
+      "name": "Quick Surveys",
+      "layout": "L4",
+      "shell": "account",
+      "access": "signed-in",
+      "milestone": "M1"
+    },
+    {
+      "path": "/surveys/new",
+      "name": "New Quick Survey",
+      "layout": "L2",
+      "shell": "account",
+      "access": "signed-in",
+      "milestone": "M1"
+    },
+    {
+      "path": "/surveys/:id",
+      "name": "Quick Survey Studio (personal space)",
+      "layout": "L6",
+      "shell": "account",
+      "access": "signed-in",
+      "milestone": "M1"
+    },
+    {
+      "path": "/surveys/:id/results",
+      "name": "Quick Survey results",
+      "layout": "L7",
       "shell": "account",
       "access": "signed-in",
       "milestone": "M1"
@@ -320,6 +368,14 @@
       "layout": "L9",
       "shell": "none",
       "access": "public",
+      "milestone": "M1"
+    },
+    {
+      "path": "/s/:token",
+      "name": "Quick Survey invite (redeem, then player)",
+      "layout": "L9",
+      "shell": "none",
+      "access": "signed-in",
       "milestone": "M1"
     },
     {

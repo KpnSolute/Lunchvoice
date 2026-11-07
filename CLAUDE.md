@@ -23,7 +23,9 @@ Dining is one customer use case, not the product.
   A person is the verified `(issuer, subject)` pair; email is never an identity
   key. LunchVoice owns authorization, memberships, roles and entitlements.
 - Canonical spec: `docs/v2/LunchVoice_v2_CANONICAL_MASTER_SPEC_2026-10-25.md`.
-  Read it before implementing anything. Worker handoffs live in
+  Read it before implementing anything. The founder direction of 2026-11-07
+  (Quick Surveys, whitelist launch) and the launch definition of done live in
+  `docs/v2/LAUNCH_PLAN.md`, which wins where it differs. Worker handoffs live in
   `docs/v2/handoffs/`. Product detail is `docs/v2/PRODUCT_SPEC.md`; the
   identity boundary is `docs/v2/IDENTITY_CONTRACT.md`.
 - Supabase refs: Lunchvoice `qprfonxvthmaoxfixigk`, KpnIdentity
@@ -46,9 +48,13 @@ UI and API; the backend evaluates the active entitlement.
   threshold, Discover eligibility at 700 genuine active members.
 - Campaign Starter: Starter family, time-bounded. $19 for the first 2 weeks,
   $13 per additional week.
-- Campaign Plus: Team family, time-bounded. Its price is unknown. Never invent
-  one; checkout stays disabled and fails closed until the authoritative value is
-  supplied.
+- Campaign Plus: Team family, time-bounded. $39 for the first 2 weeks, $19 per
+  additional week (founder, 2026-11-07).
+- Free Quick Survey: $0 for any signed-in account. 5 active surveys, 10
+  questions, core kinds, link or invite-only; lives in a personal space that is
+  never a Hub. The launch waitlist is never authorization.
+- Taxes are calculated by Stripe Tax, never by our own code. Cancelling a Hub
+  plan keeps access to the end of the paid period and deletes nothing.
 - Hub Name Reservation ("Reserve your Hub URL"): $25 per 12 months, $25 renewal,
   25-day grace (ACTIVE, GRACE, RELEASED). Grants no features.
 - The Owner is protected and does not consume a custom-role slot.

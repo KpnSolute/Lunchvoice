@@ -1,164 +1,114 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
 import { Icon, type IconName } from "../components/Icon";
-import { Card, Empty, Notice, Pill, Micro, PageHead } from "../components/ui";
+import { LinkButton } from "../components/ui";
 import { MadeBy } from "../components/MakerMark";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../config/contact";
+import { DELETE_COPY } from "./Account";
+import { Card } from "@/components/shadcn/card";
+import { Badge } from "@/components/shadcn/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/shadcn/accordion";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shadcn/table";
+import { EmptyState, Eyebrow, Notice } from "@/components/shadcn/blocks";
+import { StateScreen } from "../ui/StateScreen";
 
-function Page({ children }: { children: ReactNode }) {
-  return <div className="lv-page">{children}</div>;
+/** The legal operator is not decided yet. Never invent a company entity (founder decision 8). */
+const OPERATOR = "[Legal operator name — pending]";
+
+function Head({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?: ReactNode }) {
+  return (
+    <div className="lv-mk-head">
+      <Eyebrow accent>{eyebrow}</Eyebrow>
+      <h1>{title}</h1>
+      {sub && <p>{sub}</p>}
+    </div>
+  );
 }
 
-function Cta({ label = "Get started" }: { label?: string }) {
-  return (
-    <Link className="ui-btn ui-btn-primary ui-btn-lg" to="/signin">
-      {label} <Icon name="arrow" size={17} />
-    </Link>
-  );
+function LegalPending() {
+  return <Notice tone="warn" title="Legal text pending review">This page is a plain-language summary drafted for launch. It is not the reviewed legal text, which replaces it before public sign-ups open.</Notice>;
 }
 
 /* --------------------------------------------------------------- how it works */
 
-const LOOP = [
-  {
-    icon: "home" as IconName,
-    title: "One Hub, one address",
-    body: "Your community lives at lunchvoice.com/your-hub. Choose open, request to join, invite only, or closed, and change it later.",
-  },
-  {
-    icon: "survey" as IconName,
-    title: "Campaigns, not forms",
-    body: "A Campaign has a phase: draft, scheduled, open, ended. Questions can be edited while it is a draft and are locked once published.",
-  },
-  {
-    icon: "voice" as IconName,
-    title: "Five ways to answer",
-    body: "Rating, single choice, multiple choice, yes or no, or an open answer. One question per screen, thumb-sized, resumable if the page reloads.",
-  },
-  {
-    icon: "dashboard" as IconName,
-    title: "Results you can defend",
-    body: "Aggregates only. A cohort below the privacy floor is withheld, and a withheld value is never displayed as zero.",
-  },
+const LOOP: { icon: IconName; title: string; body: string }[] = [
+  { icon: "survey", title: "Ask with a Quick Survey", body: "No Hub needed. Up to 5 active surveys of up to 10 questions, shared by link, QR, a six-character code, or invite links." },
+  { icon: "home", title: "Or give your community a Hub", body: "lunchvoice.com/your-hub, with members, roles, pages and Campaigns. Choose open, approval or invite only, and change it later." },
+  { icon: "clock", title: "Campaigns have a lifecycle", body: "Draft, scheduled, open, closed. Questions can change while it’s a draft and lock once it’s published." },
+  { icon: "dashboard", title: "Results you can defend", body: "Totals only. A group too small to stay anonymous is withheld, and a withheld value is never shown as zero." },
 ];
 
-const PRIVACY_FAQ = [
-  ["What makes an answer anonymous?", "Eligibility is proven separately from the answer. The database knows you were allowed to answer; it does not keep that proof beside your response."],
-  ["Who can see results?", "Only people with the analytics capability on that Hub. Membership alone does not grant it."],
-  ["What about guests?", "A Campaign can be opened to guests with a join code. Guests never become members and never count toward thresholds."],
+const FAQ: [string, string][] = [
+  ["What makes an answer anonymous?", "Eligibility is checked apart from the answer. On an anonymous survey the creator sees totals and can’t link an answer to a person."],
+  ["Who can see results?", "The creator of a Quick Survey, and on a Hub only people with the results permission. Membership alone doesn’t grant it."],
+  ["What about guests?", "A link survey can accept guests who answer without an account. Guests never become members, never count toward thresholds, and are labelled as unverified in results."],
+  ["Is every question required?", "Unless the creator marks a question optional, it needs an answer. The survey tells you before you start."],
 ];
 
 export function HowItWorks() {
   return (
-    <Page>
-      <PageHead
-        eyebrow="How it works"
-        title="From a question to a decision, without exposing anyone."
-        sub="LunchVoice is a Hub, a set of Campaigns, and a privacy floor that holds even when someone asks for the raw data."
-      />
-      <div className="ui-stack ui-gap-16">
+    <div className="lv-mk">
+      <Head eyebrow="How it works" title="From a question to a decision, without exposing anyone." sub="Quick Surveys for one-off questions, Hubs for communities, and a privacy floor that holds even when someone asks for the raw data." />
+      <div className="lv-mk-grid">
         {LOOP.map((s, i) => (
-          <div key={s.title} className="ui-card">
-            <div className="ui-row ui-gap-12" style={{ alignItems: "flex-start" }}>
-              <span className="ui-micro" style={{ minWidth: 28 }}>{String(i + 1).padStart(2, "0")}</span>
-              <span style={{ color: "var(--accent-ink)" }}><Icon name={s.icon} size={20} /></span>
-              <div className="ui-stack ui-gap-4">
-                <h2 className="ui-display ui-display-md">{s.title}</h2>
-                <p className="ui-muted" style={{ margin: 0, maxWidth: "62ch" }}>{s.body}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <h2 className="ui-display ui-display-md" style={{ margin: "34px 0 14px" }}>Questions about privacy</h2>
-      <div className="ui-grid-2">
-        {PRIVACY_FAQ.map(([q, a]) => (
-          <Card key={q} quiet>
-            <h3 style={{ margin: "0 0 6px", fontFamily: "var(--font-display)", fontSize: 17 }}>{q}</h3>
-            <p className="ui-muted" style={{ margin: 0, fontSize: 14.5 }}>{a}</p>
+          <Card key={s.title}>
+            <div className="ui-spread"><span className="lv-mk-icon"><Icon name={s.icon} size={22} /></span><Eyebrow>{String(i + 1).padStart(2, "0")}</Eyebrow></div>
+            <h2 className="lv-mk-card-title">{s.title}</h2>
+            <p className="lv-mk-card-body">{s.body}</p>
           </Card>
         ))}
       </div>
-
-      <div className="ui-row" style={{ marginTop: 28 }}><Cta /></div>
-    </Page>
+      <Card>
+        <h2 className="lv-mk-card-title">Questions about privacy</h2>
+        <Accordion type="single" collapsible>
+          {FAQ.map(([q, a]) => <AccordionItem key={q} value={q}><AccordionTrigger>{q}</AccordionTrigger><AccordionContent><p>{a}</p></AccordionContent></AccordionItem>)}
+        </Accordion>
+      </Card>
+      <div className="ui-row">
+        <LinkButton to="/surveys/new" variant="primary" size="lg" icon="arrow">Start a Quick Survey</LinkButton>
+        <LinkButton to="/waitlist" variant="secondary" size="lg">Join the waitlist</LinkButton>
+      </div>
+    </div>
   );
 }
 
 /* ------------------------------------------------------------------ use cases */
 
-const CASES = [
-  { icon: "home" as IconName, name: "Schools and campuses", line: "Course feedback, student life, and staff pulse checks — without a named respondent.", ex: "Rate this week's session · Choose next term's topic" },
-  { icon: "star" as IconName, name: "Clubs and societies", line: "Settle a decision, rate an event, or float ideas before the next meeting.", ex: "Which night works? · Rate the venue" },
-  { icon: "roster" as IconName, name: "Teams and leagues", line: "Availability, season feedback, and next-season planning in one place.", ex: "Who can play Saturday? · Rate the season" },
-  { icon: "sparkle" as IconName, name: "Events and meetups", line: "A QR code on the table, results before you pack up.", ex: "How was tonight? · What should we run next?" },
-  { icon: "bulb" as IconName, name: "Workplaces", line: "Idea boxes and pulse questions with a privacy floor you can point at.", ex: "One change you'd make · Rate the offsite" },
-  { icon: "dashboard" as IconName, name: "Neighborhoods", line: "Ask a local question once, and see what the street actually thinks.", ex: "Which improvement first? · Rate the clean-up" },
+const CASES: { icon: IconName; name: string; line: string; ex: string }[] = [
+  { icon: "star", name: "Clubs and societies", line: "Settle a decision, rate an event, or float ideas before the next meeting.", ex: "Which night works? · Rate the venue" },
+  { icon: "roster", name: "Teams and leagues", line: "Availability, season feedback and next-season planning in one place.", ex: "Who can play Saturday? · Rate the season" },
+  { icon: "sparkle", name: "Events and meetups", line: "A QR code on the table, results before you pack up.", ex: "How was tonight? · What should we run next?" },
+  { icon: "bulb", name: "Workplaces", line: "Idea boxes and pulse questions with a privacy floor you can point at.", ex: "One change you’d make · Rate the offsite" },
+  { icon: "home", name: "School and campus staff", line: "Administrators and staff asking adult colleagues, parents or guardians, with results that never name anyone.", ex: "Rate the parents’ evening · Choose the training day" },
+  { icon: "fork", name: "Dining and catering", line: "Menu and service feedback from the people you serve.", ex: "Rate today’s lunch · Which dish should return?" },
 ];
 
 export function UseCases() {
   return (
-    <Page>
-      <PageHead
-        eyebrow="Use cases"
-        title="Dining is one use case. Yours is probably different."
-        sub="Anything a group needs to ask, answer, and settle — where the answer matters but the respondent shouldn't be exposed."
-      />
-      <div className="ui-grid-2">
+    <div className="lv-mk">
+      <Head eyebrow="Use cases" title="Dining is one use case. Yours is probably different." sub="Anything a group needs to ask, answer and settle, where the answer matters but the respondent shouldn’t be exposed." />
+      <div className="lv-mk-grid">
         {CASES.map((c) => (
           <Card key={c.name}>
-            <span className="ui-empty-icon"><Icon name={c.icon} size={22} /></span>
-            <h2 className="ui-display ui-display-md" style={{ margin: "12px 0 6px" }}>{c.name}</h2>
-            <p className="ui-muted" style={{ margin: "0 0 12px", fontSize: 14.5 }}>{c.line}</p>
-            <Micro>{c.ex}</Micro>
+            <span className="lv-mk-icon"><Icon name={c.icon} size={22} /></span>
+            <h2 className="lv-mk-card-title">{c.name}</h2>
+            <p className="lv-mk-card-body">{c.line}</p>
+            <Eyebrow>{c.ex}</Eyebrow>
           </Card>
         ))}
       </div>
-      <div className="ui-row" style={{ marginTop: 28 }}><Cta /></div>
-    </Page>
+      <div className="ui-row"><LinkButton to="/surveys/new" variant="primary" size="lg" icon="arrow">Start a Quick Survey</LinkButton></div>
+    </div>
   );
 }
 
-/* ------------------------------------------------------------------ beta */
+/* ------------------------------------------------------------------ /beta (older links) */
 
 export function Beta() {
   return (
-    <Page>
-      <PageHead
-        eyebrow="Waitlist"
-        title="The waitlist opens shortly."
-        sub="We are finishing the last pieces of the platform before inviting Hub owners. Participants and invitees can already sign in."
-      />
-      <Card>
-        <div className="ui-row ui-gap-8" style={{ marginBottom: 10 }}>
-          <Pill tone="accent">Opening soon</Pill>
-          <Micro>No waitlist form yet</Micro>
-        </div>
-        <p className="ui-muted" style={{ margin: 0 }}>
-          The public waitlist service is not deployed, so there is nothing to submit here — and we would rather show
-          nothing than accept an address we cannot keep safely. Once it is live this page will post you to the queue and
-          tell you exactly what is stored, for how long, and how to ask for removal.
-        </p>
-      </Card>
-
-      <div className="ui-grid-2" style={{ marginTop: 16 }}>
-        <Card quiet>
-          <Micro>What beta includes</Micro>
-          <ul style={{ margin: "10px 0 0", paddingLeft: 18, fontSize: 14.5, lineHeight: 1.7 }}>
-            <li>One Hub you own, with roles, invites and members</li>
-            <li>Campaigns in rating, poll, survey and feedback modes</li>
-            <li>Privacy-safe results with withheld cohorts</li>
-          </ul>
-        </Card>
-        <Card quiet>
-          <Micro>Already invited?</Micro>
-          <p className="ui-muted" style={{ margin: "10px 0 12px", fontSize: 14.5 }}>
-            If someone sent you an invite link, you can sign in and join that Hub now.
-          </p>
-          <Link className="ui-btn ui-btn-outline" to="/signin">Sign in</Link>
-        </Card>
-      </div>
-    </Page>
+    <div className="lv-mk">
+      <Head eyebrow="Launch" title="The beta became the waitlist." sub="LunchVoice opens through a waitlist. The first 50 admitted people receive a Founding Hub credit." />
+      <div className="ui-row"><LinkButton to="/waitlist" variant="primary" size="lg">Go to the waitlist</LinkButton></div>
+    </div>
   );
 }
 
@@ -166,41 +116,23 @@ export function Beta() {
 
 export function About() {
   return (
-    <Page>
-      <PageHead
-        eyebrow="About"
-        title="A community feedback platform, built to keep its promises."
-        sub="LunchVoice is made by KpnSolute. It exists because most feedback tools ask people to trust a policy, then publish numbers that quietly identify them."
-      />
-      <div className="ui-grid-2">
-        <Card>
-          <h3 style={{ margin: "0 0 8px", fontFamily: "var(--font-display)" }}>What we build</h3>
-          <p className="ui-muted" style={{ margin: 0, fontSize: 14.5 }}>
-            Hubs, Campaigns and privacy-safe analytics for schools, clubs, teams, events, workplaces and neighbourhoods.
-          </p>
-        </Card>
-        <Card>
-          <h3 style={{ margin: "0 0 8px", fontFamily: "var(--font-display)" }}>What we refuse</h3>
-          <p className="ui-muted" style={{ margin: 0, fontSize: 14.5 }}>
-            No college of respondents behind a "member count", no suppressed value dressed up as zero, and no customer
-            special-cased in the product.
-          </p>
-        </Card>
+    <div className="lv-mk">
+      <Head eyebrow="About" title="A community feedback platform, built to keep its promises." sub="LunchVoice by KpnSolute exists because most feedback tools ask people to trust a policy, then publish numbers that quietly identify them." />
+      <div className="lv-mk-grid">
+        <Card><h2 className="lv-mk-card-title">What we build</h2><p className="lv-mk-card-body">Quick Surveys, Hubs, Campaigns and privacy-safe results for clubs, teams, events, workplaces and neighbourhoods.</p></Card>
+        <Card><h2 className="lv-mk-card-title">What we refuse</h2><p className="lv-mk-card-body">No withheld value dressed up as zero, no answer linked to a name on an anonymous survey, and no customer special-cased in the product.</p></Card>
       </div>
-      <div style={{ marginTop: 24 }}><MadeBy /></div>
-    </Page>
+      <MadeBy />
+    </div>
   );
 }
 
 export function Status() {
   return (
-    <Page>
-      <PageHead eyebrow="Status" title="Status reporting is not wired up yet." sub="No monitoring feed exists, so this page will not pretend to know." />
-      <Notice tone="warn">
-        This page becomes useful once the platform has an uptime feed. Until then, treat it as a placeholder rather than
-        a promise: nothing here is polling.
-      </Notice>
-    </Page>
+    <div className="lv-mk">
+      <Head eyebrow="Status" title="Status reporting isn’t wired up yet." sub="No monitoring feed exists, so this page doesn’t pretend to know." />
+      <Notice tone="warn">This page becomes useful once the platform has an uptime feed. Until then, write to <a className="lv-inline-link" href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a> if something looks broken.</Notice>
+    </div>
   );
 }
 
@@ -208,62 +140,110 @@ export function Status() {
 
 export function Terms() {
   return (
-    <Page>
-      <PageHead eyebrow="Terms" title="Terms of service" sub="Draft. Pending legal review before launch." />
-      <Notice tone="warn">This text is a placeholder drafted for the build, not a legal document. It must be replaced before public sign-ups open.</Notice>
-      <div className="ui-stack ui-gap-16" style={{ marginTop: 16, maxWidth: "70ch" }}>
-        <section>
-          <h2 className="ui-display ui-display-md">Using LunchVoice</h2>
-          <p className="ui-muted">Participation is free. Hub creation is a paid subscription or a time-bounded Campaign window. You are responsible for what you ask your community and for the lawful basis you rely on.</p>
-        </section>
-        <section>
-          <h2 className="ui-display ui-display-md">Privacy is a product constraint, not a setting</h2>
-          <p className="ui-muted">The platform refuses to publish results that could identify a respondent. Asking us to reveal a respondent is not a supported request.</p>
-        </section>
-        <section>
-          <h2 className="ui-display ui-display-md">Cancellation</h2>
-          <p className="ui-muted">Lapsing paid access fails closed for premium actions. It never deletes your data.</p>
-        </section>
+    <div className="lv-mk">
+      <Head eyebrow="Terms" title="Terms of service" sub={<>LunchVoice by KpnSolute. Operated by {OPERATOR}.</>} />
+      <LegalPending />
+      <div className="lv-mk-prose">
+        <h2>Using LunchVoice</h2>
+        <p>Answering is free. Quick Surveys are free for signed-in accounts. Hubs and Campaign plans are paid once billing opens; until then nothing is charged. You’re responsible for what you ask and for having a lawful reason to ask it. LunchVoice isn’t aimed at children.</p>
+        <h2>Privacy is a product constraint</h2>
+        <p>The platform refuses to publish results that could identify a respondent. Asking us to reveal who gave an anonymous answer isn’t a supported request.</p>
+        <h2>Plans and cancellation</h2>
+        <p>Prices exclude applicable tax. Cancel a Hub plan anytime; access continues to the end of the paid period. Campaign plans are refundable until the Campaign window starts. When paid access ends, premium actions lock; your data is not deleted.</p>
+        <h2>Reporting abuse</h2>
+        <p>Every survey has a “Report this survey” action. We may block a survey that breaks these terms.</p>
+        <h2>Contact</h2>
+        <p><a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a></p>
       </div>
-    </Page>
+    </div>
   );
 }
 
+const STORED: [string, string][] = [
+  ["Your sign-in", "The verified KpnIdentity issuer and subject (your KpnSolute account, signed in with Google). This is your identity; your email is never used as one."],
+  ["Profile", "Your display name, and the email address cached from your sign-in."],
+  ["Waitlist contact email", "Optional. Only if you give it and agree; used for launch and account updates; deleted when you delete your account."],
+  ["Answers", "What you answer on surveys and Campaigns. On anonymous surveys the creator sees totals only and can’t link an answer to you."],
+  ["Hubs and memberships", "Hubs you create or join, your roles in them, and invitations."],
+];
+
+const STORAGE_KEYS: [string, string, string][] = [
+  ["lv.session", "localStorage", "Keeps you signed in on this device until the session expires or you sign out."],
+  ["lv.theme", "localStorage", "Your light, dark or high-contrast choice."],
+  ["lv-draft-<survey>", "localStorage", "Answers in progress, so a reload doesn’t lose them. Removed after you submit."],
+  ["lv-guest-key-<code>", "localStorage", "A random key that lets a guest answer a survey once. It isn’t linked to who you are."],
+  ["lv.signin.pending", "sessionStorage", "One-time values for the sign-in redirect. Removed when sign-in finishes."],
+];
+
 export function Privacy() {
   return (
-    <Page>
-      <PageHead eyebrow="Privacy" title="What we store, and what we deliberately don't." sub="Draft. Pending legal review." />
-      <Notice tone="warn">Placeholder copy for the build. Replace with reviewed policy text before launch.</Notice>
-      <div className="ui-stack ui-gap-16" style={{ marginTop: 16, maxWidth: "70ch" }}>
-        <section>
-          <h2 className="ui-display ui-display-md">Identity</h2>
-          <p className="ui-muted">You sign in through KpnIdentity. LunchVoice stores the verified issuer and subject pair, never your email address as an identity key.</p>
-        </section>
-        <section>
-          <h2 className="ui-display ui-display-md">Answers</h2>
-          <p className="ui-muted">Eligibility and answers are kept apart, so an anonymous response cannot be resolved to the person who gave it. Guests are never counted as members.</p>
-        </section>
-        <section>
-          <h2 className="ui-display ui-display-md">Results</h2>
-          <p className="ui-muted">Only aggregates are published, and a cohort below the minimum is withheld instead of shown. Free-text answers are not published.</p>
-        </section>
+    <div className="lv-mk">
+      <Head eyebrow="Privacy" title="What we store, and what we deliberately don’t." sub={<>LunchVoice by KpnSolute. Operated by {OPERATOR}.</>} />
+      <LegalPending />
+      <div className="lv-mk-prose">
+        <h2>What we store</h2>
+        <ul>{STORED.map(([k, v]) => <li key={k}><strong>{k}.</strong> {v}</li>)}</ul>
+        <h2>Anonymity</h2>
+        <p>On an anonymous survey we check that you may answer separately from what you answer, so results can’t be traced back to you. A group too small to stay anonymous is withheld, never shown as zero. Written answers on anonymous surveys appear only once enough people have answered, in random order, without names or times. On an identified survey the creator can see who answered, and you’re told before you start.</p>
+        <h2>Who can see stored data</h2>
+        <p>People who run LunchVoice can access the database to operate, secure and support the service. Anonymous answers are stored without any link to who gave them, so that access can’t tie them to you either.</p>
+        <p>Our hosting and database providers keep standard request logs, such as IP address and browser, for security and operations.</p>
+        <p>Data is stored in the United States (database in US West, sign-in in US East).</p>
+        <h2>Children</h2>
+        <p>LunchVoice is not directed at children under 13, and we don’t knowingly collect their personal information. Schools and organisations use it through adult administrators.</p>
+        <h2>Guests</h2>
+        <p>Guests answer link surveys without an account. They never become members, never count toward member totals or thresholds, and can’t see private Hub content. Results label guest responses as unverified.</p>
+        <h2>On this device</h2>
       </div>
-    </Page>
+      <Card>
+        <Table>
+          <TableHeader><TableRow><TableHead>Key</TableHead><TableHead>Where</TableHead><TableHead>Why</TableHead></TableRow></TableHeader>
+          <TableBody>{STORAGE_KEYS.map(([k, w, why]) => <TableRow key={k}><TableCell className="ui-mono">{k}</TableCell><TableCell>{w}</TableCell><TableCell>{why}</TableCell></TableRow>)}</TableBody>
+        </Table>
+        <p className="ui-help lv-m0">No cookies, analytics or advertising trackers. Fonts are served from our own site.</p>
+      </Card>
+      <div className="lv-mk-prose">
+        <h2>How long we keep it</h2>
+        <ul>
+          <li>Survey and Campaign data: while the account or Hub that owns it exists.</li>
+          <li>Logs: 12 months.</li>
+          <li>Guest rate-limit data: 7 days.</li>
+          <li>A deleted Hub’s address is held for 30 days before anyone can claim it. A reused address never shows the previous Hub’s data.</li>
+        </ul>
+        <h2>Deleting your account</h2>
+        <p>{DELETE_COPY} Your Quick Surveys, waitlist place and waitlist contact email are deleted too. If you own a Hub, transfer or delete it first.</p>
+        <h2>Who processes data for us</h2>
+        <ul>
+          <li><strong>Supabase</strong>: database and server functions.</li>
+          <li><strong>Render</strong>: hosting of this website.</li>
+          <li><strong>KpnIdentity (KpnSolute) and Google</strong>: sign-in.</li>
+        </ul>
+        <h2>Contact</h2>
+        <p>Questions, access or deletion requests: <a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a>.</p>
+      </div>
+    </div>
   );
 }
 
 export function Support() {
   return (
-    <Page>
-      <PageHead eyebrow="Support" title="Support" sub="A contact channel is not configured yet." />
-      <Card>
-        <p className="ui-muted" style={{ margin: 0 }}>
-          Until a support inbox is connected, this page is honest about having nowhere to send a ticket. If you reached
-          this page from a Hub you own, the Hub settings page will carry the operator contact once that exists.
-        </p>
-      </Card>
-      <div className="ui-row" style={{ marginTop: 16 }}><Link className="ui-btn ui-btn-outline" to="/">Back to LunchVoice</Link></div>
-    </Page>
+    <div className="lv-mk">
+      <Head eyebrow="Support" title="Get help" sub="Write to us. A person reads every message." />
+      <div className="lv-mk-grid">
+        <Card>
+          <span className="lv-mk-icon"><Icon name="join" size={22} /></span>
+          <h2 className="lv-mk-card-title">Email</h2>
+          <p className="lv-mk-card-body"><a className="lv-inline-link" href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a></p>
+          <p className="lv-mk-card-body">For account, privacy and deletion requests too. Never send passwords or sign-in codes.</p>
+        </Card>
+        <Card>
+          <span className="lv-mk-icon"><Icon name="lock" size={22} /></span>
+          <h2 className="lv-mk-card-title">Something wrong with a survey?</h2>
+          <p className="lv-mk-card-body">Use “Report this survey” on the survey itself. Reports go to LunchVoice, not to the creator.</p>
+        </Card>
+      </div>
+      <div className="ui-row"><LinkButton to="/privacy" variant="secondary">Privacy summary</LinkButton><LinkButton to="/" variant="quiet">Back to LunchVoice</LinkButton></div>
+    </div>
   );
 }
 
@@ -271,21 +251,15 @@ export function Support() {
 
 export function Discover() {
   return (
-    <Page>
-      <PageHead
-        eyebrow="Discover"
-        title="Discover"
-        sub="A directory of public Hubs, once Team Hubs qualify for listing."
-      />
-      <Empty
-        icon="star"
-        title="No Hubs are listed yet"
-        action={<Link className="ui-btn ui-btn-outline" to="/pricing">See what Discover needs</Link>}
-      >
-        Discover is empty by design: Hubs appear here only after they reach 700 genuine active members and are approved.
-        Nothing is seeded or invented to fill the page.
-      </Empty>
-    </Page>
+    <div className="lv-mk">
+      <Head eyebrow="Discover" title="Discover" sub="A directory of large public Hubs that chose to be found." />
+      <Card variant="well">
+        <EmptyState icon={<Icon name="star" size={22} />} title="No Hubs are listed yet" action={<LinkButton to="/pricing" variant="secondary">See what Discover needs</LinkButton>}>
+          Hubs appear here only after they reach 700 genuine active members on the Team plan and are approved. Quick Surveys are never listed, and nothing is seeded to fill the page.
+        </EmptyState>
+      </Card>
+      <p className="ui-help lv-m0"><Badge>Team plan</Badge> Discover eligibility is part of the Team Hub plan.</p>
+    </div>
   );
 }
 
@@ -293,18 +267,11 @@ export function Discover() {
 
 export function NotFoundPage() {
   return (
-    <div className="lv-page">
-      <div className="ui-stack ui-gap-16" style={{ padding: "64px 0", maxWidth: "52ch" }}>
-        <Micro accent>404</Micro>
-        <h1 className="ui-display ui-display-xl">This page isn&rsquo;t here.</h1>
-        <p className="ui-muted" style={{ margin: 0 }}>
-          The link may be old, or the Hub may be private. A private Hub answers exactly like a missing one, on purpose.
-        </p>
-        <div className="ui-row">
-          <Link className="ui-btn ui-btn-primary" to="/">LunchVoice home</Link>
-          <Link className="ui-btn ui-btn-outline" to="/discover">Browse Discover</Link>
-        </div>
-      </div>
-    </div>
+    <StateScreen
+      kind="notfound"
+      title="This page isn’t here."
+      detail="The link may be old, or the Hub may be private. A private Hub answers exactly like a missing one, on purpose."
+      action={<div className="ui-row"><LinkButton to="/" variant="primary">LunchVoice home</LinkButton><LinkButton to="/join" variant="secondary">Enter a code</LinkButton></div>}
+    />
   );
 }

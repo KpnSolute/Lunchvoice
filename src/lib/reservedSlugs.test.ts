@@ -11,6 +11,11 @@ test("rejects every live route as a slug", () => {
   for (const s of ["me", "ME", "api", "analytics", "campaigns", "signin"]) assert.equal(slugProblem(s), "reserved");
 });
 
+test("rejects the launch routes", () => {
+  for (const s of ["whitelist", "surveys", "brand", "licenses", "how-it-works", "use-cases", "signup"]) assert.equal(slugProblem(s), "reserved");
+  for (const s of ["s", "c", "j"]) assert.notEqual(slugProblem(s), null);
+});
+
 test("a business name is not reserved just because it is a business name", () => {
   for (const s of ["example-hub", "acme-admin", "example-hub-admin"]) assert.equal(slugProblem(s), null);
 });

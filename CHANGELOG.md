@@ -6,6 +6,147 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-07)
+
+- Applied 000014-000017 to the LunchVoice production project (`qprfonxvthmaoxfixigk`) under the founder's
+  conditional approval (F-13) after the gate was met. Pre-checks passed (chain 000001-000013, no data, no slug
+  conflicts); backup 2184898828 recorded; files hash-verified from `e375fca`. Migration history versions set to
+  000014-000017. Grant audit A-F and policy values matched the runbook exactly.
+- Exposed `lv_api` through the Data API (`public,graphql_public,lv_api`; `lv` stays private). This fixes the HTTP 406
+  that blocked every app call after sign-in. Signed-out smoke: `lv_my_context` answers `lv_unauthenticated`,
+  `lv_waitlist_status` shows 50 open seats, `lv_plan_limits` is public, signed-in functions are refused (401).
+
+### Compliance (launch gate met)
+
+- `docs/compliance/LAUNCH_COMPLIANCE_REVIEW.md` §7.7: targeted re-review at 5c665e1 confirms 0 BLOCKER and 0 HIGH
+  open (NEW-01 reproduced and refused; NEW-02, NEW-06, NEW-08, LC-31, NEW-03, NEW-04, NEW-07 closed). Open: 4 MEDIUM
+  (LC-10, LC-12, LC-13, LC-14) and 5 LOW, each with an owner.
+
+### Security (000017 billing hardening)
+
+- NEW-01 (HIGH): `lv.billing_apply_event` grants only for a matching checkout intent with `payment_status` paid (or no
+  payment required), currency `usd` and `amount_subtotal` equal to the intent's amount; product, account, Hub, slug
+  and weeks come only from the intent. `checkout.session.async_payment_succeeded` is handled; unpaid sessions grant
+  nothing. Fixed-price links can no longer over-grant Campaign weeks.
+- NEW-02: refunds follow F-08 (partial refunds never revoke; full refunds revoke only unused credits, unstarted
+  windows and reservations; Hub subscriptions keep access to the end of the paid period).
+- NEW-06: questions marked optional may be skipped by members and guests; required ones may not.
+- NEW-08: waitlist seats are never re-issued after an account is deleted (at most 50 Founding grants ever).
+- LC-31: the error-contract test uses a synthetic slug.
+- Canonical suite: 660 checks, 0 failed, rollback of 000014-000017 rehearsed. Function tests: 24 pass.
+
+### Fixed (compliance re-review, UI side)
+
+- NEW-03: the account-deletion copy no longer promises to delete anonymous written answers (they were never linked to
+  the person and cannot be found); it states what is deleted and what stays.
+- NEW-04: `/privacy` adds who can see stored data (operator access), provider request logs, the US data region and a
+  children statement (not directed at children under 13; schools through adult administrators).
+- NEW-07: CSV export neutralises spreadsheet formulas in cells.
+- `docs/compliance/LAUNCH_COMPLIANCE_REVIEW.md` section 7: reconciliation of all 41 original findings on the
+  integrated branch (every original BLOCKER and HIGH closed) and new findings NEW-01 to NEW-08.
+
+### Added (launch backend: migrations 000014-000016)
+
+- 000014: one entitlement map (`lv.plan_limits`, products incl. Campaign Plus at 3900 + 1900/week), entitlements and
+  Hub credits (`lv_hub_create` consumes a credit; no beta gate), Founding entitlements ending 30 days after
+  `billing.launched_at`, the 50-seat waitlist (race-safe; consent version for the optional email; never
+  authorization), personal spaces and Quick Surveys (link or invite-only, 5 slots, archive frees a slot, 20 creations
+  per hour), the survey threshold gate, fail-closed expiry, `lv_report_abuse` and admin block, explicit grants with an
+  anon allow-list and RLS on every table (LC-05), reserved slugs synced with every UI route (LC-24).
+- 000015: Hub update/branding, owner transfer, Hub delete with a 30-day slug quarantine and `lv_hub_gone` (LC-27),
+  Hub pages, profile update, account delete with irreversible unlinking and free-text removal (LC-16), recent sign-in
+  required for destructive actions (LC-22).
+- 000016: checkout intents (fail closed), idempotent service-role-only `lv.billing_apply_event`, billing summary,
+  Hub Name Reservation lifecycle, strict analytics engine `lv.safe_cells` (LC-01, LC-02), free text only at 5+ in
+  random order, export, Discover gate, retention sweep.
+- `billing-webhook` Edge Function (Stripe signature check, 503 without the secret) with tests; runbook rewritten for
+  the real production state (LC-07), including exposing `lv_api` only after the grant audit.
+- Canonical suite: 628 checks, 0 failed, slug and waitlist races, full rollback rehearsal. Function tests: 21 pass.
+
+### Fixed (UI aligned to the real backend)
+
+- `lv_waitlist_join` now receives `p_intended_hub_name` (it was sent as `p_note`, which the Data API would reject);
+  `lv_checkout_start` passes `p_slug`; a fully withheld question renders as Withheld, never as "no answers"; the
+  merged withheld cell's `null` key is handled; `lv_reauth_required` has copy. Every UI RPC call (59) was checked
+  against the SQL signatures by argument name: 0 mismatches.
+
+### Security (LC-04)
+
+- `render.yaml` sets production headers on every path: a Content-Security-Policy built from the app's real runtime
+  origins (self, the Lunchvoice Supabase project, the KpnIdentity issuer; the theme pre-paint script pinned by
+  sha256; `frame-ancestors 'none'`, `object-src 'none'`, `base-uri`/`form-action 'self'`), HSTS (1 year),
+  `nosniff`, `strict-origin-when-cross-origin`, a restrictive Permissions-Policy and `X-Frame-Options: DENY`.
+  Verified against a production build served with these headers: 10 routes and the sign-in redirect to KpnIdentity
+  ran with zero CSP violations. Must be re-verified on the live site after deploy.
+
+### Added (launch UI on the shadcn layer)
+
+- One UI system: shadcn components (button, inputs, select, checkbox, radio, switch, tabs, dialog, alert-dialog,
+  sheet, menus, popover, tooltip, toasts, badge, card, table, skeleton, progress, accordion, avatar, scroll-area,
+  input-otp, alert) restyled to the tactile tokens, plus composite blocks (QuotaMeter, ResultBars with one striped
+  withheld bucket, TypedConfirm, QrCode, Notice, EmptyState). `src/components/ui.tsx` is now a thin wrapper over it.
+- Launch journey: landing with the waitlist section, `/waitlist` (and `/whitelist` redirecting to it), `/me`
+  dashboard, Quick Surveys (`/surveys`, editor, results, `/s/:token` invites) with link, client-side QR and join code,
+  `/create` stepper on Hub credits, the rebuilt Hub workspace (overview, Campaigns, Studio, results, members, invites,
+  roles, settings with owner transfer and delete, Builder pages, billing, reservation, Discover) and the player.
+- Respondent copy derives from the Campaign's settings (LC-03); "Report this survey" on every respondent screen;
+  blocked Campaign and "This Hub is no longer available" states.
+- `/privacy` plain-language data summary (stored data, anonymity, guests, browser storage keys, subprocessors,
+  retention, deletion), `/support` and footer contact (`src/config/contact.ts`, address to confirm), legal operator
+  placeholder (LC-08). Reserved slugs gain `how-it-works`, `use-cases`, `whitelist`, `waitlist`, `signup`, `surveys`,
+  `s`, `c`, `j`, `brand`, `licenses` (LC-24, UI side).
+- Pricing: the founder's capability table, Campaign Plus at $39 for 2 weeks + $19 per week, tax, cancellation and
+  refund notes; checkout disabled with a reason.
+- Typed `lvApi` and dev-only mock for every launch operation; new error copy (`lv_entitlement_required`,
+  `lv_billing_unavailable`, `lv_hub_gone`, `lv_confirmation_mismatch`, `lv_not_available`).
+- Dependency: `qrcode` (client-side QR, own chunk). The Hub workspace and Quick Surveys are lazy route chunks
+  (JS 238.7 kB gzip in total).
+
+### Changed (founder final decisions, 2026-11-07)
+
+- Campaign Plus is priced: $39 for the first 2 weeks, $19 per additional week (master spec 11.5, `AGENTS.md`,
+  `CLAUDE.md`, `LAUNCH_PLAN.md`).
+- Master spec gains 11.0 Free Quick Survey (personal space, limits, access modes) and the waitlist rule in section 12.
+- `LAUNCH_PLAN.md`: "whitelist" is now "waitlist" and never authorization; founder decisions F-01 to F-13 (strict
+  anonymity, deletion with free-text removal, 30-day slug quarantine, abuse brakes, refunds and cancellation, Stripe
+  Tax, minors, legal operator, conditional production approval) and the BLOCKER/HIGH-zero launch gate.
+
+### Added (launch compliance review)
+
+- `docs/v2/LAUNCH_PLAN.md` records decisions L-07 to L-14 taken with Jev on the review's founder questions, and lists
+  the decisions that stay with the founder (refunds, Campaign Plus price, minors, legal review, production approval).
+- `docs/compliance/LAUNCH_COMPLIANCE_REVIEW.md`: privacy, security, payments-readiness, policy, legal-surface and
+  accessibility review of the launch plan and current code (1 blocker, 7 high, 21 medium, 12 low), a reusable
+  re-review checklist and the founder decisions needed. Findings are assigned to the backend and UI work in progress.
+
+### Added (launch plan)
+
+- `docs/v2/LAUNCH_PLAN.md`: the founder direction of 2026-11-07 (free Quick Surveys, 50-seat whitelist launch with a
+  free Founding Starter entitlement), the decisions taken for the founder with Jev (L-01 to L-06), architecture
+  decisions A-01 to A-05, the launch definition of done, the roadmap and the API contract the backend and UI build to.
+  `AGENTS.md` and `CLAUDE.md` point to it.
+
+### Added (shadcn/ui on the design system)
+
+- Tailwind v4 (`tailwindcss`, `@tailwindcss/vite`) and shadcn/ui (`components.json`, Radix, Nova style), with the
+  `@/` import alias in `tsconfig.json` and `vite.config.ts`. New runtime dependencies: `radix-ui`,
+  `class-variance-authority`, `cn` (shadcn's class merger), `lucide-react`, `tw-animate-css`; `shadcn` is a
+  dev dependency (its `tailwind.css` is only read at build time).
+- `src/ui/shadcn.css` maps every shadcn variable onto the `--lv-*` tokens, so components follow light, dark and high
+  contrast with no per-theme block. It imports no preflight, scopes its reset to `[data-slot]`, and Tailwind scans
+  only `src/components/shadcn/`: scanning the whole app generated `container`, `grid`, `hidden` and `table` utilities
+  from existing class names. `--muted` is left to `index.css` (muted text); shadcn's muted surface maps to the well.
+- First component: `src/components/shadcn/button.tsx`, shown in the dev-only gallery (`/__gallery`). Checked in the
+  browser in all three themes; the landing page still has no horizontal scroll at 390px.
+- `docs/frontend/FRONTEND.md` documents how to add components and the rules above.
+
+### Added (shadcn MCP server)
+
+- `.mcp.json` registers the shadcn MCP server (`shadcn mcp init --client claude`) so agents can browse, search and get
+  add commands for shadcn registry components. Pinned to `shadcn@4.23.0` and started with `npx`; it is not a project
+  dependency (the init's devDependency and 218-package lockfile change were dropped). The project has no
+  `components.json` yet, so adding components still needs a deliberate shadcn setup first.
+
 ### Changed (Campaign Studio)
 
 - Campaign Studio rebuilt as three panes: a numbered questions outline, an editor (prompt and options save when you leave a field) with a live respondent preview, and a Share panel (link, join code, QR placeholder, facts). On phones it is one pane at a time with Outline, Edit and Share tabs. Published Campaigns stay locked and say so.

@@ -1,221 +1,137 @@
-import { useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
-import { NavLink } from "react-router-dom";
+// Thin app-level wrappers over the shadcn layer (src/components/shadcn). Pages import from here or from the
+// shadcn components directly; there is one component system and it is the shadcn one.
+import type { ComponentProps, ReactNode } from "react";
+import { Link, type LinkProps } from "react-router-dom";
 import { Icon, type IconName } from "./Icon";
 import type { LvError } from "../lib/lvApi";
 import { describeError } from "../lib/errors";
+import { Button } from "@/components/shadcn/button";
+import { Badge } from "@/components/shadcn/badge";
+import { Card as ShadCard } from "@/components/shadcn/card";
+import {
+  CopyField as CopyFieldBlock,
+  EmptyState,
+  Eyebrow,
+  LoadingRows,
+  Metric as MetricBlock,
+  NavTabs,
+  Notice as NoticeBlock,
+  PageHeader,
+  PhaseBadge as PhaseBadgeBlock,
+  QuotaMeter,
+  type Phase,
+} from "@/components/shadcn/blocks";
+
+export type { Phase };
+export { Button };
+
+type Variant = "primary" | "secondary" | "ink" | "quiet" | "danger";
+type LegacyVariant = Variant | "outline";
+const mapVariant = (v: LegacyVariant): Variant => (v === "outline" ? "secondary" : v);
 
 /* ------------------------------------------------------------------ buttons */
 
-type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "ink" | "outline" | "quiet" | "danger";
-  size?: "sm" | "lg";
-  block?: boolean;
+type BtnProps = Omit<ComponentProps<typeof Button>, "variant" | "size"> & {
+  variant?: LegacyVariant;
+  size?: "sm" | "md" | "lg";
   icon?: IconName;
 };
 
-export function Btn({ variant = "outline", size, block, icon, className = "", children, ...rest }: BtnProps) {
-  const cls = [
-    "ui-btn",
-    `ui-btn-${variant}`,
-    size ? `ui-btn-${size}` : "",
-    block ? "ui-btn-block" : "",
-    className,
-  ].filter(Boolean).join(" ");
+export function Btn({ variant = "secondary", size = "md", icon, children, ...rest }: BtnProps) {
   return (
-    <button className={cls} {...rest}>
+    <Button variant={mapVariant(variant)} size={size} {...rest}>
       {children}
       {icon && <Icon name={icon} size={16} />}
-    </button>
+    </Button>
+  );
+}
+
+/** A router link that looks like a button. */
+export function LinkButton({
+  variant = "secondary",
+  size = "md",
+  icon,
+  block,
+  children,
+  className,
+  ...rest
+}: LinkProps & { variant?: LegacyVariant; size?: "sm" | "md" | "lg"; icon?: IconName; block?: boolean }) {
+  return (
+    <Button asChild variant={mapVariant(variant)} size={size} block={block} className={className}>
+      <Link {...rest}>
+        {children}
+        {icon && <Icon name={icon} size={16} />}
+      </Link>
+    </Button>
   );
 }
 
 /* ------------------------------------------------------------------ surfaces */
 
-export function Card({ children, className = "", quiet = false }: { children: ReactNode; className?: string; quiet?: boolean }) {
-  return <div className={`ui-card ${quiet ? "ui-card-quiet" : ""} ${className}`.trim()}>{children}</div>;
+export function Card({ children, className, quiet = false }: { children: ReactNode; className?: string; quiet?: boolean }) {
+  return <ShadCard variant={quiet ? "well" : "card"} className={className}>{children}</ShadCard>;
 }
 
-export function Panel({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`ui-panel ${className}`.trim()}>{children}</div>;
+export function Panel({ children, className }: { children: ReactNode; className?: string }) {
+  return <ShadCard variant="ink" className={className}>{children}</ShadCard>;
 }
 
 export function Micro({ children, accent = false }: { children: ReactNode; accent?: boolean }) {
-  return <span className={`ui-micro ${accent ? "ui-micro-accent" : ""}`.trim()}>{children}</span>;
+  return <Eyebrow accent={accent}>{children}</Eyebrow>;
 }
 
-export function Pill({
-  children,
-  tone = "muted",
-}: {
-  children: ReactNode;
-  tone?: "muted" | "accent" | "ok" | "danger" | "ink";
-}) {
-  return <span className={`ui-pill ${tone === "muted" ? "" : `ui-pill-${tone}`}`.trim()}>{children}</span>;
+export type PillTone = "muted" | "accent" | "ok" | "danger" | "ink";
+export function Pill({ children, tone = "muted" }: { children: ReactNode; tone?: PillTone }) {
+  return <Badge variant={tone === "muted" ? "neutral" : tone}>{children}</Badge>;
 }
-
-/* ------------------------------------------------------------------ page head */
 
 export function PageHead({ eyebrow, title, sub, actions }: { eyebrow?: string; title: string; sub?: string; actions?: ReactNode }) {
-  return (
-    <div className="ui-head">
-      {eyebrow && <Micro accent>{eyebrow}</Micro>}
-      <h1 className="ui-display ui-display-lg">{title}</h1>
-      {sub && <p>{sub}</p>}
-      {actions && <div className="ui-row" style={{ marginTop: 6 }}>{actions}</div>}
-    </div>
-  );
+  return <PageHeader eyebrow={eyebrow} title={title} sub={sub} actions={actions} />;
 }
 
 /* ------------------------------------------------------------------ feedback */
 
-export function Notice({
-  tone = "info",
-  children,
-}: {
-  tone?: "info" | "ok" | "warn" | "err";
-  children: ReactNode;
-}) {
-  const role = tone === "err" ? "alert" : "status";
-  return <div className={`ui-notice ui-notice-${tone}`} role={role}>{children}</div>;
+export function Notice({ tone = "info", title, children }: { tone?: "info" | "ok" | "warn" | "err"; title?: ReactNode; children?: ReactNode }) {
+  return <NoticeBlock tone={tone === "err" ? "error" : tone} title={title}>{children}</NoticeBlock>;
 }
 
-export function ErrorNote({ error }: { error: LvError | null | undefined }) {
+export function ErrorNote({ error }: { error: Pick<LvError, "code" | "message"> | null | undefined }) {
   if (!error) return null;
-  return <Notice tone="err">{describeError(error)}</Notice>;
+  return <NoticeBlock tone="error">{describeError(error)}</NoticeBlock>;
 }
 
-export function Empty({
-  icon = "sparkle",
-  title,
-  children,
-  action,
-}: {
-  icon?: IconName;
-  title: string;
-  children?: ReactNode;
-  action?: ReactNode;
-}) {
-  return (
-    <div className="ui-empty">
-      <span className="ui-empty-icon"><Icon name={icon} size={22} /></span>
-      <h3>{title}</h3>
-      {children && <p>{children}</p>}
-      {action}
-    </div>
-  );
+export function Empty({ icon = "sparkle", title, children, action }: { icon?: IconName; title: string; children?: ReactNode; action?: ReactNode }) {
+  return <EmptyState icon={<Icon name={icon} size={24} />} title={title} action={action}>{children}</EmptyState>;
 }
 
 export function Loading({ rows = 3, label = "Loading" }: { rows?: number; label?: string }) {
-  return (
-    <div role="status" aria-label={label} aria-busy="true">
-      {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="ui-skel ui-skel-row" style={{ width: i === rows - 1 ? "55%" : "100%" }} />
-      ))}
-    </div>
-  );
+  return <LoadingRows rows={rows} label={label} />;
 }
 
 /* ------------------------------------------------------------------ data */
 
-export function Metric({ value, label, hint }: { value: ReactNode; label: string; hint?: string }) {
-  return (
-    <div className="ui-stack ui-gap-4">
-      <span className="ui-metric">{value}</span>
-      <span className="ui-micro">{label}</span>
-      {hint && <span className="ui-muted" style={{ fontSize: 12 }}>{hint}</span>}
-    </div>
-  );
+export function Metric({ value, label, hint }: { value: ReactNode | null; label: string; hint?: string }) {
+  return <MetricBlock value={value} label={label} hint={hint} />;
 }
 
-export function Meter({ value, max, label }: { value: number; max: number; label?: string }) {
-  const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
-  return (
-    <div className="ui-stack ui-gap-4">
-      <div className="ui-meter" role="img" aria-label={label ?? `${value} of ${max}`}>
-        <b style={{ width: `${pct}%` }} />
-      </div>
-      <span className="ui-micro">{value} of {max}{label ? ` · ${label}` : ""}</span>
-    </div>
-  );
+export function Meter({ value, max, label }: { value: number; max: number | null; label: string }) {
+  return <QuotaMeter used={value} limit={max} label={label} />;
 }
 
-/* ------------------------------------------------------------------ tabs */
-
-export function Tabs({ items }: { items: { to: string; label: string; end?: boolean }[] }) {
-  return (
-    <nav className="ui-tabs" aria-label="Sections">
-      {items.map((i) => (
-        <NavLink key={i.to} to={i.to} end={i.end} className="ui-tab">
-          {i.label}
-        </NavLink>
-      ))}
-    </nav>
-  );
+export function Tabs({ items, label }: { items: { to: string; label: string; end?: boolean }[]; label?: string }) {
+  return <NavTabs items={items} label={label} />;
 }
-
-/* ------------------------------------------------------------------ copy */
 
 export function CopyField({ value, label }: { value: string; label?: string }) {
-  const [copied, setCopied] = useState(false);
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    } catch {
-      setCopied(false);
-    }
-  }
-  return (
-    <div className="ui-stack ui-gap-4">
-      {label && <span className="ui-label">{label}</span>}
-      <div className="ui-copy">
-        <code>{value}</code>
-        <Btn size="sm" variant="outline" onClick={copy} type="button">{copied ? "Copied" : "Copy"}</Btn>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ dialog */
-
-export function Dialog({
-  open,
-  onClose,
-  title,
-  children,
-  actions,
-}: {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  children?: ReactNode;
-  actions?: ReactNode;
-}) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (open && !el.open) el.showModal();
-    if (!open && el.open) el.close();
-  }, [open]);
-  return (
-    <dialog ref={ref} className="ui-dialog" onClose={onClose} onCancel={onClose}>
-      <div className="ui-dialog-body">
-        <h2>{title}</h2>
-        {children}
-      </div>
-      <div className="ui-dialog-actions">{actions}</div>
-    </dialog>
-  );
+  return <CopyFieldBlock value={value} label={label} />;
 }
 
 /* ------------------------------------------------------------------ phase */
 
-export type Phase = "draft" | "scheduled" | "open" | "ended" | "paused" | "closed" | "archived";
-
 export function campaignPhase(c: { status: string; opens_at: string | null; closes_at: string | null }, now = Date.now()): Phase {
   if (c.status === "draft") return "draft";
+  if (c.status === "paused") return "paused";
+  if (c.status === "archived") return "archived";
   if (c.status === "closed") return "closed";
   if (c.opens_at && new Date(c.opens_at).getTime() > now) return "scheduled";
   if (c.closes_at && new Date(c.closes_at).getTime() <= now) return "ended";
@@ -223,5 +139,5 @@ export function campaignPhase(c: { status: string; opens_at: string | null; clos
 }
 
 export function PhaseBadge({ phase }: { phase: Phase }) {
-  return <span className={`ui-pill ui-phase-${phase}`}>{phase}</span>;
+  return <PhaseBadgeBlock phase={phase} />;
 }

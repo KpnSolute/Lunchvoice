@@ -16,7 +16,7 @@ select t.put('member', t.q($$select lv.current_account_id()::text$$));
 select t.as_kpn(4, null, true, 'Joiner'); select lv_api.lv_my_context();
 select t.put('joiner', t.q($$select lv.current_account_id()::text$$));
 select t.as_pg();
-insert into lv.beta_applications (account_id, status) values (t.id('owner'), 'approved');
+select t.grant_credit(t.id('owner'));
 
 select t.as_kpn(1);
 select t.put('hub', (lv_api.lv_hub_create('roles-hub', 'Roles Hub')->>'hub_id'));
@@ -40,10 +40,14 @@ select t.put('m_member', t.q(format($q$select id::text from lv.hub_memberships w
 
 -- ===== custom roles fail closed until a limit is set ======================================================
 select t.as_kpn(1);
-select t.check('roles: creating a custom role without a slot limit is lv_policy_undecided',
-  t.code(lv_api.lv_role_create(t.id('hub'), 'Moderator', 'shield', array['admin.members.admit'])) = 'lv_policy_undecided');
 select t.as_pg();
-update lv.policy set value = '2'::jsonb where key = 'roles.max_custom_per_hub';
+update lv.entitlements set ends_at = now() - interval '1 second', starts_at = now() - interval '1 day' where hub_id = t.id('hub');
+select t.as_kpn(1);
+select t.check('roles: creating a custom role without an active plan is lv_entitlement_required',
+  t.code(lv_api.lv_role_create(t.id('hub'), 'Moderator', 'shield', array['admin.members.admit'])) = 'lv_entitlement_required');
+select t.as_pg();
+update lv.entitlements set ends_at = null where hub_id = t.id('hub');
+select t.set_limit('roles.max_custom', '2'::jsonb);
 
 select t.as_kpn(1);
 select t.put('r_admin', (lv_api.lv_role_create(t.id('hub'), 'Member admin', 'users',

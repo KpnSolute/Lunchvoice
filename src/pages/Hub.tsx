@@ -1,27 +1,62 @@
-import { useState, type ReactNode } from "react";
-import { Link, Outlet, useLocation, useOutletContext, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, Outlet, useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
-import { RESERVED_SLUGS } from "../lib/reservedSlugs";
-import type { HubInfo, HubMembership, Role } from "../lib/lvApi";
-import { PENDING_API } from "../lib/lvApi";
-import { Btn, Card, CopyField, Empty, ErrorNote, Loading, Meter, Metric, Micro, Notice, PageHead, PhaseBadge, Pill, Tabs, campaignPhase } from "../components/ui";
-import { HubMark } from "../ui/HubMark";
-import { HubCover } from "../ui/HubCover";
-import { StateScreen } from "../ui/StateScreen";
+import { RESERVED_SLUGS, slugProblem } from "../lib/reservedSlugs";
+import type { HubInfo, HubMembership, HubPage, MembershipMode, PageKind, Role, Visibility } from "../lib/lvApi";
+import { describeError, describeGate } from "../lib/errors";
+import { CHECKOUT_DISABLED_REASON, PLANS } from "../config/pricing";
+import { campaignPhase, LinkButton } from "../components/ui";
 import { Icon, type IconName } from "../components/Icon";
+import { HubMark } from "../ui/HubMark";
+import { HubCover, onAccent } from "../ui/HubCover";
+import { StateScreen } from "../ui/StateScreen";
 import { BottomTabs, type TabItem } from "../ui/BottomTabs";
-import { describeError } from "../lib/errors";
 import { NotFoundPage } from "./Marketing";
+import { Button } from "@/components/shadcn/button";
+import { Card } from "@/components/shadcn/card";
+import { Input } from "@/components/shadcn/input";
+import { Textarea } from "@/components/shadcn/textarea";
+import { Switch } from "@/components/shadcn/switch";
+import { Checkbox } from "@/components/shadcn/checkbox";
+import { Badge } from "@/components/shadcn/badge";
+import { Separator } from "@/components/shadcn/separator";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shadcn/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/shadcn/select";
+import {
+  CopyField,
+  DisabledAction,
+  EmptyState,
+  Eyebrow,
+  Field,
+  LoadingRows,
+  Metric,
+  NavTabs,
+  Notice,
+  PhaseBadge,
+  QuotaMeter,
+  RowItem,
+  RowList,
+  SectionTitle,
+  Segmented,
+  StatTile,
+  TypedConfirm,
+} from "@/components/shadcn/blocks";
 
 export interface HubCtx {
   hub: HubInfo;
   membership: HubMembership | null;
+  reload: () => void;
 }
 // Participant-facing add-on pages (M2). They render in the L10 Hub cover shell for everyone.
 const ADDON_PAGE = /^\/[^/]+\/(shop|leaderboard|news|comments|p)(\/|$)/;
 export const useHubCtx = () => useOutletContext<HubCtx>();
 export const can = (m: HubMembership | null, cap: string) => Boolean(m?.is_owner || m?.capabilities.includes(cap));
+const fmtDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—");
+const familyName = (f?: string) => (f === "team" ? "Team" : f === "starter" ? "Starter" : "Free");
+
+/* ------------------------------------------------------------------ layout */
 
 export function HubLayout() {
   const { hub: slug } = useParams();
@@ -34,40 +69,43 @@ export function HubLayout() {
   );
 
   if (reserved) return <NotFoundPage />;
-  if (q.loading) return <div className="ui-page"><Loading rows={3} label="Loading Hub" /></div>;
+  if (q.loading && !q.data) return <div className="ui-page"><LoadingRows rows={3} label="Loading Hub" /></div>;
+  if (q.error?.code === "lv_hub_gone") {
+    return <StateScreen kind="notfound" title="This Hub is no longer available." detail="Its Owner deleted it. Nothing from it is shown here." action={<LinkButton to="/" variant="secondary">LunchVoice home</LinkButton>} />;
+  }
   if (q.error || !q.data) {
     return (
-      <div className="ui-page" style={{ maxWidth: 620 }}>
-        <PageHead eyebrow="Hub" title="Hub not available" sub="It may not exist, or it may be private. A private Hub answers exactly like a missing one." />
-        <div className="ui-row">
-          {!session && <Link className="ui-btn ui-btn-primary" to="/signin" state={{ from: `/${slug}` }}>Sign in</Link>}
-          <Link className="ui-btn ui-btn-outline" to="/">LunchVoice home</Link>
-        </div>
-      </div>
+      <StateScreen
+        kind="notfound"
+        title="Hub not available."
+        detail="It may not exist, or it may be private. A private Hub answers exactly like a missing one."
+        action={<div className="ui-row">{!session && <LinkButton to="/signin" state={{ from: `/${slug}` }} variant="primary">Sign in</LinkButton>}<LinkButton to="/" variant="secondary">LunchVoice home</LinkButton></div>}
+      />
     );
   }
 
   const { hub, membership } = q.data;
   const base = `/${hub.slug}`;
+  const ctx: HubCtx = { hub, membership, reload: q.reload };
 
-  // Participants (visitors, and members on a participant page) get the Hub cover, not the workspace chrome (L10).
+  // Visitors, and everyone on a participant page, get the Hub cover (L10), not the workspace chrome.
   if (!membership || ADDON_PAGE.test(pathname)) {
     return (
       <div className="lv-l10">
         <HubCover
           name={hub.name}
           slug={hub.slug}
+          accent={hub.accent}
           pills={<span className="lv-cover-pill">{hub.visibility === "public" ? "Public" : "Private"} · {hub.membership_mode.replace("_", " ")}</span>}
-          action={!session ? <Link className="ui-btn ui-btn-outline lv-cover-btn" to="/signin" state={{ from: base }}>Sign in</Link> : membership ? <Link className="ui-btn ui-btn-outline lv-cover-btn" to={base}>Open workspace</Link> : undefined}
+          action={!session ? <LinkButton to="/signin" state={{ from: base }} variant="secondary">Sign in</LinkButton> : membership ? <LinkButton to={base} variant="secondary">Open workspace</LinkButton> : undefined}
         />
-        <div className="lv-l10-body">
-          <Outlet context={{ hub, membership } satisfies HubCtx} />
-        </div>
+        <div className="lv-l10-body"><Outlet context={ctx} /></div>
         <p className="lv-powered">Powered by <img src="/brand/lunchvoice-mark.svg" alt="" height={16} width={16} /> <strong>LunchVoice</strong></p>
       </div>
     );
   }
 
+  const owner = membership.is_owner;
   const tabs = [
     { to: base, label: "Overview", end: true },
     { to: `${base}/campaigns`, label: "Campaigns" },
@@ -75,48 +113,46 @@ export function HubLayout() {
     ...(can(membership, "admin.members.admit") || can(membership, "admin.members.remove") ? [{ to: `${base}/members`, label: "Members" }] : []),
     ...(can(membership, "admin.members.admit") ? [{ to: `${base}/invites`, label: "Invites" }] : []),
     ...(can(membership, "admin.roles.manage") ? [{ to: `${base}/roles`, label: "Roles" }] : []),
-    ...(membership ? [{ to: `${base}/settings`, label: "Settings" }] : []),
-    ...(membership?.is_owner ? [{ to: `${base}/builder`, label: "Builder" }] : []),
-    ...(membership?.is_owner
-      ? [
-          { to: `${base}/billing`, label: "Billing" },
-          { to: `${base}/reservation`, label: "Reservation" },
-          { to: `${base}/discover`, label: "Discover" },
-        ]
-      : []),
+    ...(can(membership, "hub.settings.manage") ? [{ to: `${base}/settings`, label: "Settings" }] : []),
+    ...(owner ? [{ to: `${base}/builder`, label: "Builder" }] : []),
+    ...(owner || can(membership, "billing.view") ? [{ to: `${base}/billing`, label: "Billing" }] : []),
+    ...(owner ? [{ to: `${base}/reservation`, label: "Reservation" }, { to: `${base}/discover`, label: "Discover" }] : []),
   ];
-
-  // Phones: Overview, Campaigns, Analytics, Members and a More sheet that holds everything else.
   const ICONS: Record<string, IconName> = {
-    Overview: "home", Campaigns: "survey", Analytics: "voice", Members: "roster",
-    Invites: "join", Roles: "roster", Settings: "settings", Builder: "dashboard", Billing: "coin", Reservation: "lock", Discover: "sparkle",
+    Overview: "home", Campaigns: "survey", Analytics: "voice", Members: "roster", Invites: "join", Roles: "star",
+    Settings: "settings", Builder: "dashboard", Billing: "coin", Reservation: "lock", Discover: "sparkle",
   };
   const asTab = (t: { to: string; label: string; end?: boolean }): TabItem => ({ ...t, icon: ICONS[t.label] ?? "dashboard" });
   const primary = ["Overview", "Campaigns", "Analytics", "Members"];
   const bottom = tabs.filter((t) => primary.includes(t.label)).map(asTab);
   const more = tabs.filter((t) => !primary.includes(t.label)).map(asTab);
+  const plan = hub.plan;
 
   return (
     <div className="ui-page">
-      <div className="ui-spread" style={{ alignItems: "flex-end", marginBottom: 14 }}>
-        <div className="ui-row" style={{ gap: 16, alignItems: "center" }}>
-          <HubMark name={hub.name} size={64} />
+      <div className="lv-hubhead">
+        <div className="lv-hubhead-main">
+          <span className="lv-hubmark-wrap" style={hub.accent ? { background: hub.accent, color: onAccent(hub.accent) } : undefined}><HubMark name={hub.name} size={64} /></span>
           <div>
-            <Micro accent>Hub</Micro>
-            <h1 className="ui-display ui-display-lg" style={{ margin: "4px 0 6px" }}>{hub.name}</h1>
-            <div className="ui-row ui-gap-8">
-              <Pill>{hub.visibility}</Pill>
-              <Pill>{hub.membership_mode.replace("_", " ")}</Pill>
-              <span className="ui-muted ui-mono" style={{ fontSize: 12 }}>/{hub.slug}</span>
+            <Eyebrow accent>Hub</Eyebrow>
+            <h1>{hub.name}</h1>
+            <div className="ui-row">
+              <Badge>{hub.visibility}</Badge>
+              <Badge>{hub.membership_mode.replace("_", " ")}</Badge>
+              <span className="ui-muted ui-mono lv-small">/{hub.slug}</span>
             </div>
           </div>
         </div>
-        {membership?.is_owner && <Pill tone="accent">Owner</Pill>}
+        <div className="ui-row">
+          {plan && <Badge variant={plan.state === "active" ? "ok" : plan.state === "expired" ? "danger" : "neutral"}>{familyName(plan.family)}{plan.state === "expired" ? " · expired" : ""}</Badge>}
+          {owner && <Badge variant="ink">Owner</Badge>}
+        </div>
       </div>
-      <div className="lv-hubtabs"><Tabs items={tabs} /></div>
-      <div style={{ marginTop: 20 }}>
-        <Outlet context={{ hub, membership } satisfies HubCtx} />
-      </div>
+      {plan?.state === "expired" && (
+        <Notice tone="warn" title="This Hub’s plan has ended">Premium actions are locked: new Campaigns can’t be published and roles and pages can’t change. Everything you made is kept.</Notice>
+      )}
+      <div className="lv-hubtabs-wrap"><NavTabs items={tabs} label="Hub sections" /></div>
+      <Outlet context={ctx} />
       <BottomTabs label="Hub sections" items={bottom} more={more} />
     </div>
   );
@@ -127,7 +163,6 @@ export function HubLayout() {
 export function HubOverview() {
   const { hub, membership } = useHubCtx();
   const { api, session } = useIdentity();
-  const { code } = useParams();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState(false);
@@ -150,30 +185,25 @@ export function HubOverview() {
     return (
       <div className="ui-grid-2">
         <Card>
-          <Micro>Membership</Micro>
-          <h2 className="ui-display ui-display-md" style={{ margin: "8px 0 6px" }}>
+          <Eyebrow>Membership</Eyebrow>
+          <h2 className="lv-detail-title">
             {hub.membership_mode === "open" ? "This Hub is open to join." : hub.membership_mode === "approval" ? "Join requests are reviewed by a manager." : "This Hub is invite only."}
           </h2>
-          <p className="ui-muted" style={{ margin: "0 0 14px" }}>
-            Campaigns, members and results stay private until you're a member.
-          </p>
-          {error && <Notice tone="err">{error}</Notice>}
-          {pending && <Notice tone="info">Request sent. A manager will review it.</Notice>}
+          {hub.about && <p className="lv-m0">{hub.about}</p>}
+          <p className="ui-muted lv-m0">Campaigns, members and results stay private until you’re a member.</p>
+          {error && <Notice tone="error">{error}</Notice>}
+          {pending && <Notice tone="ok">Request sent. A manager will review it.</Notice>}
           {!session ? (
-            <Link className="ui-btn ui-btn-primary" to="/signin" state={{ from: `/${hub.slug}` }}>Sign in to join</Link>
+            <LinkButton to="/signin" state={{ from: `/${hub.slug}` }} variant="primary">Sign in to join</LinkButton>
           ) : hub.membership_mode === "invite_only" ? (
-            <Link className="ui-btn ui-btn-outline" to="/join">Use an invite code</Link>
+            <LinkButton to="/join" variant="secondary">Use an invite code</LinkButton>
           ) : (
-            <Btn variant="primary" onClick={join} disabled={busy}>{busy ? "Working…" : hub.membership_mode === "open" ? "Join this Hub" : "Request to join"}</Btn>
+            <Button variant="primary" onClick={join} disabled={busy || pending}>{busy ? "Working…" : hub.membership_mode === "open" ? "Join this Hub" : "Request to join"}</Button>
           )}
         </Card>
-        <Card quiet>
-          <Micro>About this Hub</Micro>
-          <div className="ui-row ui-gap-16" style={{ marginTop: 12 }}>
-            <Metric value={hub.member_count} label="members" />
-            <Metric value={hub.visibility} label="visibility" />
-            <Metric value={hub.membership_mode.replace("_", " ")} label="joining" />
-          </div>
+        <Card variant="well">
+          <Eyebrow>About this Hub</Eyebrow>
+          <div className="ui-grid-2"><Metric value={hub.member_count} label="Members" hint="Guests never count." /><Metric value={hub.visibility} label="Visibility" /></div>
         </Card>
       </div>
     );
@@ -189,84 +219,42 @@ export function HubOverview() {
     <div className="lv-dash">
       <div className="lv-stack">
         <div className="lv-tiles">
-          <div className="lv-tile lv-tile-ink">
-            <span className="lv-tile-label">Live Campaigns</span>
-            <span className="lv-tile-value">{live}</span>
-            <span className="lv-tile-note">{rows.length} in total</span>
-          </div>
-          <div className="lv-tile">
-            <span className="lv-tile-label">Members</span>
-            <span className="lv-tile-value">{hub.member_count}</span>
-            <span className="lv-tile-note">{waiting > 0 ? `${waiting} waiting on you` : "Everyone is in"}</span>
-          </div>
-          <div className="lv-tile">
-            <span className="lv-tile-label">Custom roles</span>
-            <span className="lv-tile-value">{membership.roles.length}</span>
-            <span className="lv-tile-note">{membership.is_owner ? "You are the owner" : "Roles you hold"}</span>
-          </div>
+          <StatTile tone="ink" label="Live Campaigns" value={live} note={`${rows.length} in total`} />
+          <StatTile label="Members" value={hub.member_count} note={waiting > 0 ? `${waiting} waiting on you` : "Everyone is in"} />
+          <StatTile tone="accent" label="Plan" value={familyName(hub.plan?.family)} note={hub.plan?.state === "active" ? (hub.plan.ends_at ? `Until ${fmtDate(hub.plan.ends_at)}` : "Active") : "Premium actions locked"} />
         </div>
-
-        <div className="lv-panel">
-          <div className="ui-spread" style={{ marginBottom: 12 }}>
-            <h2 style={{ margin: 0 }}>All Campaigns</h2>
-            {manager && <Link className="ui-btn ui-btn-ink ui-btn-sm" to={`/${hub.slug}/campaigns/new`}>New Campaign</Link>}
-          </div>
-          {campaigns.loading ? (
-            <Loading rows={3} />
+        <Card>
+          <SectionTitle action={manager ? <LinkButton to={`/${hub.slug}/campaigns/new`} variant="ink" size="sm" icon="plus">New Campaign</LinkButton> : undefined}>Campaigns</SectionTitle>
+          {campaigns.loading && !campaigns.data ? (
+            <LoadingRows rows={3} />
           ) : rows.length === 0 ? (
-            <p className="ui-muted" style={{ margin: 0 }}>No Campaigns yet. A Campaign is one set of questions with a lifecycle: draft, scheduled, open, closed.</p>
+            <EmptyState icon={<Icon name="survey" size={22} />} title="No Campaigns yet">A Campaign is one set of questions with a lifecycle: draft, scheduled, open, closed.</EmptyState>
           ) : (
-            <ul className="lv-rows">
+            <RowList>
               {rows.slice(0, 6).map((c) => (
-                <li key={c.campaign_id}>
-                  <Link to={`/${hub.slug}/campaigns/${c.campaign_id}`} className="lv-row">
-                    <span className="lv-row-main">
-                      <span className="lv-row-title">{c.title}</span>
-                      <span className="lv-row-sub">{c.mode} · {c.question_count} questions</span>
-                    </span>
-                    <PhaseBadge phase={campaignPhase(c)} />
-                  </Link>
-                </li>
+                <RowItem key={c.campaign_id} asChild={<Link to={`/${hub.slug}/campaigns/${c.campaign_id}`} />} title={c.title} sub={`${c.mode} · ${c.question_count} questions`} trailing={<PhaseBadge phase={campaignPhase(c)} />} />
               ))}
-            </ul>
+            </RowList>
           )}
-        </div>
-        {code && <Notice tone="ok">Joined through invite {code}.</Notice>}
+        </Card>
       </div>
-
       <aside className="lv-rail" aria-label="Hub details">
         {(can(membership, "admin.members.admit") || can(membership, "admin.members.remove")) && (
-          <div className="lv-panel">
-            <div className="ui-spread" style={{ marginBottom: 8 }}>
-              <h2 style={{ margin: 0 }}>People</h2>
-              {waiting > 0 && <Link to={`/${hub.slug}/members`} className="lv-link">{waiting} waiting</Link>}
-            </div>
-            <ul className="lv-rows">
+          <Card>
+            <SectionTitle action={waiting > 0 ? <LinkButton to={`/${hub.slug}/members`} variant="quiet" size="sm">{waiting} waiting</LinkButton> : undefined}>People</SectionTitle>
+            <RowList>
               {accepted.slice(0, 4).map((m) => (
-                <li key={m.membership_id} className="lv-row">
-                  <HubMark name={m.display_name ?? "Member"} size={34} />
-                  <span className="lv-row-main">
-                    <span className="lv-row-title">{m.display_name ?? "Member"}</span>
-                  </span>
-                  <span className="lv-row-sub">{m.is_owner ? "Owner" : m.roles[0]?.name ?? "Member"}</span>
-                </li>
+                <RowItem key={m.membership_id} leading={<HubMark name={m.display_name ?? "Member"} size={34} />} title={m.display_name ?? "Member"} trailing={<span className="ui-muted lv-small">{m.is_owner ? "Owner" : m.roles[0]?.name ?? "Member"}</span>} />
               ))}
-            </ul>
-            <Link to={`/${hub.slug}/members`} className="lv-link" style={{ display: "inline-block", marginTop: 10 }}>All members</Link>
-          </div>
+            </RowList>
+            <LinkButton to={`/${hub.slug}/members`} variant="quiet" size="sm" icon="arrow">All members</LinkButton>
+          </Card>
         )}
-        <div className="lv-panel lv-panel-ink">
-          <span className="lv-eyebrow-mono" style={{ color: "var(--lv-accent)" }}>Share your Hub</span>
-          <p style={{ margin: "8px 0 12px", fontSize: 14, opacity: 0.85 }}>Share the Hub address; joining follows the Hub's mode.</p>
+        <Card variant="ink">
+          <Eyebrow accent>Share your Hub</Eyebrow>
+          <p className="lv-m0 lv-dim">Joining follows the Hub’s mode: {hub.membership_mode.replace("_", " ")}.</p>
           <CopyField value={`https://lunchvoice.com/${hub.slug}`} />
-        </div>
-        {membership.roles.length > 0 && (
-          <div className="lv-panel">
-            <h3 style={{ margin: "0 0 8px", font: "600 16px/1.3 var(--lv-font-ui)" }}>Your roles</h3>
-            <div className="ui-row ui-gap-8">{membership.roles.map((r) => <Pill key={r.key} tone="muted">{r.name}</Pill>)}</div>
-            <p className="ui-help" style={{ marginTop: 10 }}>The server decides what these allow; this page only reflects it.</p>
-          </div>
-        )}
+        </Card>
       </aside>
     </div>
   );
@@ -279,95 +267,74 @@ export function Members() {
   const { api } = useIdentity();
   const members = useLv(() => api.memberList(hub.hub_id), [api, hub.hub_id]);
   const roles = useLv(() => api.roleList(hub.hub_id), [api, hub.hub_id]);
-  const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
-  async function act(fn: () => Promise<{ ok: boolean; error?: { code: string; message: string } }>) {
+  async function act(fn: () => Promise<{ ok: boolean; error?: { code: string; message: string } }>, done: string) {
     const r = await fn();
-    if (r.ok) members.reload();
-    else setError(describeError(r.error as never));
+    if (r.ok) { toast.success(done); members.reload(); }
+    else toast.error(describeError(r.error as never));
   }
-
-  const accepted = members.data?.members.filter((m) => m.status === "accepted") ?? [];
+  const match = (n: string | null) => (n ?? "Member").toLowerCase().includes(query.toLowerCase());
+  const accepted = members.data?.members.filter((m) => m.status === "accepted" && match(m.display_name)) ?? [];
   const pendingReq = members.data?.members.filter((m) => m.status === "pending") ?? [];
 
   return (
-    <div className="ui-stack ui-gap-16">
-      {error && <ErrorNote error={{ code: "lv_server_error", message: error }} />}
-
+    <div className="lv-stack-16">
       {pendingReq.length > 0 && (
         <Card>
-          <Micro accent>Waiting on you</Micro>
-          <div className="ui-table-wrap" style={{ marginTop: 8 }}>
-            <table className="ui-table">
-              <thead><tr><th>Member</th><th>Requested</th><th /></tr></thead>
-              <tbody>
-                {pendingReq.map((m) => (
-                  <tr key={m.membership_id}>
-                    <td>{m.display_name ?? "Member"}</td>
-                    <td className="ui-muted">{m.accepted_at ? new Date(m.accepted_at).toLocaleDateString() : "—"}</td>
-                    <td>
-                      <div className="ui-row" style={{ justifyContent: "flex-end" }}>
-                        <Btn size="sm" variant="primary" onClick={() => act(() => api.memberAdmit(m.membership_id))}>Admit</Btn>
-                        <Btn size="sm" variant="quiet" onClick={() => act(() => api.memberReject(m.membership_id))}>Reject</Btn>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <SectionTitle>Waiting on you</SectionTitle>
+          <Table>
+            <TableHeader><TableRow><TableHead>Member</TableHead><TableHead className="text-right">Decision</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {pendingReq.map((m) => (
+                <TableRow key={m.membership_id}>
+                  <TableCell>{m.display_name ?? "Member"}</TableCell>
+                  <TableCell>
+                    <div className="lv-member-actions">
+                      <Button size="sm" variant="ink" onClick={() => act(() => api.memberAdmit(m.membership_id), "Admitted")}>Admit</Button>
+                      <Button size="sm" variant="quiet" onClick={() => act(() => api.memberReject(m.membership_id), "Rejected")}>Reject</Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </Card>
       )}
-
       <Card>
-        <div className="ui-spread" style={{ marginBottom: 8 }}>
-          <Micro>Members</Micro>
-          <span className="ui-help">{accepted.length} accepted</span>
-        </div>
-        {members.loading && <Loading rows={3} />}
-        {members.error && <ErrorNote error={members.error} />}
-        {!members.loading && accepted.length === 0 && <Empty icon="roster" title="No members yet">Nobody has joined this Hub. Share the address or send an invite.</Empty>}
+        <SectionTitle action={<span className="ui-muted lv-small">{accepted.length} shown</span>}>Members</SectionTitle>
+        <Field label="Search members" htmlFor="m-search"><Input id="m-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Name" /></Field>
+        {members.loading && !members.data && <LoadingRows rows={3} />}
+        {members.error && <Notice tone="error">{describeError(members.error)}</Notice>}
+        {members.data && accepted.length === 0 && <EmptyState icon={<Icon name="roster" size={22} />} title={query ? "No one matches" : "No members yet"}>Share the address or send an invite.</EmptyState>}
         {accepted.length > 0 && (
-          <div className="ui-table-wrap">
-            <table className="ui-table">
-              <thead><tr><th>Member</th><th>Roles</th><th /></tr></thead>
-              <tbody>
-                {accepted.map((m) => (
-                  <tr key={m.membership_id}>
-                    <td>
-                      <span>{m.display_name ?? "Member"}</span>
-                      {m.is_owner && <span style={{ marginLeft: 8 }}><Pill tone="accent">Owner</Pill></span>}
-                    </td>
-                    <td>
-                      <div className="ui-row ui-gap-4">
-                        {m.roles.length === 0 ? <span className="ui-muted" style={{ fontSize: 13 }}>—</span> : m.roles.map((r) => <Pill key={r.key}>{r.name}</Pill>)}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="ui-row" style={{ justifyContent: "flex-end", gap: 6 }}>
-                        {can(membership, "admin.roles.manage") && !m.is_owner && (roles.data?.roles ?? []).map((r) => {
-                          const has = m.roles.some((mr) => mr.key === r.key);
-                          return (
-                            <Btn key={r.role_id} size="sm" variant={has ? "ink" : "outline"}
-                              onClick={() => act(() => (has ? api.memberRoleUnassign(m.membership_id, r.role_id) : api.memberRoleAssign(m.membership_id, r.role_id)))}>
-                              {r.name}
-                            </Btn>
-                          );
-                        })}
-                        {can(membership, "admin.members.remove") && !m.is_owner && (
-                          <Btn size="sm" variant="quiet" onClick={() => act(() => api.memberRemove(m.membership_id))}>Remove</Btn>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader><TableRow><TableHead>Member</TableHead><TableHead>Roles</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {accepted.map((m) => (
+                <TableRow key={m.membership_id}>
+                  <TableCell><span className="lv-member-name">{m.display_name ?? "Member"} {m.is_owner && <Badge variant="ink">Owner</Badge>}</span></TableCell>
+                  <TableCell><div className="ui-row">{m.roles.length === 0 ? <span className="ui-muted">—</span> : m.roles.map((r) => <Badge key={r.key}>{r.name}</Badge>)}</div></TableCell>
+                  <TableCell>
+                    <div className="lv-member-actions">
+                      {can(membership, "admin.roles.manage") && !m.is_owner && (roles.data?.roles ?? []).map((r) => {
+                        const has = m.roles.some((mr) => mr.key === r.key);
+                        return (
+                          <Button key={r.role_id} size="sm" variant={has ? "ink" : "secondary"} aria-pressed={has}
+                            onClick={() => act(() => (has ? api.memberRoleUnassign(m.membership_id, r.role_id) : api.memberRoleAssign(m.membership_id, r.role_id)), has ? `Removed ${r.name}` : `Gave ${r.name}`)}>
+                            {r.name}
+                          </Button>
+                        );
+                      })}
+                      {can(membership, "admin.members.remove") && !m.is_owner && <Button size="sm" variant="quiet" onClick={() => act(() => api.memberRemove(m.membership_id), "Removed")}>Remove</Button>}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
-        <p className="ui-help" style={{ marginTop: 12 }}>
-          Emails are never shown. The Owner is protected and cannot be removed or demoted.
-        </p>
+        <p className="ui-help lv-m0">Emails are never shown. The Owner is protected and can’t be removed or demoted. Guests are never members.</p>
       </Card>
     </div>
   );
@@ -381,68 +348,54 @@ export function Invites() {
   const invites = useLv(() => api.inviteList(hub.hub_id), [api, hub.hub_id]);
   const [maxUses, setMaxUses] = useState("");
   const [code, setCode] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   async function create() {
-    setError(null);
     const r = await api.inviteCreate(hub.hub_id, maxUses ? Number(maxUses) : undefined);
-    if (r.ok) { setCode(r.code); invites.reload(); }
-    else setError(describeError(r.error));
+    if (r.ok) { setCode(r.code); invites.reload(); toast.success("Invite created. Copy it now."); }
+    else toast.error(describeError(r.error));
   }
   async function revoke(id: string) {
     const r = await api.inviteRevoke(id);
-    if (r.ok) invites.reload(); else setError(describeError(r.error));
+    if (r.ok) { invites.reload(); toast.success("Invite revoked"); } else toast.error(describeError(r.error));
   }
 
   return (
-    <div className="ui-stack ui-gap-16">
-      {error && <ErrorNote error={{ code: "lv_server_error", message: error }} />}
-
+    <div className="lv-stack-16">
       <Card>
-        <Micro accent>New invite</Micro>
-        <p className="ui-muted" style={{ margin: "8px 0 14px", fontSize: 14 }}>
-          The code is shown once. Anyone with it can join according to the Hub's joining mode.
-        </p>
-        <div className="ui-row" style={{ alignItems: "flex-end" }}>
-          <div className="ui-field" style={{ margin: 0, maxWidth: 180 }}>
-            <label className="ui-label" htmlFor="max-uses">Max uses</label>
-            <input id="max-uses" className="ui-input" inputMode="numeric" value={maxUses} onChange={(e) => setMaxUses(e.target.value.replace(/\D/g, ""))} placeholder="Unlimited" />
-          </div>
-          <Btn variant="primary" onClick={create} icon="plus">Create invite</Btn>
+        <SectionTitle>New invite</SectionTitle>
+        <p className="ui-muted lv-m0">The code is shown once. Anyone with it can join according to the Hub’s joining mode.</p>
+        <div className="lv-invite-form">
+          <Field label="Max uses" htmlFor="max-uses" help="Leave empty for no limit.">
+            <Input id="max-uses" inputMode="numeric" value={maxUses} onChange={(e) => setMaxUses(e.target.value.replace(/\D/g, ""))} placeholder="No limit" aria-describedby="max-uses-help" />
+          </Field>
+          <Button variant="primary" onClick={create}><Icon name="plus" size={16} />Create invite</Button>
         </div>
         {code && (
-          <div style={{ marginTop: 16 }}>
-            <CopyField label="Shown once — copy it now" value={code} />
-            <p className="ui-help" style={{ marginTop: 8 }}>Invite link: https://lunchvoice.com/j/{code}</p>
-          </div>
+          <>
+            <CopyField label="Shown once: copy it now" value={code} />
+            <CopyField label="Invite link" value={`https://lunchvoice.com/j/${code}`} />
+          </>
         )}
       </Card>
-
       <Card>
-        <Micro>Issued invites</Micro>
-        {invites.loading && <Loading rows={2} />}
-        {invites.error && <ErrorNote error={invites.error} />}
-        {!invites.loading && (invites.data?.invites.length ?? 0) === 0 && (
-          <div style={{ marginTop: 10 }}><Empty icon="survey" title="No invites yet">Create one when you're ready for someone to join.</Empty></div>
-        )}
+        <SectionTitle>Issued invites</SectionTitle>
+        {invites.loading && !invites.data && <LoadingRows rows={2} />}
+        {invites.error && <Notice tone="error">{describeError(invites.error)}</Notice>}
+        {invites.data && invites.data.invites.length === 0 && <EmptyState icon={<Icon name="join" size={22} />} title="No invites yet">Create one when you’re ready for someone to join.</EmptyState>}
         {(invites.data?.invites.length ?? 0) > 0 && (
-          <div className="ui-table-wrap" style={{ marginTop: 8 }}>
-            <table className="ui-table">
-              <thead><tr><th>State</th><th>Uses</th><th>Expires</th><th /></tr></thead>
-              <tbody>
-                {invites.data!.invites.map((i) => (
-                  <tr key={i.invite_id}>
-                    <td><Pill tone={i.state === "active" ? "ok" : "muted"}>{i.state}</Pill></td>
-                    <td className="ui-mono">{i.uses}{i.max_uses ? ` / ${i.max_uses}` : ""}</td>
-                    <td className="ui-muted">{i.expires_at ? new Date(i.expires_at).toLocaleDateString() : "Never"}</td>
-                    <td style={{ textAlign: "right" }}>
-                      {i.state === "active" && <Btn size="sm" variant="quiet" onClick={() => revoke(i.invite_id)}>Revoke</Btn>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader><TableRow><TableHead>State</TableHead><TableHead>Uses</TableHead><TableHead>Expires</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {invites.data!.invites.map((i) => (
+                <TableRow key={i.invite_id}>
+                  <TableCell><Badge variant={i.state === "active" ? "ok" : "neutral"}>{i.state}</Badge></TableCell>
+                  <TableCell className="ui-mono">{i.uses}{i.max_uses ? ` / ${i.max_uses}` : ""}</TableCell>
+                  <TableCell className="ui-muted">{i.expires_at ? fmtDate(i.expires_at) : "Never"}</TableCell>
+                  <TableCell className="text-right">{i.state === "active" && <Button size="sm" variant="quiet" onClick={() => revoke(i.invite_id)}>Revoke</Button>}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </Card>
     </div>
@@ -451,300 +404,375 @@ export function Invites() {
 
 /* ------------------------------------------------------------------ roles */
 
+const ROLE_ICONS: IconName[] = ["star", "home", "survey", "voice", "roster", "dashboard", "bulb", "flame", "sparkle", "lock"];
+
 export function Roles() {
   const { hub } = useHubCtx();
   const { api } = useIdentity();
   const roles = useLv(() => api.roleList(hub.hub_id), [api, hub.hub_id]);
   const catalog = useLv(() => api.capabilityCatalog(), [api]);
-  const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [icon, setIcon] = useState("star");
+  const [icon, setIcon] = useState<IconName>("star");
   const [caps, setCaps] = useState<string[]>([]);
-  const [creating, setCreating] = useState(false);
-
-  const ICONS = ["star", "home", "survey", "voice", "roster", "dashboard", "bulb", "flame", "sparkle", "lock"];
+  const [busy, setBusy] = useState(false);
+  const total = catalog.data ? catalog.data.groups.reduce((n, g) => n + g.capabilities.length, 0) : null;
+  const slots = roles.data?.custom_slots ?? null;
+  const used = roles.data?.slots_used ?? 0;
+  const full = slots !== null && used >= slots;
 
   async function create() {
-    setCreating(true);
-    setError(null);
+    setBusy(true);
     const r = await api.roleCreate(hub.hub_id, name.trim().toLowerCase(), icon, caps);
-    setCreating(false);
-    if (r.ok) { setName(""); setCaps([]); roles.reload(); }
-    else setError(describeError(r.error));
+    setBusy(false);
+    if (r.ok) { setName(""); setCaps([]); roles.reload(); toast.success("Role created"); }
+    else toast.error(describeError(r.error));
   }
   async function remove(role: Role) {
     const r = await api.roleDelete(role.role_id);
-    if (r.ok) roles.reload(); else setError(describeError(r.error));
+    if (r.ok) { roles.reload(); toast.success("Role deleted"); } else toast.error(describeError(r.error));
   }
-  function toggle(key: string) {
-    setCaps((c) => (c.includes(key) ? c.filter((k) => k !== key) : [...c, key]));
-  }
-
-  const slots = roles.data?.custom_slots ?? null;
-  const used = roles.data?.slots_used ?? 0;
+  const toggle = (key: string) => setCaps((c) => (c.includes(key) ? c.filter((k) => k !== key) : [...c, key]));
 
   return (
-    <div className="ui-stack ui-gap-16">
-      {error && <ErrorNote error={{ code: "lv_server_error", message: error }} />}
-
+    <div className="lv-stack-16">
       <Card>
-        <div className="ui-spread" style={{ marginBottom: 12 }}>
-          <Micro>Custom roles</Micro>
-          {slots === null ? (
-            <span className="ui-help">Plan limit not set yet</span>
-          ) : (
-            <div style={{ minWidth: 200 }}><Meter value={used} max={slots} label="slots used" /></div>
-          )}
-        </div>
-
-        {roles.loading && <Loading rows={2} />}
-        {roles.error && <ErrorNote error={roles.error} />}
-        {!roles.loading && (roles.data?.roles.length ?? 0) === 0 && (
-          <Empty icon="lock" title="No custom roles yet">Every member is just a member until you give them a role. The Owner always has everything.</Empty>
-        )}
+        <SectionTitle>Custom roles</SectionTitle>
+        <QuotaMeter label="Role slots" used={used} limit={slots} hint="The Owner never uses a slot." />
+        {roles.loading && !roles.data && <LoadingRows rows={2} />}
+        {roles.error && <Notice tone="error">{describeError(roles.error)}</Notice>}
+        {roles.data && roles.data.roles.length === 0 && <EmptyState icon={<Icon name="star" size={22} />} title="No custom roles yet">Every member is just a member until you give them a role. The Owner always has everything.</EmptyState>}
         {(roles.data?.roles.length ?? 0) > 0 && (
-          <div className="ui-table-wrap">
-            <table className="ui-table">
-              <thead><tr><th>Role</th><th>Capabilities</th><th>Members</th><th /></tr></thead>
-              <tbody>
-                {roles.data!.roles.map((r) => (
-                  <tr key={r.role_id}>
-                    <td><div className="ui-row ui-gap-8"><Icon name={(r.icon as never) ?? "star"} size={16} /><strong>{r.name}</strong></div></td>
-                    <td className="ui-muted" style={{ fontSize: 13 }}>{r.capabilities.length} of {catalog.data ? catalog.data.groups.reduce((n, g) => n + g.capabilities.length, 0) : "…"}</td>
-                    <td className="ui-mono">{r.member_count}</td>
-                    <td style={{ textAlign: "right" }}><Btn size="sm" variant="quiet" onClick={() => remove(r)}>Delete</Btn></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader><TableRow><TableHead>Role</TableHead><TableHead>Permissions</TableHead><TableHead>Members</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {roles.data!.roles.map((r) => (
+                <TableRow key={r.role_id}>
+                  <TableCell><span className="lv-member-name"><Icon name={(ROLE_ICONS.includes(r.icon as IconName) ? r.icon : "star") as IconName} size={16} /><strong>{r.name}</strong></span></TableCell>
+                  <TableCell className="ui-muted">{r.capabilities.length} of {total ?? "…"}</TableCell>
+                  <TableCell className="ui-mono">{r.member_count}</TableCell>
+                  <TableCell className="text-right"><Button size="sm" variant="quiet" onClick={() => remove(r)}>Delete</Button></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </Card>
 
       <Card>
-        <Micro accent>New role</Micro>
-        <div className="ui-grid-2" style={{ marginTop: 12, alignItems: "start" }}>
-          <div>
-            <div className="ui-field">
-              <label className="ui-label" htmlFor="role-name">Name</label>
-              <input id="role-name" className="ui-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Event lead" maxLength={40} />
-            </div>
-            <div className="ui-field">
-              <span className="ui-label">Icon</span>
-              <div className="ui-row ui-gap-4">
-                {ICONS.map((i) => (
-                  <button key={i} type="button" className={`ui-btn ui-btn-sm ${icon === i ? "ui-btn-ink" : "ui-btn-outline"}`} aria-pressed={icon === i} onClick={() => setIcon(i)} aria-label={i}>
-                    <Icon name={i as never} size={16} />
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <span className="ui-label">Capabilities</span>
-            {catalog.loading && <Loading rows={2} />}
-            {catalog.data?.groups.map((g) => (
-              <div key={g.key} style={{ marginTop: 10 }}>
-                <div className="ui-spread">
-                  <Micro>{g.label}</Micro>
-                  <button type="button" className="ui-btn ui-btn-quiet ui-btn-sm"
-                    onClick={() => setCaps((c) => (g.capabilities.every((x) => c.includes(x.key)) ? c.filter((k) => !g.capabilities.some((x) => x.key === k)) : Array.from(new Set([...c, ...g.capabilities.map((x) => x.key)]))))}>
-                    Toggle group
-                  </button>
-                </div>
-                <div className="ui-stack ui-gap-4" style={{ marginTop: 6 }}>
-                  {g.capabilities.map((cap) => (
-                    <label key={cap.key} className="ui-check">
-                      <input type="checkbox" checked={caps.includes(cap.key)} onChange={() => toggle(cap.key)} />
-                      <span>{cap.label} <code className="ui-mono ui-muted" style={{ fontSize: 11 }}>{cap.key}</code></span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+        <SectionTitle>New role</SectionTitle>
+        {full && <Notice tone="warn">All {slots} role slots are in use. Delete a role, or move to a plan with more slots once billing opens.</Notice>}
+        <div className="ui-grid-2">
+          <Field label="Name" htmlFor="role-name" counter={{ value: name.length, max: 40 }}>
+            <Input id="role-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Event lead" maxLength={40} disabled={full} />
+          </Field>
+          <Field label="Icon">
+            <Segmented<IconName> label="Role icon" value={icon} onValueChange={setIcon} disabled={full} options={ROLE_ICONS.slice(0, 6).map((i) => ({ value: i, label: <Icon name={i} size={16} /> }))} />
+          </Field>
         </div>
-        <div className="ui-row" style={{ marginTop: 16 }}>
-          <Btn variant="primary" disabled={!name.trim() || creating} onClick={create}>{creating ? "Creating…" : "Create role"}</Btn>
-          <span className="ui-help">No one can grant a capability they don't hold themselves.</span>
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ pending surfaces */
-
-function Pending({ title, sub, fn, children }: { title: string; sub: string; fn: string; children?: ReactNode }) {
-  return (
-    <div className="ui-stack ui-gap-16">
-      <Card>
-        <div className="ui-row ui-gap-8" style={{ marginBottom: 8 }}>
-          <Icon name="lock" size={18} />
-          <strong>{title}</strong>
-          <Pill tone="accent">Not available yet</Pill>
-        </div>
-        <p className="ui-muted" style={{ margin: "0 0 10px" }}>{sub}</p>
-        <p className="ui-help">
-          Waiting on <code className="ui-mono">{fn}</code>. The UI is built; the endpoint is not. Nothing here pretends to save.
-        </p>
-      </Card>
-      {children}
-    </div>
-  );
-}
-
-export function HubSettings() {
-  const { hub, membership } = useHubCtx();
-  return (
-    <Pending
-      title="Hub settings"
-      sub="Name, visibility, joining mode and the email-domain restriction are read-only until the settings write lands."
-      fn={PENDING_API.hubUpdate}
-    >
-      <Card>
-        <Micro>Current state</Micro>
-        <div className="ui-grid-3" style={{ marginTop: 12 }}>
-          <div><Micro>Name</Micro><p style={{ margin: "4px 0 0", fontFamily: "var(--font-display)", fontSize: 18 }}>{hub.name}</p></div>
-          <div><Micro>Visibility</Micro><p style={{ margin: "4px 0 0" }}>{hub.visibility}</p></div>
-          <div><Micro>Joining</Micro><p style={{ margin: "4px 0 0" }}>{hub.membership_mode.replace("_", " ")}</p></div>
-        </div>
-        {membership?.is_owner && (
-          <>
-            <hr className="ui-rule" style={{ margin: "18px 0" }} />
-            <Micro>Owner only</Micro>
-            <p className="ui-muted" style={{ margin: "6px 0 12px", fontSize: 14 }}>
-              Deleting this Hub and transferring ownership need {PENDING_API.hubDelete} and {PENDING_API.ownerTransfer}. Both stay disabled.
-            </p>
-            <div className="ui-row">
-              <Btn variant="danger" disabled>Delete Hub</Btn>
-              <Btn variant="outline" disabled>Transfer ownership</Btn>
-            </div>
-          </>
-        )}
-      </Card>
-    </Pending>
-  );
-}
-
-const BILLING_REPORTS = [
-  "Active plan and renewal date",
-  "Custom role slots in use",
-  "Active Campaigns against the plan limit",
-  "Active Survey-mode Campaigns against the limit",
-  "Current participation against the replacement threshold",
-  "Campaign windows, their length and their remaining days",
-];
-
-export function HubBilling() {
-  return (
-    <Pending title="Billing" sub="No billing service is connected, so this page reports nothing rather than inventing a plan or a balance." fn={PENDING_API.billingSummary}>
-      <div className="ui-grid-2">
-        <Card>
-          <div className="ui-spread">
-            <Micro>Current plan</Micro>
-            <Pill>Not reported</Pill>
-          </div>
-          <p className="ui-muted" style={{ margin: "10px 0 14px", fontSize: 14 }}>
-            Paid access fails closed until billing reports a live entitlement. Premium actions stay disabled; nothing is deleted while a plan lapses.
-          </p>
-          <div className="ui-row">
-            <Btn variant="primary" disabled>Manage plan</Btn>
-            <Btn variant="outline" disabled>Invoices</Btn>
-          </div>
-        </Card>
-        <Card quiet>
-          <Micro>Canonical prices</Micro>
-          <ul className="lv-plan-list" style={{ marginTop: 10 }}>
-            <li><Icon name="check" size={15} />Starter Hub · $13/month</li>
-            <li><Icon name="check" size={15} />Team Hub · $29/month</li>
-            <li><Icon name="check" size={15} />Campaign Starter · $19 first 2 weeks, then $13/week</li>
-            <li><Icon name="check" size={15} />Hub Name Reservation · $25 per 12 months</li>
-          </ul>
-          <p className="ui-help" style={{ marginTop: 12 }}>
-            Campaign Plus has no authoritative price yet, so it is not listed with one.
-          </p>
-        </Card>
-      </div>
-      <Card>
-        <Micro>What this page will report</Micro>
-        <div className="ui-stack ui-gap-8" style={{ marginTop: 10 }}>
-          {BILLING_REPORTS.map((row) => (
-            <div key={row} className="ui-spread" style={{ borderBottom: "1px solid var(--line)", paddingBottom: 8 }}>
-              <span style={{ fontSize: 14 }}>{row}</span>
-              <Pill>Not reported</Pill>
+        <div className="lv-caps">
+          {catalog.loading && !catalog.data && <LoadingRows rows={2} />}
+          {catalog.data?.groups.map((g) => (
+            <div key={g.key} className="lv-cap-group">
+              <Eyebrow>{g.label}</Eyebrow>
+              {g.capabilities.map((cap) => (
+                <label key={cap.key} className="lv-check-row">
+                  <Checkbox checked={caps.includes(cap.key)} onCheckedChange={() => toggle(cap.key)} disabled={full} />
+                  <span>{cap.label} <code>{cap.key}</code></span>
+                </label>
+              ))}
             </div>
           ))}
         </div>
+        <div className="ui-row">
+          <Button variant="primary" disabled={!name.trim() || busy || full} onClick={create}>{busy ? "Creating…" : "Create role"}</Button>
+          <span className="ui-help">No one can grant a permission they don’t hold themselves.</span>
+        </div>
       </Card>
-    </Pending>
+    </div>
   );
 }
 
-export function HubReservation() {
+/* ------------------------------------------------------------------ settings */
+
+export function HubSettings() {
+  const { hub, membership, reload } = useHubCtx();
+  const { api } = useIdentity();
+  const nav = useNavigate();
+  const [name, setName] = useState(hub.name);
+  const [about, setAbout] = useState(hub.about ?? "");
+  const [visibility, setVisibility] = useState<Visibility>(hub.visibility);
+  const [mode, setMode] = useState<MembershipMode>(hub.membership_mode);
+  const [accent, setAccent] = useState<string | null>(hub.accent ?? null);
+  const [saving, setSaving] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [dangerError, setDangerError] = useState<string | null>(null);
+  const [heir, setHeir] = useState<string>("");
+  const owner = membership?.is_owner;
+  const members = useLv(() => (owner ? api.memberList(hub.hub_id) : Promise.resolve({ ok: true as const, members: [] })), [api, hub.hub_id, owner]);
+  const heirs = members.data?.members.filter((m) => m.status === "accepted" && !m.is_owner) ?? [];
+  const palette = hub.accent_palette ?? [];
+  const dirty = name.trim() !== hub.name || about !== (hub.about ?? "") || visibility !== hub.visibility || mode !== hub.membership_mode || accent !== (hub.accent ?? null);
+
+  async function save() {
+    setSaving(true);
+    const r = await api.hubUpdate(hub.hub_id, {
+      display_name: name.trim() !== hub.name ? name.trim() : undefined,
+      about: about !== (hub.about ?? "") ? about : undefined,
+      visibility: visibility !== hub.visibility ? visibility : undefined,
+      membership_mode: mode !== hub.membership_mode ? mode : undefined,
+      accent: accent && accent !== hub.accent ? accent : undefined,
+    });
+    setSaving(false);
+    if (r.ok) { toast.success("Settings saved"); reload(); } else toast.error(describeError(r.error));
+  }
+
   return (
-    <Pending
-      title="Hub Name Reservation"
-      sub="$25 per 12 months and $25 to renew, with a 25-day grace period. A reservation grants no features."
-      fn={PENDING_API.reservationStatus}
-    >
-      <div className="ui-grid-2">
+    <div className="lv-stack-16">
+      <Card>
+        <SectionTitle>Hub details</SectionTitle>
+        <form className="lv-stack-16" onSubmit={(e) => { e.preventDefault(); void save(); }}>
+          <Field label="Name" htmlFor="h-name" counter={{ value: name.length, max: 60 }}>
+            <Input id="h-name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
+          </Field>
+          <Field label="About" htmlFor="h-about" help="Shown on the Hub’s landing page." counter={{ value: about.length, max: 500 }}>
+            <Textarea id="h-about" value={about} maxLength={500} onChange={(e) => setAbout(e.target.value)} aria-describedby="h-about-help" />
+          </Field>
+          <div className="ui-grid-2">
+            <Field label="Visibility" htmlFor="h-vis" help={visibility === "private" ? "Only members can see it. To everyone else it looks like it doesn’t exist." : "Anyone with the address can see the landing page."}>
+              <Select value={visibility} onValueChange={(v) => setVisibility(v as Visibility)}>
+                <SelectTrigger id="h-vis"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="public">Public</SelectItem><SelectItem value="private">Private</SelectItem></SelectContent>
+              </Select>
+            </Field>
+            <Field label="Joining" htmlFor="h-mode">
+              <Select value={mode} onValueChange={(v) => setMode(v as MembershipMode)}>
+                <SelectTrigger id="h-mode"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="open">Open: anyone signed in can join</SelectItem>
+                  <SelectItem value="approval">Approval: a manager admits requests</SelectItem>
+                  <SelectItem value="invite_only">Invite only: invite codes</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+          <Field label="Hub color" help="Only colors that keep text readable are offered.">
+            <div className="lv-swatches" role="radiogroup" aria-label="Hub color">
+              {palette.map((c) => (
+                <button key={c} type="button" role="radio" aria-checked={accent === c} aria-label={c} className="lv-swatch" style={{ background: c }} onClick={() => setAccent(c)} />
+              ))}
+              {palette.length === 0 && <span className="ui-muted">No palette from the server yet.</span>}
+            </div>
+          </Field>
+          <div className="ui-row"><Button type="submit" variant="ink" disabled={!dirty || saving || !name.trim()}>{saving ? "Saving…" : "Save settings"}</Button></div>
+        </form>
+      </Card>
+
+      {owner && (
         <Card>
-          <div className="ui-spread">
-            <Micro>This address</Micro>
-            <Pill>Not reported</Pill>
-          </div>
-          <p className="ui-muted" style={{ margin: "10px 0 14px", fontSize: 14 }}>
-            Reservation state, expiry and renewal date come from the reservation service. Until it exists, no expiry is
-            displayed and nothing can be purchased.
-          </p>
-          <div className="ui-row">
-            <Btn variant="primary" disabled>Reserve this address</Btn>
-            <Btn variant="outline" disabled>Renew for 12 months</Btn>
+          <SectionTitle>Owner only</SectionTitle>
+          {dangerError && <Notice tone="error">{dangerError}</Notice>}
+          <div className="lv-stack-16">
+            <div className="lv-stack-8">
+              <strong>Transfer ownership</strong>
+              <p className="ui-muted lv-m0">The new Owner gets everything, and you become a regular member.</p>
+              {heirs.length === 0 ? (
+                <p className="ui-help lv-m0">Only accepted members can become Owner. Invite someone first.</p>
+              ) : (
+                <div className="lv-invite-form">
+                  <Field label="New Owner" htmlFor="heir">
+                    <Select value={heir} onValueChange={setHeir}>
+                      <SelectTrigger id="heir"><SelectValue placeholder="Pick a member" /></SelectTrigger>
+                      <SelectContent>{heirs.map((m) => <SelectItem key={m.membership_id} value={m.membership_id}>{m.display_name ?? "Member"}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </Field>
+                  <TypedConfirm
+                    trigger={<Button variant="secondary" disabled={!heir}>Transfer</Button>}
+                    title="Transfer ownership?"
+                    description={`${heirs.find((m) => m.membership_id === heir)?.display_name ?? "This member"} becomes the Owner of ${hub.name}. You can’t undo this yourself.`}
+                    phrase={hub.slug}
+                    actionLabel="Transfer ownership"
+                    busy={busy}
+                    onConfirm={async (typed) => {
+                      setBusy(true);
+                      const r = await api.ownerTransfer(hub.hub_id, heir, typed);
+                      setBusy(false);
+                      if (!r.ok) { setDangerError(describeError(r.error)); return false; }
+                      toast.success("Ownership transferred");
+                      reload();
+                      return true;
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+            <Separator />
+            <div className="lv-stack-8">
+              <strong>Delete this Hub</strong>
+              <p className="ui-muted lv-m0">Deletes the Hub, its Campaigns, members and results. Its address is held for 30 days before anyone can claim it.</p>
+              <div className="ui-row">
+                <TypedConfirm
+                  trigger={<Button variant="danger">Delete Hub</Button>}
+                  title={`Delete ${hub.name}?`}
+                  description="This deletes the Hub with its Campaigns, members and results. It can’t be undone. The address is held for 30 days before anyone can claim it."
+                  phrase={hub.slug}
+                  actionLabel="Delete Hub"
+                  busy={busy}
+                  onConfirm={async (typed) => {
+                    setBusy(true);
+                    const r = await api.hubDelete(hub.hub_id, typed);
+                    setBusy(false);
+                    if (!r.ok) { setDangerError(describeError(r.error)); return false; }
+                    toast.success(`${hub.name} was deleted`);
+                    nav("/me");
+                    return true;
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </Card>
-        <Card quiet>
-          <Micro>Lifecycle</Micro>
-          <div className="lv-lifecycle" style={{ margin: "12px 0" }}>
-            <span>ACTIVE</span><i aria-hidden="true">→</i><span>GRACE · 25 days</span><i aria-hidden="true">→</i><span>RELEASED</span>
-          </div>
-          <p className="ui-muted" style={{ margin: 0, fontSize: 14 }}>
-            After the grace period the address is released and may be claimed by another creator. A released address never
-            exposes a previous owner&rsquo;s data.
-          </p>
-        </Card>
-      </div>
-    </Pending>
+      )}
+    </div>
   );
 }
+
+/* ------------------------------------------------------------------ billing */
+
+export function HubBilling() {
+  const { hub } = useHubCtx();
+  const { api } = useIdentity();
+  const summary = useLv(() => api.billingSummary(hub.hub_id), [api, hub.hub_id]);
+  const s = summary.data;
+  const lim = (k: string) => (s?.limits[k] ?? null) as number | null;
+  return (
+    <div className="lv-stack-16">
+      {summary.loading && !s && <LoadingRows rows={4} />}
+      {summary.error && <Notice tone="error">{describeError(summary.error)}</Notice>}
+      {s && (
+        <>
+          <div className="ui-grid-2">
+            <Card variant="ink">
+              <Eyebrow accent>Current plan</Eyebrow>
+              <h2 className="lv-resume-title">{familyName(s.plan.family)}{s.plan.product === "founding" ? " · Founding" : ""}</h2>
+              <dl className="lv-kv lv-kv-ink">
+                <dt>State</dt><dd>{s.plan.state}</dd>
+                <dt>Started</dt><dd>{fmtDate(s.plan.starts_at)}</dd>
+                <dt>Ends</dt><dd>{s.plan.ends_at ? fmtDate(s.plan.ends_at) : s.plan.product === "founding" ? "30 days after billing opens" : "—"}</dd>
+              </dl>
+              {s.plan.state !== "active" && <p className="lv-m0">Premium actions are locked. Nothing has been deleted.</p>}
+            </Card>
+            <Card>
+              <SectionTitle>Usage</SectionTitle>
+              <QuotaMeter label="Custom roles" used={s.usage.custom_roles} limit={lim("roles.max_custom")} />
+              <QuotaMeter label="Custom pages" used={s.usage.custom_pages} limit={lim("pages.max_custom")} />
+              <QuotaMeter label="Active Campaigns" used={s.usage.active_campaigns} limit={lim("campaigns.max_active")} />
+              <QuotaMeter label="Active surveys" used={s.usage.active_surveys} limit={lim("surveys.max_active")} />
+            </Card>
+          </div>
+          <Card>
+            <SectionTitle>Change plan</SectionTitle>
+            <div className="lv-price-cards">
+              {PLANS.filter((p) => p.id === "starter" || p.id === "team").map((p) => (
+                <Card key={p.id} variant="well" size="sm">
+                  <strong>{p.name}</strong>
+                  <div className="lv-price-figure"><strong>{p.priceLabel}</strong><span>{p.cadence}</span></div>
+                </Card>
+              ))}
+            </div>
+            <DisabledAction reason={CHECKOUT_DISABLED_REASON}>Choose a plan</DisabledAction>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ reservation */
+
+export function HubReservation() {
+  const { hub } = useHubCtx();
+  const { api } = useIdentity();
+  const status = useLv(() => api.reservationStatus(hub.slug), [api, hub.slug]);
+  const [check, setCheck] = useState("");
+  const [checked, setChecked] = useState<{ slug: string; state: string } | null>(null);
+  const reservation = PLANS.find((p) => p.id === "reservation")!;
+  const st = status.data;
+
+  useEffect(() => setChecked(null), [check]);
+
+  return (
+    <div className="lv-stack-16">
+      <div className="ui-grid-2">
+        <Card>
+          <SectionTitle>This address</SectionTitle>
+          <p className="ui-mono lv-m0">lunchvoice.com/{hub.slug}</p>
+          {status.loading && !st ? <LoadingRows rows={1} /> : status.error ? <Notice tone="error">{describeError(status.error)}</Notice> : st && (
+            <dl className="lv-kv">
+              <dt>Reservation</dt><dd>{st.state === "taken" ? "Not reserved (in use by this Hub)" : st.state}</dd>
+              {st.expires_at && <><dt>Expires</dt><dd>{fmtDate(st.expires_at)}</dd></>}
+              {st.grace_ends_at && <><dt>Grace ends</dt><dd>{fmtDate(st.grace_ends_at)}</dd></>}
+            </dl>
+          )}
+          <div className="lv-price-figure"><strong>{reservation.priceLabel}</strong><span>{reservation.cadence}</span></div>
+          <DisabledAction reason={CHECKOUT_DISABLED_REASON}>Reserve this address</DisabledAction>
+        </Card>
+        <Card variant="well">
+          <SectionTitle>How a reservation works</SectionTitle>
+          <div className="lv-lifecycle"><span data-on={st?.state === "active" || undefined}>ACTIVE</span><i aria-hidden="true">→</i><span data-on={st?.state === "grace" || undefined}>GRACE · 25 days</span><i aria-hidden="true">→</i><span data-on={st?.state === "released" || undefined}>RELEASED</span></div>
+          <p className="ui-muted lv-m0">A reservation keeps an address for 12 months and grants no paid features. After it expires there are 25 days to renew; then the address is released. A released address never shows a previous owner’s data.</p>
+        </Card>
+      </div>
+      <Card>
+        <SectionTitle>Check another address</SectionTitle>
+        <form className="lv-invite-form" onSubmit={async (e) => {
+          e.preventDefault();
+          const slug = check.trim().toLowerCase();
+          if (slugProblem(slug)) return setChecked({ slug, state: slugProblem(slug) === "reserved" ? "reserved for the platform" : "not a valid address" });
+          const r = await api.reservationStatus(slug);
+          setChecked({ slug, state: r.ok ? r.state : describeError(r.error) });
+        }}>
+          <Field label="Address" htmlFor="res-check"><Input id="res-check" value={check} onChange={(e) => setCheck(e.target.value)} placeholder="harbor-book-circle" /></Field>
+          <Button type="submit" variant="ink" disabled={!check.trim()}>Check</Button>
+        </form>
+        {checked && <Notice tone={checked.state === "available" ? "ok" : "info"}>lunchvoice.com/{checked.slug}: {checked.state}.</Notice>}
+      </Card>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ Discover */
 
 export function HubDiscover() {
   const { hub } = useHubCtx();
+  const { api } = useIdentity();
+  const [busy, setBusy] = useState(false);
+  const [reasons, setReasons] = useState<string[] | null>(null);
+  const [sent, setSent] = useState(false);
+  async function apply() {
+    setBusy(true);
+    setReasons(null);
+    const r = await api.discoverApply(hub.hub_id);
+    setBusy(false);
+    if (r.ok) { setSent(true); toast.success("Application sent"); }
+    else if (r.error.code === "lv_gate_blocked") setReasons(describeGate(r.error.reasons));
+    else toast.error(describeError(r.error));
+  }
   return (
-    <Pending
-      title="Discover eligibility"
-      sub="Team Hubs can apply once they reach 700 genuine active members. Approval is not guaranteed."
-      fn={PENDING_API.discoverApply}
-    >
+    <div className="ui-grid-2">
       <Card>
-        <div className="ui-grid-2" style={{ alignItems: "center" }}>
-          <Metric value={hub.member_count} label="members" hint="Guests never count toward this number." />
-          <div className="ui-stack ui-gap-8">
-            <Meter value={Math.min(hub.member_count, 700)} max={700} label="progress to 700 active members" />
-            <span className="ui-help">
-              Listing also needs an active Team plan and an approved application. Nothing is listed automatically, and no Hub
-              is ever seeded into Discover.
-            </span>
-          </div>
-        </div>
-        <hr className="ui-rule" style={{ margin: "18px 0" }} />
-        <div className="ui-row">
-          <Btn variant="primary" disabled>Apply for Discover</Btn>
-          <Link className="ui-btn ui-btn-outline" to="/discover">See the public directory</Link>
-        </div>
+        <SectionTitle>Discover eligibility</SectionTitle>
+        <p className="ui-muted lv-m0">Team Hubs can apply to be listed in Discover once they reach 700 genuine active members. Approval isn’t automatic. Quick Surveys are never listed.</p>
+        <QuotaMeter label="Genuine active members" used={Math.min(hub.member_count, 700)} limit={700} hint="Guests, duplicates and bots never count." />
+        <QuotaMeter label="Plan" used={hub.plan?.family === "team" ? 1 : 0} limit={1} hint={hub.plan?.family === "team" ? "Team plan" : "Needs the Team plan"} />
+        {reasons && <Notice tone="warn" title="Not eligible yet">{reasons.join(" ")}</Notice>}
+        {sent ? <Notice tone="ok">Application sent. We’ll review it.</Notice> : <Button variant="primary" onClick={apply} disabled={busy}>{busy ? "Checking…" : "Apply for Discover"}</Button>}
       </Card>
-    </Pending>
+      <Card variant="well">
+        <SectionTitle>What Discover is</SectionTitle>
+        <p className="ui-muted lv-m0">A public directory of large, active communities that chose to be found. Nothing is listed automatically and no Hub is ever seeded into it.</p>
+        <LinkButton to="/discover" variant="secondary">See the directory</LinkButton>
+      </Card>
+    </div>
   );
 }
 
@@ -762,70 +790,90 @@ const ADDONS: Record<string, { title: string; body: string }> = {
 export function HubAddon({ kind }: { kind: keyof typeof ADDONS }) {
   const { hub } = useHubCtx();
   const a = ADDONS[kind]!;
-  return (
-    <StateScreen
-      kind="empty"
-      title={`${a.title} is coming with M2.`}
-      detail={a.body}
-      action={<Link className="ui-btn ui-btn-outline" to={`/${hub.slug}`}>Back to {hub.name}</Link>}
-    />
-  );
+  return <StateScreen kind="empty" title={`${a.title} is coming with M2.`} detail={a.body} action={<LinkButton to={`/${hub.slug}`} variant="secondary">Back to {hub.name}</LinkButton>} />;
 }
 
 /* ------------------------------------------------------------------ Hub Builder (owner) */
 
-const PAGE_MODULES = [
-  { key: "home", label: "Home and Campaigns", note: "Always on", fixed: true },
-  { key: "shop", label: "Shop", note: "Coming with M2", fixed: false },
-  { key: "leaderboard", label: "Leaderboard", note: "Coming with M2", fixed: false },
-  { key: "news", label: "Newsroom", note: "Coming with M2", fixed: false },
-  { key: "comments", label: "Comments", note: "Coming with M2", fixed: false },
-  { key: "custom", label: "Custom pages", note: "Coming with M2", fixed: false },
-] as const;
+const KIND_LABEL: Record<PageKind, string> = { home: "Home", campaigns: "Campaigns", custom: "Custom page", shop: "Shop", leaderboard: "Leaderboard", news: "Newsroom", comments: "Comments" };
+const ADDON_KINDS: PageKind[] = ["shop", "leaderboard", "news", "comments"];
 
 export function HubBuilder() {
   const { hub, membership } = useHubCtx();
-  const [on, setOn] = useState<Record<string, boolean>>({ home: true });
-  if (!membership?.is_owner) return <Card><Notice tone="warn">Only the Hub owner can change which pages the Hub shows.</Notice></Card>;
-  const tabs = PAGE_MODULES.filter((m) => on[m.key] || m.fixed);
+  const { api } = useIdentity();
+  const data = useLv(() => api.hubPagesGet(hub.hub_id), [api, hub.hub_id]);
+  const [pages, setPages] = useState<HubPage[] | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  useEffect(() => { if (data.data) setPages(data.data.pages); }, [data.data]);
+
+  if (!membership?.is_owner) return <Notice tone="warn">Only the Hub Owner can change which pages the Hub shows.</Notice>;
+  if (data.loading && !pages) return <LoadingRows rows={4} />;
+  if (data.error) return <Notice tone="error">{describeError(data.error)}</Notice>;
+  if (!pages) return null;
+
+  const limit = data.data?.custom_slots.limit ?? null;
+  const custom = pages.filter((p) => p.kind === "custom").length;
+  const dirty = JSON.stringify(pages) !== JSON.stringify(data.data?.pages);
+  const move = (i: number, by: number) => setPages((ps) => { const next = [...ps!]; const [x] = next.splice(i, 1); next.splice(i + by, 0, x); return next.map((p, j) => ({ ...p, position: j })); });
+
+  async function save() {
+    setSaving(true);
+    const r = await api.hubPagesUpdate(hub.hub_id, pages!);
+    setSaving(false);
+    if (r.ok) { toast.success("Pages saved"); data.reload(); } else toast.error(describeError(r.error));
+  }
 
   return (
-    <div className="lv-dash">
-      <div className="lv-stack">
-        <div className="lv-panel">
-          <h2>Hub pages</h2>
-          <p className="ui-muted" style={{ margin: "0 0 8px", fontSize: 14.5 }}>Choose which pages participants see in {hub.name}. Home and Campaigns is always on.</p>
-          <ul className="lv-rows">
-            {PAGE_MODULES.map((m) => (
-              <li key={m.key} className="lv-row">
-                <span className="lv-row-main">
-                  <span className="lv-row-title">{m.label}</span>
-                  <span className="lv-row-sub">{m.note}</span>
+    <div className="lv-builder">
+      <Card>
+        <SectionTitle action={<Button variant="ink" size="sm" disabled={!dirty || saving} onClick={save}>{saving ? "Saving…" : "Save pages"}</Button>}>Hub pages</SectionTitle>
+        <QuotaMeter label="Custom page slots" used={custom} limit={limit} />
+        <div>
+          {pages.map((p, i) => {
+            const fixed = p.kind === "home";
+            const soon = ADDON_KINDS.includes(p.kind) || p.kind === "custom";
+            return (
+              <div key={p.key} className="lv-page-row">
+                <span className="lv-outline-move">
+                  <Button variant="quiet" size="icon-sm" aria-label={`Move ${p.title} up`} disabled={i === 0} onClick={() => move(i, -1)}><Icon name="chevron" size={14} className="lv-rot180" /></Button>
+                  <Button variant="quiet" size="icon-sm" aria-label={`Move ${p.title} down`} disabled={i === pages.length - 1} onClick={() => move(i, 1)}><Icon name="chevron" size={14} /></Button>
                 </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={m.fixed || Boolean(on[m.key])}
-                  aria-label={`${m.label} page`}
-                  disabled={m.fixed}
-                  className="lv-switch"
-                  onClick={() => setOn((s) => ({ ...s, [m.key]: !s[m.key] }))}
-                />
-              </li>
-            ))}
-          </ul>
-          <Notice tone="info">Saving Hub pages needs <code>lv_hub_pages_update</code>, which isn't available yet. Your choices below are a preview only, so nothing is saved.</Notice>
+                <div className="lv-page-row-main">
+                  <strong>{p.title}</strong>
+                  <span>{KIND_LABEL[p.kind]}{fixed ? " · always on" : soon ? " · Coming with M2" : ""}</span>
+                </div>
+                {p.kind === "custom" && <Button variant="quiet" size="sm" onClick={() => setPages((ps) => ps!.filter((x) => x.key !== p.key))}>Remove</Button>}
+                <Switch aria-label={`${p.title} page`} checked={p.enabled} disabled={fixed} onCheckedChange={(on) => setPages((ps) => ps!.map((x) => (x.key === p.key ? { ...x, enabled: on } : x)))} />
+              </div>
+            );
+          })}
         </div>
-      </div>
-      <aside className="lv-rail" aria-label="Preview">
-        <div className="lv-panel">
-          <h3 style={{ margin: "0 0 10px", font: "600 16px/1.3 var(--lv-font-ui)" }}>Preview: participant tabs</h3>
-          <div className="lv-preview-tabs" role="list">
-            {tabs.map((m) => <span role="listitem" key={m.key} className="lv-preview-tab">{m.key === "home" ? "Home" : m.label}</span>)}
+        <form className="lv-invite-form" onSubmit={(e) => {
+          e.preventDefault();
+          if (!newTitle.trim()) return;
+          setPages((ps) => [...ps!, { key: `custom-${Date.now().toString(36)}`, kind: "custom", title: newTitle.trim(), body: "", position: ps!.length, enabled: true }]);
+          setNewTitle("");
+        }}>
+          <Field label="New custom page" htmlFor="new-page"><Input id="new-page" value={newTitle} maxLength={40} onChange={(e) => setNewTitle(e.target.value)} placeholder="Route maps" disabled={limit !== null && custom >= limit} /></Field>
+          <Button type="submit" variant="secondary" disabled={!newTitle.trim() || (limit !== null && custom >= limit)}><Icon name="plus" size={16} />Add page</Button>
+        </form>
+        {limit !== null && custom >= limit && <p className="ui-help lv-m0">All {limit} custom page slots are in use.</p>}
+        {limit === 0 && <p className="ui-help lv-m0">Custom pages need an active Hub plan.</p>}
+      </Card>
+      <Card variant="well">
+        <Eyebrow>Preview: what members see</Eyebrow>
+        <div className="lv-preview-phone">
+          <div className="lv-preview-cover" style={{ background: hub.accent ?? "#14110f", color: hub.accent ? onAccent(hub.accent) : "#fff" }}>
+            <b>{hub.name}</b>
+            <nav aria-label="Preview tabs">
+              {pages.filter((p) => p.enabled).map((p) => <span key={p.key} data-soon={p.kind !== "home" && p.kind !== "campaigns" ? "" : undefined}>{p.title}</span>)}
+            </nav>
           </div>
-          <p className="ui-help" style={{ marginTop: 10 }}>Pages that aren't live yet show a "Coming with M2" screen.</p>
+          <Card size="sm"><strong>Campaigns</strong><span className="ui-muted lv-small">Live Campaigns appear here.</span></Card>
         </div>
-      </aside>
+        <p className="ui-help lv-m0">Pages that aren’t built yet show a “Coming with M2” screen to members.</p>
+      </Card>
     </div>
   );
 }

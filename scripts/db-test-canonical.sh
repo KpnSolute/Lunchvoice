@@ -78,7 +78,7 @@ select t.trust_test_issuer();
 select t.as_kpn(1); select lv_api.lv_my_context();
 select t.as_kpn(2); select lv_api.lv_my_context();
 select t.as_pg();
-insert into lv.beta_applications (account_id, status) select id, 'approved' from lv.accounts;
+insert into lv.hub_credits (account_id, family, product, source) select id, 'starter', 'starter_hub', 'grant' from lv.accounts;
 SQL
 fi
 if [ "$RACE_FAIL" = "0" ]; then
@@ -102,17 +102,63 @@ SQL
   OKS=$(cat /tmp/lv-race-1.$$ /tmp/lv-race-2.$$ | grep -c '^RESULT|ok$')
   CONFLICTS=$(cat /tmp/lv-race-1.$$ /tmp/lv-race-2.$$ | grep -c '^RESULT|lv_conflict$')
   HUBS=$(qdb lv_race -At -c "select count(*) from lv.hubs where slug = '$RACE_SLUG'" 2>/dev/null)
-  CONSUMED=$(qdb lv_race -At -c "select count(*) from lv.beta_applications where status = 'consumed'" 2>/dev/null)
+  CONSUMED=$(qdb lv_race -At -c "select count(*) from lv.hub_credits where consumed_at is not null" 2>/dev/null)
   OWNERS=$(qdb lv_race -At -c "select count(*) from lv.hubs h join lv.hub_memberships m on m.hub_id = h.id and m.account_id = h.owner_account_id and m.status = 'accepted' where h.slug = '$RACE_SLUG'" 2>/dev/null)
-  echo "   winners=$OKS conflicts=$CONFLICTS hubs=$HUBS approvals_consumed=$CONSUMED owner_memberships=$OWNERS"
+  echo "   winners=$OKS conflicts=$CONFLICTS hubs=$HUBS credits_consumed=$CONSUMED owner_memberships=$OWNERS"
   if [ "$OKS" = "1" ] && [ "$CONFLICTS" = "1" ] && [ "$HUBS" = "1" ] && [ "$CONSUMED" = "1" ] && [ "$OWNERS" = "1" ]; then
-    echo "   exactly one claimant won; the loser got lv_conflict and kept its approval"
+    echo "   exactly one claimant won; the loser got lv_conflict and kept its Hub credit"
   else
     echo "   RACE FAILED"; cat /tmp/lv-race-1.$$ /tmp/lv-race-2.$$ | head -10; RACE_FAIL=1
   fi
   kill "$CONTROLLER" 2>/dev/null
   rm -f /tmp/lv-race-1.$$ /tmp/lv-race-2.$$
 fi
+
+# 3c. Parallel waitlist race: one seat left, two signed-in people join at the same instant. Exactly one is
+# admitted (with exactly one Founding credit); the other is waitlisted.
+echo "== parallel waitlist race"
+WL_FAIL=$RACE_FAIL
+if [ "$WL_FAIL" = "0" ]; then
+  qdb lv_race >/dev/null 2>&1 <<'SQL' || WL_FAIL=1
+select t.trust_test_issuer();
+select t.as_kpn(3); select lv_api.lv_my_context();
+select t.as_kpn(4); select lv_api.lv_my_context();
+select t.as_pg();
+update lv.policy set value = '1'::jsonb where key = 'waitlist.seats';
+SQL
+fi
+if [ "$WL_FAIL" = "0" ]; then
+  ( docker exec -i "$NAME" psql -U postgres -d lv_race -X -q -At >/dev/null 2>&1 <<'SQL'
+select pg_advisory_lock(434343);
+select pg_sleep(3);
+select pg_advisory_unlock(434343);
+SQL
+  ) &
+  CONTROLLER=$!
+  sleep 1
+  for n in 3 4; do
+    ( docker exec -i "$NAME" psql -U postgres -d lv_race -X -q -At > "/tmp/lv-wl-$n.$$" 2>&1 <<SQL
+select t.as_kpn($n);
+select pg_advisory_lock_shared(434343);
+select 'RESULT|' || (lv_api.lv_waitlist_join() ->> 'status');
+SQL
+    ) &
+  done
+  wait
+  ADM=$(cat /tmp/lv-wl-3.$$ /tmp/lv-wl-4.$$ | grep -c '^RESULT|admitted$')
+  WAIT=$(cat /tmp/lv-wl-3.$$ /tmp/lv-wl-4.$$ | grep -c '^RESULT|waitlisted$')
+  ROWS=$(qdb lv_race -At -c "select count(*) from lv.waitlist_entries where status = 'admitted'" 2>/dev/null)
+  FOUNDING=$(qdb lv_race -At -c "select count(*) from lv.hub_credits where product = 'founding'" 2>/dev/null)
+  echo "   admitted=$ADM waitlisted=$WAIT admitted_rows=$ROWS founding_credits=$FOUNDING"
+  if [ "$ADM" = "1" ] && [ "$WAIT" = "1" ] && [ "$ROWS" = "1" ] && [ "$FOUNDING" = "1" ]; then
+    echo "   exactly one joiner took the last seat; the other was waitlisted"
+  else
+    echo "   WAITLIST RACE FAILED"; cat /tmp/lv-wl-3.$$ /tmp/lv-wl-4.$$ | head -10; WL_FAIL=1
+  fi
+  kill "$CONTROLLER" 2>/dev/null
+  rm -f /tmp/lv-wl-3.$$ /tmp/lv-wl-4.$$
+fi
+[ "$WL_FAIL" = "0" ] || RACE_FAIL=1
 
 echo "== results"
 echo "checks: $((SQL_PASS + SQL_FAIL)), failed: $SQL_FAIL"

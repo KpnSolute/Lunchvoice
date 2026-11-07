@@ -1,0 +1,214 @@
+/* shadcn/ui on top of the LunchVoice design system (src/ui/tokens.css stays the single source of tokens).
+   - Tailwind v4 theme and utilities only. Preflight (Tailwind's global reset) is deliberately NOT imported, so the
+     existing pages keep their look; shadcn components still work because v4 utilities set their own border style.
+   - Every shadcn color, radius and font variable is an alias of an --lv-* token, so components follow the
+     light, dark and high-contrast themes set by data-theme on <html> with no per-theme block here.
+   - Base rules are scoped to [data-slot] (every shadcn component sets it) instead of the global *, html and body
+     rules the generator writes.
+   - Tailwind scans ONLY src/components/shadcn (source(none) + @source). Scanning the whole app turned existing class
+     names such as container, grid, hidden and table into utilities and changed layouts. Put shadcn components and
+     anything built from Tailwind classes under src/components/shadcn, or add its folder with another @source. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@source "../components/shadcn";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is([data-theme="dark"] *));
+
+@theme inline {
+  --font-sans: var(--lv-font-ui);
+  --font-heading: var(--lv-font-display);
+  --font-mono: var(--lv-font-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  /* --muted is taken: src/index.css uses it for muted TEXT. shadcn's muted surface maps straight to the token. */
+  --color-muted: var(--lv-well);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: var(--lv-page);
+  --foreground: var(--lv-text);
+  --card: var(--lv-surface);
+  --card-foreground: var(--lv-text);
+  --popover: var(--lv-popover);
+  --popover-foreground: var(--lv-text);
+  --primary: var(--lv-primary);
+  --primary-foreground: var(--lv-on-primary);
+  --secondary: var(--lv-surface2);
+  --secondary-foreground: var(--lv-text);
+  --muted-foreground: var(--lv-muted);
+  --accent: var(--lv-accent);
+  --accent-foreground: var(--lv-on-accent);
+  --destructive: var(--lv-danger);
+  --border: var(--lv-line);
+  --input: var(--lv-line);
+  --ring: var(--lv-focus);
+  --chart-1: var(--lv-accent);
+  --chart-2: var(--lv-text);
+  --chart-3: var(--lv-muted);
+  --chart-4: var(--lv-success);
+  --chart-5: var(--lv-subtle);
+  --radius: var(--lv-radius-field);
+  --sidebar: var(--lv-surface2);
+  --sidebar-foreground: var(--lv-text);
+  --sidebar-primary: var(--lv-primary);
+  --sidebar-primary-foreground: var(--lv-on-primary);
+  --sidebar-accent: var(--lv-accent);
+  --sidebar-accent-foreground: var(--lv-on-accent);
+  --sidebar-border: var(--lv-line);
+  --sidebar-ring: var(--lv-focus);
+}
+
+/* Tactile surfaces (design handoff §2): the five surfaces plus the accent CTA, the popover surface and the press.
+   Components use these instead of hand-picked colors, so light, dark and high contrast all come from tokens.css. */
+@utility surface-raised {
+  background: var(--lv-raised-bg);
+  box-shadow: var(--lv-raised-shadow);
+  border: var(--lv-control-border);
+  color: var(--lv-text);
+}
+@utility surface-card {
+  background: var(--lv-raised-bg);
+  box-shadow: var(--lv-card-shadow);
+  border: var(--lv-control-border);
+  color: var(--lv-text);
+}
+@utility surface-well {
+  background: var(--lv-well);
+  box-shadow: var(--lv-well-shadow);
+  border: var(--lv-control-border);
+  color: var(--lv-text);
+}
+@utility surface-pressed {
+  background: var(--lv-pressed-bg);
+  box-shadow: var(--lv-pressed-shadow);
+  color: var(--lv-on-accent);
+}
+@utility surface-ink {
+  background: var(--lv-ink-bg);
+  box-shadow: var(--lv-ink-shadow);
+  color: var(--lv-on-primary);
+}
+@utility surface-cta {
+  background: var(--lv-accent-cta-bg);
+  box-shadow: var(--lv-cta-shadow);
+  color: var(--lv-on-accent);
+}
+@utility surface-pop {
+  background: var(--lv-popover);
+  box-shadow: var(--lv-popover-shadow);
+  border: var(--lv-control-border);
+  color: var(--lv-text);
+}
+@utility surface-danger {
+  background: var(--lv-danger-bg);
+  color: var(--lv-danger-ink);
+}
+@utility tactile-press {
+  transition:
+    transform var(--lv-dur-press) var(--lv-ease-spring),
+    box-shadow var(--lv-dur-press) var(--lv-ease-out),
+    background var(--lv-dur-press) var(--lv-ease-out),
+    opacity var(--lv-dur-press) var(--lv-ease-out);
+  &:active:not(:disabled):not([aria-disabled='true']) {
+    transform: scale(0.94, 0.88);
+  }
+}
+@utility tactile-focus {
+  &:focus-visible {
+    outline: 2px solid var(--lv-focus);
+    outline-offset: 3px;
+  }
+}
+@utility tactile-label {
+  font-family: var(--lv-font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+@utility tactile-pop-in {
+  transform-origin: var(--radix-popover-content-transform-origin, var(--radix-dropdown-menu-content-transform-origin, var(--radix-select-content-transform-origin, center)));
+  &[data-state='open'] {
+    animation: lv-pop-in var(--lv-dur-popover) var(--lv-ease-spring);
+  }
+}
+@keyframes lv-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes lv-jelly-in {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.25, 0.82); }
+  50% { transform: scale(0.88, 1.14); }
+  70% { transform: scale(1.06, 0.96); }
+  100% { transform: scale(1); }
+}
+
+/* The parts of Tailwind's preflight that shadcn components rely on, applied to shadcn components only. Utilities
+   still win (they are in a later layer), and the rest of the app never sees these rules. */
+@layer base {
+  [data-slot],
+  [data-slot] *,
+  [data-slot]::before,
+  [data-slot]::after {
+    box-sizing: border-box;
+    border: 0 solid var(--border);
+    outline-color: color-mix(in oklab, var(--ring) 50%, transparent);
+  }
+  [data-slot] {
+    font-family: var(--font-sans);
+  }
+  :is(button, input, select, textarea)[data-slot],
+  [data-slot] :is(button, input, select, textarea) {
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+    background-color: transparent;
+    margin: 0;
+  }
+}

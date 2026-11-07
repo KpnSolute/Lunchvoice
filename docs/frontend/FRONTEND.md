@@ -14,20 +14,24 @@ Owner: the UI thread. Source of truth for product scope: the canonical master sp
 
 ## Routes
 
+`src/config/routes.json` is the registry (layout, shell, access, milestone); `npm run check:routes` fails on any
+route without an entry. Launch routes:
+
 | Path | Screen |
 | --- | --- |
-| `/` | public site |
-| `/signin` | KpnIdentity sign-in and callback shell |
-| `/me` | account, My Hubs, create Hub, invitations, entitlement state |
-| `/:hub` | Hub landing / workspace |
-| `/:hub/campaigns` | Campaign list |
-| `/:hub/campaigns/:id` | Campaign Studio; respondent player for participants |
-| `/:hub/analytics` | results |
+| `/` | landing, 1:1 from the design handoff, with the Founding waitlist band |
+| `/waitlist` (`/whitelist` redirects) | Founding seats: seat counter, sign-in-then-join, optional email with consent |
+| `/pricing` | founder's capability table from `src/config/pricing.ts`; checkout disabled with a reason |
+| `/signin`, `/auth/callback` | KpnIdentity sign-in (unchanged flow) |
+| `/me` | dashboard: Hubs, Hub credits, Quick Surveys (N/5), plan and waitlist state |
+| `/surveys`, `/surveys/new`, `/surveys/:id`, `/surveys/:id/results` | Quick Surveys on the shared Studio and results |
+| `/s/:token` | invite-only Quick Survey: redeem, then the player |
+| `/c/:joinCode` | respondent player (guests and members) |
+| `/create`, `/join`, `/j/:code`, `/settings` | create Hub (stepper), codes, account settings |
+| `/:hub/...` | Hub workspace: overview, Campaigns + Studio, results, analytics, members, invites, roles, settings, Builder, billing, reservation, Discover |
 
-System paths are reserved before `/:hub` (`src/lib/reservedSlugs.ts`, mirrored from the
-backend which is authoritative): existing list plus `pricing`, `discover`, `billing`,
-`settings` (add `discover` to the list when the route lands; verify against the backend
-list before relying on it). Static routes always outrank `:hub` in the router.
+Static routes outrank `:hub`; every top-level name is in `src/lib/reservedSlugs.ts` (the backend list in
+`lv.reserved_slugs` is authoritative).
 
 ## Identity
 
@@ -38,35 +42,51 @@ exists only when the mock is active and must be impossible in a build with real
 
 ## Mocks: each needs a real-API replacement path
 
-| Mock (`src/lib/mockTransport.ts`) | Real replacement | Status |
-| --- | --- | --- |
-The mock is dev-only: `import.meta.env.DEV` gates it, a production build without a configured
-backend fails closed, and `npm run check:bundle` fails if mock or simulated-sign-in strings reach
-`dist`. Every function below is wired in `src/lib/lvApi.ts` against the real contract; the mock
-only stands in until `feat/v2-read-api` is merged and deployed.
+The mock (`src/lib/mockTransport.ts`) is dev-only: `import.meta.env.DEV` gates it, a production build without a
+configured backend fails closed, and `npm run check:bundle` fails if mock or simulated-sign-in strings reach `dist`.
+It keeps state in `localStorage` (`lv.mock.state`; seed with `lv.mock.seed = "demo"` or `"expired"`). Every function
+is typed in `src/lib/lvApi.ts` against the launch contract (`docs/v2/LAUNCH_PLAN.md`).
 
-| Mock case | Real function | Status |
+| Area | Real function | Status |
 | --- | --- | --- |
-| my context, beta status/apply | `lv_my_context`, `lv_beta_status`, `lv_beta_apply` | wired; backend local only |
-| hub create/get, members | `lv_hub_create`, `lv_hub_get`, `lv_member_list` | wired; backend local only |
-| invites create/list/preview/redeem/revoke | `lv_invite_*` | wired; backend local only |
-| campaign list/get/create/question/activate/close | `lv_campaign_*` | wired; backend local only |
-| submit, analytics | `lv_submit_response`, `lv_analytics_query` | wired; backend local only |
-| simulated sign-in | KpnIdentity OIDC | issuer does not exist yet |
-| plans, entitlements, reservations, scheduling, pages, roles editing | none yet | blocked on backend |
+| context, plan limits, waitlist | `lv_my_context`, `lv_plan_limits`, `lv_waitlist_status/join` | migration 000014 |
+| Quick Surveys, Campaign invites | `lv_quick_survey_*`, `lv_campaign_invite_*` | migration 000014 |
+| abuse reports | `lv_report_abuse` | migration 000014 |
+| Hub update/transfer/delete/pages, profile, account delete | `lv_hub_update`, `lv_owner_transfer`, `lv_hub_delete`, `lv_hub_pages_*`, `lv_profile_update`, `lv_account_delete` | migration 000015 |
+| checkout, billing summary, reservation, export, Discover | `lv_checkout_start`, `lv_billing_summary`, `lv_hub_reservation_status`, `lv_analytics_export`, `lv_discover_apply` | backend 000016 pending; the UI shows the error state until then |
+| Hubs, members, invites, roles, Campaigns, guests, analytics | `lv_hub_*`, `lv_member_*`, `lv_invite_*`, `lv_role_*`, `lv_campaign_*`, `lv_guest_*`, `lv_analytics_query` | deployed |
+| simulated sign-in | KpnIdentity OIDC | dev only |
 
-When a function lands, move it from the mock to the real transport and delete the mock case.
+Contract requests from the UI: `p_consent_version` on `lv_waitlist_join` (sent only with an email),
+`recent_participation` on `lv_my_context` (hidden when absent), `texts` on text-question distributions (L-10).
 
 ## Errors
 
 Every expected failure is `{ ok:false, error:{ code, message, ... } }` (backend migration 000008;
 gate failures add `reasons`). A thrown exception is a genuine fault and maps to `lv_server_error`.
 
+## shadcn/ui and Tailwind
+
+shadcn/ui (Radix, Nova style) runs on Tailwind v4 as an addition to the design system, not a
+replacement. `src/ui/tokens.css` stays the single source of tokens.
+
+- Add components with `npx shadcn@4.23.0 add <name>` (or the shadcn MCP server). They land in
+  `src/components/shadcn/`; `src/components/ui.tsx` is the app's own primitives and is unrelated.
+- `src/ui/shadcn.css` maps every shadcn variable onto an `--lv-*` token, so components follow the
+  light, dark (`data-theme="dark"`) and high-contrast themes automatically. `--muted` is not
+  redefined there because `index.css` uses it for muted text.
+- No Tailwind preflight: the global reset would restyle existing pages. A reset scoped to
+  `[data-slot]` (every shadcn component) gives the components what they need.
+- Tailwind only scans `src/components/shadcn/`. Scanning the whole app turned existing class
+  names (`container`, `grid`, `hidden`, `table`) into utilities. Tailwind classes written in any
+  other folder generate nothing unless that folder is added with another `@source`.
+- Imports use the `@/` alias for `src/` (tsconfig `paths` and the Vite alias).
+
 ## Pricing in code
 
-Prices come from a single config module (`src/config/pricing.ts`, not yet written) used by the
-pricing page and checkout surfaces. Campaign Plus has no numeric price: its card shows
-features only and its checkout is disabled. Never invent a number. The backend entitlement
+Prices come from a single config module (`src/config/pricing.ts`) used by the pricing page, the landing
+and the billing surfaces. Campaign Plus is $39 for 2 weeks, then $19 per week. Checkout is disabled
+everywhere with a visible reason until billing opens. Never invent a number. The backend entitlement
 map is authoritative; the UI never decides what a plan allows.
 
 ## Work order
