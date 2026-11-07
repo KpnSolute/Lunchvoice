@@ -6,6 +6,13 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (shadcn MCP server)
+
+- `.mcp.json` registers the shadcn MCP server (`shadcn mcp init --client claude`) so agents can browse, search and get
+  add commands for shadcn registry components. Pinned to `shadcn@4.23.0` and started with `npx`; it is not a project
+  dependency (the init's devDependency and 218-package lockfile change were dropped). The project has no
+  `components.json` yet, so adding components still needs a deliberate shadcn setup first.
+
 ### Changed (Campaign Studio)
 
 - Campaign Studio rebuilt as three panes: a numbered questions outline, an editor (prompt and options save when you leave a field) with a live respondent preview, and a Share panel (link, join code, QR placeholder, facts). On phones it is one pane at a time with Outline, Edit and Share tabs. Published Campaigns stay locked and say so.
