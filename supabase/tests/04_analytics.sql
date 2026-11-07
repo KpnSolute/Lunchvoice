@@ -133,8 +133,9 @@ select lv_api.lv_campaign_activate(t.id('tc'));
 select t.as_pg();
 update lv.campaigns set status = 'closed', closed_at = now() where id = t.id('tc');
 select t.as_kpn(10);
-select t.check('free-text answers are not published, even with a policy set',
-  t.code(lv_api.lv_analytics_query(t.id('tc'), 'answer_distribution', t.id('tq'))) = 'lv_policy_undecided');
+select t.check('free-text answers below the cohort are withheld (texts_withheld, never an empty list)',
+  (lv_api.lv_analytics_query(t.id('tc'), 'answer_distribution', t.id('tq')) ->> 'texts_withheld') = 'true'
+  and (lv_api.lv_analytics_query(t.id('tc'), 'answer_distribution', t.id('tq')) -> 'texts') = 'null'::jsonb);
 
 -- ---------------------------------------------------------------------------------------------------------
 -- Capability enforcement and no raw row access

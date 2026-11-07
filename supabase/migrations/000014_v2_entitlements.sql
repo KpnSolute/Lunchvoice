@@ -1126,7 +1126,17 @@ begin
       'active', (select count(*) from lv.campaigns c where c.hub_id = v_personal and c.status in ('active', 'paused')),
       'limit', (lv.plan_limit('free', 'quick.max_active'))::int,
       'question_limit', (lv.plan_limit('free', 'quick.max_questions'))::int),
-    'waitlist', lv.waitlist_me(v_account));
+    'waitlist', lv.waitlist_me(v_account),
+    -- The caller's own recent answers: titles and dates only, never answers.
+    'recent_participation', coalesce((
+      select jsonb_agg(jsonb_build_object('campaign_title', x.title, 'hub_display_name', x.hub_name,
+                                          'answered_on', x.answered_on, 'kind', x.kind) order by x.at desc)
+        from (select c.title, case when h.kind = 'personal' then null else h.display_name end as hub_name,
+                     (p.created_at at time zone 'UTC')::date as answered_on,
+                     case when h.kind = 'personal' then 'quick' else 'hub' end as kind, p.created_at as at
+                from lv.participation p join lv.campaigns c on c.id = p.campaign_id join lv.hubs h on h.id = c.hub_id
+               where p.account_id = v_account
+               order by p.created_at desc limit 10) x), jsonb_build_array()));
 end;
 $$;
 

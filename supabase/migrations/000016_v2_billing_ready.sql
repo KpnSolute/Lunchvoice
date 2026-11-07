@@ -23,8 +23,9 @@
 --   * a cell equal to the question total (unanimity, dominance) withholds the whole question;
 --   * whenever anything in a question is withheld, its mean and n are withheld too;
 --   * participation_rate is withheld at 100% or when eligible minus respondents is below the cohort.
--- Free text (L-10): text_responses lists text answers to authorised creators only when at least min_cohort answers
--- exist, as plain strings in random order with no person, time or submission link; never in aggregates or exports.
+-- Free text (L-10): answer_distribution (and text_responses) on a text question return texts: [string] to
+-- authorised creators only when at least min_cohort answers exist, in random order with no person, time or
+-- submission link; otherwise texts_withheld. Never counted into aggregate cells; the export lists them separately.
 -- Guests (L-11): every result carries guest_n so the UI can say "includes unverified guest responses".
 --
 -- Retention (L-13): lv.retention_sweep() (service-role only, not scheduled here) trims audit and analytics query
@@ -147,6 +148,24 @@ language sql stable security definer set search_path = ''
 as $$ select count(*) from lv.answers a join lv.submissions s on s.id = a.submission_id
        where s.campaign_id = p_campaign and a.question_id = p_question $$;
 
+-- Free-text answers for an authorised reader: strings only, random order, only at or above the cohort.
+create function lv.text_answers(p_campaign uuid, p_question uuid) returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  v_min int := (lv.policy_json('campaign.min_cohort'))::int;
+  v_total bigint := lv.question_total(p_campaign, p_question);
+begin
+  if v_min is null or v_total < v_min then
+    return jsonb_build_object('n', null, 'texts', null, 'texts_withheld', true);
+  end if;
+  return jsonb_build_object('n', v_total, 'texts_withheld', false,
+    'texts', (select coalesce(jsonb_agg(x.v order by random()), '[]'::jsonb) from (
+                select a.value #>> '{}' as v from lv.answers a join lv.submissions s on s.id = a.submission_id
+                 where s.campaign_id = p_campaign and a.question_id = p_question) x));
+end;
+$$;
+
 create or replace function lv.analytics_core(p_campaign uuid, p_caller uuid, p_metric text, p_question uuid) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
@@ -232,28 +251,16 @@ begin
     if not found then return lv.err('lv_invalid_input', 'Choose a question of this Campaign.'); end if;
   end if;
 
-  if p_metric = 'text_responses' then
-    if q.kind <> 'text' then return lv.err('lv_invalid_input', 'text_responses needs a text question.'); end if;
-    v_text_min := (lv.policy_json('campaign.min_cohort'))::int;
-    v_total := lv.question_total(p_campaign, p_question);
-    if v_text_min is null or v_total < v_text_min then
-      insert into lv.analytics_query_log (campaign_id, caller, metric, question_id, outcome) values (p_campaign, p_caller, p_metric, p_question, 'suppressed');
-      return jsonb_build_object('ok', true, 'metric', p_metric, 'question_id', p_question, 'n', null, 'responses', null,
-                                'suppressed', true, 'reason', 'below_min_cohort');
-    end if;
-    insert into lv.analytics_query_log (campaign_id, caller, metric, question_id, outcome) values (p_campaign, p_caller, p_metric, p_question, 'published');
-    -- Strings only, random order: no person, time, submission or ordering signal.
-    return jsonb_build_object('ok', true, 'metric', p_metric, 'question_id', p_question, 'n', v_total, 'suppressed', false,
-      'responses', (select coalesce(jsonb_agg(x.v order by random()), '[]'::jsonb) from (
-                      select a.value #>> '{}' as v from lv.answers a join lv.submissions s on s.id = a.submission_id
-                       where s.campaign_id = p_campaign and a.question_id = p_question) x));
+  -- Free text: answer_distribution (and text_responses) return texts in random order at or above the cohort,
+  -- otherwise texts_withheld. Never counted into cells, never with a person, time or submission.
+  if (p_metric = 'text_responses' or p_metric = 'answer_distribution') and q.kind = 'text' then
+    v_safe := lv.text_answers(p_campaign, p_question);
+    insert into lv.analytics_query_log (campaign_id, caller, metric, question_id, outcome)
+    values (p_campaign, p_caller, p_metric, p_question, case when (v_safe->>'texts_withheld')::boolean then 'suppressed' else 'published' end);
+    return jsonb_build_object('ok', true, 'metric', p_metric, 'question_id', p_question, 'kind', 'text') || v_safe
+      || jsonb_build_object('suppressed', (v_safe->>'texts_withheld')::boolean, 'responses', v_safe->'texts');
   end if;
-
-  if p_metric in ('answer_distribution', 'rating_summary') and q.kind = 'text' then
-    insert into lv.analytics_query_log (campaign_id, caller, metric, question_id, outcome) values (p_campaign, p_caller, p_metric, p_question, 'type_not_available');
-    return jsonb_build_object('ok', false, 'error', jsonb_build_object('code', 'lv_policy_undecided',
-      'message', 'Free-text answers are never aggregated. Use text_responses.'));
-  end if;
+  if p_metric = 'text_responses' then return lv.err('lv_invalid_input', 'text_responses needs a text question.'); end if;
 
   if p_metric = 'answer_distribution' then
     v_cells := lv.question_cells(p_campaign, p_question);
@@ -314,7 +321,7 @@ begin
 
   for q in select * from lv.campaign_questions x where x.campaign_id = p_campaign order by x.position loop
     if q.kind = 'text' then
-      v_result := lv.analytics_core(p_campaign, v_account, 'text_responses', q.id);
+      v_result := lv.analytics_core(p_campaign, v_account, 'answer_distribution', q.id);
     else
       v_result := lv.analytics_core(p_campaign, v_account, 'answer_distribution', q.id);
       if q.kind = 'rating' and (v_result->>'ok')::boolean then
@@ -346,6 +353,7 @@ declare
   v_family text;
   v_over jsonb;
   v_rows jsonb := '[]'::jsonb;
+  v_texts jsonb := '[]'::jsonb;
   qn jsonb;
   cell jsonb;
 begin
@@ -368,7 +376,13 @@ begin
   v_rows := v_rows || jsonb_build_object('question_position', null, 'question', null, 'kind', null, 'key', 'guests',
     'n', v_over #> '{participant_count,guest_n}', 'suppressed', v_over #> '{participant_count,guest_suppressed}', 'reason', null);
   for qn in select * from jsonb_array_elements(v_over->'questions') loop
-    continue when qn->>'kind' = 'text' or not coalesce((qn #>> '{result,ok}')::boolean, false);
+    continue when not coalesce((qn #>> '{result,ok}')::boolean, false);
+    -- Free text goes in its own list, never into the aggregate rows.
+    if qn->>'kind' = 'text' then
+      v_texts := v_texts || jsonb_build_object('question_position', qn->'position', 'question', qn->'prompt',
+        'texts', qn #> '{result,texts}', 'texts_withheld', qn #> '{result,texts_withheld}');
+      continue;
+    end if;
     if (qn #>> '{result,withheld}')::boolean then
       v_rows := v_rows || jsonb_build_object('question_position', qn->'position', 'question', qn->'prompt', 'kind', qn->'kind',
         'key', null, 'n', null, 'suppressed', true, 'reason', qn #> '{result,reason}');
@@ -384,7 +398,7 @@ begin
   end loop;
   perform lv.audit(v_account, v_hub, 'analytics.exported', p_campaign::text);
   return jsonb_build_object('ok', true, 'campaign_id', p_campaign, 'generated_at', now(),
-                            'includes_guests', v_over->'includes_guests', 'rows', v_rows);
+                            'includes_guests', v_over->'includes_guests', 'rows', v_rows, 'texts', v_texts);
 end;
 $$;
 

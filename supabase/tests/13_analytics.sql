@@ -80,8 +80,9 @@ select t.check('rating: a rating question with a withheld cell withholds its cou
   and (lv_api.lv_analytics_query(t.id('c'), 'rating_summary', t.id('qr'))->>'suppressed') = 'true');
 select t.check('rating: rating_summary refuses a non-rating question',
   t.code(lv_api.lv_analytics_query(t.id('c'), 'rating_summary', t.id('qm'))) = 'lv_invalid_input');
-select t.check('text: free text stays withheld',
-  t.code(lv_api.lv_analytics_query(t.id('c'), 'answer_distribution', t.id('qt'))) = 'lv_policy_undecided');
+select t.check('text: free text is listed (4 answers, cohort 2) as strings, never as cells',
+  jsonb_array_length(lv_api.lv_analytics_query(t.id('c'), 'answer_distribution', t.id('qt')) -> 'texts') = 4
+  and not (lv_api.lv_analytics_query(t.id('c'), 'answer_distribution', t.id('qt')) ? 'cells'));
 
 -- ===== overview ==========================================================================================
 select t.check('overview: one call returns count, rate and every question',

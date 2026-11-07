@@ -1,219 +1,176 @@
-# Production reset runbook — LunchVoice v2 fresh install
+# Production runbook — LunchVoice v2 launch apply (000014–000016)
 
-**Status: AUTHORIZED by the founder on 2026-10-26; NOT YET EXECUTED against production.**
-The founder's "Production Reset Authorization" covers removing v1 completely (repository,
-live database, v1 users, v1 API, v1 secrets) and installing fresh v2, with no further
-approval needed, subject to its stop conditions: the target is not the LunchVoice project,
-the deletion would affect another active KpnSolute product, credentials are unavailable,
-the target cannot be identified safely, or a v2 migration fails validation.
+**Status: NOT EXECUTED.** Applying anything below to production needs the founder's explicit written approval
+naming this runbook, its date and the commit being applied. A passing local test never authorizes it. Launch gate:
+no production apply while any BLOCKER or HIGH compliance finding is open (LC-01, LC-02, LC-05, LC-06, LC-07 must
+be closed with tests; see `docs/compliance/LAUNCH_COMPLIANCE_REVIEW.md`).
 
-**Execution blocker (2026-10-26).** Neither the Supabase connector in the backend session
-nor the local CLI login can see project `qprfonxvthmaoxfixigk` (the connector lists only
-`aqhblrphsaqnpgyxspvz`; the CLI login lists that and KpnIdentity `axzwdbizblfkspduqilj`).
-The repository-side steps are done; the live steps wait for access to the LunchVoice
-project. Nothing in production has been touched.
+Project: LunchVoice Supabase project, ref `qprfonxvthmaoxfixigk`. Identity provider: KpnIdentity
+(`axzwdbizblfkspduqilj`, `auth.kpnsolute.com`). Verify the ref before every step.
 
-The repository cleanup (steps 3-5 of the authorization's execution order) is complete:
-the active `supabase/migrations/` directory contains only `000001`-`000008`, and the v1
-Edge Functions, `legacy/`, `public/tenants/` and v1 scripts and config are removed.
+## Current production state (2026-11-07)
 
-Project: **MJCCv2 / "Lunchvoice"**, ref `qprfonxvthmaoxfixigk`, org
-`qggdncgjvnmedihxqpww`, region us-west-2, Postgres 17.6.1.155.
-It is treated as **LunchVoice v1 / retirement-pending** (decision S-4).
+- The canonical chain `000001`–`000013` is applied. v1 is retired and gone.
+- The `session` Edge Function is deployed and the Google → KpnIdentity → LunchVoice sign-in works end to end.
+  Do not change identity configuration in this procedure.
+- The Data API exposes only `public,graphql_public`. `lv_api` is **not** exposed, so every RPC from the live site
+  answers HTTP 406. That is intentional until step 6: before 000014, every `lv_api` function is executable by
+  `public` (LC-05), so exposing `lv_api` first would make that finding exploitable. Never expose `lv`.
 
----
+## 0. Pre-checks (all must pass; stop on any failure)
 
-## 0. Preconditions (all must be true before step 1)
+1. Local proof on the exact commit to apply:
+   - `bash scripts/db-test-canonical.sh` → `checks: N, failed: 0`, both races pass, rollback rehearsal passes, `PASS`.
+   - `npm run test:functions` and `npm run check:brain` pass.
+2. Production chain matches the repository:
+   ```sql
+   select version, name from supabase_migrations.schema_migrations order by version;
+   -- expect exactly the 000001..000013 canonical files (no 000014+ yet, no other files)
+   select count(*) from pg_namespace where nspname in ('lv', 'lv_api');   -- 2
+   ```
+3. Take a backup or snapshot (Dashboard → Database → Backups). Record its id in the approval thread.
+4. Confirm there is no customer data that the new constraints would reject:
+   ```sql
+   select count(*) from lv.hubs where slug is null;              -- 0
+   select count(*) from lv.hubs h where exists (select 1 from lv.reserved_slugs r where r.slug = h.slug);  -- 0
+   ```
+   Note: existing Hubs get no entitlement automatically. After 000014 a Hub without one is read-only for premium
+   actions (fail closed, nothing deleted). Grant entitlements in step 5 before announcing.
 
-- [ ] The canonical baseline (migrations `000001` to `000007`) is merged and CI is green.
-- [x] The founder's reset authorization (2026-10-26) is recorded above.
-- [ ] The session can see project `qprfonxvthmaoxfixigk` (ref and org match). Verify before every step.
-- [ ] `auth.users` belongs only to LunchVoice. If another KpnSolute app shares this Auth tenant, stop that deletion and report it.
-- [ ] A snapshot or backup is taken where the plan allows (the free tier has no point-in-time recovery).
-- [ ] `scripts/db-test-canonical.sh` passes locally: blank install + full rollback.
-- [ ] The KpnIdentity issuer exists and is verified, and `identity.trusted_issuers`
-      is set. **Without this the reset produces a system nobody can sign in to.**
-- [ ] Owner approval recorded in writing, naming this runbook and the date.
-- [ ] A maintenance window is agreed. v1 stops serving at step 5.
-- [ ] Someone has confirmed **no v1 user needs an export**. This reset destroys
-      all v1 student data by design.
+## 1. Apply 000014, 000015, 000016 (in order, one at a time)
 
-## 1. What is destroyed
+Use the Supabase CLI against the linked project, or paste each file into the SQL editor. Each file is one
+transaction (`begin … commit`); a failure leaves the database at the previous file.
 
-Confirmed by live inspection on 2026-10-25:
+```
+supabase link --project-ref qprfonxvthmaoxfixigk
+supabase db push          # applies only the pending 000014..000016
+```
 
-| Object | Rows | Fate |
-| --- | --- | --- |
-| `auth.users` | 137 | **destroyed** |
-| `public.profiles` | 137 | **destroyed** |
-| `public.responses` | 72 | **destroyed** |
-| `public.survey_answers` | 639 | **destroyed** |
-| `public.dish_ratings` | 803 | **destroyed** |
-| `public.orders` | 14 | **destroyed** |
-| `public.sessions` / `session_members` | 4 / 76 | **destroyed** |
-| `public.voice_notes`, `store_items`, `contract_requests` | 4 / 7 / 0 | **destroyed** |
-| `public.survey_templates`, `survey_questions` | 2 / 26 | **destroyed** |
-| `public.menu_cycles`, `menu_cycle_days` | 1 / 28 | **destroyed** |
-| `public.orgs` | 1 | **destroyed** |
-| 17 tables + views in `public` | — | **dropped** |
+After each file: `select version from supabase_migrations.schema_migrations order by version desc limit 1;`
 
-Points total 2,900 across 58 profiles; 3,600 points were awarded by responses, so
-there is an unexplained 700-point difference (likely 14 orders/redeems). It is
-lost with the rest.
+## 2. Post-apply grant audit (LC-05, LC-20, LC-29) — must return the expected rows exactly
 
-## 2. What must be preserved
-
-| Item | Why | How |
-| --- | --- | --- |
-| Supabase project itself | plan, region, API keys, org | **Do not delete the project** |
-| `auth` schema structure | Supabase-owned | leave alone; only delete *users* |
-| `storage`, `extensions` schemas | Supabase-owned | leave alone (no buckets exist today) |
-| `anon` / `service_role` keys | deployed clients | leave alone |
-| Render static site config + env vars | deployment | leave alone |
-| DNS / wildcard tenant binding | tenant routing | leave alone |
-| Edge Function secrets | see §4 | re-set after redeploy |
-
-## 3. Can the project be rebuilt, or must we reset in place?
-
-**Reset in place.** Deleting the Supabase project would take the plan, region,
-project URL, API keys and org membership with it and require re-provisioning
-everything. Dropping the `public` schema and the v1 auth users is smaller,
-faster and reversible up to the drop.
-
-## 4. Live Edge Functions — the blocking dependency
-
-Six functions are deployed and **every one of them reads `profiles` and/or
-`orgs`**:
-
-| Function | Depends on |
-| --- | --- |
-| `staff-login` | `profiles`, `orgs`, `permission_scopes`, `role_permissions`, `user_profiles` |
-| `staff-status` | same |
-| `login-start` | same |
-| `staff-sso` | same |
-| `send-email` | `profiles`, `orgs`, `permission_scopes`, `role_permissions` |
-| `menu-sync` | `profiles`, `orgs`, `menu_cycles`, `menu_cycle_days`, `response_ratings`, … |
-
-**Finding:** `permission_scopes`, `role_permissions`, `user_profiles` and
-`menu_feedback_summary` **do not exist in any schema** on production. The staff
-functions treat a query error as "no permission" (`if (scopeError) return false`),
-so v1 staff authorisation is already failing closed today. This is a pre-existing
-v1 defect, not caused by the reset, but it means **v1 is already partly degraded**
-and should be assumed non-functional the moment `profiles` is dropped.
-
-Therefore the reset **must** either (a) also retire those six functions, or
-(b) keep `profiles`/`orgs` as empty compatibility shells. Recommend **(a)**:
-v2 does not use them, and keeping empty legacy tables invites accidental use.
-
-## 5. Procedure (for approval; not executed)
-
-> Every step has a verification query. Stop on the first unexpected result.
-
-**Step 0 — freeze.** Put the site in maintenance; confirm no traffic.
-`select count(*) from pg_stat_activity where datname = 'postgres' and state = 'active';`
-should show only your session.
-
-**Step 1 — record the pre-state** (diff this against §1):
 ```sql
-select 'auth.users' t, count(*) n from auth.users
-union all select 'profiles', count(*) from public.profiles
-union all select 'responses', count(*) from public.responses
-union all select 'survey_answers', count(*) from public.survey_answers
-union all select 'dish_ratings', count(*) from public.dish_ratings
-union all select 'orders', count(*) from public.orders;
+-- A. nothing in lv_api is executable by PUBLIC                                 expect 0
+select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'lv_api' and exists (select 1 from aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a where a.grantee = 0);
+-- B. anon executes exactly the signed-out allow-list                           expect these 10 names
+select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'lv_api' and has_function_privilege('anon', p.oid, 'execute');
+-- lv_capability_catalog,lv_guest_campaign_get,lv_guest_submit,lv_hub_get,lv_hub_pages_get,
+-- lv_hub_reservation_status,lv_my_context,lv_plan_limits,lv_report_abuse,lv_waitlist_status
+-- C. no lv function is executable by anon or authenticated                      expect 0
+select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'lv' and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'));
+-- D. no lv table is readable by anon or authenticated; no schema usage          expect 0, false, false
+select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
+ where n.nspname = 'lv' and c.relkind in ('r','S','v')
+   and (has_table_privilege('anon', c.oid, 'select') or has_table_privilege('authenticated', c.oid, 'select'));
+select has_schema_privilege('anon', 'lv', 'usage'), has_schema_privilege('authenticated', 'lv', 'usage');
+-- E. RLS on every lv table                                                     expect 0
+select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
+ where n.nspname = 'lv' and c.relkind = 'r' and not c.relrowsecurity;
+-- F. service-only functions: service_role yes, never in lv_api                   expect true, true, 0
+select has_function_privilege('service_role', 'lv.billing_apply_event(text, text, text, jsonb)', 'execute'),
+       has_function_privilege('service_role', 'lv.retention_sweep()', 'execute');
+select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'lv_api' and (p.proname like '%billing_apply%' or p.proname like '%retention%');
 ```
 
-**Step 2 — retire the v1 Edge Functions** (they will break at step 4):
-```bash
-for f in staff-login staff-status login-start staff-sso send-email menu-sync; do
-  supabase functions delete "$f" --project-ref qprfonxvthmaoxfixigk
-done
-```
+If any result differs: **do not expose `lv_api`**; roll back (step 8) and report.
 
-**Step 3 — remove v1 auth users.**
+## 3. Policy verification
+
 ```sql
--- Supabase-managed tables stay; only the people go.
-delete from auth.users;   -- cascades to auth.identities / sessions / refresh tokens per Supabase FKs
+select key, value from lv.policy order by key;
 ```
 
-**Step 4 — drop the v1 schema.**
+Expected launch values: `campaign.min_cohort` 5, `participation.guest_rate_per_minute` 10, `waitlist.seats` 50,
+`waitlist.consent_version` "2026-11-07", `quick.create_per_hour` 20, `abuse.reports_per_minute` 20,
+`security.reauth_seconds` 600, `hub.deleted_slug_cooldown_days` 30, `reservation.grace_days` 25,
+`discover.active_window_days` 90, `retention.logs_days` 365, `retention.guest_hash_days` 7,
+`billing.provider_ready` false, `billing.payment_links` NULL, `billing.launched_at` NULL,
+`identity.trusted_issuers` = the KpnIdentity issuer array (unchanged from today). The retired keys
+`campaign.max_active_per_hub` and `roles.max_custom_per_hub` must be absent. Limits live in `lv.plan_limits`:
+
 ```sql
-drop schema public cascade;
-create schema public;
-grant usage on schema public to anon, authenticated, service_role;
+select family, key, value, note from lv.plan_limits order by family, key;
+select product, family, price_cents, interval, first_period_weeks, extra_week_cents, purchasable from lv.products;
 ```
 
-**Step 5 — install the canonical baseline.**
-Apply `000001_v2_core.sql` … `000008_v2_error_envelope.sql` **in order**, via
-`supabase db push` or the SQL editor. The active migration directory contains
-only these files; v1 migrations live in Git history only.
+## 4. Edge Functions and secrets (names only; values never go in chat, code or this file)
 
-**Step 6 — set the identity policy (REQUIRED; empty = nobody can sign in).**
+- `session` (deployed): `KPNIDENTITY_ISSUERS`, `KPNIDENTITY_CLIENT_ID`, `KPNIDENTITY_JWKS_URL`, `LV_SESSION_PRIVATE_JWK`,
+  `LV_ALLOWED_ORIGINS`. The public half of the session key stays imported in the project's JWT signing keys.
+  Do not change these. Never configure KpnIdentity as third-party auth on this project (LC-12).
+- `billing-webhook` (new, deploy now, safe while unconfigured): `supabase functions deploy billing-webhook`.
+  `verify_jwt = false` comes from `supabase/config.toml`. It needs `SUPABASE_DB_URL` (provided by the platform) and
+  `STRIPE_WEBHOOK_SECRET` (set only when the founder wires Stripe). Until then it answers 503. Its database role
+  must be able to `SET ROLE service_role` (true for the platform's `postgres` connection).
+- Supabase Auth sign-ups on this project stay disabled (people sign in through KpnIdentity only).
+
+## 5. Entitlement setup
+
+- Waitlist: the first 50 signed-in people who join get a Founding Hub credit automatically. Nothing to do.
+- The founder (or an existing Hub) can be granted access with a one-off service-role statement, recorded in the
+  approval thread. Find the account id with `lv_my_context` signed in as that person, then:
+  ```sql
+  -- a Hub credit (the person then creates a Hub through the normal lv_hub_create flow)
+  insert into lv.hub_credits (account_id, family, product, source) values ('<account uuid>', 'starter', 'founding', 'grant');
+  -- or attach a plan to an existing Hub
+  insert into lv.entitlements (scope, account_id, hub_id, family, product, source)
+  values ('hub', '<owner account uuid>', '<hub uuid>', 'starter', 'founding', 'grant');
+  ```
+  Founding entitlements end 30 days after `billing.launched_at` is set. Never create a Hub on someone's behalf.
+- Platform moderators: `select lv.grant_platform_admin('<account uuid>', null);`
+
+## 6. Expose `lv_api` (only after steps 2 and 3 pass exactly)
+
+Dashboard → Project Settings → API → Data API → Exposed schemas: `public, graphql_public, lv_api`
+(or Management API `PATCH /v1/projects/qprfonxvthmaoxfixigk/postgrest` with `{"db_schema":"public,graphql_public,lv_api"}`).
+Never add `lv`.
+
+## 7. Smoke tests (live site and RPC)
+
+1. Signed out: `lv_my_context` → `{ok:false, error:{code:"lv_unauthenticated"}}`; `lv_plan_limits` → ok;
+   `lv_waitlist_status` → `seats_total: 50`; calling a signed-in function (e.g. `lv_quick_survey_list`) is refused
+   with a permission error (HTTP 401/403), not data.
+2. Sign in (Google → KpnIdentity): `lv_my_context` → ok and creates the account; `hubs: []`, `hub_credits: 0`.
+3. `lv_waitlist_join` → `admitted` (position n) and `hub_credits: 1`; `lv_hub_create` a test slug → `plan.family: starter`.
+4. Quick Survey: `lv_quick_survey_create` → add a question → `lv_campaign_activate` → open `/c/<join code>` signed
+   out and answer as a guest → `lv_analytics_overview` shows `guest_n` and withholds what the cohort rule withholds.
+5. `lv_checkout_start('starter_hub')` → `lv_billing_unavailable`. `POST /functions/v1/billing-webhook` → 503.
+6. Clean up the test Hub with `lv_hub_delete` (typed slug, fresh sign-in): the slug then answers `lv_hub_gone` for
+   30 days.
+
+## 8. Privacy checks on production (read-only)
+
 ```sql
-update lv.policy set value = '["https://<kpnidentity-issuer>"]'::jsonb
- where key = 'identity.trusted_issuers';
+-- anonymous submissions never name an account, and participation never points at them
+select count(*) from lv.submissions s join lv.campaigns c on c.id = s.campaign_id where c.anonymity = 'anonymous' and s.account_id is not null;  -- 0
+select count(*) from lv.participation p join lv.campaigns c on c.id = p.campaign_id where c.anonymity = 'anonymous' and p.submission_id is not null; -- 0
+-- personal spaces are never routable
+select count(*) from lv.hubs where kind = 'personal' and slug is not null;   -- 0
 ```
 
-**Step 7 — create the first v2 administrator.**
-1. The owner signs in once through Google → KpnIdentity → LunchVoice. That
-   creates their `lv.accounts` row and identity; it does **not** make them an admin.
-2. An operator promotes them:
-```sql
-select lv.grant_platform_admin('<account uuid>', null);
+## 9. Rollback
+
+Rollbacks are rehearsed by `scripts/db-test-canonical.sh` on a blank database. On production they are a last resort
+and lose the launch data (entitlements, waitlist, Quick Surveys, billing log). First set the Data API back to
+`public,graphql_public`, then run, newest first, only the files that were applied:
+
 ```
-`grant_platform_admin` writes an audit event. Signing up never grants review.
-
-**Step 8 — no customer Hub is created here.**
-The reset installs the platform only. It does not create LionCafe, MJCC or any
-other Hub, owner, role or Campaign. Every Hub, including `lioncafe`, is created
-later by its customer through the public `lv_hub_create` flow like any other
-slug.
-
-**Step 9 — prove no old student data survived:**
-```sql
-select (select count(*) from auth.users) as auth_users,          -- expect 0 + new sign-ins
-       (select count(*) from lv.accounts) as v2_accounts,         -- expect only real v2 sign-ins
-       (select count(*) from lv.account_identities
-         where identity_subject !~ '^[0-9a-f-]{36}$') as bad_identities, -- expect 0
-       (select count(*) from information_schema.tables
-         where table_schema = 'public') as legacy_tables;         -- expect 0
+supabase/rollbacks/000016_v2_billing_ready.down.sql
+supabase/rollbacks/000015_v2_hub_management.down.sql
+supabase/rollbacks/000014_v2_entitlements.down.sql
 ```
-Also confirm the legacy tables are gone by name:
-`select to_regclass('public.profiles') is null and to_regclass('public.responses') is null;`
 
-## 6. How the first v2 administrator is created
+and delete their rows from `supabase_migrations.schema_migrations`. `000014`'s rollback refuses to run while personal
+spaces exist (it never deletes answers); restore from the step-0 backup instead in that case.
 
-See step 7. It is a deliberate, audited operation. It cannot happen by signing up
-and needs no manual `UPDATE`. Customer Hubs are never created by the operator.
+## 10. Retention (L-13)
 
-## 7. Rollback limitations
-
-**There is no rollback.** Once step 4 runs:
-
-- The v1 data is unrecoverable. The owner has explicitly accepted this and
-  declined a preservation backup.
-- Supabase free-tier projects have **no point-in-time recovery**. The backup
-  endpoint returned no backups on inspection.
-- The schema can be recreated from migrations, but *the rows cannot be restored
-  by any procedure in this repository.*
-- v1 Edge Functions are deleted in step 2 and would have to be redeployed from
-  `main` (their code still exists in git).
-
-If a rollback is later required, the only path is restoring a Supabase backup
-taken **before** step 3 — which is another reason to decide once, and late.
-
-## 8. OAuth configuration that must exist first
-
-- [ ] KpnIdentity project: OAuth server enabled.
-- [ ] A LunchVoice OAuth client (client id/secret) registered at KpnIdentity.
-- [ ] Exact-match redirect URIs: production `https://lunchvoice.com/...` and the
-      KpnIdentity callback. No wildcards.
-- [ ] KpnIdentity Site URL changed from `http://localhost:3000`.
-- [ ] JWKS reachable (the real issuer, not the test issuer).
-
-## 9. What this runbook cannot prove
-
-- That a real Google → KpnIdentity sign-in works. The baseline is tested against
-  a simulated issuer only (see `IDENTITY_CONTRACT.md` §7).
-- That a December launch holds. With D-01 Option D withdrawn there is no fallback
-  identity path (see `D01_IDENTITY_SUPERSESSION_2026-10-25.md`).
+`lv.retention_sweep()` (service role) trims audit and analytics query logs older than 12 months and unlinks guest
+rate-limit hashes older than 7 days. It is not scheduled by the migrations. When wanted:
+`select cron.schedule('lv-retention', '17 3 * * *', 'select lv.retention_sweep()');` (needs the `pg_cron` extension).

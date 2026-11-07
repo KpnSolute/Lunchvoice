@@ -200,8 +200,8 @@ select t.check('STEP 9: after closing, the participant count is published',
   (lv_api.lv_analytics_query(t.id('camp'), 'participant_count') ->> 'n') = '3');
 select t.check('STEP 9: the rating distribution is aggregate only',
   jsonb_typeof(lv_api.lv_analytics_query(t.id('camp'), 'answer_distribution', t.id('q1')) -> 'cells') = 'array');
-select t.check('STEP 9: free-text answers are never published',
-  t.code(lv_api.lv_analytics_query(t.id('camp'), 'answer_distribution', t.id('q2'))) = 'lv_policy_undecided');
+select t.check('STEP 9: free-text answers are listed as strings only, never as cells (3 answers, cohort 3)',
+  jsonb_array_length(lv_api.lv_analytics_query(t.id('camp'), 'answer_distribution', t.id('q2')) -> 'texts') = 3 and not (lv_api.lv_analytics_query(t.id('camp'), 'answer_distribution', t.id('q2')) ? 'cells'));
 
 select t.as_kpn(3);
 select t.check('STEP 9: a plain member cannot read Hub analytics',

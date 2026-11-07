@@ -138,9 +138,24 @@ select t.check('text: at 5 or more the strings are listed, nothing else',
 select t.check('text: the order is random (no stable order across calls)',
   (select count(distinct (lv_api.lv_analytics_query(t.id('ct6'), 'text_responses', t.get('q_' || t.get('ct6'))::uuid) -> 'responses')::text)
      from generate_series(1, 25)) > 1);
-select t.check('text: free text never appears in an export',
+select t.check('text: free text never appears in the aggregate rows of an export',
   (select count(*) from jsonb_array_elements(lv_api.lv_analytics_export(t.id('ct6')) -> 'rows') r where r->>'question_position' is not null) = 0);
-select t.check('text: never aggregated', t.code(lv_api.lv_analytics_query(t.id('ct6'), 'answer_distribution', t.get('q_' || t.get('ct6'))::uuid)) = 'lv_policy_undecided');
+select t.check('text: the export lists texts separately, and withholds them below the cohort',
+  jsonb_array_length(lv_api.lv_analytics_export(t.id('ct6')) #> '{texts,0,texts}') = 6
+  and (lv_api.lv_analytics_export(t.id('ct4')) #>> '{texts,0,texts_withheld}') = 'true');
+select t.check('text: answer_distribution on text returns texts, never cells',
+  jsonb_array_length(lv_api.lv_analytics_query(t.id('ct6'), 'answer_distribution', t.get('q_' || t.get('ct6'))::uuid) -> 'texts') = 6
+  and (lv_api.lv_analytics_query(t.id('ct4'), 'answer_distribution', t.get('q_' || t.get('ct4'))::uuid) ->> 'texts_withheld') = 'true');
+select t.check('text: the list carries no ids or timestamps',
+  (lv_api.lv_analytics_query(t.id('ct6'), 'answer_distribution', t.get('q_' || t.get('ct6'))::uuid) -> 'texts')::text !~ '[0-9a-f]{8}-|T[0-9]{2}:');
+select t.as_kpn(2);
+select t.check('context: recent_participation lists my own answers, titles and dates only',
+  jsonb_array_length(lv_api.lv_my_context() -> 'recent_participation') between 1 and 10
+  and (lv_api.lv_my_context() #>> '{recent_participation,0,kind}') = 'hub'
+  and (lv_api.lv_my_context() #>> '{recent_participation,0,hub_display_name}') = 'Results Hub'
+  and (lv_api.lv_my_context() #>> '{recent_participation,0,answered_on}') = (now() at time zone 'UTC')::date::text
+  and (lv_api.lv_my_context() -> 'recent_participation')::text not like '%value%');
+select t.as_kpn(1);
 
 -- ===== guests are labelled =================================================================================
 select t.check('guests: the overview says whether guest responses are included',
