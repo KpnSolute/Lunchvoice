@@ -6,6 +6,19 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Security (000017 billing hardening)
+
+- NEW-01 (HIGH): `lv.billing_apply_event` grants only for a matching checkout intent with `payment_status` paid (or no
+  payment required), currency `usd` and `amount_subtotal` equal to the intent's amount; product, account, Hub, slug
+  and weeks come only from the intent. `checkout.session.async_payment_succeeded` is handled; unpaid sessions grant
+  nothing. Fixed-price links can no longer over-grant Campaign weeks.
+- NEW-02: refunds follow F-08 (partial refunds never revoke; full refunds revoke only unused credits, unstarted
+  windows and reservations; Hub subscriptions keep access to the end of the paid period).
+- NEW-06: questions marked optional may be skipped by members and guests; required ones may not.
+- NEW-08: waitlist seats are never re-issued after an account is deleted (at most 50 Founding grants ever).
+- LC-31: the error-contract test uses a synthetic slug.
+- Canonical suite: 660 checks, 0 failed, rollback of 000014-000017 rehearsed. Function tests: 24 pass.
+
 ### Fixed (compliance re-review, UI side)
 
 - NEW-03: the account-deletion copy no longer promises to delete anonymous written answers (they were never linked to
