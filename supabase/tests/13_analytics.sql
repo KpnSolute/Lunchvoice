@@ -2,14 +2,14 @@
 select set_config('t.file', '13_analytics', false);
 begin;
 
-update lv.policy set value = '5'::jsonb where key = 'campaign.max_active_per_hub';
+select t.set_limit('campaigns.max_active', '5'::jsonb);
 update lv.policy set value = '2'::jsonb where key = 'campaign.min_cohort';
 update lv.policy set value = '50'::jsonb where key = 'participation.guest_rate_per_minute';
 select t.trust_test_issuer();
 select t.as_kpn(1, null, true, 'Owner'); select lv_api.lv_my_context();
 select t.put('owner', t.q($$select lv.current_account_id()::text$$));
 select t.as_pg();
-insert into lv.beta_applications (account_id, status) values (t.id('owner'), 'approved');
+select t.grant_credit(t.id('owner'));
 select t.as_kpn(1);
 select t.put('hub', (lv_api.lv_hub_create('results-hub', 'Results Hub')->>'hub_id'));
 select t.put('invite', (lv_api.lv_invite_create(t.id('hub'))->>'code'));
@@ -66,30 +66,34 @@ select t.check('rate: participation rate is unique member participants over acce
   (lv_api.lv_analytics_query(t.id('c'), 'participation_rate')->>'n') = '3'
   and (lv_api.lv_analytics_query(t.id('c'), 'participation_rate')->>'eligible_n') = '6'
   and (lv_api.lv_analytics_query(t.id('c'), 'participation_rate')->>'rate') = '0.5000');
-select t.check('distribution: multi_choice is counted per option',
-  (select string_agg((e->>'key') || '=' || coalesce(e->>'n', 'null'), ',' order by e->>'key')
+-- x=3, y=2, z=1 with a cohort of 2: z is withheld, and y joins it so the bucket is not a single small cell.
+select t.check('distribution: multi_choice is counted per option; small options merge into one withheld bucket',
+  (select string_agg(coalesce(e->>'key', 'withheld') || '=' || coalesce(e->>'n', 'null'), ',' order by coalesce(e->>'key', 'withheld'))
      from jsonb_array_elements(lv_api.lv_analytics_query(t.id('c'), 'answer_distribution', t.id('qm'))->'cells') e)
-  = 'x=3,y=null,z=null');
-select t.check('distribution: suppressed cells give a reason',
+  = 'withheld=null,x=3');
+select t.check('distribution: the withheld bucket has no key and gives a reason',
   (select count(*) from jsonb_array_elements(lv_api.lv_analytics_query(t.id('c'), 'answer_distribution', t.id('qm'))->'cells') e
-    where (e->>'suppressed')::boolean and e->>'reason' in ('below_min_cohort', 'complementary')) = 2);
-select t.check('rating: rating_summary publishes count and mean over members and guests',
-  (lv_api.lv_analytics_query(t.id('c'), 'rating_summary', t.id('qr'))->>'n') = '4'
-  and (lv_api.lv_analytics_query(t.id('c'), 'rating_summary', t.id('qr'))->>'mean') = '3.50');
+    where (e->>'suppressed')::boolean and e->>'reason' = 'withheld' and e->'key' = 'null'::jsonb) = 1);
+select t.check('rating: a rating question with a withheld cell withholds its count and mean',
+  (lv_api.lv_analytics_query(t.id('c'), 'rating_summary', t.id('qr'))->>'n') is null
+  and (lv_api.lv_analytics_query(t.id('c'), 'rating_summary', t.id('qr'))->>'mean') is null
+  and (lv_api.lv_analytics_query(t.id('c'), 'rating_summary', t.id('qr'))->>'suppressed') = 'true');
 select t.check('rating: rating_summary refuses a non-rating question',
   t.code(lv_api.lv_analytics_query(t.id('c'), 'rating_summary', t.id('qm'))) = 'lv_invalid_input');
-select t.check('text: free text stays withheld',
-  t.code(lv_api.lv_analytics_query(t.id('c'), 'answer_distribution', t.id('qt'))) = 'lv_policy_undecided');
+select t.check('text: free text is listed (4 answers, cohort 2) as strings, never as cells',
+  jsonb_array_length(lv_api.lv_analytics_query(t.id('c'), 'answer_distribution', t.id('qt')) -> 'texts') = 4
+  and not (lv_api.lv_analytics_query(t.id('c'), 'answer_distribution', t.id('qt')) ? 'cells'));
 
 -- ===== overview ==========================================================================================
 select t.check('overview: one call returns count, rate and every question',
   jsonb_array_length(lv_api.lv_analytics_overview(t.id('c'))->'questions') = 3
   and (lv_api.lv_analytics_overview(t.id('c')) #>> '{participant_count,n}') = '3'
   and (lv_api.lv_analytics_overview(t.id('c')) #>> '{participation_rate,eligible_n}') = '6');
-select t.check('overview: a rating question carries its summary',
-  (lv_api.lv_analytics_overview(t.id('c')) #>> '{questions,0,result,summary,mean}') = '3.50');
-select t.check('overview: a free-text question carries its own refusal',
-  (lv_api.lv_analytics_overview(t.id('c')) #>> '{questions,2,result,error,code}') = 'lv_policy_undecided');
+select t.check('overview: a rating question carries its (withheld) summary',
+  (lv_api.lv_analytics_overview(t.id('c')) #>> '{questions,0,result,summary,suppressed}') = 'true');
+select t.check('overview: a free-text question carries its text responses (4 answers, cohort 2)',
+  (lv_api.lv_analytics_overview(t.id('c')) #>> '{questions,2,result,n}') = '4'
+  and jsonb_array_length(lv_api.lv_analytics_overview(t.id('c')) #> '{questions,2,result,responses}') = 4);
 select t.check('overview: results never contain an account or submission reference',
   lv_api.lv_analytics_overview(t.id('c'))::text not like '%account%'
   and lv_api.lv_analytics_overview(t.id('c'))::text not like '%submission%');

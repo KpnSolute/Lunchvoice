@@ -4,13 +4,13 @@
 select set_config('t.file', '11_campaign_lifecycle', false);
 begin;
 
-update lv.policy set value = '2'::jsonb where key = 'campaign.max_active_per_hub';
+select t.set_limit('campaigns.max_active', '2'::jsonb);
 select t.trust_test_issuer();
 select t.as_kpn(1, null, true, 'Owner'); select lv_api.lv_my_context();
 select t.put('owner', t.q($$select lv.current_account_id()::text$$));
 select t.as_kpn(2, null, true, 'Member'); select lv_api.lv_my_context();
 select t.as_pg();
-insert into lv.beta_applications (account_id, status) values (t.id('owner'), 'approved');
+select t.grant_credit(t.id('owner'));
 select t.as_kpn(1);
 select t.put('hub', (lv_api.lv_hub_create('lifecycle-hub', 'Lifecycle Hub')->>'hub_id'));
 select t.put('invite', (lv_api.lv_invite_create(t.id('hub'))->>'code'));
@@ -54,7 +54,7 @@ select t.as_pg();
 select t.check('version: publishing wrote version 2 with the frozen question set',
   t.q(format($q$select version::text || '|' || jsonb_array_length(questions)::text from lv.campaign_versions where campaign_id = %L::uuid$q$, t.get('c1'))) = '2|1');
 select t.check('version: the version carries the participation settings and the limit in force',
-  t.q(format($q$select (settings->>'anonymity') || '|' || (settings #>> '{entitlement,campaign.max_active_per_hub}') from lv.campaign_versions where campaign_id = %L::uuid$q$, t.get('c1'))) = 'anonymous|2');
+  t.q(format($q$select (settings->>'anonymity') || '|' || (settings #>> '{entitlement,family}') || '|' || (settings #>> '{entitlement,limits,campaigns.max_active}') from lv.campaign_versions where campaign_id = %L::uuid$q$, t.get('c1'))) = 'anonymous|starter|2');
 select t.check('version: a published version cannot be changed',
   t.raises(format($q$update lv.campaign_versions set questions = '[]'::jsonb where campaign_id = %L::uuid$q$, t.get('c1'))));
 select t.as_kpn(1);

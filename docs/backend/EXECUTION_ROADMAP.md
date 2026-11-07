@@ -21,36 +21,39 @@ uses exactly this path to create `lioncafe`.
 
 | # | Slice | Status | Notes and acceptance |
 | --- | --- | --- | --- |
-| 1 | Audit the migration chain for legacy-bridge assumptions | **done** 2026-10-25 | Canonical migrations 000001-000007 reference no `orgs`, `profiles`, legacy auth, LionCafe or MJCC. Tests use generic Hubs. Customer names are not reserved. See the audit note below |
-| 2 | Normalize `lv_api` errors to `{ok:false,error:{code,message,...}}` | **done locally** (migration 000008) | All 13 write functions wrapped; bodies live in `lv.api_*`. Tests and `API_CONTRACT.md` updated. The UI's types still need to drop the raise-parsing path |
-| 3 | Reconcile the read API into the canonical stack | **done locally** (`feat/v2-read-api`, migration 000007) | `lv_hub_get`, `lv_campaign_list/get`, `lv_member_list`, `lv_invite_list/preview`, `lv_beta_status`, richer `lv_my_context`, reserved slugs. 202+ checks pass. Not pushed |
-| 4 | KpnIdentity/Google exchange | later | `auth.kpnsolute.com`, `(issuer, subject)`, never email. Needs the real issuer and JWKS; tested today only with a simulated issuer |
-| 5 | Account and session | later | Account created on first verified sign-in; logout/recovery contract |
-| 6 | Hub create/read/update and ownership | **partial** | Done: atomic create with slug validation, reserved-slug check, concurrency-safe claim (two-connection race test), protected Owner, `hub.created` audit event. Remaining: replace the beta gate with the entitlement check; Hub update; ownership transfer |
-| 7 | Memberships, invites and roles | later | 3 custom roles (Starter family), 6 (Team family), Owner outside the count, no privilege escalation, secure ownership transfer |
-| 8 | Campaign version, questions and lifecycle | later | Draft, Scheduled, Active, Paused/Closed, Archived; immutable published versions; schedule and eligibility records |
-| 9 | Duration entitlements | later | Explicit start/end timestamps, scheduled activation, idempotent extension, server time, fail closed on expiry, no deletion of customer data |
-| 10 | Anonymous, authenticated and guest participation | later | Eligibility proof separated from answers; guests never count as members or inflate thresholds |
-| 11 | Analytics | later | Keep suppression and withholding semantics; suppressed is not zero |
-| 12 | Hub subscriptions | later | One entitlement map; billing idempotent and server-authoritative |
-| 13 | Hub Name Reservation | later | ACTIVE, GRACE (25 days), RELEASED; grants no features; Hub id independent of slug |
-| 14 | Builder, community, discovery and rewards | later | Pages, moderation, Discover eligibility at 700 genuine members, optional Hub currency |
+| 1 | Audit the migration chain for legacy-bridge assumptions | **done** | No canonical migration references v1 |
+| 2 | Normalize `lv_api` errors | **done** (000008) | Bodies in `lv.api_*`; structured extras via `lv.api_error` (000014) |
+| 3 | Read API | **done** (000007) | |
+| 4 | KpnIdentity/Google exchange | **done, live** | `session` Edge Function; production sign-in works end to end |
+| 5 | Account and session | **done** (000015) | Profile update, account delete (de-identify per founder) |
+| 6 | Hub create/read/update and ownership | **done** (000014, 000015) | Credit-gated create, update, owner transfer, delete with 30-day slug quarantine |
+| 7 | Memberships, invites and roles | **done** (000010, limits from the map in 000014) | |
+| 8 | Campaign version, questions and lifecycle | **done** (000011) | |
+| 9 | Duration entitlements | **done** (000014, 000016) | Entitlements with start/end, Hub credits, fail closed on expiry, nothing deleted |
+| 10 | Participation modes and guests | **done** (000012, 000014) | Link/invite access, Campaign invites, guests only on link |
+| 11 | Analytics | **done** (000013, strict engine in 000016) | Merged withheld bucket, dominance, withheld mean and rate, free text at cohort, export |
+| 12 | Hub subscriptions | **billing-ready** (000016 + `billing-webhook`) | Fails closed until `billing.provider_ready`; Stripe wiring is the founder's step |
+| 13 | Hub Name Reservation | **done** (000016) | ACTIVE, GRACE (25 days), RELEASED |
+| 14 | Builder, community, discovery and rewards | **partial** | Pages and Discover gate done; comments, shop, leaderboard, news content and rewards later |
+| 15 | Quick Surveys, waitlist, abuse controls | **done** (000014) | Personal space, 5 active / 10 questions, 50-seat waitlist, reports and moderation |
+
+Production: 000001-000013 applied; 000014-000016 follow `PRODUCTION_RESET_RUNBOOK.md` with the founder's approval.
 
 ## One authoritative entitlement map
 
+`lv.plan_limits` is the authority; `API_CONTRACT.md` (Launch API) mirrors it.
+
 | Plan | Price | Custom roles | Custom pages | Active Campaigns | Active surveys | Survey unlock threshold | Other |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Free participant | $0 | n/a | n/a | n/a | n/a | n/a | Join and participate |
+| Free Quick Survey | $0 | n/a | n/a | 5 Quick Surveys | 5 | n/a | 10 questions, core kinds, link or invite |
 | Starter Hub | $13 per month | 3 | 3 | 15 | 2 | more than 50% | Starter family |
-| Team Hub | $29 per month | 6 | expanded | per Team family | 5 | at least 20% | Discover eligibility at 700 members |
+| Team Hub | $29 per month | 6 | 10 (provisional) | 15 (provisional) | 5 | at least 20% | Discover eligibility at 700 members |
 | Campaign Starter | $19 first 2 weeks, $13 per extra week | Starter family | Starter family | Starter family | Starter family | Starter family | Time-bounded |
-| Campaign Plus | **not set; checkout fails closed** | Team family | Team family | Team family | Team family | Team family | Time-bounded |
+| Campaign Plus | $39 first 2 weeks, $19 per extra week | Team family | Team family | Team family | Team family | Team family | Time-bounded |
 | Hub Name Reservation | $25 per 12 months, $25 renewal | none | none | none | none | none | 25-day grace; grants no features |
 
-Thresholds count unique eligible members only: no guests, duplicates or bots. Campaign Starter is the
-Starter feature family and Campaign Plus is the Team feature family; billing duration is the only
-difference. Campaign Plus has no known price, so it must not be invented in code, UI, migrations or
-documentation. The exact zero-member accounting rule is settled in backend tests (decision D-04).
+Thresholds count unique eligible members only: no guests, duplicates or bots. A new Hub never deadlocks: surveys
+that have not met the threshold are what count against the survey limit.
 
 ## Audit note (slice 1, 2026-10-25)
 
@@ -68,4 +71,4 @@ Method: searched migrations 000001-000007, their rollbacks and `supabase/tests` 
   `staff-sso`, `staff-status`, `menu-sync`, `send-email`) and `legacy/`. They are retirement targets,
   not v2 sources. Removing them is a code change that needs the owner's go-ahead because `main`
   still deploys v1.
-- Known gap: `lv_hub_create` still gates on beta approval, not on an entitlement. Slice 6 replaces it.
+- Closed in 000014: `lv_hub_create` consumes a Hub credit instead of a beta approval.

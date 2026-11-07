@@ -49,6 +49,15 @@ design.)
 | `000004_v2_participation.sql` | `participation_receipts`, `submissions`, `answers`, duplicate prevention |
 | `000005_v2_privacy_analytics.sql` | result views/functions, cohort suppression, anonymity boundary |
 | `000006_v2_platform.sql` | beta applications, reserved slugs, invitations, platform admins |
+| `000007_v2_read_api.sql` | read API, more reserved slugs |
+| `000008_v2_error_envelope.sql` | `{ok:false,error}` envelope, `lv.api_*` bodies behind `lv_api` wrappers |
+| `000010_v2_roles_members.sql` | capability catalogue, custom roles, membership lifecycle |
+| `000011_v2_campaign_lifecycle.sql` | `campaign_versions`, pause/resume/close/archive |
+| `000012_v2_participation_modes.sql` | guests (`guest_participation`, `submissions.is_guest`) |
+| `000013_v2_analytics.sql` | finished-Campaign analytics, overview |
+| `000014_v2_entitlements.sql` | `plan_limits`, `products`, `entitlements`, `hub_credits`, `waitlist_entries`, `hubs.kind` (personal space), `campaigns.access`/`blocked_at`, `campaign_invites`, `campaign_eligibility`, `abuse_reports`, explicit grants, RLS on every table |
+| `000015_v2_hub_management.sql` | `hubs.about`/`accent`, `hub_pages`, `hub_tombstones`, owner transfer, Hub delete, account delete |
+| `000016_v2_billing_ready.sql` | `checkout_intents`, `billing_events`, `hub_reservations`, `discover_applications`, strict suppression engine, export, retention sweep |
 
 Each file is self-contained and rolls back cleanly (`supabase/rollbacks/`).
 
@@ -168,6 +177,26 @@ platform_admins (account_id pk → accounts, granted_by, granted_at, revoked_at)
 audit_events (id, occurred_at, actor_account_id, hub_id, action, target, detail jsonb)
 ```
 
+### 4.7 Launch tables (000014–000016)
+
+| Table | Holds | Notes |
+| --- | --- | --- |
+| `plan_limits` | `(family, key) -> value jsonb, note` | The one entitlement map (free, starter, team). Provisional Team values say so in `note`. |
+| `products` | product, family, price cents, interval, first-period weeks, extra-week cents, purchasable | Campaign Plus 3900 + 1900/week (founder). Reservation has no family. |
+| `entitlements` | scope `account`/`hub`, account, hub, family, product, source (`waitlist`/`billing`/`grant`), starts/ends, external ref | A Hub's plan = best active hub entitlement. Founding has no stored end (follows `billing.launched_at` + 30 days). `hub_id`/`account_id` set null on delete; data never deleted for expiry. |
+| `hub_credits` | account, family, product, source, fixed end or duration, consumed at/by Hub | `lv_hub_create` consumes one under an advisory lock per account. |
+| `waitlist_entries` | account (unique), status, position, optional contact email + consent version, optional intended Hub name, created at | Never read by authorization. Deleted with the account. |
+| `hubs.kind` | `community` (slugged, routable) or `personal` (no slug, private, invite-only, one per account) | Constraints apply slug rules to community Hubs only. |
+| `campaigns.access` | `members`, `link`, `invite` | Invite-only never admits guests (constraint). `blocked_at`/`blocked_reason` for moderation. |
+| `campaign_invites` / `campaign_eligibility` | invite tokens; who may answer an invite-only Campaign | Eligibility is never a membership. |
+| `abuse_reports` | Campaign, reason, optional reporter, status | Rate-limited. |
+| `hub_pages` | Hub, key, kind, title, plain-text body, position, enabled | Custom pages count against `pages.max_custom`. |
+| `hub_tombstones` | slug, deleted at | Nothing else survives a Hub deletion; 30-day quarantine. |
+| `checkout_intents` | account, product, Hub, slug, weeks, amount | Passed to Stripe as `client_reference_id`. |
+| `billing_events` | provider, event id (unique), type, outcome, detail | Idempotency log; never the payload. |
+| `hub_reservations` | slug, account, starts, expires, released, external ref | ACTIVE/GRACE/RELEASED derived from time. |
+| `discover_applications` | Hub (unique), status, genuine member count | Team family and 700 genuine active members. |
+
 ## 5. Session model
 
 LunchVoice issues its own session after verifying a KpnIdentity token. The
@@ -193,7 +222,5 @@ never trusted.
    feature they need their own migration, and they interact with anonymity
    (a points ledger is an identity-attached participation record). **Not built
    until decided.**
-2. **Entitlements/plans.** Prototype migration 3 carries entitlement logic; only
-   the activation-gate half is in the baseline. Plan semantics remain open.
-3. **Guest participation.** The contract permits guest answers; v1 baseline
-   supports members only. Guest tokens are open (D-03).
+2. **Entitlements/plans.** Built in 000014 (map, products, entitlements, credits).
+3. **Guest participation.** Built in 000012; rate 10/min set in 000014.

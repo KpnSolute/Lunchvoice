@@ -1,6 +1,8 @@
 # LunchVoice v2 API contract (`lv_api`)
 
-Status: implemented on `feat/v2-read-api` (migrations 000001-000008). Not applied to production.
+Status: migrations 000001-000013 are applied to production; 000014-000016 (launch, see the last section) are
+tested locally and not applied. Where an older section below differs from **Launch API (000014–000016)**, the
+launch section wins.
 The frontend uses only these functions for application data. Tables and the `lv` schema are not reachable.
 
 Every function returns `jsonb`. The caller is always taken from the verified KpnIdentity token; no function
@@ -35,7 +37,7 @@ Only a true server fault is an HTTP-level error, reported as `lv_server_error` w
 | `lv_lifecycle_invalid` | Action not valid for the Campaign's state (for example results for a draft) |
 | `lv_invalid_code` | Invitation unknown, revoked, expired or used up (all answered identically) |
 | `lv_unverified_email` | Beta application needs a verified email at KpnIdentity |
-| `lv_beta_required` | Creating a Hub needs an approved beta application |
+| `lv_beta_required` | Retired in 000014: Hub creation needs a Hub credit (`lv_entitlement_required`) |
 | `lv_policy_undecided` | Anonymous results are withheld; see Analytics |
 | `lv_owner_protected`, `lv_owner_immutable`, `lv_hub_mismatch`, `lv_not_accepted`, `lv_anonymity_violation` | Integrity guards; treat as a generic failure and show the message |
 | `lv_server_error` | Unexpected server fault |
@@ -71,11 +73,12 @@ Errors: `lv_forbidden` (not an administrator, or deciding your own), `lv_not_fou
 ## Hubs
 
 ### `lv_hub_create(p_slug, p_name)`
-`{ ok, hub_id, slug }`. Slug is lowercased. Atomic: the Hub, its protected Owner membership and role, the
-beta consumption and a `hub.created` audit event commit together or not at all. Errors: `lv_invalid_input`
-(reserved, wrong length or format, or a blank display name), `lv_beta_required`, `lv_conflict` (taken). Format
+`{ ok, hub_id, slug, plan }`. Slug is lowercased. Atomic: the Hub, its protected Owner membership and role, the
+Hub credit consumption, the hub entitlement and a `hub.created` audit event commit together or not at all. Errors:
+`lv_invalid_input` (reserved, wrong length or format, or a blank display name), `lv_entitlement_required` (no Hub
+credit), `lv_conflict` (taken, reserved by someone else, or quarantined). Format
 is 3 to 40 characters, `[a-z0-9-]`, no leading or trailing hyphen, no `--`. Concurrent claims of one slug are
-safe: exactly one caller wins and the other gets `lv_conflict` with its approval intact (proven by a
+safe: exactly one caller wins and the other gets `lv_conflict` with its Hub credit intact (proven by a
 two-connection test in `scripts/db-test-canonical.sh`). Reserved slugs are in `lv.reserved_slugs` (case-insensitive); the UI may mirror them for
 availability hints but the server decides.
 
@@ -165,8 +168,7 @@ A draft Campaign returns `lv_lifecycle_invalid`. Treat `lv_policy_undecided` as 
 
 ## Not yet available
 
-Hub settings changes, role management, member admit/remove/approve, Owner transfer, waitlist, pages,
-comments, rewards. Anything in the prototype's 76 operations that is not listed above is not in the v2 baseline.
+Comments, rewards, shop, leaderboard and news content (page kinds exist; content arrives with M2). Anything in the prototype's 76 operations that is not listed above is not in the v2 baseline.
 
 ## Roles and members (000010, roadmap slice 7)
 
@@ -283,3 +285,240 @@ a guest and their answers. Per-network limits (per IP) belong at the edge in fro
 `{ ok, participant_count: {...}, participation_rate: {...}, questions: [{ question_id, position, kind, prompt, result }] }`,
 where each `result` is the `answer_distribution` envelope (plus `summary` for rating questions) or that question's own
 refusal (for example free text). A whole-Campaign refusal (`lv_policy_undecided`, `lv_lifecycle_invalid`) is returned as is.
+
+## Launch API (000014–000016)
+
+Status: on the launch branch, tested by `scripts/db-test-canonical.sh` (suites 14, 15, 16). Not applied to production.
+Binding sources: `docs/v2/LAUNCH_PLAN.md` and the founder decisions of 2026-11-07 (recorded below as L-07…L-13).
+
+### Grants (since 000014, LC-05)
+
+No `lv_api` function is executable by `PUBLIC`. Every function is granted to `authenticated`. `anon` (signed out)
+may call only: `lv_my_context` (answers `lv_unauthenticated`), `lv_plan_limits`, `lv_waitlist_status`,
+`lv_capability_catalog`, `lv_hub_get`, `lv_hub_pages_get`, `lv_hub_reservation_status`, `lv_guest_campaign_get`,
+`lv_guest_submit`, `lv_report_abuse`. **A signed-out call to anything else is refused by PostgREST with a
+permission error (SQLSTATE 42501, HTTP 401/403), not an envelope.** The UI must not call signed-in operations
+without a session. Service-only functions (`lv.billing_apply_event`, `lv.retention_sweep`) live in `lv`, are
+executable only by `service_role`, and are never in `lv_api`.
+
+### New error codes
+
+| Code | Meaning |
+|---|---|
+| `lv_entitlement_required` | No active plan or Hub credit for a premium action. Adds `product` (a hint, e.g. `starter_hub`). |
+| `lv_limit_reached` | A limit from the map is used up. Adds `limit` and `used` (and `reasons` for Quick Survey activation). |
+| `lv_billing_unavailable` | Paid checkout is not live (`billing.provider_ready` false or no payment link). |
+| `lv_price_unset` | A product has no price. **No longer returned for Campaign Plus** (founder priced it). |
+| `lv_not_available` | Operation intentionally off (e.g. `lv_campaign_create` on a personal space). |
+| `lv_confirmation_mismatch` | Typed confirmation wrong (slug for transfer/delete, `DELETE` for account delete). |
+| `lv_reauth_required` | Destructive action needs a session issued within `security.reauth_seconds` (600). Adds `max_age_seconds`. Sign in again. |
+| `lv_hub_gone` | `lv_hub_get` on a slug whose Hub was deleted within the 30-day quarantine. Neutral: never old data, never a new owner. |
+| `lv_rate_limited` | Also: Quick Survey creation over `quick.create_per_hour` (20), abuse reports over `abuse.reports_per_minute`. |
+
+`lv_beta_required` is no longer returned. `lv_gate_blocked` reasons gain `entitlement_required`, `survey_limit_reached`,
+`too_many_questions`, `kind_not_allowed`, `blocked`, and the error carries `limit`, `used`, `limit_key` for the first
+blocking limit.
+
+### Entitlement map
+
+One map, `lv.plan_limits(family, key, value)`. The backend evaluates the active entitlement; the UI only displays.
+
+| Key | free | starter | team |
+|---|---|---|---|
+| `quick.max_active` | 5 | – | – |
+| `quick.max_questions` | 10 | – | – |
+| `quick.kinds` | rating, single_choice, multi_choice, yes_no, text | – | – |
+| `roles.max_custom` | – | 3 | 6 |
+| `pages.max_custom` | – | 3 | 10 (provisional, A-04) |
+| `campaigns.max_active` | – | 15 | 15 (provisional, A-04) |
+| `surveys.max_active` | – | 2 | 5 |
+| `surveys.threshold` | – | `{op:"gt", value:0.5}` | `{op:"gte", value:0.2}` |
+| `analytics.export` | – | true | true |
+| `discover.min_members` | – | – | 700 |
+
+Products (cents): `quick` (free, 0), `founding` (starter, waitlist grant, not purchasable), `starter_hub` 1300/month,
+`team_hub` 2900/month, `campaign_starter` 1900 first 2 weeks + 1300/extra week, `campaign_plus` 3900 first 2 weeks +
+1900/extra week (team), `hub_reservation` 2500/12 months (no family, grants no features).
+
+A Hub's plan is its best active hub-scoped entitlement (team over starter). No active entitlement ⇒ premium writes
+fail `lv_entitlement_required`: activate, schedule, resume, role create/update/assign, Hub invite create, pages update,
+export. Reads, pausing, closing, archiving, member housekeeping and Hub update keep working; nothing is deleted.
+Founding entitlements have no stored end: they end at `billing.launched_at` + 30 days once that policy is set.
+
+**Survey gate.** Activating a `survey`-mode Campaign in a community Hub is allowed while fewer than
+`surveys.max_active` active surveys have **not** met the family threshold. Threshold = unique accepted members who
+took part ÷ accepted members; guests, duplicates and non-members never count; zero eligible ⇒ not met. A new Hub
+can always activate its first surveys, so it never deadlocks; a survey that meets the threshold frees its slot.
+
+### Context and plan limits
+
+- `lv_my_context()` adds `entitlements: [Entitlement]`, `hub_credits: int`, `quick_surveys: { active, limit,
+  question_limit }`, `waitlist: { status: "none"|"admitted"|"waitlisted", position?, joined_at? }`,
+  `recent_participation: [{ campaign_title, hub_display_name (null for Quick Surveys), answered_on (UTC date),
+  kind: "quick"|"hub" }]` (the caller's own, newest first, max 10, never answers). `hubs` lists
+  community Hubs only and each gains `kind` and `plan: { family, product, state, starts_at, ends_at }`
+  (`state`: `active`|`scheduled`|`expired`|`none`).
+- `Entitlement = { id, product, family, scope: "account"|"hub", hub_id?, starts_at, ends_at?, state, source:
+  "waitlist"|"billing"|"grant" }`. (The plan said `"whitelist"`; the founder renamed it **waitlist**.)
+- `lv_plan_limits()` (signed out) → `{ ok, families: { free|starter|team: { key: value } }, products: [{ product,
+  family, price_cents, interval: "none"|"month"|"weeks"|"year", first_period_weeks?, extra_week_cents?,
+  period_months?, purchasable }] }`. Values are JSON (numbers, booleans, a list, a threshold object).
+
+### Waitlist (founder: "waitlist", not "whitelist")
+
+- `lv_waitlist_status()` (signed out) → `{ ok, seats_total, seats_taken, open, me?: { status, position?, joined_at? } }`.
+- `lv_waitlist_join(p_contact_email?, p_intended_hub_name?, p_consent_version?)` → `{ ok, status: "admitted"|
+  "waitlisted", position, already_joined, granted?: Entitlement }`. Sign-in required. **Deviation:** `p_note` is
+  replaced by `p_intended_hub_name` and `p_consent_version` (final brief item 4). A contact email needs
+  `p_consent_version` equal to policy `waitlist.consent_version` ("2026-11-07"), else `lv_invalid_input` with
+  `consent_version`. Admission (first 50) is serialised by an advisory lock and proven by a two-connection race.
+  Admitted ⇒ one Founding Hub credit (Starter family). Idempotent. The waitlist is never authorization.
+
+### Quick Surveys (personal space)
+
+- `lv_quick_survey_create(p_title, p_access "link"|"invite" = "link", p_anonymity = "anonymous", p_guests = true)`
+  → `{ ok, campaign: CampaignSummary }`. Guests only with `link` (silently off for `invite`). Throttled:
+  `lv_rate_limited` above 20 creations per hour.
+- `lv_quick_survey_list()` → `{ ok, surveys: [CampaignSummary], active, limit, question_limit }` (history included).
+- `CampaignSummary = { campaign_id, title, mode, anonymity, status, phase, access, guests, opens_at, closes_at,
+  created_at, blocked, question_count, join_code }`.
+- Edit, questions, schedule, activate, pause, close, results reuse `lv_campaign_*` / `lv_analytics_*`.
+  A Quick Survey holds one of the 5 slots while scheduled, open or **paused**; closing or archiving frees it.
+  `lv_campaign_archive` archives an open or paused Quick Survey in one call (closes it first). Activation beyond
+  5 ⇒ `lv_limit_reached { limit: 5, used: 5 }`; an 11th question ⇒ `lv_limit_reached { limit: 10, used: 10 }`;
+  a Quick Survey stays `mode: survey`; `lv_campaign_create` on the personal space ⇒ `lv_not_available`.
+- Respondents: `lv_guest_campaign_get(p_join_code)` now also resolves for signed-in callers. It returns
+  `campaign.access`, `campaign.guests_allowed`, `signed_in`, `sign_in_required`, `has_responded`, `can_respond`;
+  `hub.name` is null for a personal space. Signed-in respondents answer with `lv_submit_response(campaign_id, …)`;
+  guests with `lv_guest_submit`. A link survey without guests tells a signed-out visitor `sign_in_required: true`.
+  `lv_campaign_get` works for eligible non-members (no `hub_id` for them).
+- Campaign invites (only for `access = "invite"`): `lv_campaign_invite_create(p_campaign, p_max_uses?, p_expires_at?)`
+  → `{ ok, invite: { invite_id, token, max_uses, uses, expires_at, revoked_at, created_at, state } }`;
+  `lv_campaign_invite_list(p_campaign)` → `{ ok, invites, eligible }` (tokens shown to managers, like join codes);
+  `lv_campaign_invite_revoke(p_token)`; `lv_campaign_invite_redeem(p_token)` → `{ ok, campaign_id, join_code,
+  already_eligible }` or `lv_invalid_code`. Redeeming grants eligibility for that Campaign only — **never a Hub
+  membership**; invited respondents never appear in member lists or totals.
+
+### Abuse controls
+
+- `lv_report_abuse(p_join_code, p_reason)` (signed out allowed) → `{ ok, received: true }` for known and unknown codes
+  alike; `lv_rate_limited` above `abuse.reports_per_minute`.
+- `lv_admin_campaign_block(p_campaign, p_reason)` / `lv_admin_campaign_unblock(p_campaign)`: platform administrators
+  only (`lv_forbidden` otherwise). A blocked Campaign accepts no responses (`lv_closed`), is `lv_not_found` to
+  respondents and guests, cannot be activated (`blocked` reason), and keeps all data. Managers see `blocked`,
+  `blocked_reason` in `lv_campaign_get`.
+
+### Hubs and accounts
+
+- `lv_hub_create(p_slug, p_name)`: consumes one Hub credit (oldest valid first) or `lv_entitlement_required
+  { product }`; attaches a hub entitlement of the credit's family; returns `{ ok, hub_id, slug, plan }`. A slug held
+  by someone else's reservation, or quarantined after a deletion, is `lv_conflict`.
+- `lv_hub_get(p_slug)` adds `hub.about`, `hub.accent`, a top-level `accents: [{ key, hex, label }]` (9 contrast-safe
+  colours) and, for members, `membership.plan`. These shapes are stable (the UI normalises them). A quarantined slug answers `lv_hub_gone`.
+- `lv_hub_update(p_hub, p_display_name?, p_visibility?, p_membership_mode?, p_about?, p_accent?)` → `{ ok, hub }`.
+  Needs `hub.settings.manage`. `p_accent = ''` and `p_about = ''` clear.
+- `lv_owner_transfer(p_hub, p_membership, p_confirm)` → `{ ok }`. Owner only, recent sign-in, `p_confirm` = slug,
+  target an accepted member. The Owner role moves; the old Owner stays an ordinary member. **Not built:** explicit
+  acceptance by the receiving member (spec section 6); the launch contract governs.
+- `lv_hub_delete(p_hub, p_confirm)` → `{ ok }`. Owner only, recent sign-in, `p_confirm` = slug. Deletes the Hub's data
+  (A-05). Keeps a tombstone (slug and time only); the slug is quarantined for `hub.deleted_slug_cooldown_days` (30):
+  nobody can claim it, not even the former Owner, and reads answer `lv_hub_gone`. A later Hub gets a new id.
+- `lv_hub_pages_get(p_hub)` (signed out for public Hubs) → `{ ok, pages: [Page], custom_slots: { used, limit } }`;
+  non-managers see enabled pages only; defaults are Home and Campaigns.
+- `lv_hub_pages_update(p_hub, p_pages)` → `{ ok, pages }`. Replaces the set. `Page = { key, kind, title, body?,
+  position, enabled }`; kinds `home|campaigns|custom|shop|leaderboard|news|comments`; Home and Campaigns are always
+  present and enabled; only `custom` counts against `pages.max_custom` (`lv_limit_reached { limit, used }`). Body is
+  plain text (max 20000), rendered as text, never HTML.
+- `lv_profile_update(p_display_name)` → `{ ok, account: { account_id, display_name } }`.
+- `lv_account_delete(p_confirm)` → `{ ok }`. `p_confirm` must be `DELETE`; recent sign-in; `lv_owner_protected` while
+  the account owns a community Hub. Deletes (founder decision): profile, identity links, memberships and roles, Hub
+  invitations it created and its redemptions, Campaign invites it created, eligibility, credits, account
+  entitlements, the waitlist entry and contact email, its personal space with its Quick Surveys, and its
+  participation rows; scrubs audit rows naming it. Its identified submissions are irreversibly unlinked (no account,
+  time coarsened to the UTC day) and their free-text answers deleted; structured answers and aggregates remain.
+  Released anonymous results it took part in become withheld (the population changed).
+
+**Personal spaces are never Hubs (LC-06).** Every Hub-scoped operation answers `lv_not_found` for a personal space id:
+join, leave, member list/admit/reject/remove, role list/create/update/delete/assign/unassign, Hub invite
+create/list/revoke, Hub update, pages get/update, owner transfer, Hub delete, billing summary, checkout for a Hub,
+Discover. It has no slug, is never listed and cannot be reserved.
+
+### Billing-ready
+
+- `lv_checkout_start(p_product, p_hub?, p_weeks?, p_slug?)`: **Deviation:** `p_slug` is added for Hub Name
+  Reservation. Order: unknown/unpurchasable product ⇒ `lv_invalid_input` (no price ⇒ `lv_price_unset`); then
+  `lv_billing_unavailable` while `billing.provider_ready` is false; then validation (`p_hub` must be a community Hub
+  you own, Campaign plans need `p_weeks` ≥ 2, a reservation needs a free slug); then a payment link for the product in
+  `billing.payment_links` (else `lv_billing_unavailable`). Success: `{ ok, checkout_url, intent_id, amount_cents }`,
+  where the URL carries `client_reference_id=<intent_id>`. Payment Links must enable Stripe Tax (automatic tax); no
+  tax logic in SQL.
+- `lv_billing_summary(p_hub)` → `{ ok, plan: { family, product, state, starts_at, ends_at }, limits, usage:
+  { custom_roles, custom_pages, active_campaigns, active_surveys }, reservation?, billing_ready }`. Owner or
+  `billing.view`.
+- Service role only: `lv.billing_apply_event(p_provider, p_event_id, p_type, p_payload)` → `{ ok, duplicate,
+  outcome: "applied"|"ignored"|"rejected" }`, idempotent on `(provider, event_id)`, logs no payload. Semantics:
+  checkout completed ⇒ Hub credit (no `hub_id`) or hub entitlement, monthly to the period end, Campaign plans for the
+  purchased weeks, reservations for 12 months (renewal extends from the current expiry); `invoice.paid` extends to the
+  period end; `customer.subscription.deleted` keeps access to the end of the paid period (no proration, nothing
+  deleted); `charge.refunded` revokes what that payment bought (nothing else revokes); other types are ignored.
+  Called by the `billing-webhook` Edge Function (Stripe signature verified, 503 while `STRIPE_WEBHOOK_SECRET` is unset).
+
+### Hub Name Reservation
+
+- `lv_hub_reservation_status(p_slug)` (signed out) → `{ ok, slug, state: "available"|"active"|"grace"|"released"|
+  "taken", mine, expires_at?, grace_ends_at? }`. Dates only for the holder. `taken` covers existing Hubs, reserved
+  words and quarantined slugs. ACTIVE for 12 months, GRACE 25 days, then RELEASED, derived from time. During ACTIVE and
+  GRACE only the holder can create that Hub. A reservation grants no features and never exposes anyone's data.
+
+### Analytics (strict, founder L-07, L-10, L-11; compliance LC-01, LC-02)
+
+For **anonymous** Campaigns (results only once finished, population frozen at first release, cohort
+`campaign.min_cohort` = 5):
+- Cells below the cohort are merged into **one** withheld bucket `{ key: null, n: null, suppressed: true, reason:
+  "withheld" }`; no per-option presence. If that bucket would be smaller than the cohort, the smallest published cells
+  join it until it is not; if nothing is left, the whole question is withheld.
+- Dominance: a cell equal to the question total withholds the whole question (`withheld: true, reason: "dominance"`).
+- `answer_distribution` → `{ ok, metric, question_id, cells, withheld, reason }`.
+- `rating_summary`: whenever anything in the question is withheld, `n` and `mean` are null with `suppressed: true`.
+- `participation_rate`: withheld (`n`, `eligible_n`, `rate` null, `reason: "near_full_turnout"`) at 100% or when
+  eligible minus respondents is below the cohort; `below_min_cohort` when respondents are below it.
+- Free text (any Campaign): `answer_distribution` on a text question → `{ ok, metric, question_id, kind: "text", n,
+  texts: [string], texts_withheld: false }` when the question has at least `campaign.min_cohort` answers, else
+  `{ n: null, texts: null, texts_withheld: true }` (never an empty list as a stand-in). Random order on every call; no
+  person, id, time or submission link; never counted into cells. `text_responses` is an alias (it also returns
+  `responses` = `texts`). The overview uses the same shape for text questions.
+- Guests: `participant_count.guest_n`, and the overview adds `guest_n` and `includes_guests` so results can say
+  "includes unverified guest responses". Guests never count toward member thresholds or rates.
+- `lv_analytics_overview` uses `text_responses` for text questions.
+- `lv_analytics_export(p_campaign)` → `{ ok, campaign_id, generated_at, includes_guests, rows: [{ question_position,
+  question, kind, key, n, suppressed, reason }], texts: [{ question_position, question, texts, texts_withheld }] }`.
+  Free text is listed separately under `texts` (same rule as above), never in the aggregate `rows`. Same engine as the overview (no extra information by differencing);
+  needs `analytics.export` and a Starter or Team family (`lv_entitlement_required` for Quick Surveys and expired Hubs).
+
+Identified Campaigns keep live results with no cohort for structured questions.
+
+### Discover
+
+- `lv_discover_apply(p_hub)` → `{ ok, status: "submitted"|…, already_applied }` or `lv_gate_blocked { reasons:
+  ["team_required", "members_below_minimum"], genuine_members, min_members }`. Needs `hub.settings.manage`. Genuine
+  active members: accepted, email verified at KpnIdentity, took part in one of the Hub's Campaigns in the last
+  `discover.active_window_days` (90). Quick Surveys and personal spaces are never eligible.
+
+### Capabilities
+
+`analytics.export` (group `analytics`) and `billing.view` (group `billing`) are added. The Owner role holds every
+capability in the catalogue.
+
+### Policies set at launch
+
+`campaign.min_cohort` 5 (L-04), `participation.guest_rate_per_minute` 10 (L-05, L-11), `waitlist.seats` 50,
+`waitlist.consent_version` "2026-11-07", `quick.create_per_hour` 20, `abuse.reports_per_minute` 20,
+`security.reauth_seconds` 600, `hub.deleted_slug_cooldown_days` 30, `reservation.grace_days` 25,
+`discover.active_window_days` 90, `retention.logs_days` 365 and `retention.guest_hash_days` 7 (L-13),
+`billing.provider_ready` false, `billing.payment_links` null, `billing.launched_at` null.
+
+### Reserved slugs
+
+Every top-level UI route in `src/lib/reservedSlugs.ts` plus `waitlist`, `whitelist`, `surveys`, `s`, `brand`, `c`,
+`j`, `licenses`, `__gallery`, `how-it-works`, `use-cases`, `quick`, `quick-surveys`, `q`, `builder`, `news`, `p`,
+`reservation`, `reservations`, `signup`, `checkout`, `webhooks`. No customer name is reserved.

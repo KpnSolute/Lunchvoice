@@ -36,8 +36,8 @@ select t.as_kpn(10, 'owner@example.invalid', true, 'Owner');
 select lv_api.lv_my_context();
 select t.put('acc', t.q($$select lv.current_account_id()::text$$));
 select t.as_pg();
-insert into lv.beta_applications (account_id, status) values (t.id('acc'), 'approved');
-update lv.policy set value = '5'::jsonb where key = 'campaign.max_active_per_hub';
+select t.grant_credit(t.id('acc'));
+select t.set_limit('campaigns.max_active', '5'::jsonb);
 select t.as_kpn(10);
 select t.check('analytics Hub created', t.code(lv_api.lv_hub_create('analytics-hub', 'Analytics Hub')) = 'ok');
 select t.put('hub', t.q($$select id::text from lv.hubs where slug = 'analytics-hub'$$));
@@ -51,6 +51,8 @@ select t.check('analytics Campaign activated', t.code(lv_api.lv_campaign_activat
 -- ---------------------------------------------------------------------------------------------------------
 -- Fail closed: no minimum cohort policy means NO results
 -- ---------------------------------------------------------------------------------------------------------
+select t.as_pg();
+update lv.policy set value = null where key = 'campaign.min_cohort';
 select t.as_kpn(10);
 select t.check('with no min-cohort policy set, anonymous results are refused entirely',
   t.code(lv_api.lv_analytics_query(t.id('c'), 'participant_count')) = 'lv_policy_undecided');
@@ -107,8 +109,11 @@ declare
   v_cells jsonb;
 begin
   v_cells := lv.analytics_core(t.id('c'), null, 'answer_distribution', t.id('q')) -> 'cells';
-  perform t.check('a distribution cell below the minimum cohort is withheld as NULL',
-    exists (select 1 from jsonb_array_elements(v_cells) e where e->>'n' is null));
+  -- 3 and 2 with a cohort of 3: the withheld bucket (2) would be pinned by subtraction, so the whole question is
+  -- withheld (000016 strict engine): no cell, no key, no count.
+  perform t.check('a distribution whose small cell could be derived is withheld as a whole',
+    jsonb_array_length(v_cells) = 0
+    and (lv.analytics_core(t.id('c'), null, 'answer_distribution', t.id('q')) ->> 'withheld') = 'true');
   perform t.check('no published cell ever leaks a count below the minimum',
     not exists (select 1 from jsonb_array_elements(v_cells) e
                 where (e->>'suppressed')::boolean = false and (e->>'n')::bigint < 3));
@@ -128,8 +133,9 @@ select lv_api.lv_campaign_activate(t.id('tc'));
 select t.as_pg();
 update lv.campaigns set status = 'closed', closed_at = now() where id = t.id('tc');
 select t.as_kpn(10);
-select t.check('free-text answers are not published, even with a policy set',
-  t.code(lv_api.lv_analytics_query(t.id('tc'), 'answer_distribution', t.id('tq'))) = 'lv_policy_undecided');
+select t.check('free-text answers below the cohort are withheld (texts_withheld, never an empty list)',
+  (lv_api.lv_analytics_query(t.id('tc'), 'answer_distribution', t.id('tq')) ->> 'texts_withheld') = 'true'
+  and (lv_api.lv_analytics_query(t.id('tc'), 'answer_distribution', t.id('tq')) -> 'texts') = 'null'::jsonb);
 
 -- ---------------------------------------------------------------------------------------------------------
 -- Capability enforcement and no raw row access

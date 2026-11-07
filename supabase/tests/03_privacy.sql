@@ -9,7 +9,7 @@ select t.as_kpn(10, 'owner@example.invalid', true, 'Owner');
 select lv_api.lv_my_context();
 select t.put('owner', t.q($$select lv.current_account_id()::text$$));
 select t.as_pg();
-insert into lv.beta_applications (account_id, status) values (t.id('owner'), 'approved');
+select t.grant_credit(t.id('owner'));
 select t.as_kpn(10);
 select t.check('the Hub is created for the privacy suite', t.code(lv_api.lv_hub_create('privacy-hub', 'Privacy Hub')) = 'ok');
 select t.put('hub', t.q($$select id::text from lv.hubs where slug = 'privacy-hub'$$));
@@ -17,7 +17,7 @@ select t.check('the suite actually has a Hub to work with', t.get('hub') is not 
 
 -- The activation gate needs a decided cap; set one so activation can succeed.
 select t.as_pg();
-update lv.policy set value = '5'::jsonb where key = 'campaign.max_active_per_hub';
+select t.set_limit('campaigns.max_active', '5'::jsonb);
 
 select t.as_kpn(10);
 select lv_api.lv_campaign_create(t.id('hub'), 'Anonymous Survey', 'survey', 'anonymous');
@@ -156,8 +156,7 @@ select t.check('a closed Campaign refuses responses',
 -- A caller cannot forge identity by supplying an account id
 -- ---------------------------------------------------------------------------------------------------------
 select t.as_anon();
-select t.check('an anonymous caller cannot submit at all',
-  t.code(lv_api.lv_submit_response(t.id('ident_c'),
-    format('[{"question_id":"%s","value":5}]', t.get('ident_q'))::jsonb)) = 'lv_unauthenticated');
+select t.check('an anonymous caller cannot submit at all (no execute grant since 000014)',
+  t.raises(format($q$select lv_api.lv_submit_response(%L::uuid, '[]'::jsonb)$q$, t.get('ident_c')), '42501'));
 
 rollback;

@@ -6,7 +6,7 @@
 select set_config('t.file', '08_error_contract', false);
 begin;
 
-update lv.policy set value = '5'::jsonb where key = 'campaign.max_active_per_hub';
+select t.set_limit('campaigns.max_active', '5'::jsonb);
 update lv.policy set value = '3'::jsonb where key = 'campaign.min_cohort';
 select t.trust_test_issuer();
 
@@ -16,10 +16,14 @@ select t.as_kpn(2, 'owner@example.invalid', true, 'Owner'); select lv_api.lv_my_
 select t.put('owner', t.q($$select lv.current_account_id()::text$$));
 select t.as_kpn(3, 'member@example.invalid', true, 'Member'); select lv_api.lv_my_context();
 select t.as_pg();
-insert into lv.beta_applications (account_id, status) values (t.id('owner'), 'approved');
+select t.grant_credit(t.id('owner'));
 
 -- ===== unauthenticated callers get the envelope, not an exception ========================================
 select t.as_anon();
+select t.check('unauthenticated: anon cannot execute hub_create', t.raises($$select lv_api.lv_hub_create('some-hub', 'Some')$$, '42501'));
+select t.check('unauthenticated: anon cannot execute submit', t.raises($$select lv_api.lv_submit_response(gen_random_uuid(), '[]'::jsonb)$$, '42501'));
+-- A token from an untrusted issuer is "authenticated" to PostgREST but signs nobody in: the envelope answers.
+select t.as_kpn(99, null, true, null, 'https://untrusted.invalid/auth/v1');
 select t.check('unauthenticated: hub_create answers lv_unauthenticated', t.code(lv_api.lv_hub_create('some-hub', 'Some')) = 'lv_unauthenticated');
 select t.check('unauthenticated: submit answers lv_unauthenticated', t.code(lv_api.lv_submit_response(gen_random_uuid(), '[]'::jsonb)) = 'lv_unauthenticated');
 select t.check('unauthenticated: analytics answers lv_unauthenticated', t.code(lv_api.lv_analytics_query(gen_random_uuid(), 'participant_count')) = 'lv_unauthenticated');
@@ -34,8 +38,8 @@ select t.check('slug: a leading hyphen is a validation error', t.code(lv_api.lv_
 select t.check('slug: too long is a validation error', t.code(lv_api.lv_hub_create(repeat('a', 41), 'Bad')) = 'lv_invalid_input');
 select t.check('slug: a blank display name is a validation error', t.code(lv_api.lv_hub_create('good-name', '   ')) = 'lv_invalid_input');
 select t.as_pg();
-select t.check('slug: failed attempts created no Hub and did not consume the beta approval',
-  t.q($$select (select count(*) from lv.hubs)::text || '|' || (select status from lv.beta_applications limit 1)$$) = '0|approved');
+select t.check('slug: failed attempts created no Hub and did not consume the Hub credit',
+  t.q($$select (select count(*) from lv.hubs)::text || '|' || (select count(*) from lv.hub_credits where consumed_at is null)$$) = '0|1');
 
 -- ===== Hub creation: audit, ownership and a claimable slug ================================================
 select t.as_kpn(2);
@@ -49,7 +53,7 @@ select t.check('hub_create: the creator is the protected Owner',
   t.q(format($q$select (owner_account_id = %L::uuid)::text from lv.hubs where id = %L::uuid$q$, t.get('owner'), t.get('hub'))) = 'true');
 select t.as_kpn(3);
 select t.check('hub_create: a taken slug is a conflict, not an exception',
-  t.code(lv_api.lv_hub_create('lioncafe', 'Other')) in ('lv_conflict', 'lv_beta_required'));
+  t.code(lv_api.lv_hub_create('lioncafe', 'Other')) in ('lv_conflict', 'lv_entitlement_required'));
 
 -- ===== codes and metadata ===============================================================================
 select t.as_kpn(2);
@@ -87,9 +91,8 @@ select t.check('timing: a member submits to the anonymous Campaign',
 select t.as_pg();
 select t.check('timing: the submission time is coarsened to the day',
   t.q(format($q$select (created_at = date_trunc('day', created_at))::text from lv.submissions where campaign_id = %L::uuid$q$, t.get('ca'))) = 'true');
-select t.check('timing: no submission timestamp equals the participation timestamp exactly',
-  t.q(format($q$select (count(*) = 0)::text from lv.submissions s join lv.participation p on p.campaign_id = s.campaign_id
-                 where s.campaign_id = %L::uuid and s.created_at = p.created_at$q$, t.get('ca'))) = 'true');
+select t.check('timing: the participation time is coarsened to the day too, so neither carries a precise join key (LC-09)',
+  t.q(format($q$select bool_and(created_at = date_trunc('day', created_at))::text from lv.participation where campaign_id = %L::uuid$q$, t.get('ca'))) = 'true');
 select t.check('timing: answers carry the same coarse time as their submission',
   t.q(format($q$select (count(*) = 0)::text from lv.answers a join lv.submissions s on s.id = a.submission_id
                  where s.campaign_id = %L::uuid and a.created_at <> s.created_at$q$, t.get('ca'))) = 'true');

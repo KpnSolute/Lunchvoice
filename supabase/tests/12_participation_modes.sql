@@ -5,12 +5,12 @@
 select set_config('t.file', '12_participation_modes', false);
 begin;
 
-update lv.policy set value = '5'::jsonb where key = 'campaign.max_active_per_hub';
+select t.set_limit('campaigns.max_active', '5'::jsonb);
 select t.trust_test_issuer();
 select t.as_kpn(1, null, true, 'Owner'); select lv_api.lv_my_context();
 select t.put('owner', t.q($$select lv.current_account_id()::text$$));
 select t.as_pg();
-insert into lv.beta_applications (account_id, status) values (t.id('owner'), 'approved');
+select t.grant_credit(t.id('owner'));
 select t.as_kpn(1);
 select t.put('hub', (lv_api.lv_hub_create('guest-hub', 'Guest Hub')->>'hub_id'));
 
@@ -44,6 +44,9 @@ select t.check('guest: a guest-enabled Campaign shows its questions and Hub name
 select t.check('guest: the code is case-insensitive', t.code(lv_api.lv_guest_campaign_get(lower(t.get('code_g')))) = 'ok');
 
 -- ===== guest submit ======================================================================================
+select t.as_pg();
+update lv.policy set value = null where key = 'participation.guest_rate_per_minute';
+select t.as_anon();
 select t.check('guest: submissions fail closed until a rate limit is set',
   t.code(lv_api.lv_guest_submit(t.get('code_g'), repeat('a', 40), format('[{"question_id":"%s","value":4}]', t.get('qg'))::jsonb)) = 'lv_policy_undecided');
 select t.as_pg();

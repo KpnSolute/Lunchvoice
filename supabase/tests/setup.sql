@@ -72,7 +72,8 @@ begin
     'role', 'authenticated',
     'email', coalesce(p_email, 'person' || p_n || '@example.invalid'),
     'email_verified', coalesce(p_verified, true),
-    'name', coalesce(p_name, 'Person ' || p_n))::text, false);
+    'name', coalesce(p_name, 'Person ' || p_n),
+    'iat', floor(extract(epoch from now()))::bigint)::text, false);
   set role authenticated;
 end $$;
 
@@ -137,3 +138,25 @@ returns jsonb language sql as $$
                       jsonb_build_object('question_id', p_q2, 'value', to_jsonb(p_text))))
 $$;
 grant execute on function t.submit(uuid, uuid, jsonb, uuid, text) to public;
+
+-- Give an account one Hub credit (000014: lv_hub_create consumes a credit instead of a beta approval).
+create or replace function t.grant_credit(p_account uuid, p_family text default 'starter') returns void
+language sql security definer as $$
+  insert into lv.hub_credits (account_id, family, product, source)
+  values (p_account, p_family, case p_family when 'team' then 'team_hub' else 'starter_hub' end, 'grant')
+$$;
+grant execute on function t.grant_credit(uuid, text) to public;
+
+-- Override one value of the entitlement map for every family, inside the calling test's transaction.
+create or replace function t.set_limit(p_key text, p_value jsonb) returns void
+language sql security definer as $$
+  update lv.plan_limits set value = p_value where key = p_key
+$$;
+
+-- Pretend the current session was issued p_seconds ago (for the recent-sign-in checks of 000015).
+create or replace function t.age_session(p_seconds int) returns void language plpgsql as $$
+begin
+  perform set_config('request.jwt.claims',
+    (current_setting('request.jwt.claims')::jsonb || jsonb_build_object('iat', floor(extract(epoch from now()))::bigint - p_seconds))::text, false);
+end $$;
+grant execute on function t.age_session(int) to public;
