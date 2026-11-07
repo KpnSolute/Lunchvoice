@@ -28,6 +28,7 @@ const COPY: Record<string, string> = {
   lv_price_unset: "Campaign Plus doesn't have a price yet, so it can't be bought.",
   lv_not_available: "This isn't available yet.",
   lv_hub_gone: "This Hub is no longer available.",
+  lv_reauth_required: "For your safety, sign in again, then try this once more.",
   lv_confirmation_mismatch: "The confirmation text didn't match. Type it exactly as shown.",
   lv_server_error: "Something went wrong on our side. Try again.",
 };

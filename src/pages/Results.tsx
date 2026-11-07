@@ -104,7 +104,14 @@ function QuestionResult({ campaignId, q }: { campaignId: string; q: Question }) 
       ) : q.kind === "text" ? (
         <TextAnswers texts={d?.texts_withheld ? null : (d?.texts ?? null)} />
       ) : d && d.cells.length > 0 ? (
-        <ResultBars caption={q.prompt} cells={d.cells.map((x) => ({ key: x.key, label: label(q, x.key), n: x.n, suppressed: x.suppressed }))} />
+        <ResultBars
+          caption={q.prompt}
+          cells={
+            d.withheld && d.cells.length === 0
+              ? [{ key: "withheld", label: "Withheld", n: null, suppressed: true }]
+              : d.cells.map((x) => ({ key: x.key ?? "withheld", label: x.suppressed || x.key === null ? "Withheld" : label(q, x.key), n: x.n, suppressed: x.suppressed }))
+          }
+        />
       ) : (
         <p className="ui-muted lv-m0">No answers yet.</p>
       )}

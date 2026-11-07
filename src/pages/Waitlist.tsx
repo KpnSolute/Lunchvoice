@@ -39,8 +39,7 @@ export function Waitlist() {
     if (needsConsent && !consent) return setError("Tick the box to let us store your contact email, or leave the email empty.");
     setBusy(true);
     setError(null);
-    const note = hubName.trim() ? `Intended Hub name: ${hubName.trim()}` : null;
-    const r = await api.waitlistJoin(email.trim() || null, note, needsConsent ? WAITLIST_CONSENT_VERSION : null);
+    const r = await api.waitlistJoin(email.trim() || null, hubName.trim() || null, needsConsent ? WAITLIST_CONSENT_VERSION : null);
     setBusy(false);
     if (!r.ok) return setError(describeError(r.error));
     toast.success(r.status === "admitted" ? "You’re admitted. Your Founding Hub credit is ready." : "You’re on the waitlist.");

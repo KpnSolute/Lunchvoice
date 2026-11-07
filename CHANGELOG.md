@@ -6,6 +6,31 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (launch backend: migrations 000014-000016)
+
+- 000014: one entitlement map (`lv.plan_limits`, products incl. Campaign Plus at 3900 + 1900/week), entitlements and
+  Hub credits (`lv_hub_create` consumes a credit; no beta gate), Founding entitlements ending 30 days after
+  `billing.launched_at`, the 50-seat waitlist (race-safe; consent version for the optional email; never
+  authorization), personal spaces and Quick Surveys (link or invite-only, 5 slots, archive frees a slot, 20 creations
+  per hour), the survey threshold gate, fail-closed expiry, `lv_report_abuse` and admin block, explicit grants with an
+  anon allow-list and RLS on every table (LC-05), reserved slugs synced with every UI route (LC-24).
+- 000015: Hub update/branding, owner transfer, Hub delete with a 30-day slug quarantine and `lv_hub_gone` (LC-27),
+  Hub pages, profile update, account delete with irreversible unlinking and free-text removal (LC-16), recent sign-in
+  required for destructive actions (LC-22).
+- 000016: checkout intents (fail closed), idempotent service-role-only `lv.billing_apply_event`, billing summary,
+  Hub Name Reservation lifecycle, strict analytics engine `lv.safe_cells` (LC-01, LC-02), free text only at 5+ in
+  random order, export, Discover gate, retention sweep.
+- `billing-webhook` Edge Function (Stripe signature check, 503 without the secret) with tests; runbook rewritten for
+  the real production state (LC-07), including exposing `lv_api` only after the grant audit.
+- Canonical suite: 628 checks, 0 failed, slug and waitlist races, full rollback rehearsal. Function tests: 21 pass.
+
+### Fixed (UI aligned to the real backend)
+
+- `lv_waitlist_join` now receives `p_intended_hub_name` (it was sent as `p_note`, which the Data API would reject);
+  `lv_checkout_start` passes `p_slug`; a fully withheld question renders as Withheld, never as "no answers"; the
+  merged withheld cell's `null` key is handled; `lv_reauth_required` has copy. Every UI RPC call (59) was checked
+  against the SQL signatures by argument name: 0 mismatches.
+
 ### Security (LC-04)
 
 - `render.yaml` sets production headers on every path: a Content-Security-Policy built from the app's real runtime

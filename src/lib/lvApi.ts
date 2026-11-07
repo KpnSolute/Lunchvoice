@@ -250,7 +250,8 @@ export interface CampaignInvite {
 }
 
 export interface Cell {
-  key: string;
+  /** null for the merged withheld bucket in the real API. */
+  key: string | null;
   n: number | null;
   suppressed: boolean;
   reason: "below_min_cohort" | "complementary" | null;
@@ -261,8 +262,10 @@ export type AnalyticsResult =
   | {
       metric: "answer_distribution";
       question_id: string;
-      /** L-07: suppressed options arrive merged into one cell with key "withheld". */
+      /** L-07: suppressed options arrive merged into one cell (key null in the real API, "withheld" in the mock). */
       cells: Cell[];
+      /** The whole question is withheld: `cells` is empty and nothing about it may be shown (never as zero). */
+      withheld?: boolean;
       /** L-10 (contract request): free-text answers, unordered, no names or times; null/withheld until enough answers. */
       texts?: string[] | null;
       texts_withheld?: boolean;
@@ -334,12 +337,12 @@ export function createLvApi(transport: LvTransport) {
     myContext: () => call<MyContext>("lv_my_context"),
     planLimits: () => call<PlanLimits>("lv_plan_limits"),
     waitlistStatus: () => call<WaitlistStatus>("lv_waitlist_status"),
-    // p_consent_version is sent only with a contact email (consent is required only then). Contract request: the
-    // deployed lv_waitlist_join(p_contact_email, p_note) needs this parameter added before an email can be stored.
-    waitlistJoin: (contactEmail?: string | null, note?: string | null, consentVersion?: string | null) =>
+    // lv_waitlist_join(p_contact_email, p_intended_hub_name, p_consent_version) (000014). p_consent_version is sent
+    // only with a contact email (consent is required only then).
+    waitlistJoin: (contactEmail?: string | null, intendedHubName?: string | null, consentVersion?: string | null) =>
       call<{ status: Exclude<WaitlistState, "none">; position: number; granted?: Entitlement }>("lv_waitlist_join", {
         p_contact_email: contactEmail || null,
-        p_note: note || null,
+        p_intended_hub_name: intendedHubName || null,
         ...(contactEmail ? { p_consent_version: consentVersion ?? null } : {}),
       }),
 
@@ -478,8 +481,8 @@ export function createLvApi(transport: LvTransport) {
     roleDelete: (role: string) => call<object>("lv_role_delete", { p_role: role }),
 
     /* ---- billing-ready (fails closed until the founder wires a provider) ---- */
-    checkoutStart: (product: Product, hub?: string | null, weeks?: number | null) =>
-      call<{ checkout_url: string }>("lv_checkout_start", { p_product: product, p_hub: hub ?? null, p_weeks: weeks ?? null }),
+    checkoutStart: (product: Product, hub?: string | null, weeks?: number | null, slug?: string | null) =>
+      call<{ checkout_url: string }>("lv_checkout_start", { p_product: product, p_hub: hub ?? null, p_weeks: weeks ?? null, p_slug: slug ?? null }),
     billingSummary: (hub: string) => call<BillingSummary>("lv_billing_summary", { p_hub: hub }),
     reservationStatus: (slug: string) => call<ReservationStatus>("lv_hub_reservation_status", { p_slug: slug }),
     discoverApply: (hub: string) => call<{ status: "submitted" }>("lv_discover_apply", { p_hub: hub }),
