@@ -204,8 +204,8 @@ select t.check('billing: the service role can execute the grant path',
   and has_schema_privilege('service_role', 'lv', 'usage'));
 select t.check('billing: a Starter Hub purchase without a Hub grants a credit',
   (lv.billing_apply_event('stripe', 'evt_1', 'checkout.session.completed',
-     jsonb_build_object('product', 'starter_hub', 'account_id', t.get('buyer'), 'subscription', 'sub_1',
-                        'period_end', extract(epoch from now() + interval '30 days')::bigint)) ->> 'outcome') = 'applied'
+     t.paid(t.intent(t.id('buyer'), 'starter_hub'), jsonb_build_object('subscription', 'sub_1', 'mode', 'subscription',
+                        'period_end', extract(epoch from now() + interval '30 days')::bigint))) ->> 'outcome') = 'applied'
   and t.q(format($q$select count(*)::text from lv.hub_credits where account_id = %L::uuid and product = 'starter_hub'$q$, t.get('buyer'))) = '1');
 select t.check('billing: replaying the same event is a no-op',
   (lv.billing_apply_event('stripe', 'evt_1', 'checkout.session.completed',
@@ -231,21 +231,21 @@ select t.check('billing: cancelling keeps access to the end of the paid period, 
   and t.q($$select count(*)::text from lv.hubs where slug = 'bought-hub'$$) = '1');
 select t.check('billing: a Campaign Starter purchase for a Hub is a 3-week window',
   (lv.billing_apply_event('stripe', 'evt_4', 'checkout.session.completed',
-     jsonb_build_object('product', 'campaign_starter', 'account_id', t.get('owner'), 'hub_id', t.get('hub'), 'weeks', 3, 'payment_ref', 'pi_4')) ->> 'outcome') = 'applied'
+     t.paid(t.intent(t.id('owner'), 'campaign_starter', t.id('hub'), null, 3), jsonb_build_object('payment_ref', 'pi_4'))) ->> 'outcome') = 'applied'
   and t.q($$select (ends_at - starts_at)::text from lv.entitlements where external_ref = 'pi_4'$$) = '21 days');
-select lv.billing_apply_event('stripe', 'evt_5', 'charge.refunded', jsonb_build_object('payment_ref', 'pi_4'));
-select t.check('billing: an explicit refund revokes the Campaign window',
-  t.q($$select (ends_at <= now())::text from lv.entitlements where external_ref = 'pi_4'$$) = 'true');
+select lv.billing_apply_event('stripe', 'evt_5', 'charge.refunded', jsonb_build_object('payment_ref', 'pi_4', 'refunded', true));
+select t.check('billing: a refund after the Campaign window started is recorded for support, not revoked (000017, F-08)',
+  t.q($$select (ends_at > now())::text from lv.entitlements where external_ref = 'pi_4'$$) = 'true');
 select t.check('billing: an unknown event type is recorded and ignored',
   (lv.billing_apply_event('stripe', 'evt_6', 'customer.created', '{}'::jsonb) ->> 'outcome') = 'ignored');
 select t.check('billing: an unknown product is recorded and rejected, granting nothing',
   (lv.billing_apply_event('stripe', 'evt_7', 'checkout.session.completed', jsonb_build_object('product', 'gold', 'account_id', t.get('buyer'))) ->> 'outcome') = 'rejected');
 select t.check('billing: a purchase for a personal space is rejected (LC-06)',
   (lv.billing_apply_event('stripe', 'evt_8', 'checkout.session.completed',
-     jsonb_build_object('product', 'starter_hub', 'account_id', t.get('buyer'), 'hub_id', t.get('personal'))) ->> 'outcome') = 'rejected');
+     t.paid(t.intent(t.id('buyer'), 'starter_hub', t.id('personal')))) ->> 'outcome') = 'rejected');
 select t.check('billing: an intent overrides metadata',
   (lv.billing_apply_event('stripe', 'evt_9', 'checkout.session.completed',
-     jsonb_build_object('intent_id', t.get('co')::jsonb ->> 'intent_id', 'product', 'team_hub', 'account_id', t.get('buyer'))) ->> 'outcome') = 'applied'
+     t.paid((t.get('co')::jsonb ->> 'intent_id')::uuid, jsonb_build_object('product', 'team_hub', 'account_id', t.get('buyer')))) ->> 'outcome') = 'applied'
   and t.q(format($q$select product || '|' || (account_id = %L::uuid)::text from lv.hub_credits where external_ref = 'evt_9'$q$, t.get('owner'))) = 'starter_hub|true');
 
 -- ===== billing summary ====================================================================================
@@ -264,7 +264,7 @@ select t.check('discover: a personal space cannot apply (LC-06)', t.code(lv_api.
 select t.as_pg();
 select t.check('reservation: buying a free slug creates an ACTIVE reservation',
   (lv.billing_apply_event('stripe', 'evt_r1', 'checkout.session.completed',
-     jsonb_build_object('product', 'hub_reservation', 'account_id', t.get('buyer'), 'slug', 'held-name', 'payment_ref', 'pi_r1')) ->> 'outcome') = 'applied');
+     t.paid(t.intent(t.id('buyer'), 'hub_reservation', null, 'held-name'), jsonb_build_object('payment_ref', 'pi_r1'))) ->> 'outcome') = 'applied');
 select t.as_anon();
 select t.check('reservation: others see ACTIVE without dates', (lv_api.lv_hub_reservation_status('held-name') ->> 'state') = 'active'
   and not (lv_api.lv_hub_reservation_status('held-name') ? 'expires_at') and (lv_api.lv_hub_reservation_status('held-name') ->> 'mine') = 'false');
@@ -287,7 +287,7 @@ select t.check('reservation: nobody else can claim a slug in GRACE', t.code(lv_a
 select t.as_pg();
 select t.check('reservation: renewing in GRACE extends from the old expiry',
   (lv.billing_apply_event('stripe', 'evt_r2', 'checkout.session.completed',
-     jsonb_build_object('product', 'hub_reservation', 'account_id', t.get('buyer'), 'slug', 'held-name')) #>> '{outcome}') = 'applied'
+     t.paid(t.intent(t.id('buyer'), 'hub_reservation', null, 'held-name'))) #>> '{outcome}') = 'applied'
   and t.q($$select (expires_at between now() + interval '350 days' and now() + interval '360 days')::text from lv.hub_reservations where slug = 'held-name'$$) = 'true');
 update lv.hub_reservations set starts_at = now() - interval '800 days', expires_at = now() - interval '26 days' where slug = 'held-name';
 select t.as_anon();
@@ -298,7 +298,7 @@ select t.check('reservation: a RELEASED slug can be claimed, with a new Hub and 
 select t.as_pg();
 select t.check('reservation: buying a slug someone already holds is rejected',
   (lv.billing_apply_event('stripe', 'evt_r3', 'checkout.session.completed',
-     jsonb_build_object('product', 'hub_reservation', 'account_id', t.get('buyer'), 'slug', 'held-name')) ->> 'outcome') = 'rejected');
+     t.paid(t.intent(t.id('buyer'), 'hub_reservation', null, 'held-name'))) ->> 'outcome') = 'rejected');
 select t.check('reservation: a reservation grants no features', t.q(format($q$select count(*)::text from lv.entitlements where account_id = %L::uuid and product = 'hub_reservation'$q$, t.get('buyer'))) = '0');
 
 -- ===== Discover ===========================================================================================

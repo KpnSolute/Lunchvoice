@@ -160,3 +160,19 @@ begin
     (current_setting('request.jwt.claims')::jsonb || jsonb_build_object('iat', floor(extract(epoch from now()))::bigint - p_seconds))::text, false);
 end $$;
 grant execute on function t.age_session(int) to public;
+
+-- A checkout intent as lv_checkout_start would record it, and the confirmed-payment payload the webhook maps for it
+-- (000017: grants are bound to an intent, a paid status, USD and the exact pre-tax amount).
+create or replace function t.intent(p_account uuid, p_product text, p_hub uuid default null, p_slug text default null,
+                                    p_weeks int default null) returns uuid
+language sql security definer as $$
+  insert into lv.checkout_intents (account_id, product, hub_id, slug, weeks, amount_cents)
+  values (p_account, p_product, p_hub, p_slug, p_weeks, lv.checkout_amount(p_product, p_weeks))
+  returning id
+$$;
+create or replace function t.paid(p_intent uuid, p_extra jsonb default '{}'::jsonb) returns jsonb
+language sql security definer as $$
+  select jsonb_build_object('intent_id', i.id, 'amount_subtotal', i.amount_cents, 'currency', 'usd',
+                            'payment_status', 'paid', 'mode', 'payment') || coalesce(p_extra, '{}'::jsonb)
+    from lv.checkout_intents i where i.id = p_intent
+$$;

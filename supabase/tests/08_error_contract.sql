@@ -43,9 +43,9 @@ select t.check('slug: failed attempts created no Hub and did not consume the Hub
 
 -- ===== Hub creation: audit, ownership and a claimable slug ================================================
 select t.as_kpn(2);
-select t.check('hub_create: a customer claims lioncafe like any other free slug', t.code(lv_api.lv_hub_create('lioncafe', 'LionCafe')) = 'ok');
+select t.check('hub_create: a customer claims a free slug', t.code(lv_api.lv_hub_create('harbor-book-circle', 'Harbor Book Circle')) = 'ok');
 select t.as_pg();
-select t.put('hub', t.q($$select id::text from lv.hubs where slug = 'lioncafe'$$));
+select t.put('hub', t.q($$select id::text from lv.hubs where slug = 'harbor-book-circle'$$));
 select t.check('hub_create: an audit event records who created the Hub',
   t.q(format($q$select count(*)::text from lv.audit_events where action = 'hub.created' and hub_id = %L::uuid and actor_account_id = %L::uuid$q$,
              t.get('hub'), t.get('owner'))) = '1');
@@ -53,7 +53,7 @@ select t.check('hub_create: the creator is the protected Owner',
   t.q(format($q$select (owner_account_id = %L::uuid)::text from lv.hubs where id = %L::uuid$q$, t.get('owner'), t.get('hub'))) = 'true');
 select t.as_kpn(3);
 select t.check('hub_create: a taken slug is a conflict, not an exception',
-  t.code(lv_api.lv_hub_create('lioncafe', 'Other')) in ('lv_conflict', 'lv_entitlement_required'));
+  t.code(lv_api.lv_hub_create('harbor-book-circle', 'Other')) in ('lv_conflict', 'lv_entitlement_required'));
 
 -- ===== codes and metadata ===============================================================================
 select t.as_kpn(2);

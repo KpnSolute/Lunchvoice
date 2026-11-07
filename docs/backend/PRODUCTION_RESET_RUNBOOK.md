@@ -1,4 +1,4 @@
-# Production runbook — LunchVoice v2 launch apply (000014–000016)
+# Production runbook — LunchVoice v2 launch apply (000014–000017)
 
 **Status: NOT EXECUTED.** Applying anything below to production needs the founder's explicit written approval
 naming this runbook, its date and the commit being applied. A passing local test never authorizes it. Launch gate:
@@ -37,14 +37,14 @@ Project: LunchVoice Supabase project, ref `qprfonxvthmaoxfixigk`. Identity provi
    Note: existing Hubs get no entitlement automatically. After 000014 a Hub without one is read-only for premium
    actions (fail closed, nothing deleted). Grant entitlements in step 5 before announcing.
 
-## 1. Apply 000014, 000015, 000016 (in order, one at a time)
+## 1. Apply 000014, 000015, 000016, 000017 (in order, one at a time)
 
 Use the Supabase CLI against the linked project, or paste each file into the SQL editor. Each file is one
 transaction (`begin … commit`); a failure leaves the database at the previous file.
 
 ```
 supabase link --project-ref qprfonxvthmaoxfixigk
-supabase db push          # applies only the pending 000014..000016
+supabase db push          # applies only the pending 000014..000017
 ```
 
 After each file: `select version from supabase_migrations.schema_migrations order by version desc limit 1;`
@@ -90,7 +90,9 @@ Expected launch values: `campaign.min_cohort` 5, `participation.guest_rate_per_m
 `waitlist.consent_version` "2026-11-07", `quick.create_per_hour` 20, `abuse.reports_per_minute` 20,
 `security.reauth_seconds` 600, `hub.deleted_slug_cooldown_days` 30, `reservation.grace_days` 25,
 `discover.active_window_days` 90, `retention.logs_days` 365, `retention.guest_hash_days` 7,
-`billing.provider_ready` false, `billing.payment_links` NULL, `billing.launched_at` NULL,
+`billing.provider_ready` false, `billing.payment_links` NULL, `billing.launched_at` NULL (keep provider_ready
+false and payment_links NULL until 000017 is applied and the Stripe Payment Links have fixed prices that match
+`lv.products`; 000017 then rejects any session whose amount, currency or payment status does not match its intent. A fixed-price link only matches one week count, so a Campaign plan bought for more weeks than its link charges is rejected, never over-granted: use one link per week count, or server-created Checkout Sessions with quantity = weeks),
 `identity.trusted_issuers` = the KpnIdentity issuer array (unchanged from today). The retired keys
 `campaign.max_active_per_hub` and `roles.max_custom_per_hub` must be absent. Limits live in `lv.plan_limits`:
 
@@ -161,6 +163,7 @@ and lose the launch data (entitlements, waitlist, Quick Surveys, billing log). F
 `public,graphql_public`, then run, newest first, only the files that were applied:
 
 ```
+supabase/rollbacks/000017_v2_billing_hardening.down.sql
 supabase/rollbacks/000016_v2_billing_ready.down.sql
 supabase/rollbacks/000015_v2_hub_management.down.sql
 supabase/rollbacks/000014_v2_entitlements.down.sql

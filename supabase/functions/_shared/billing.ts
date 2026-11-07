@@ -68,7 +68,13 @@ export async function verifyStripeSignature(
 }
 
 /** The event types LunchVoice acts on. Every other type is acknowledged and ignored. */
-export const HANDLED_TYPES = ["checkout.session.completed", "invoice.paid", "customer.subscription.deleted", "charge.refunded"] as const;
+export const HANDLED_TYPES = [
+  "checkout.session.completed",
+  "checkout.session.async_payment_succeeded",
+  "invoice.paid",
+  "customer.subscription.deleted",
+  "charge.refunded",
+] as const;
 export type HandledType = (typeof HANDLED_TYPES)[number];
 
 /** What lv.billing_apply_event receives. Only these keys ever leave the function. */
@@ -82,6 +88,17 @@ export interface BillingPayload {
   subscription?: string;
   payment_ref?: string;
   period_end?: number;
+  /** Checkout: what Stripe confirmed. The database grants only when these match the intent (NEW-01). */
+  amount_subtotal?: number;
+  currency?: string;
+  payment_status?: string;
+  mode?: string;
+  /** Subscription deleted: when it actually ended (an immediate cancellation). */
+  ended_at?: number;
+  /** Charge refunded: full or partial (NEW-02). */
+  amount?: number;
+  amount_refunded?: number;
+  refunded?: boolean;
 }
 
 export interface MappedEvent {
@@ -127,11 +144,16 @@ export function mapStripeEvent(event: unknown): MappedEvent | null {
   let payload: BillingPayload;
   switch (type as HandledType) {
     case "checkout.session.completed":
+    case "checkout.session.async_payment_succeeded":
       payload = {
         ...metadataFields(object.metadata),
         intent_id: uuid(object.client_reference_id),
         subscription: idOf(object.subscription),
         payment_ref: idOf(object.payment_intent),
+        amount_subtotal: num(object.amount_subtotal),
+        currency: str(object.currency, 3)?.toLowerCase(),
+        payment_status: str(object.payment_status, 40),
+        mode: str(object.mode, 40),
       };
       break;
     case "invoice.paid": {
@@ -149,12 +171,18 @@ export function mapStripeEvent(event: unknown): MappedEvent | null {
       const items = isObj(object.items) && Array.isArray(object.items.data) ? object.items.data : [];
       payload = {
         subscription: idOf(object.id),
-        period_end: num(object.current_period_end) ?? (isObj(items[0]) ? num(items[0].current_period_end) : undefined) ?? num(object.ended_at),
+        period_end: num(object.current_period_end) ?? (isObj(items[0]) ? num(items[0].current_period_end) : undefined),
+        ended_at: num(object.ended_at),
       };
       break;
     }
     case "charge.refunded":
-      payload = { payment_ref: idOf(object.payment_intent) };
+      payload = {
+        payment_ref: idOf(object.payment_intent),
+        amount: num(object.amount),
+        amount_refunded: num(object.amount_refunded),
+        refunded: typeof object.refunded === "boolean" ? object.refunded : undefined,
+      };
       break;
   }
   return { provider: "stripe", eventId, type: type as HandledType, payload: compact(payload) };
