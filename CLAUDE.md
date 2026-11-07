@@ -48,9 +48,13 @@ UI and API; the backend evaluates the active entitlement.
   threshold, Discover eligibility at 700 genuine active members.
 - Campaign Starter: Starter family, time-bounded. $19 for the first 2 weeks,
   $13 per additional week.
-- Campaign Plus: Team family, time-bounded. Its price is unknown. Never invent
-  one; checkout stays disabled and fails closed until the authoritative value is
-  supplied.
+- Campaign Plus: Team family, time-bounded. $39 for the first 2 weeks, $19 per
+  additional week (founder, 2026-11-07).
+- Free Quick Survey: $0 for any signed-in account. 5 active surveys, 10
+  questions, core kinds, link or invite-only; lives in a personal space that is
+  never a Hub. The launch waitlist is never authorization.
+- Taxes are calculated by Stripe Tax, never by our own code. Cancelling a Hub
+  plan keeps access to the end of the paid period and deletes nothing.
 - Hub Name Reservation ("Reserve your Hub URL"): $25 per 12 months, $25 renewal,
   25-day grace (ACTIVE, GRACE, RELEASED). Grants no features.
 - The Owner is protected and does not consume a custom-role slot.

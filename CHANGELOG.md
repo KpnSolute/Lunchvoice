@@ -6,6 +6,15 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (founder final decisions, 2026-11-07)
+
+- Campaign Plus is priced: $39 for the first 2 weeks, $19 per additional week (master spec 11.5, `AGENTS.md`,
+  `CLAUDE.md`, `LAUNCH_PLAN.md`).
+- Master spec gains 11.0 Free Quick Survey (personal space, limits, access modes) and the waitlist rule in section 12.
+- `LAUNCH_PLAN.md`: "whitelist" is now "waitlist" and never authorization; founder decisions F-01 to F-13 (strict
+  anonymity, deletion with free-text removal, 30-day slug quarantine, abuse brakes, refunds and cancellation, Stripe
+  Tax, minors, legal operator, conditional production approval) and the BLOCKER/HIGH-zero launch gate.
+
 ### Added (launch compliance review)
 
 - `docs/v2/LAUNCH_PLAN.md` records decisions L-07 to L-14 taken with Jev on the review's founder questions, and lists
