@@ -207,12 +207,22 @@ export interface CampaignRow {
   response_count?: number | null;
 }
 
+export interface QuestionConfig {
+  /** Choice questions: the answer options. */
+  options?: string[];
+  /** Multiple choice: the most options a person may pick (enforced by the player). */
+  max?: number;
+  /** A person may skip this question (backend honours it since 000017). */
+  optional?: boolean;
+  [key: string]: unknown;
+}
+
 export interface Question {
   question_id: string;
   position: number;
   kind: QuestionKind;
   prompt: string;
-  config: { options?: string[] } & Record<string, unknown>;
+  config: QuestionConfig;
 }
 
 export interface CampaignDetailData {
@@ -238,7 +248,9 @@ export interface CampaignDetailData {
   can_respond: boolean;
   can_manage: boolean;
   join_code?: string;
-  gate?: { ok: boolean; reasons: string[] };
+  /** Managers only: the activation gate with the limit in force when one is reached (000014 gate_evaluate). */
+  gate?: { ok: boolean; reasons: string[]; family?: string | null; limit?: number; used?: number; limit_key?: string };
+  blocked?: boolean;
 }
 
 export interface CampaignInvite {
@@ -408,9 +420,29 @@ export function createLvApi(transport: LvTransport) {
       }),
     campaignActivate: (campaign: string) => call<object>("lv_campaign_activate", { p_campaign: campaign }),
     campaignClose: (campaign: string) => call<object>("lv_campaign_close", { p_campaign: campaign }),
-    campaignUpdate: (campaign: string, patch: { title?: string }) => call<object>("lv_campaign_update", { p_campaign: campaign, p_title: patch.title ?? null }),
-    questionUpdate: (question: string, patch: { prompt?: string; config?: object; position?: number }) =>
-      call<object>("lv_campaign_question_update", { p_question: question, p_prompt: patch.prompt ?? null, p_config: patch.config ?? null, p_position: patch.position ?? null }),
+    // lv_campaign_update(p_campaign, p_title, p_mode, p_anonymity, p_opens_at, p_closes_at, p_clear_schedule) (000011):
+    // draft only; NULL leaves a field unchanged; p_clear_schedule removes both window ends.
+    campaignUpdate: (
+      campaign: string,
+      patch: { title?: string; mode?: CampaignMode; anonymity?: Anonymity; opensAt?: string; closesAt?: string; clearSchedule?: boolean },
+    ) =>
+      call<object>("lv_campaign_update", {
+        p_campaign: campaign,
+        p_title: patch.title ?? null,
+        p_mode: patch.mode ?? null,
+        p_anonymity: patch.anonymity ?? null,
+        p_opens_at: patch.opensAt ?? null,
+        p_closes_at: patch.closesAt ?? null,
+        p_clear_schedule: patch.clearSchedule ?? false,
+      }),
+    questionUpdate: (question: string, patch: { prompt?: string; config?: object; position?: number; kind?: QuestionKind }) =>
+      call<object>("lv_campaign_question_update", {
+        p_question: question,
+        p_position: patch.position ?? null,
+        p_kind: patch.kind ?? null,
+        p_prompt: patch.prompt ?? null,
+        p_config: patch.config ?? null,
+      }),
     questionRemove: (question: string) => call<object>("lv_campaign_question_remove", { p_question: question }),
     setParticipation: (campaign: string, audience: "members" | "members_and_guests", guestLimit?: number | null) =>
       call<object>("lv_campaign_set_participation", { p_campaign: campaign, p_audience: audience, p_guest_limit: guestLimit ?? null }),

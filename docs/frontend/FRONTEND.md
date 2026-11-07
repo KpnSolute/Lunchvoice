@@ -104,6 +104,16 @@ map is authoritative; the UI never decides what a plan allows.
 11. Pricing, entitlement, Hub Name Reservation.
 12. Browser E2E, mobile and accessibility validation.
 
+## UI tests (e2e)
+
+`npm run test:e2e` starts Vite in dev mode with the dev-only mock (`VITE_LV_MOCK=1`, seeded "demo" account) and
+drives Chromium through Playwright (`e2e/*.test.mjs`, Node's test runner). It needs a Playwright Chromium; this
+environment provides one through `PLAYWRIGHT_BROWSERS_PATH`, elsewhere run `npx playwright install chromium` once.
+It is not part of `test:pr` because it needs a browser. It covers the Hub overview stat row and share card, the
+Campaign Studio sections (one Add question, option rows, required/optional, audience, identity, guests, schedule
+validation, readiness checklist, Publish gating, lifecycle actions, preview without submission), 390px rendering and
+the lightweight Quick Survey flow.
+
 ## Acceptance test
 
 A new creator signs in, creates any Hub, becomes Owner, configures it, creates, schedules and

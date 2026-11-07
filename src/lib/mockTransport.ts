@@ -127,6 +127,26 @@ function activeFamily(s: State, hubId: string): "free" | "starter" | "team" {
   return p.state === "active" ? (p.family as "starter" | "team") : "free";
 }
 const isGone = (s: State, slug: string) => s.gone.some((g) => g.slug === slug.toLowerCase() && new Date(g.until).getTime() > Date.now());
+// lv.validate_window (000011)
+function windowProblem(opens: string | null, closes: string | null): string | null {
+  if (closes && opens && new Date(closes).getTime() <= new Date(opens).getTime()) return "The close time must be after the open time.";
+  if (closes && new Date(closes).getTime() <= Date.now()) return "The close time must be in the future.";
+  return null;
+}
+// lv.validate_answers (000017): required unless config.optional; at least one answer.
+function answersProblem(c: C, answers: unknown): string | null {
+  if (!Array.isArray(answers)) return "answers must be an array";
+  let seen = 0;
+  for (const q of c.questions) {
+    const v = (answers as { question_id: string; value: unknown }[]).find((x) => x.question_id === q.question_id)?.value;
+    if (v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0)) {
+      if ((q.config as { optional?: boolean }).optional) continue;
+      return `missing answer for question ${q.position}`;
+    }
+    seen++;
+  }
+  return seen === 0 ? "answer at least one question" : null;
+}
 const isActive = (c: C) => c.status === "active" && (!c.closes_at || new Date(c.closes_at).getTime() > Date.now());
 const personal = (s: State) => s.hubs.find((h) => h.kind === "personal");
 const isPersonal = (s: State, c: C) => s.hubs.find((h) => h.hub_id === c.hub_id)?.kind === "personal";
@@ -489,7 +509,22 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       const h = hubById(c.hub_id)!;
       const manage = h.kind === "personal" || owns(h);
       if (!manage && c.access === "invite" && !s.eligible.includes(c.campaign_id)) return err("lv_not_found", "Campaign not found");
-      const reasons = [c.questions.length ? "" : "no_questions", c.status === "draft" ? "" : "not_draft"].filter(Boolean);
+      const reasons = [c.questions.length ? "" : "no_questions", c.status === "draft" ? "" : "not_draft", c.closes_at && new Date(c.closes_at).getTime() <= Date.now() ? "already_closed" : ""].filter(Boolean);
+      const detail: Record<string, unknown> = {};
+      if (h.kind === "personal") {
+        const used = s.campaigns.filter((x) => isPersonal(s, x) && (x.status === "active" || x.status === "paused") && x !== c).length;
+        if (used >= LIMITS.free.quick_surveys_active) { reasons.push("limit_reached"); Object.assign(detail, { limit: LIMITS.free.quick_surveys_active, used, limit_key: "quick.max_active" }); }
+        if (c.questions.length > LIMITS.free.quick_survey_questions) reasons.push("too_many_questions");
+      } else {
+        const fam = activeFamily(s, h.hub_id);
+        if (fam === "free") reasons.push("entitlement_required");
+        else {
+          const active = s.campaigns.filter((x) => x.hub_id === h.hub_id && x.status === "active" && x !== c);
+          if (active.length >= LIMITS[fam].active_campaigns) { reasons.push("limit_reached"); Object.assign(detail, { limit: LIMITS[fam].active_campaigns, used: active.length, limit_key: "campaigns.max_active" }); }
+          const surveys = active.filter((x) => x.mode === "survey").length;
+          if (c.mode === "survey" && surveys >= LIMITS[fam].active_surveys) { reasons.push("survey_limit_reached"); if (!detail.limit) Object.assign(detail, { limit: LIMITS[fam].active_surveys, used: surveys, limit_key: "surveys.max_active" }); }
+        }
+      }
       return {
         ok: true,
         campaign: {
@@ -498,7 +533,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
         },
         questions: c.questions, has_responded: Boolean(c.mine_answered), receipt_id: c.mine_answered ? `r-${c.campaign_id}-me` : null,
         can_respond: isActive(c) && !c.mine_answered, can_manage: manage, join_code: c.status === "draft" ? undefined : c.join_code,
-        gate: { ok: reasons.length === 0, reasons },
+        gate: { ok: reasons.length === 0, reasons, family: h.kind === "personal" ? "free" : activeFamily(s, h.hub_id), ...detail },
       };
     }
     case "lv_campaign_create": {
@@ -515,8 +550,11 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (!CORE_KINDS.includes(String(a.p_kind))) return err("lv_invalid_input", "That question kind isn't available");
       if (isPersonal(s, c) && c.questions.length >= LIMITS.free.quick_survey_questions)
         return err("lv_limit_reached", "Quick Surveys have up to 10 questions", { limit: LIMITS.free.quick_survey_questions, used: c.questions.length });
-      const q = { question_id: id("q"), position: c.questions.length, kind: String(a.p_kind), prompt: String(a.p_prompt), config: (a.p_config as object) ?? {} };
+      if (!String(a.p_prompt ?? "").trim()) return err("lv_invalid_input", "A question needs a prompt.");
+      if (c.questions.some((x) => x.position === Number(a.p_position))) return err("lv_conflict", "Another question already has that position");
+      const q = { question_id: id("q"), position: Number(a.p_position), kind: String(a.p_kind), prompt: String(a.p_prompt).trim(), config: (a.p_config as object) ?? {} };
       c.questions.push(q);
+      c.questions.sort((x, y) => x.position - y.position);
       return { ok: true, question_id: q.question_id };
     }
     case "lv_campaign_question_update": {
@@ -524,14 +562,15 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       const q = c?.questions.find((x) => x.question_id === a.p_question);
       if (!c || !q) return err("lv_not_found", "Question not found");
       if (c.status !== "draft") return err("lv_locked", "Questions cannot change after publishing");
-      if (a.p_prompt != null) q.prompt = String(a.p_prompt);
+      if (a.p_prompt != null && !String(a.p_prompt).trim()) return err("lv_invalid_input", "A question needs a prompt.");
+      if (a.p_kind != null && !CORE_KINDS.includes(String(a.p_kind))) return err("lv_invalid_input", "That question kind isn't available");
+      if (a.p_position != null && c.questions.some((x) => x !== q && x.position === Number(a.p_position)))
+        return err("lv_conflict", "Another question already has that position");
+      if (a.p_prompt != null) q.prompt = String(a.p_prompt).trim();
+      if (a.p_kind != null) q.kind = String(a.p_kind);
       if (a.p_config != null) q.config = a.p_config as object;
-      if (a.p_position != null) {
-        const to = Math.max(0, Math.min(c.questions.length - 1, Number(a.p_position)));
-        c.questions.splice(c.questions.indexOf(q), 1);
-        c.questions.splice(to, 0, q);
-        c.questions.forEach((x, i) => (x.position = i));
-      }
+      if (a.p_position != null) q.position = Number(a.p_position);
+      c.questions.sort((x, y) => x.position - y.position);
       return { ok: true };
     }
     case "lv_campaign_question_remove": {
@@ -539,14 +578,24 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (!c) return err("lv_not_found", "Question not found");
       if (c.status !== "draft") return err("lv_locked", "Questions cannot change after publishing");
       c.questions = c.questions.filter((q) => q.question_id !== a.p_question);
-      c.questions.forEach((x, i) => (x.position = i));
       return { ok: true };
     }
     case "lv_campaign_update": {
       const c = camp(a.p_campaign);
       if (!c) return err("lv_not_found", "Campaign not found");
-      if (c.status !== "draft") return err("lv_locked", "Only a draft can be edited");
-      if (a.p_title) c.title = String(a.p_title);
+      if (c.status !== "draft") return err("lv_locked", "Only a draft can be edited. Published versions are immutable.");
+      if (a.p_title != null && !String(a.p_title).trim()) return err("lv_invalid_input", "A Campaign needs a title.");
+      if (a.p_mode != null && !["survey", "poll", "rating", "feedback"].includes(String(a.p_mode))) return err("lv_invalid_input", "Unknown mode.");
+      if (a.p_anonymity != null && !["anonymous", "identified"].includes(String(a.p_anonymity))) return err("lv_invalid_input", "Unknown anonymity.");
+      const opens = a.p_clear_schedule ? null : ((a.p_opens_at as string | null) ?? c.opens_at);
+      const closes = a.p_clear_schedule ? null : ((a.p_closes_at as string | null) ?? c.closes_at);
+      const bad = windowProblem(opens, closes);
+      if (bad) return err("lv_invalid_input", bad);
+      if (a.p_title != null) c.title = String(a.p_title).trim();
+      if (a.p_mode != null) c.mode = String(a.p_mode);
+      if (a.p_anonymity != null) c.anonymity = String(a.p_anonymity);
+      c.opens_at = opens;
+      c.closes_at = closes;
       return { ok: true };
     }
     case "lv_campaign_set_participation": {
@@ -575,8 +624,12 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
         if (c.mode === "survey" && surveys >= LIMITS[fam].active_surveys) return err("lv_limit_reached", "Active survey limit reached", { limit: LIMITS[fam].active_surveys, used: surveys });
       }
       if (fn === "lv_campaign_schedule") {
+        const bad = windowProblem((a.p_opens_at as string) ?? null, (a.p_closes_at as string) ?? null);
+        if (bad) return err("lv_invalid_input", bad);
         c.opens_at = (a.p_opens_at as string) ?? null;
         c.closes_at = (a.p_closes_at as string) ?? null;
+      } else if (c.closes_at && new Date(c.closes_at).getTime() <= Date.now()) {
+        return err("lv_gate_blocked", "already_closed", { reasons: ["already_closed"] });
       }
       c.status = "active";
       return { ok: true };
@@ -613,6 +666,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (!c) return err("lv_not_found", "Campaign not found");
       if (!isActive(c)) return err("lv_closed", "This Campaign is not accepting responses");
       if (c.mine_answered) return { ok: true, receipt_id: `r-${c.campaign_id}-me`, duplicate: true };
+      { const bad = answersProblem(c, a.p_answers); if (bad) return err("lv_invalid_input", bad); }
       c.mine_answered = true;
       c.responses.push({ receipt: `r-${c.campaign_id}-me`, answers: a.p_answers as Resp["answers"], at: iso(Date.now()), guest: false });
       return { ok: true, receipt_id: `r-${c.campaign_id}-me`, duplicate: false };
@@ -632,6 +686,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       const c = s.campaigns.find((x) => x.join_code === String(a.p_join_code).toUpperCase());
       if (!c) return err("lv_not_found", "Campaign not found");
       if (!isActive(c)) return err("lv_closed", "This Campaign is not accepting responses");
+      { const bad = answersProblem(c, a.p_answers); if (bad) return err("lv_invalid_input", bad); }
       const receipt = id("rcpt");
       c.responses.push({ receipt, answers: a.p_answers as Resp["answers"], at: iso(Date.now()), guest: true });
       return { ok: true, receipt_id: receipt, duplicate: false };

@@ -53,7 +53,11 @@ function RadioCard({
       {...props}
     >
       <span className="flex w-full items-center justify-between gap-2 text-[15px] font-semibold">
-        {title}
+        <span className="flex items-center gap-2">
+          {/* Not colour alone: the selected card also shows a check. */}
+          <RadioGroupPrimitive.Indicator className="grid size-5 place-content-center rounded-full bg-[var(--lv-on-accent)] text-[var(--lv-accent-light)] text-[12px] leading-none font-bold" aria-hidden="true">✓</RadioGroupPrimitive.Indicator>
+          {title}
+        </span>
         {badge}
       </span>
       {description && <span className="text-[13px] leading-[1.45] opacity-80">{description}</span>}
