@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
@@ -15,7 +15,19 @@ import { Switch } from "@/components/shadcn/switch";
 import { Badge } from "@/components/shadcn/badge";
 import { RadioCard, RadioGroup } from "@/components/shadcn/radio-group";
 import { EmptyState, Field, LoadingRows, Notice, PageHeader, PhaseBadge, QuotaMeter, RowItem, RowList, ToggleRow } from "@/components/shadcn/blocks";
-import { StudioView } from "./Studio";
+import {
+  GuestsGroup,
+  IdentityGroup,
+  InvitesCard,
+  LifecycleActions,
+  ReadinessList,
+  ShareCard,
+  StudioHeader,
+  useReadiness,
+  useSaveState,
+  type ScheduleState,
+} from "./Studio";
+import { QuestionWorkbench } from "./QuestionWorkbench";
 import { ResultsView } from "./Results";
 import { Player } from "./Player";
 
@@ -156,15 +168,92 @@ export function NewSurvey() {
 
 /* ------------------------------------------------------------------ /surveys/:id and /surveys/:id/results */
 
+/**
+ * The Quick Survey editor stays lightweight: Title → Questions → Who can respond → Publish, on one page. It reuses the
+ * Studio's question workbench, identity and guest groups, checklist and lifecycle actions, not the full Studio.
+ */
 export function SurveyStudio() {
   const { id = "" } = useParams();
   const { api } = useIdentity();
+  const detail = useLv(() => api.campaignGet(id), [api, id]);
   const list = useLv(() => api.quickSurveyList(), [api]);
   const ctx = useLv(() => api.myContext(), [api]);
-  const quick = { questionLimit: ctx.data?.quick_surveys.question_limit ?? 10, active: list.data?.active ?? 0, activeLimit: list.data?.limit ?? null };
+  const save = useSaveState();
+  const [title, setTitle] = useState<string | null>(null);
+  const timer = useRef<number | null>(null);
+  const d = detail.data;
+  useEffect(() => { if (d && title === null) setTitle(d.campaign.title); }, [d, title]);
+  const questionLimit = ctx.data?.quick_surveys.question_limit ?? null;
+  const schedule: ScheduleState = useMemo(() => ({ start: { mode: "now" }, end: { mode: "none" } }), []);
+  const issues = useReadiness(d ?? null, title ?? d?.campaign.title ?? "", schedule, questionLimit);
+  const reloadAll = () => { detail.reload(); list.reload(); };
+
+  if (detail.loading && !d) return <div className="ui-page"><LoadingRows rows={4} label="Loading your survey" /></div>;
+  if (detail.error && !d) return <div className="ui-page"><Notice tone="error">{describeError(detail.error)}</Notice></div>;
+  if (!d) return null;
+  const draft = d.campaign.status === "draft";
+
+  function onTitle(v: string) {
+    setTitle(v);
+    if (timer.current) window.clearTimeout(timer.current);
+    if (!v.trim()) return;
+    timer.current = window.setTimeout(async () => { const r = await save.run(api.campaignUpdate(id, { title: v.trim() })); if (r.ok) detail.reload(); }, 600);
+  }
+
   return (
-    <div className="ui-page lv-studio-page">
-      <StudioView campaignId={id} backTo="/surveys" crumb="Quick Surveys" resultsTo={`/surveys/${id}/results`} quick={quick} />
+    <div className="ui-page lv-studio-page" data-testid="quick-editor">
+      <StudioHeader d={d} title={title ?? d.campaign.title} backTo="/surveys" crumb="Quick Surveys" resultsTo={`/surveys/${id}/results`} save={save} issues={issues} schedule={schedule} onChanged={reloadAll} quick />
+
+      <ol className="lv-quick-steps">
+        <li>
+          <Card>
+            <h2 className="lv-share-h"><span className="lv-step-n">1</span>Title</h2>
+            <Field label="Title" htmlFor="qs-title-edit" counter={{ value: (title ?? "").length, max: 120 }} error={draft && !(title ?? "").trim() ? "Add a title." : undefined}>
+              <Input id="qs-title-edit" value={title ?? ""} maxLength={120} disabled={!draft} onChange={(e) => onTitle(e.target.value)} aria-describedby="qs-title-edit-help" />
+            </Field>
+          </Card>
+        </li>
+        <li>
+          <Card>
+            <h2 className="lv-share-h"><span className="lv-step-n">2</span>Questions</h2>
+            <QuestionWorkbench d={d} locked={!draft} limit={questionLimit} save={save} reload={detail.reload} />
+          </Card>
+        </li>
+        <li>
+          <div className="lv-stack-16">
+            <h2 className="lv-share-h lv-step-h"><span className="lv-step-n">3</span>Who can respond</h2>
+            <div className="lv-sections-2">
+              <Card data-testid="audience-who">
+                <h3 className="lv-qw-h">Access</h3>
+                <p className="lv-m0"><strong>{d.campaign.access === "invite" ? "Invite only" : "Anyone with the link"}</strong></p>
+                <p className="ui-muted lv-m0">{d.campaign.access === "invite" ? "Only people you send an invite link to. They sign in to answer." : "Link, QR code or six-character code. Never listed publicly."} Chosen when the survey was created.</p>
+              </Card>
+              <IdentityGroup d={d} save={save} reload={detail.reload} />
+              <GuestsGroup d={d} save={save} reload={detail.reload} />
+            </div>
+          </div>
+        </li>
+        <li>
+          <div className="lv-stack-16">
+            <h2 className="lv-share-h lv-step-h"><span className="lv-step-n">4</span>{draft ? "Publish" : "Share"}</h2>
+            <div className="lv-sections-2">
+              {draft ? (
+                <Card>
+                  <ReadinessList issues={issues} />
+                  <div className="ui-row"><LifecycleActions d={d} issues={issues} schedule={schedule} onChanged={reloadAll} quick /></div>
+                </Card>
+              ) : (
+                <ShareCard d={d} />
+              )}
+              <Card>
+                <h3 className="lv-qw-h">Your free slots</h3>
+                <QuotaMeter label="Active Quick Surveys" used={list.data?.active ?? 0} limit={list.data?.limit ?? null} hint="Archiving a survey frees a slot." />
+              </Card>
+              {d.campaign.access === "invite" && <InvitesCard campaignId={id} disabled={draft} />}
+            </div>
+          </div>
+        </li>
+      </ol>
     </div>
   );
 }

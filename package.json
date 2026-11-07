@@ -21,7 +21,8 @@
     "test:heavy": "npm run test:light && npm audit --audit-level=high",
     "preview": "vite preview",
     "postinstall": "git config core.hooksPath .githooks || true",
-    "test:functions": "node --import tsx --test supabase/functions/_shared/*.test.ts"
+    "test:functions": "node --import tsx --test supabase/functions/_shared/*.test.ts",
+    "test:e2e": "node --test --test-concurrency=1 e2e/*.test.mjs"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",
@@ -48,6 +49,7 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^6.0.3",
     "jose": "^5.9.6",
+    "playwright": "^1.63.0",
     "shadcn": "^4.23.0",
     "tailwindcss": "^4.3.5",
     "tsx": "^4.23.15",

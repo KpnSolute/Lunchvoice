@@ -1,21 +1,22 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import { describeError, describeGate } from "../lib/errors";
-import type { CampaignDetailData, CampaignInvite, Question, QuestionKind } from "../lib/lvApi";
+import type { Anonymity, CampaignDetailData, CampaignInvite, CampaignMode, LvResult, Question } from "../lib/lvApi";
+import { readiness, type ReadinessIssue, type StudioSection } from "../lib/readiness";
 import { Icon } from "../components/Icon";
 import { campaignPhase, LinkButton } from "../components/ui";
 import { QuestionInput } from "../ui/QuestionControls";
+import { kindLabel, QuestionWorkbench, type SaveTracker } from "./QuestionWorkbench";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
 import { Input } from "@/components/shadcn/input";
-import { Textarea } from "@/components/shadcn/textarea";
 import { Switch } from "@/components/shadcn/switch";
-import { Badge } from "@/components/shadcn/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/shadcn/select";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/shadcn/dialog";
+import { RadioCard, RadioGroup } from "@/components/shadcn/radio-group";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shadcn/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/shadcn/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,351 +28,691 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/shadcn/alert-dialog";
-import { CopyField, Eyebrow, Field, LoadingRows, Notice, PhaseBadge, QuotaMeter, Segmented, ToggleRow } from "@/components/shadcn/blocks";
+import { CopyField, Field, LoadingRows, Notice, PhaseBadge, QuotaMeter, Segmented, ToggleRow } from "@/components/shadcn/blocks";
 import { QrCode } from "@/components/shadcn/blocks/qr";
 
 /**
- * Campaign Studio. The same editor serves Hub Campaigns and Quick Surveys (the personal space): Quick Surveys add the
- * 10-question limit, link-or-invite access and invite links. Every rule is enforced by the backend; the UI explains.
+ * Campaign Studio: Details | Questions | Audience | Schedule | Review, freely navigable. Every field maps to a real
+ * lv_api field (lv_campaign_update: title, mode, anonymity, opens_at/closes_at; lv_campaign_set_participation:
+ * audience; questions). Changes autosave in the draft with a visible save state. Publishing is gated by the readiness
+ * checklist and re-validated by the server.
  */
 
-export const KINDS: { key: QuestionKind; label: string }[] = [
-  { key: "rating", label: "Rating 1–5" },
-  { key: "single_choice", label: "Single choice" },
-  { key: "multi_choice", label: "Multiple choice" },
-  { key: "yes_no", label: "Yes / No" },
-  { key: "text", label: "Short text" },
+export { KINDS } from "./QuestionWorkbench";
+
+/* ------------------------------------------------------------------ save state */
+
+export type SaveStatus = "idle" | "saving" | "saved" | "error";
+
+/** Counts in-flight saves: "Saving…" while any runs, then "Draft saved" or "Error saving". */
+export function useSaveState(): SaveTracker & { status: SaveStatus; error: string | null } {
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  const [error, setError] = useState<string | null>(null);
+  const inflight = useRef(0);
+  const failed = useRef(false);
+  const run = useCallback(async <T extends LvResult<object>>(p: Promise<T>): Promise<T> => {
+    inflight.current++;
+    setStatus("saving");
+    const r = await p;
+    inflight.current--;
+    if (!r.ok) { failed.current = true; setError(describeError(r.error)); }
+    if (inflight.current === 0) {
+      setStatus(failed.current ? "error" : "saved");
+      if (!failed.current) setError(null);
+      failed.current = false;
+    }
+    return r;
+  }, []);
+  return { run, status, error };
+}
+
+export function SaveIndicator({ status, error }: { status: SaveStatus; error: string | null }) {
+  const text = status === "saving" ? "Saving…" : status === "saved" ? "Draft saved" : status === "error" ? "Error saving" : "All changes save automatically";
+  return (
+    <span className="lv-save" data-status={status} role="status" aria-live="polite" title={error ?? undefined} data-testid="save-state">
+      <span className="lv-save-dot" aria-hidden="true" />
+      {text}
+      {status === "error" && error && <span className="sr-only">: {error}</span>}
+    </span>
+  );
+}
+
+/* ------------------------------------------------------------------ schedule model */
+
+export interface ScheduleState {
+  start: { mode: "now" } | { mode: "at"; at: string | null };
+  end: { mode: "none" } | { mode: "at"; at: string | null };
+}
+const toLocal = (iso: string | null) => (iso ? new Date(new Date(iso).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "");
+const fromLocal = (v: string) => (v ? new Date(v).toISOString() : null);
+function scheduleOf(d: CampaignDetailData): ScheduleState {
+  return {
+    start: d.campaign.opens_at ? { mode: "at", at: d.campaign.opens_at } : { mode: "now" },
+    end: d.campaign.closes_at ? { mode: "at", at: d.campaign.closes_at } : { mode: "none" },
+  };
+}
+export const startsLater = (s: ScheduleState) => s.start.mode === "at" && !!s.start.at && new Date(s.start.at).getTime() > Date.now();
+
+/** Gate reasons from lv_campaign_get that are not already covered by the local checklist. */
+export function gateMessages(d: CampaignDetailData): { key: string; message: string }[] {
+  const skip = new Set(["no_questions", "not_draft", "already_closed", "too_many_questions"]);
+  const reasons = (d.gate?.reasons ?? []).filter((r) => !skip.has(r));
+  const out = reasons.map((r, i) => ({ key: r, message: describeGate([r])[0] ?? r, i }));
+  if (d.gate?.limit !== undefined && d.gate.used !== undefined && out.length)
+    out[0] = { ...out[0], message: `${out[0].message} (${d.gate.used} of ${d.gate.limit} in use.)` };
+  return out.map(({ key, message }) => ({ key, message }));
+}
+
+export function useReadiness(d: CampaignDetailData | null, title: string, schedule: ScheduleState, questionLimit: number | null): ReadinessIssue[] {
+  return useMemo(
+    () => (d ? readiness({ title, questions: d.questions, start: schedule.start, end: schedule.end, questionLimit, gateMessages: gateMessages(d) }) : []),
+    [d, title, schedule, questionLimit],
+  );
+}
+
+/* ------------------------------------------------------------------ the Studio */
+
+const SECTIONS: { key: StudioSection; label: string }[] = [
+  { key: "details", label: "Details" },
+  { key: "questions", label: "Questions" },
+  { key: "audience", label: "Audience" },
+  { key: "schedule", label: "Schedule" },
+  { key: "review", label: "Review" },
 ];
-const TEXT_WARNING = "Text answers can identify people. We only show them once enough people have answered.";
-const hasOptions = (k: QuestionKind) => k === "single_choice" || k === "multi_choice";
-const splitOptions = (s: string) => s.split("\n").map((o) => o.trim()).filter(Boolean);
-const toLocalInput = (iso: string | null) => (iso ? new Date(new Date(iso).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "");
 
-type Pane = "outline" | "edit" | "share";
+export function StudioView({ campaignId, backTo, crumb, resultsTo, hubId, hubName }: { campaignId: string; backTo: string; crumb: string; resultsTo: string; hubId: string; hubName: string }) {
+  const { api } = useIdentity();
+  const detail = useLv(() => api.campaignGet(campaignId), [api, campaignId]);
+  const save = useSaveState();
+  const [section, setSection] = useState<StudioSection>("details");
+  const [title, setTitle] = useState<string | null>(null);
+  const [sched, setSched] = useState<ScheduleState | null>(null);
+  const d = detail.data;
 
-export function StudioView({
-  campaignId,
+  useEffect(() => { if (d && title === null) setTitle(d.campaign.title); }, [d, title]);
+  useEffect(() => { if (d && sched === null) setSched(scheduleOf(d)); }, [d, sched]);
+  const schedule = sched ?? { start: { mode: "now" }, end: { mode: "none" } };
+  const issues = useReadiness(d ?? null, title ?? d?.campaign.title ?? "", schedule, null);
+
+  if (detail.loading && !d) return <LoadingRows rows={4} label="Loading the Studio" />;
+  if (detail.error && !d) return <Notice tone="error">{describeError(detail.error)}</Notice>;
+  if (!d) return null;
+
+  const draft = d.campaign.status === "draft";
+  const bySection = (s: StudioSection) => issues.filter((i) => i.section === s).length;
+
+  return (
+    <div className="lv-studio2" data-testid="studio">
+      <StudioHeader
+        d={d}
+        title={title ?? d.campaign.title}
+        backTo={backTo}
+        crumb={crumb}
+        resultsTo={resultsTo}
+        save={save}
+        issues={issues}
+        schedule={schedule}
+        onChanged={detail.reload}
+        onShowReview={() => setSection("review")}
+      />
+
+      <Tabs value={section} onValueChange={(v) => setSection(v as StudioSection)} className="lv-studio-tabs">
+        <TabsList aria-label="Studio sections" data-testid="studio-sections">
+          {SECTIONS.map((s) => (
+            <TabsTrigger key={s.key} value={s.key}>
+              {s.label}
+              {draft && s.key !== "review" && bySection(s.key) > 0 && (
+                <span className="lv-tab-flag" aria-label={`${bySection(s.key)} to fix`}>{bySection(s.key)}</span>
+              )}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        <TabsContent value="details">
+          <DetailsSection d={d} title={title ?? ""} setTitle={setTitle} save={save} reload={detail.reload} />
+        </TabsContent>
+        <TabsContent value="questions">
+          <QuestionWorkbench d={d} locked={!draft} limit={null} save={save} reload={detail.reload} />
+        </TabsContent>
+        <TabsContent value="audience">
+          <div className="lv-sections-2">
+            <WhoCanParticipate hubName={hubName} />
+            <IdentityGroup d={d} save={save} reload={detail.reload} />
+            <GuestsGroup d={d} save={save} reload={detail.reload} />
+          </div>
+        </TabsContent>
+        <TabsContent value="schedule">
+          <ScheduleSection d={d} schedule={schedule} setSchedule={setSched} save={save} reload={detail.reload} entitlement={<HubEntitlement hubId={hubId} d={d} />} />
+        </TabsContent>
+        <TabsContent value="review">
+          <ReviewSection d={d} title={title ?? d.campaign.title} schedule={schedule} issues={issues} goTo={setSection} audienceLabel={`Members of ${hubName}`} />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ header */
+
+export function StudioHeader({
+  d,
+  title,
   backTo,
   crumb,
   resultsTo,
+  save,
+  issues,
+  schedule,
+  onChanged,
+  onShowReview,
   quick,
-  shareBase = "https://lunchvoice.com",
 }: {
-  campaignId: string;
+  d: CampaignDetailData;
+  title: string;
   backTo: string;
   crumb: string;
   resultsTo: string;
-  /** Set for Quick Surveys: the personal-space limits from lv_my_context / lv_quick_survey_list. */
-  quick?: { questionLimit: number | null; active: number; activeLimit: number | null };
-  shareBase?: string;
+  save: ReturnType<typeof useSaveState>;
+  issues: ReadinessIssue[];
+  schedule: ScheduleState;
+  onChanged: () => void;
+  onShowReview?: () => void;
+  quick?: boolean;
+}) {
+  const phase = campaignPhase(d.campaign);
+  return (
+    <header className="lv-studio-head">
+      <Button asChild variant="secondary" size="icon" aria-label="Back">
+        <Link to={backTo}><Icon name="back" size={18} /></Link>
+      </Button>
+      <div className="lv-studio-title">
+        <span className="lv-row-sub">{crumb}</span>
+        <h1 data-testid="studio-title">{title || "Untitled"}</h1>
+        <div className="ui-row"><PhaseBadge phase={phase} />{d.campaign.status === "draft" && <SaveIndicator status={save.status} error={save.error} />}</div>
+      </div>
+      <div className="lv-studio-actions">
+        <PreviewButton d={d} title={title} />
+        {/* The Quick Survey flow publishes from its own Publish step; its header carries lifecycle actions afterwards. */}
+        {!(quick && d.campaign.status === "draft") && <LifecycleActions d={d} issues={issues} schedule={schedule} onChanged={onChanged} onShowReview={onShowReview} quick={quick} />}
+        {d.campaign.status !== "draft" && <LinkButton to={resultsTo} variant="secondary" icon="voice">Results</LinkButton>}
+      </div>
+      <BlockerSummary issues={issues} />
+    </header>
+  );
+}
+
+/** Screen-reader text that the disabled publish button points at with aria-describedby. */
+function BlockerSummary({ issues }: { issues: ReadinessIssue[] }) {
+  return (
+    <p id="publish-blockers" className="sr-only">
+      {issues.length ? `Can’t publish yet. ${issues.length === 1 ? "One thing" : `${issues.length} things`} to fix: ${issues.map((i) => i.message).join(" ")}` : "Ready to publish."}
+    </p>
+  );
+}
+
+/* ------------------------------------------------------------------ lifecycle */
+
+export function LifecycleActions({
+  d,
+  issues,
+  schedule,
+  onChanged,
+  onShowReview,
+  quick,
+}: {
+  d: CampaignDetailData;
+  issues: ReadinessIssue[];
+  schedule: ScheduleState;
+  onChanged: () => void;
+  onShowReview?: () => void;
+  quick?: boolean;
 }) {
   const { api } = useIdentity();
-  const detail = useLv(() => api.campaignGet(campaignId), [api, campaignId]);
-  const [sel, setSel] = useState<string>("new");
-  const [pane, setPane] = useState<Pane>("outline");
-  const [error, setError] = useState<string | null>(null);
-  const d = detail.data;
+  const [busy, setBusy] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const id = d.campaign.campaign_id;
+  const status = d.campaign.status;
 
-  if (detail.loading && !d) return <LoadingRows rows={4} label="Loading the Studio" />;
-  if (detail.error) return <Notice tone="error">{describeError(detail.error)}</Notice>;
-  if (!d) return null;
-
-  const phase = campaignPhase(d.campaign);
-  const draft = d.campaign.status === "draft";
-  const personal = Boolean(quick) || d.campaign.space === "personal";
-  const limit = quick?.questionLimit ?? d.campaign.question_limit ?? null;
-  const atLimit = limit !== null && d.questions.length >= limit;
-  const current = d.questions.find((q) => q.question_id === sel) ?? null;
-
-  const run = async (fn: () => Promise<{ ok: boolean; error?: { code: string; message: string } }>, done?: string) => {
-    setError(null);
+  async function act(fn: () => Promise<LvResult<object>>, done: string) {
+    if (busy) return;
+    setBusy(true);
+    setServerError(null);
     const r = await fn();
-    if (r.ok) {
-      if (done) toast.success(done);
-      detail.reload();
-      return true;
-    }
-    setError(describeError(r.error as never));
-    return false;
-  };
+    setBusy(false);
+    if (r.ok) { toast.success(done); onChanged(); return; }
+    const msg = describeError(r.error);
+    setServerError(msg);
+    toast.error(msg);
+  }
 
-  return (
-    <div className="lv-studio" data-pane={pane}>
-      <div className="lv-studio-top">
-        <Button asChild variant="secondary" size="icon" aria-label="Back">
-          <Link to={backTo}><Icon name="back" size={18} /></Link>
+  if (status === "draft") {
+    const later = startsLater(schedule);
+    const opens = schedule.start.mode === "at" ? schedule.start.at : null;
+    const closes = schedule.end.mode === "at" ? schedule.end.at : null;
+    const blocked = issues.length > 0;
+    return (
+      <>
+        <Button
+          variant="primary"
+          disabled={blocked || busy}
+          aria-describedby="publish-blockers"
+          data-testid="publish"
+          onClick={() => act(() => (opens || closes ? api.schedule(id, opens, closes) : api.campaignActivate(id)), later ? "Scheduled" : "Published")}
+        >
+          {busy ? (later ? "Scheduling…" : "Publishing…") : later ? "Schedule" : "Publish"}
         </Button>
-        <div className="lv-studio-title">
-          <span className="lv-row-sub">{crumb}</span>
-          <TitleEditor d={d} onSave={(title) => run(() => api.campaignUpdate(campaignId, { title }), "Title saved")} />
-        </div>
-        <PhaseBadge phase={phase} />
-        <div className="lv-studio-actions">
-          {draft && <PublishDialog d={d} onDone={() => detail.reload()} />}
-          {d.campaign.status === "active" && <Button variant="secondary" onClick={() => run(() => api.campaignPause(campaignId), "Paused")}>Pause</Button>}
-          {d.campaign.status === "paused" && <Button variant="ink" onClick={() => run(() => api.campaignResume(campaignId), "Resumed")}>Resume</Button>}
-          {(d.campaign.status === "active" || d.campaign.status === "paused") && (
-            <ConfirmAction
-              trigger={<Button variant="secondary">Close</Button>}
-              title="Close this survey?"
-              body="Nobody can answer after it closes. Results stay, and anonymous results become visible once it’s closed."
-              action="Close survey"
-              onConfirm={() => run(() => api.campaignClose(campaignId), "Closed")}
-            />
-          )}
-          {personal && (d.campaign.status === "active" || d.campaign.status === "paused") && (
-            <ConfirmAction
-              trigger={<Button variant="quiet">Archive</Button>}
-              title="Close and archive this survey?"
-              body="Nobody can answer after this. It leaves your list and frees one of your active Quick Survey slots. Results are kept."
-              action="Close and archive"
-              onConfirm={() => run(async () => { const c = await api.campaignClose(campaignId); return c.ok ? api.campaignArchive(campaignId) : c; }, "Archived. One slot is free again.")}
-            />
-          )}
-          {d.campaign.status === "closed" && (
-            <ConfirmAction
-              trigger={<Button variant="quiet">Archive</Button>}
-              title="Archive this survey?"
-              body="It leaves your lists. Its results are kept."
-              action="Archive"
-              onConfirm={() => run(() => api.campaignArchive(campaignId), "Archived")}
-            />
-          )}
-          {!draft && <LinkButton to={resultsTo} variant="secondary" icon="voice">Results</LinkButton>}
-        </div>
-      </div>
-
-      <div className="lv-pane-switch">
-        <Segmented<Pane>
-          label="Studio panes"
-          value={pane}
-          onValueChange={setPane}
-          options={[{ value: "outline", label: "Outline" }, { value: "edit", label: "Edit" }, { value: "share", label: draft ? "Settings" : "Share" }]}
+        {blocked && onShowReview && <Button variant="quiet" size="sm" onClick={onShowReview}>{issues.length} to fix</Button>}
+        {serverError && <p className="lv-field-error lv-m0 lv-wide" role="alert">{serverError}</p>}
+      </>
+    );
+  }
+  const live = status === "active";
+  return (
+    <>
+      {live && <Button variant="secondary" disabled={busy} onClick={() => act(() => api.campaignPause(id), "Paused")}>Pause</Button>}
+      {status === "paused" && <Button variant="ink" disabled={busy} onClick={() => act(() => api.campaignResume(id), "Resumed")}>Resume</Button>}
+      {(live || status === "paused") && (
+        <ConfirmAction
+          trigger={<Button variant="secondary" disabled={busy}>Close</Button>}
+          title="Close this Campaign?"
+          body="Nobody can answer after it closes. Results stay, and anonymous results become visible once it’s closed."
+          action="Close"
+          onConfirm={() => act(() => api.campaignClose(id), "Closed")}
         />
-      </div>
-
-      {error && <Notice tone="error">{error}</Notice>}
-      {!draft && <Notice>Published surveys can’t change their questions. Close it to stop answers.</Notice>}
-      {quick && draft && quick.activeLimit !== null && quick.active >= quick.activeLimit && (
-        <Notice tone="warn" title={`${quick.active} of ${quick.activeLimit} Quick Surveys are active`}>Publishing needs a free slot. Close or archive an active survey first.</Notice>
       )}
+      {quick && (live || status === "paused") && (
+        <ConfirmAction
+          trigger={<Button variant="quiet" disabled={busy}>Archive</Button>}
+          title="Close and archive this survey?"
+          body="Nobody can answer after this. It leaves your list and frees one of your active Quick Survey slots. Results are kept."
+          action="Close and archive"
+          onConfirm={() => act(async () => { const c = await api.campaignClose(id); return c.ok ? api.campaignArchive(id) : c; }, "Archived. One slot is free again.")}
+        />
+      )}
+      {status === "closed" && (
+        <ConfirmAction
+          trigger={<Button variant="quiet" disabled={busy}>Archive</Button>}
+          title="Archive this Campaign?"
+          body="It leaves your lists. Its results are kept."
+          action="Archive"
+          onConfirm={() => act(() => api.campaignArchive(id), "Archived")}
+        />
+      )}
+      {serverError && <p className="lv-field-error lv-m0 lv-wide" role="alert">{serverError}</p>}
+    </>
+  );
+}
 
-      <div className="lv-studio-grid">
-        <section className="lv-pane lv-pane-outline" aria-label="Questions">
-          <div className="ui-spread">
-            <Eyebrow>Questions · {d.questions.length}{limit !== null ? ` of ${limit}` : ""}</Eyebrow>
-          </div>
-          {limit !== null && <QuotaMeter label="Questions" used={d.questions.length} limit={limit} />}
-          <ol className="lv-outline">
-            {d.questions.map((q, i) => (
-              <li key={q.question_id} className="lv-outline-li">
-                <button type="button" className="lv-outline-item" aria-current={sel === q.question_id ? "true" : undefined} onClick={() => { setSel(q.question_id); setPane("edit"); }}>
-                  <span className="lv-outline-n">{String(i + 1).padStart(2, "0")}</span>
-                  <span className="lv-outline-text"><span>{q.prompt}</span><small>{KINDS.find((k) => k.key === q.kind)?.label ?? q.kind}</small></span>
-                </button>
-                {draft && (
-                  <span className="lv-outline-move">
-                    <Button variant="quiet" size="icon-sm" aria-label={`Move question ${i + 1} up`} disabled={i === 0} onClick={() => run(() => api.questionUpdate(q.question_id, { position: i - 1 }))}><Icon name="chevron" size={14} className="lv-rot180" /></Button>
-                    <Button variant="quiet" size="icon-sm" aria-label={`Move question ${i + 1} down`} disabled={i === d.questions.length - 1} onClick={() => run(() => api.questionUpdate(q.question_id, { position: i + 1 }))}><Icon name="chevron" size={14} /></Button>
-                  </span>
-                )}
-              </li>
-            ))}
-          </ol>
-          {draft && (
-            <button type="button" className="lv-add" aria-current={sel === "new" ? "true" : undefined} disabled={atLimit} onClick={() => { setSel("new"); setPane("edit"); }}>
-              <Icon name="plus" size={16} /> {atLimit ? `Limit of ${limit} questions reached` : "Add question"}
-            </button>
-          )}
-        </section>
+/* ------------------------------------------------------------------ preview (never submits) */
 
-        <section className="lv-pane lv-pane-edit" aria-label="Editor">
-          {current ? (
-            <QuestionEditor key={current.question_id} q={current} index={d.questions.indexOf(current)} locked={!draft}
-              onSave={(patch) => run(() => api.questionUpdate(current.question_id, patch), "Saved")}
-              onRemove={async () => { if (await run(() => api.questionRemove(current.question_id), "Question removed")) setSel("new"); }} />
-          ) : draft ? (
-            <NewQuestion disabled={atLimit} limit={limit} onAdd={async (kind, prompt, config) => {
-              const r = await api.questionAdd(campaignId, d.questions.length, kind, prompt, config);
-              if (!r.ok) { setError(describeError(r.error)); return false; }
-              detail.reload();
-              setSel(r.question_id);
-              return true;
-            }} />
-          ) : (
-            <Card variant="well"><p className="lv-m0">Pick a question on the left to see how it looks.</p></Card>
-          )}
-        </section>
+export function PreviewButton({ d, title }: { d: CampaignDetailData; title: string }) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild><Button variant="secondary" data-testid="preview">Preview</Button></DialogTrigger>
+      <DialogContent className="lv-preview-dialog">
+        <DialogHeader>
+          <DialogTitle>Preview: {title || "Untitled"}</DialogTitle>
+          <DialogDescription>This is what respondents see. Nothing you pick here is sent.</DialogDescription>
+        </DialogHeader>
+        <PreviewRunner questions={d.questions} anonymous={d.campaign.anonymity === "anonymous"} />
+      </DialogContent>
+    </Dialog>
+  );
+}
 
-        <aside className="lv-pane lv-pane-share" aria-label={draft ? "Settings" : "Share"}>
-          {quick && (
-            <Card>
-              <h2 className="lv-share-h">Your free slots</h2>
-              <QuotaMeter label="Active Quick Surveys" used={quick.active} limit={quick.activeLimit} hint="Archiving a survey frees a slot." />
-            </Card>
-          )}
-          <ParticipationCard d={d} personal={personal} onChange={() => detail.reload()} setError={setError} />
-          {!draft && <ShareCard d={d} shareBase={shareBase} />}
-          {personal && d.campaign.access === "invite" && <InvitesCard campaignId={campaignId} shareBase={shareBase} disabled={draft} />}
-        </aside>
+function PreviewRunner({ questions, anonymous }: { questions: Question[]; anonymous: boolean }) {
+  const [step, setStep] = useState(-1);
+  const [answers, setAnswers] = useState<Record<string, unknown>>({});
+  if (questions.length === 0) return <Notice>Add a question to preview it.</Notice>;
+  if (step === -1)
+    return (
+      <div className="lv-stack-16">
+        <p className="lv-m0">{questions.length} {questions.length === 1 ? "question" : "questions"} · {anonymous ? "Anonymous: answers aren’t linked to names." : "Identified: the creator sees who answered."}</p>
+        <div className="ui-row"><Button variant="primary" onClick={() => setStep(0)}>Start preview</Button></div>
+      </div>
+    );
+  if (step >= questions.length)
+    return (
+      <div className="lv-stack-16">
+        <Notice tone="ok" title="Preview finished">Nothing was sent. Respondents would see a thank-you screen here.</Notice>
+        <div className="ui-row"><Button variant="secondary" onClick={() => { setAnswers({}); setStep(-1); }}>Start again</Button></div>
+      </div>
+    );
+  const q = questions[step];
+  const v = answers[q.question_id];
+  const answered = v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0);
+  return (
+    <div className="lv-stack-16">
+      <span className="lv-row-sub">{step + 1} / {questions.length} · {q.config.optional ? "Optional" : "Required"}</span>
+      <h3 className="lv-q-title lv-q-title-preview">{q.prompt}</h3>
+      <QuestionInput q={q} value={v} onChange={(x) => setAnswers((a) => ({ ...a, [q.question_id]: x }))} />
+      <div className="ui-row">
+        <Button variant="secondary" disabled={step === 0} onClick={() => setStep((s) => s - 1)}>Back</Button>
+        <Button variant="ink" disabled={!answered && !q.config.optional} onClick={() => setStep((s) => s + 1)}>{step === questions.length - 1 ? "Finish" : "Next"}</Button>
       </div>
     </div>
   );
 }
 
-function TitleEditor({ d, onSave }: { d: CampaignDetailData; onSave: (t: string) => Promise<boolean> }) {
-  const [t, setT] = useState(d.campaign.title);
-  useEffect(() => setT(d.campaign.title), [d.campaign.title]);
-  if (d.campaign.status !== "draft") return <h1>{d.campaign.title}</h1>;
-  return (
-    <h1>
-      <input
-        className="lv-title-input"
-        data-slot="title-input"
-        aria-label="Title"
-        value={t}
-        maxLength={120}
-        onChange={(e) => setT(e.target.value)}
-        onBlur={() => { if (t.trim() && t.trim() !== d.campaign.title) void onSave(t.trim()); }}
-        onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-      />
-    </h1>
-  );
-}
+/* ------------------------------------------------------------------ sections */
 
-function QuestionEditor({ q, index, locked, onSave, onRemove }: { q: Question; index: number; locked: boolean; onSave: (p: { prompt?: string; config?: object }) => Promise<boolean>; onRemove: () => void }) {
-  const [prompt, setPrompt] = useState(q.prompt);
-  const [options, setOptions] = useState((q.config.options ?? []).join("\n"));
-  const [preview, setPreview] = useState<unknown>(undefined);
-  const dirty = prompt.trim() !== q.prompt || (hasOptions(q.kind) && JSON.stringify(splitOptions(options)) !== JSON.stringify(q.config.options ?? []));
-  return (
-    <>
-      <Card>
-        <div className="ui-spread">
-          <Eyebrow>Question {String(index + 1).padStart(2, "0")}</Eyebrow>
-          <Badge>{KINDS.find((k) => k.key === q.kind)?.label ?? q.kind}</Badge>
-        </div>
-        <Field label="Question" htmlFor="e-prompt" counter={{ value: prompt.length, max: 200 }}>
-          <Input id="e-prompt" value={prompt} maxLength={200} disabled={locked} onChange={(e) => setPrompt(e.target.value)} />
-        </Field>
-        {hasOptions(q.kind) && (
-          <Field label="Options, one per line" htmlFor="e-options" help="2 to 10 options.">
-            <Textarea id="e-options" value={options} disabled={locked} onChange={(e) => setOptions(e.target.value)} />
-          </Field>
-        )}
-        {q.kind === "text" && <Notice tone="warn">{TEXT_WARNING}</Notice>}
-        {!locked && (
-          <div className="ui-row">
-            <Button variant="ink" disabled={!dirty || !prompt.trim()} onClick={() => onSave({ prompt: prompt.trim(), ...(hasOptions(q.kind) ? { config: { ...q.config, options: splitOptions(options) } } : {}) })}>Save question</Button>
-            <ConfirmAction trigger={<Button variant="quiet">Remove</Button>} title="Remove this question?" body="It’s a draft, so nobody has answered it yet." action="Remove" onConfirm={async () => { onRemove(); return true; }} />
-          </div>
-        )}
-      </Card>
-      <Card variant="well">
-        <Eyebrow>Respondent preview</Eyebrow>
-        <h2 className="lv-q-title lv-q-title-preview">{prompt || "Your question"}</h2>
-        <QuestionInput q={{ ...q, prompt, config: { ...q.config, options: splitOptions(options) } }} value={preview} onChange={setPreview} />
-      </Card>
-    </>
-  );
-}
+const MODES: { key: CampaignMode; label: string; body: string }[] = [
+  { key: "survey", label: "Survey", body: "Several questions, one screen at a time. Counts toward the plan’s active-survey limit." },
+  { key: "poll", label: "Poll", body: "One quick choice question." },
+  { key: "rating", label: "Rating", body: "A score from 1 to 5." },
+  { key: "feedback", label: "Feedback", body: "An open answer." },
+];
 
-function NewQuestion({ disabled, limit, onAdd }: { disabled: boolean; limit: number | null; onAdd: (k: QuestionKind, prompt: string, config: object) => Promise<boolean> }) {
-  const [kind, setKind] = useState<QuestionKind>("rating");
-  const [prompt, setPrompt] = useState("");
-  const [options, setOptions] = useState("");
-  const [busy, setBusy] = useState(false);
-  const opts = splitOptions(options);
-  const valid = prompt.trim() && (!hasOptions(kind) || (opts.length >= 2 && opts.length <= 10));
+function DetailsSection({ d, title, setTitle, save, reload }: { d: CampaignDetailData; title: string; setTitle: (t: string) => void; save: SaveTracker; reload: () => void }) {
+  const { api } = useIdentity();
+  const draft = d.campaign.status === "draft";
+  const timer = useRef<number | null>(null);
+  function onTitle(v: string) {
+    setTitle(v);
+    if (timer.current) window.clearTimeout(timer.current);
+    if (!v.trim()) return;
+    timer.current = window.setTimeout(async () => {
+      const r = await save.run(api.campaignUpdate(d.campaign.campaign_id, { title: v.trim() }));
+      if (r.ok) reload();
+    }, 600);
+  }
   return (
     <Card>
-      <Eyebrow accent>Add a question</Eyebrow>
-      {disabled && <Notice tone="warn">Quick Surveys have up to {limit} questions. Remove one to add another.</Notice>}
-      <form className="lv-stack-16" onSubmit={async (e) => {
-        e.preventDefault();
-        if (!valid) return;
-        setBusy(true);
-        const ok = await onAdd(kind, prompt.trim(), hasOptions(kind) ? { options: opts } : {});
-        setBusy(false);
-        if (ok) { setPrompt(""); setOptions(""); toast.success("Question added"); }
-      }}>
-        <Field label="Kind" htmlFor="q-kind">
-          <Select value={kind} onValueChange={(v) => setKind(v as QuestionKind)} disabled={disabled}>
-            <SelectTrigger id="q-kind"><SelectValue /></SelectTrigger>
-            <SelectContent>{KINDS.map((k) => <SelectItem key={k.key} value={k.key}>{k.label}</SelectItem>)}</SelectContent>
-          </Select>
-        </Field>
-        <Field label="Question" htmlFor="q-prompt" counter={{ value: prompt.length, max: 200 }}>
-          <Input id="q-prompt" value={prompt} maxLength={200} disabled={disabled} onChange={(e) => setPrompt(e.target.value)} placeholder="How was the long run this week?" />
-        </Field>
-        {hasOptions(kind) && (
-          <Field label="Options, one per line" htmlFor="q-options" help="2 to 10 options." error={options && opts.length < 2 ? "Add at least two options." : undefined}>
-            <Textarea id="q-options" value={options} disabled={disabled} onChange={(e) => setOptions(e.target.value)} placeholder={"Tuesday\nThursday\nSaturday"} />
-          </Field>
-        )}
-        {kind === "text" && <Notice tone="warn">{TEXT_WARNING}</Notice>}
-        <p className="ui-help lv-m0">Every question needs an answer. The kind is fixed once a question exists.</p>
-        <div className="ui-row"><Button type="submit" variant="ink" disabled={disabled || !valid || busy}><Icon name="plus" size={16} />{busy ? "Adding…" : "Add question"}</Button></div>
-      </form>
+      <h2 className="lv-share-h">Details</h2>
+      {!draft && <Notice>Published details can’t change. Each published version stays exactly as respondents saw it.</Notice>}
+      <Field label="Title" htmlFor="studio-title-input" counter={{ value: title.length, max: 120 }} error={draft && !title.trim() ? "Add a title." : undefined}>
+        <Input id="studio-title-input" value={title} maxLength={120} disabled={!draft} onChange={(e) => onTitle(e.target.value)} aria-describedby="studio-title-input-help" />
+      </Field>
+      <fieldset className="lv-fieldset">
+        <legend className="lv-legend">Mode</legend>
+        <RadioGroup
+          value={d.campaign.mode}
+          disabled={!draft}
+          aria-label="Mode"
+          className="ui-grid-2"
+          onValueChange={async (v) => { const r = await save.run(api.campaignUpdate(d.campaign.campaign_id, { mode: v as CampaignMode })); if (r.ok) reload(); }}
+        >
+          {MODES.map((m) => <RadioCard key={m.key} value={m.key} title={m.label} description={m.body} />)}
+        </RadioGroup>
+      </fieldset>
     </Card>
   );
 }
 
-function ParticipationCard({ d, personal, onChange, setError }: { d: CampaignDetailData; personal: boolean; onChange: () => void; setError: (e: string | null) => void }) {
+function WhoCanParticipate({ hubName }: { hubName: string }) {
+  return (
+    <Card data-testid="audience-who">
+      <h2 className="lv-share-h">Who can participate?</h2>
+      <div className="lv-fact" role="group" aria-label="Participants">
+        <Icon name="roster" size={20} />
+        <div>
+          <strong>Members of {hubName}</strong>
+          <p className="ui-muted lv-m0">Every accepted member can answer. Anyone else needs guest responses turned on below.</p>
+        </div>
+      </div>
+      <p className="ui-help lv-m0">Targeting specific roles or individual people isn’t available yet, so it isn’t offered here.</p>
+    </Card>
+  );
+}
+
+export function IdentityGroup({ d, save, reload }: { d: CampaignDetailData; save: SaveTracker; reload: () => void }) {
+  const { api } = useIdentity();
+  const draft = d.campaign.status === "draft";
+  // Optimistic: show the choice at once; roll back if the server refuses.
+  const [value, setValue] = useState<Anonymity>(d.campaign.anonymity);
+  useEffect(() => setValue(d.campaign.anonymity), [d.campaign.anonymity]);
+  return (
+    <Card data-testid="audience-identity">
+      <h2 className="lv-share-h" id="identity-h">How are responses recorded?</h2>
+      <RadioGroup
+        value={value}
+        disabled={!draft}
+        aria-labelledby="identity-h"
+        className="ui-grid-2"
+        onValueChange={async (v) => {
+          setValue(v as Anonymity);
+          const r = await save.run(api.campaignUpdate(d.campaign.campaign_id, { anonymity: v as Anonymity }));
+          if (r.ok) reload(); else setValue(d.campaign.anonymity);
+        }}
+      >
+        <RadioCard value="anonymous" title="Anonymous" description="You see totals only. Nobody, including you, can link an answer to a person. Small groups are withheld." />
+        <RadioCard value="identified" title="Identified" description="You can see who answered and what they said. People are told before they start." />
+      </RadioGroup>
+      <p className="ui-help lv-m0">{draft ? "You can change this until you publish." : "Locked: respondents were promised this when they answered."}</p>
+    </Card>
+  );
+}
+
+export function GuestsGroup({ d, save, reload }: { d: CampaignDetailData; save: SaveTracker; reload: () => void }) {
   const { api } = useIdentity();
   const draft = d.campaign.status === "draft";
   const invite = d.campaign.access === "invite";
-  const guests = d.campaign.audience === "members_and_guests";
+  const on = d.campaign.audience === "members_and_guests";
   return (
-    <Card>
-      <h2 className="lv-share-h">Who can answer</h2>
-      <ul className="lv-facts">
-        {personal && <li><span>Access</span><strong>{invite ? "Invite only" : "Anyone with the link"}</strong></li>}
-        <li><span>Answers</span><strong>{d.campaign.anonymity === "anonymous" ? "Anonymous" : "Identified"}</strong></li>
-      </ul>
+    <Card data-testid="audience-guests">
       <ToggleRow
-        title="Allow guests"
-        description={invite ? "Invite-only surveys need sign-in, so guests can’t answer." : "Guests answer without an account and never count as members."}
+        title="Allow guest responses"
+        description="People without an account may respond when the Campaign’s access mode allows it. Guests never become Hub members."
         control={
           <Switch
-            aria-label="Allow guests"
-            checked={guests}
+            aria-label="Allow guest responses"
+            checked={on && !invite}
             disabled={!draft || invite}
-            onCheckedChange={async (on) => {
-              setError(null);
-              const r = await api.setParticipation(d.campaign.campaign_id, on ? "members_and_guests" : "members");
-              if (r.ok) onChange(); else setError(describeError(r.error));
-            }}
+            onCheckedChange={async (v) => { const r = await save.run(api.setParticipation(d.campaign.campaign_id, v ? "members_and_guests" : "members")); if (r.ok) reload(); }}
           />
         }
       />
-      {!draft && <p className="ui-help lv-m0">Who can answer is part of the published version and can’t change now.</p>}
+      {invite && <p className="ui-help lv-m0">This survey is invite only, so everyone signs in. Guests can’t respond.</p>}
+      {!invite && on && <p className="ui-help lv-m0">Guests answer through the link, QR or join code. Results label their answers as unverified.</p>}
+      {!draft && <p className="ui-help lv-m0">Locked after publishing: it’s part of the published version.</p>}
     </Card>
   );
 }
 
-function ShareCard({ d, shareBase }: { d: CampaignDetailData; shareBase: string }) {
-  const open = d.campaign.audience === "members_and_guests" && d.join_code;
+function ScheduleSection({
+  d,
+  schedule,
+  setSchedule,
+  save,
+  reload,
+  entitlement,
+}: {
+  d: CampaignDetailData;
+  schedule: ScheduleState;
+  setSchedule: (s: ScheduleState) => void;
+  save: SaveTracker;
+  reload: () => void;
+  entitlement: React.ReactNode;
+}) {
+  const { api } = useIdentity();
+  const draft = d.campaign.status === "draft";
+  const issues = readiness({ title: "x", questions: [{ kind: "rating", prompt: "x", config: {} }], start: schedule.start, end: schedule.end });
+
+  // Save a valid window to the draft. The backend can only clear both ends at once, so clearing one end clears
+  // and then sets the other.
+  async function persist(next: ScheduleState) {
+    setSchedule(next);
+    const bad = readiness({ title: "x", questions: [{ kind: "rating", prompt: "x", config: {} }], start: next.start, end: next.end });
+    if (bad.length || !draft) return;
+    const opens = next.start.mode === "at" ? next.start.at : null;
+    const closes = next.end.mode === "at" ? next.end.at : null;
+    const id = d.campaign.campaign_id;
+    const needsClear = (!opens && d.campaign.opens_at) || (!closes && d.campaign.closes_at);
+    if (needsClear) {
+      const r = await save.run(api.campaignUpdate(id, { clearSchedule: true }));
+      if (!r.ok) return;
+    }
+    if (opens || closes) await save.run(api.campaignUpdate(id, { opensAt: opens ?? undefined, closesAt: closes ?? undefined }));
+    reload();
+  }
+  const startAt = schedule.start.mode === "at" ? schedule.start.at : null;
+  const endAt = schedule.end.mode === "at" ? schedule.end.at : null;
+  const err = (key: string) => issues.find((i) => i.key === key)?.message;
+
   return (
-    <Card>
-      <h2 className="lv-share-h">Share</h2>
-      {open ? (
+    <div className="lv-sections-2">
+      <Card data-testid="schedule">
+        <h2 className="lv-share-h">When does it run?</h2>
+        {!draft && <Notice>Published: the window is part of the published version. Pause or close it from the top.</Notice>}
+        <Field label="Start">
+          <Segmented<"now" | "at">
+            label="Start"
+            value={schedule.start.mode}
+            disabled={!draft}
+            onValueChange={(m) => void persist({ ...schedule, start: m === "now" ? { mode: "now" } : { mode: "at", at: startAt } })}
+            options={[{ value: "now", label: "Immediately" }, { value: "at", label: "Scheduled" }]}
+          />
+        </Field>
+        {schedule.start.mode === "at" && (
+          <Field label="Start time" htmlFor="sched-start" error={err("start")}>
+            <Input id="sched-start" type="datetime-local" disabled={!draft} value={toLocal(startAt)} onChange={(e) => void persist({ ...schedule, start: { mode: "at", at: fromLocal(e.target.value) } })} aria-describedby="sched-start-help" />
+          </Field>
+        )}
+        <Field label="End">
+          <Segmented<"none" | "at">
+            label="End"
+            value={schedule.end.mode}
+            disabled={!draft}
+            onValueChange={(m) => void persist({ ...schedule, end: m === "none" ? { mode: "none" } : { mode: "at", at: endAt } })}
+            options={[{ value: "none", label: "No end" }, { value: "at", label: "Scheduled" }]}
+          />
+        </Field>
+        {schedule.end.mode === "at" && (
+          <Field label="End time" htmlFor="sched-end" error={err("end") ?? err("window") ?? err("end-past")}>
+            <Input id="sched-end" type="datetime-local" disabled={!draft} value={toLocal(endAt)} onChange={(e) => void persist({ ...schedule, end: { mode: "at", at: fromLocal(e.target.value) } })} aria-describedby="sched-end-help" aria-invalid={Boolean(err("window") ?? err("end-past")) || undefined} />
+          </Field>
+        )}
+        <p className="ui-help lv-m0">{schedule.end.mode === "none" ? "With no end, it runs until you close it." : "It stops taking answers at the end time."} A scheduled Campaign holds its slot from the moment it’s published.</p>
+      </Card>
+      {entitlement}
+    </div>
+  );
+}
+
+/** Real limits from the API: the billing summary (Owner or billing.view), else the gate's own numbers. */
+function HubEntitlement({ hubId, d }: { hubId: string; d: CampaignDetailData }) {
+  const { api } = useIdentity();
+  const s = useLv(() => api.billingSummary(hubId), [api, hubId]);
+  const lim = (k: string) => (s.data?.limits[k] ?? null) as number | null;
+  return (
+    <Card data-testid="entitlement">
+      <h2 className="lv-share-h">Plan limits</h2>
+      {s.data ? (
         <>
-          <CopyField label="Direct link" value={`${shareBase}/c/${d.join_code}`} />
-          <QrCode value={`${shareBase}/c/${d.join_code}`} label={`QR code for ${d.campaign.title}`} size={180} />
-          <ul className="lv-facts"><li><span>Join code</span><strong className="lv-code">{d.join_code}</strong></li></ul>
-          <p className="ui-help lv-m0">Anyone with the link, QR or code can answer. It’s never listed publicly.</p>
+          <QuotaMeter label="Active Campaigns" used={s.data.usage.active_campaigns} limit={lim("campaigns.max_active")} />
+          <QuotaMeter label="Active surveys" used={s.data.usage.active_surveys} limit={lim("surveys.max_active")} hint="Only survey-mode Campaigns count here." />
         </>
-      ) : d.campaign.access === "invite" ? (
-        <p className="ui-muted lv-m0">Invite only: send the invite links below. Each person signs in to answer.</p>
+      ) : d.gate?.limit !== undefined && d.gate.used !== undefined ? (
+        <QuotaMeter label="In use" used={d.gate.used} limit={d.gate.limit} />
       ) : (
-        <p className="ui-muted lv-m0">Members answer from the Hub’s Campaigns page. Turn on guests before publishing to get a public link and code.</p>
+        <p className="ui-muted lv-m0">{s.loading ? "Checking your plan…" : "Your plan’s limits aren’t visible to you. Publishing checks them."}</p>
       )}
     </Card>
   );
 }
 
-function InvitesCard({ campaignId, shareBase, disabled }: { campaignId: string; shareBase: string; disabled: boolean }) {
+/* ------------------------------------------------------------------ review */
+
+export function ReadinessList({ issues, goTo }: { issues: ReadinessIssue[]; goTo?: (s: StudioSection) => void }) {
+  return (
+    <div className="lv-stack-8" data-testid="readiness">
+      <h3 className="lv-qw-h" id="readiness-h">{issues.length ? `${issues.length} ${issues.length === 1 ? "thing" : "things"} to fix before publishing` : "Ready to publish"}</h3>
+      {issues.length === 0 ? (
+        <p className="lv-ready-ok lv-m0"><Icon name="check" size={16} /> Everything needed is in place. The server checks again when you publish.</p>
+      ) : (
+        <ul className="lv-checklist lv-checklist-issues" aria-labelledby="readiness-h">
+          {issues.map((i) => (
+            <li key={i.key}>
+              <span aria-hidden="true">!</span>
+              <span>{i.message}</span>
+              {goTo && i.section !== "review" && <Button variant="quiet" size="sm" onClick={() => goTo(i.section)}>Fix in {i.section[0].toUpperCase() + i.section.slice(1)}</Button>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : null);
+
+export function ReviewSection({
+  d,
+  title,
+  schedule,
+  issues,
+  goTo,
+  audienceLabel,
+  extra,
+}: {
+  d: CampaignDetailData;
+  title: string;
+  schedule: ScheduleState;
+  issues: ReadinessIssue[];
+  goTo?: (s: StudioSection) => void;
+  audienceLabel: string;
+  extra?: React.ReactNode;
+}) {
+  const startAt = schedule.start.mode === "at" ? schedule.start.at : null;
+  const endAt = schedule.end.mode === "at" ? schedule.end.at : null;
+  const guests = d.campaign.audience === "members_and_guests" && d.campaign.access !== "invite";
+  const draft = d.campaign.status === "draft";
+  return (
+    <div className="lv-sections-2">
+      <Card data-testid="review-summary">
+        <h2 className="lv-share-h">Summary</h2>
+        <dl className="lv-kv">
+          <dt>Title</dt><dd>{title || "—"}</dd>
+          <dt>Mode</dt><dd>{MODES.find((m) => m.key === d.campaign.mode)?.label ?? d.campaign.mode}</dd>
+          <dt>Questions</dt><dd>{d.questions.length} ({d.questions.filter((q) => !q.config.optional).length} required)</dd>
+          <dt>Who can participate</dt><dd>{audienceLabel}</dd>
+          <dt>Responses</dt><dd>{d.campaign.anonymity === "anonymous" ? "Anonymous" : "Identified"}</dd>
+          <dt>Guests</dt><dd>{guests ? "Allowed" : "Not allowed"}</dd>
+          <dt>Starts</dt><dd>{fmt(startAt) ?? "When published"}</dd>
+          <dt>Ends</dt><dd>{fmt(endAt) ?? "When you close it"}</dd>
+        </dl>
+        <p className="ui-help lv-m0">
+          {d.campaign.anonymity === "anonymous"
+            ? "Privacy: results show totals only. A group too small to stay anonymous is withheld, never shown as zero. Written answers appear only once enough people have answered."
+            : "Privacy: this is identified, so you’ll see who answered. People are told before they start."}
+        </p>
+        {d.questions.length > 0 && (
+          <ol className="lv-review-qs">{d.questions.map((q) => <li key={q.question_id}>{q.prompt} <span className="ui-muted">· {kindLabel(q.kind)}{q.config.optional ? " · optional" : ""}</span></li>)}</ol>
+        )}
+      </Card>
+      <div className="lv-stack-16">
+        {draft ? <Card><ReadinessList issues={issues} goTo={goTo} /></Card> : <ShareCard d={d} />}
+        {extra}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ sharing */
+
+export function ShareCard({ d, shareBase = "https://lunchvoice.com" }: { d: CampaignDetailData; shareBase?: string }) {
+  const open = d.campaign.audience === "members_and_guests" && d.join_code && d.campaign.access !== "invite";
+  const url = `${shareBase}/c/${d.join_code}`;
+  return (
+    <Card data-testid="share">
+      <h2 className="lv-share-h">Share</h2>
+      {open ? (
+        <>
+          <CopyField label="Direct link" value={url} />
+          <QrCode value={url} label={`QR code for ${d.campaign.title}`} size={180} />
+          <ul className="lv-facts"><li><span>Join code</span><strong className="lv-code">{d.join_code}</strong></li></ul>
+          <p className="ui-help lv-m0">Anyone with the link, QR or code can answer. It’s never listed publicly.</p>
+        </>
+      ) : d.campaign.access === "invite" ? (
+        <p className="ui-muted lv-m0">Invite only: send the invite links. Each person signs in to answer.</p>
+      ) : (
+        <p className="ui-muted lv-m0">Members answer from the Hub’s Campaigns page. Guest responses were off when it was published, so there’s no public link.</p>
+      )}
+    </Card>
+  );
+}
+
+export function InvitesCard({ campaignId, shareBase = "https://lunchvoice.com", disabled }: { campaignId: string; shareBase?: string; disabled: boolean }) {
   const { api } = useIdentity();
   const list = useLv(() => api.campaignInviteList(campaignId), [api, campaignId]);
   const [maxUses, setMaxUses] = useState("");
@@ -408,56 +749,7 @@ function InvitesCard({ campaignId, shareBase, disabled }: { campaignId: string; 
   );
 }
 
-function PublishDialog({ d, onDone }: { d: CampaignDetailData; onDone: () => void }) {
-  const { api } = useIdentity();
-  const [open, setOpen] = useState(false);
-  const [opens, setOpens] = useState(toLocalInput(d.campaign.opens_at));
-  const [closes, setCloses] = useState(toLocalInput(d.campaign.closes_at));
-  const [busy, setBusy] = useState(false);
-  const [problem, setProblem] = useState<string[] | null>(null);
-  const badWindow = Boolean(opens && closes && new Date(closes) <= new Date(opens));
-
-  async function publish() {
-    setBusy(true);
-    setProblem(null);
-    const scheduled = Boolean(opens || closes);
-    const r = scheduled
-      ? await api.schedule(d.campaign.campaign_id, opens ? new Date(opens).toISOString() : null, closes ? new Date(closes).toISOString() : null)
-      : await api.campaignActivate(d.campaign.campaign_id);
-    setBusy(false);
-    if (r.ok) {
-      setOpen(false);
-      toast.success(scheduled && opens ? "Scheduled" : "Published", { description: "Share the link, code or invite links." });
-      onDone();
-      return;
-    }
-    setProblem(r.error.code === "lv_gate_blocked" ? describeGate(r.error.reasons ?? [r.error.message]) : [describeError(r.error)]);
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button variant="primary">Publish</Button></DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Publish “{d.campaign.title}”?</DialogTitle>
-          <DialogDescription>Questions lock once it’s published. Leave the dates empty to open it now and close it yourself.</DialogDescription>
-        </DialogHeader>
-        <div className="ui-grid-2">
-          <Field label="Opens (optional)" htmlFor="p-opens"><Input id="p-opens" type="datetime-local" value={opens} onChange={(e) => setOpens(e.target.value)} /></Field>
-          <Field label="Closes (optional)" htmlFor="p-closes" error={badWindow ? "Closing must be after opening." : undefined}><Input id="p-closes" type="datetime-local" value={closes} onChange={(e) => setCloses(e.target.value)} /></Field>
-        </div>
-        {d.questions.length === 0 && <Notice tone="warn">Add at least one question first.</Notice>}
-        {problem && <Notice tone="error" title="Can’t publish yet">{problem.join(" ")}</Notice>}
-        <DialogFooter>
-          <DialogClose asChild><Button variant="secondary">Cancel</Button></DialogClose>
-          <Button variant="primary" onClick={publish} disabled={busy || badWindow || d.questions.length === 0}>{busy ? "Publishing…" : opens ? "Schedule" : "Publish now"}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-export function ConfirmAction({ trigger, title, body, action, onConfirm }: { trigger: React.ReactNode; title: string; body: string; action: string; onConfirm: () => Promise<boolean> | boolean }) {
+export function ConfirmAction({ trigger, title, body, action, onConfirm }: { trigger: React.ReactNode; title: string; body: string; action: string; onConfirm: () => Promise<unknown> | unknown }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
