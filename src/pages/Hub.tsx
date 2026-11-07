@@ -24,6 +24,8 @@ import { Badge } from "@/components/shadcn/badge";
 import { Separator } from "@/components/shadcn/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shadcn/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/shadcn/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/shadcn/dialog";
+import { QrCode } from "@/components/shadcn/blocks/qr";
 import {
   CopyField,
   DisabledAction,
@@ -218,10 +220,15 @@ export function HubOverview() {
   return (
     <div className="lv-dash">
       <div className="lv-stack">
-        <div className="lv-tiles">
+        <div className="lv-tiles lv-tiles-3" data-testid="hub-stats">
           <StatTile tone="ink" label="Live Campaigns" value={live} note={`${rows.length} in total`} />
           <StatTile label="Members" value={hub.member_count} note={waiting > 0 ? `${waiting} waiting on you` : "Everyone is in"} />
-          <StatTile tone="accent" label="Plan" value={familyName(hub.plan?.family)} note={hub.plan?.state === "active" ? (hub.plan.ends_at ? `Until ${fmtDate(hub.plan.ends_at)}` : "Active") : "Premium actions locked"} />
+          <StatTile
+            tone="edge"
+            label="Plan"
+            value={familyName(hub.plan?.family)}
+            note={hub.plan?.state === "active" ? (hub.plan.ends_at ? `Until ${fmtDate(hub.plan.ends_at)}` : hub.plan.product === "founding" ? "Founding · active" : "Active") : "Premium actions locked"}
+          />
         </div>
         <Card>
           <SectionTitle action={manager ? <LinkButton to={`/${hub.slug}/campaigns/new`} variant="ink" size="sm" icon="plus">New Campaign</LinkButton> : undefined}>Campaigns</SectionTitle>
@@ -250,13 +257,59 @@ export function HubOverview() {
             <LinkButton to={`/${hub.slug}/members`} variant="quiet" size="sm" icon="arrow">All members</LinkButton>
           </Card>
         )}
-        <Card variant="ink">
-          <Eyebrow accent>Share your Hub</Eyebrow>
-          <p className="lv-m0 lv-dim">Joining follows the Hub’s mode: {hub.membership_mode.replace("_", " ")}.</p>
-          <CopyField value={`https://lunchvoice.com/${hub.slug}`} />
-        </Card>
+        <HubShareCard hub={hub} canInvite={can(membership, "admin.members.admit")} />
       </aside>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ share card */
+
+const JOIN_COPY: Record<MembershipMode, { title: string; body: string }> = {
+  open: { title: "Open Hub", body: "Anyone signed in can join." },
+  approval: { title: "Approval Hub", body: "Anyone can ask to join. A manager admits each request." },
+  invite_only: { title: "Invite-only Hub", body: "Only people you invite can join." },
+};
+
+/** Share the Hub address. The copy follows the Hub's actual joining mode. */
+export function HubShareCard({ hub, canInvite }: { hub: HubInfo; canInvite: boolean }) {
+  const url = `https://lunchvoice.com/${hub.slug}`;
+  const copy = JOIN_COPY[hub.membership_mode];
+  const [copied, setCopied] = useState(false);
+  return (
+    <Card data-testid="hub-share">
+      <div className="lv-stack-8">
+        <h2 className="lv-share-h">{copy.title}</h2>
+        <p className="ui-muted lv-m0">{copy.body}</p>
+      </div>
+      <p className="lv-share-url" data-testid="hub-share-url">
+        <span className="ui-muted">lunchvoice.com/</span>{hub.slug}
+      </p>
+      <div className="lv-share-actions">
+        <Button
+          variant="ink"
+          size="sm"
+          aria-live="polite"
+          onClick={async () => {
+            try { await navigator.clipboard.writeText(url); setCopied(true); toast.success("Link copied"); window.setTimeout(() => setCopied(false), 1600); }
+            catch { toast.error("Couldn’t copy. Select the address and copy it."); }
+          }}
+        >
+          <Icon name={copied ? "check" : "join"} size={16} />{copied ? "Copied" : "Copy link"}
+        </Button>
+        <Dialog>
+          <DialogTrigger asChild><Button variant="secondary" size="sm">QR code</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>QR code for {hub.name}</DialogTitle>
+              <DialogDescription>Scanning it opens lunchvoice.com/{hub.slug}. {copy.body}</DialogDescription>
+            </DialogHeader>
+            <QrCode value={url} label={`QR code for lunchvoice.com/${hub.slug}`} size={220} />
+          </DialogContent>
+        </Dialog>
+        {canInvite && <LinkButton to={`/${hub.slug}/invites`} variant="secondary" size="sm">Invite</LinkButton>}
+      </div>
+    </Card>
   );
 }
 

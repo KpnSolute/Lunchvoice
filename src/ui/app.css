@@ -82,3 +82,13 @@
 .lv-hubmark-wrap { display: inline-flex; border-radius: 20px; }
 .lv-member-name { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .lv-kv-ink dt { color: inherit; opacity: 0.7; }
+
+/* Dashboard stat rows: one rhythm, values never wrap per character */
+.lv-tiles-3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 168px), 1fr)); align-items: stretch; }
+@media (max-width: 520px) { .lv-tiles-3 { grid-template-columns: 1fr 1fr; } .lv-tiles-3 > :first-child { grid-column: 1 / -1; } }
+
+/* Hub share card */
+.lv-share-url { margin: 0; padding: 12px 14px; border-radius: var(--lv-radius-field); background: var(--lv-well); box-shadow: var(--lv-well-shadow);
+  font: 600 15px/1.4 var(--lv-font-mono); overflow-wrap: anywhere; word-break: break-word; min-width: 0; }
+.lv-share-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.lv-share-actions > * { min-height: 44px; }

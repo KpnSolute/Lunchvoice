@@ -317,7 +317,11 @@ export function QuotaMeter({ label, used, limit, hint }: { label: React.ReactNod
   )
 }
 
-/** A big tile on dashboards: ink, accent or raised. */
+/**
+ * A dashboard stat tile. Value, label and note sit on one rhythm in every tile so a row lines up. Values never wrap
+ * per character: numbers use the display size, words (a plan name) use a smaller display size and stay on one line.
+ * `edge` is the light accent treatment: a raised card with an amber edge instead of a full orange surface.
+ */
 export function StatTile({
   label,
   value,
@@ -328,14 +332,31 @@ export function StatTile({
   label: React.ReactNode
   value: React.ReactNode
   note?: React.ReactNode
-  tone?: "ink" | "accent" | "raised"
+  tone?: "ink" | "accent" | "raised" | "edge"
   className?: string
 }) {
+  const wordy = typeof value === "string" && !/^[\d\s/.,%–-]+$/.test(value)
   return (
-    <Card variant={tone === "ink" ? "ink" : tone === "accent" ? "accent" : "card"} className={cn("min-h-[148px] justify-between gap-2", className)}>
-      <span className="tactile-label opacity-80">{label}</span>
-      <span className="font-[family-name:var(--lv-font-display)] text-[clamp(30px,4vw,44px)] leading-[1] font-extrabold tracking-[-0.04em] [overflow-wrap:anywhere]">{value}</span>
-      {note && <span className="text-[13px] leading-[1.45] opacity-80">{note}</span>}
+    <Card
+      data-slot="stat-tile"
+      variant={tone === "ink" ? "ink" : tone === "accent" ? "accent" : "card"}
+      className={cn(
+        "grid min-h-[136px] min-w-0 grid-rows-[auto_1fr_auto] content-start gap-2 p-5",
+        tone === "edge" && "shadow-[inset_4px_0_0_var(--lv-accent),var(--lv-card-shadow)]",
+        className
+      )}
+    >
+      <span className="tactile-label truncate opacity-80">{label}</span>
+      <span
+        data-slot="stat-value"
+        className={cn(
+          "self-center font-[family-name:var(--lv-font-display)] leading-[1.05] font-extrabold whitespace-nowrap [font-variant-numeric:tabular-nums]",
+          wordy ? "text-[clamp(22px,2.4vw,28px)] tracking-[-0.03em]" : "text-[clamp(32px,3.4vw,44px)] tracking-[-0.04em]"
+        )}
+      >
+        {value}
+      </span>
+      {note && <span className="text-[13.5px] leading-[1.4] opacity-80">{note}</span>}
     </Card>
   )
 }

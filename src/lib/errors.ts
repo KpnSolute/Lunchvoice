@@ -6,7 +6,7 @@ const COPY: Record<string, string> = {
   lv_unauthenticated: "Sign in to continue.",
   lv_forbidden: "You don't have access to this.",
   lv_not_found: "We couldn't find that.",
-  lv_invalid_input: "Some details need fixing.",
+  lv_invalid_input: "Some details need fixing.", // last resort: describeError prefers the server's own message
   lv_conflict: "That is already taken.",
   lv_closed: "This Campaign isn't accepting responses right now.",
   lv_locked: "This Campaign is published and can no longer be edited.",
@@ -34,7 +34,12 @@ const COPY: Record<string, string> = {
 };
 
 export const GATE_REASONS: Record<string, string> = {
-  no_questions: "Add at least one question first.",
+  no_questions: "Add at least one question.",
+  survey_limit_reached: "This plan's active-survey limit is reached. Close a survey, or let one reach its participation threshold.",
+  too_many_questions: "Quick Surveys have up to 10 questions. Remove one to publish.",
+  kind_not_allowed: "A question uses a kind Quick Surveys don't support.",
+  entitlement_required: "This Hub has no active plan, so it can't publish. Your data is kept.",
+  blocked: "This survey has been blocked after a report.",
   limit_reached: "This plan's active-Campaign limit is reached.",
   limit_undefined: "This plan's limit isn't set yet.",
   not_draft: "Only a draft can be activated.",
@@ -43,9 +48,18 @@ export const GATE_REASONS: Record<string, string> = {
   members_below_700: "Discover needs at least 700 genuine active members. Guests don't count.",
 };
 
-export function describeError(error: Pick<LvError, "code" | "message"> & Partial<Pick<LvError, "limit" | "used">>): string {
+export function describeError(
+  error: Pick<LvError, "code" | "message"> & Partial<Pick<LvError, "limit" | "used" | "missing" | "reasons">>,
+): string {
   if (error.code === "lv_limit_reached" && typeof error.limit === "number") {
     return `You've reached this plan's limit (${error.used ?? error.limit} of ${error.limit}).`;
+  }
+  if (error.code === "lv_gate_blocked" && error.reasons?.length) return describeGate(error.reasons).join(" ");
+  // Field-specific first: the backend's own validation messages are written for people (e.g. "The close time must
+  // be after the open time."). The generic copy is the last resort.
+  if (error.code === "lv_invalid_input") {
+    if (error.message && !/^lv_|violates|constraint|syntax|uuid|null value/i.test(error.message)) return error.message;
+    if (error.missing?.length) return `Check: ${error.missing.join(", ")}.`;
   }
   return COPY[error.code] ?? error.message ?? "Something went wrong.";
 }
