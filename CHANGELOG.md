@@ -27,6 +27,10 @@ categories and the repository's decimal `X.X.X` release policy.
 - `npm run test:e2e` (Playwright against the dev mock; not part of `test:pr`): 11 tests covering the corrections,
   including a painted-text overlap check that fails on the old layout. Dev dependency: `playwright`.
 
+### Fixed (Campaign first-question autosave)
+
+- Campaign Studio and Quick Surveys now create the first question at position 1, matching the database constraint that question positions must be greater than zero. This fixes the production autosave error that left a valid first question unsaved with “That value is not allowed.”
+
 ### Operations (production, 2026-11-07)
 
 - Applied 000014-000017 to the LunchVoice production project (`qprfonxvthmaoxfixigk`) under the founder's
