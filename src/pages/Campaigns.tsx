@@ -196,7 +196,7 @@ export function CampaignDetail() {
 export function Studio() {
   const { hub } = useHubCtx();
   const { id = "" } = useParams();
-  return <StudioView campaignId={id} backTo={`/${hub.slug}/campaigns`} crumb={`${hub.name} / Campaigns`} resultsTo={`/${hub.slug}/campaigns/${id}/results`} />;
+  return <StudioView campaignId={id} backTo={`/${hub.slug}/campaigns`} crumb={`${hub.name} / Campaigns`} resultsTo={`/${hub.slug}/campaigns/${id}/results`} hubId={hub.hub_id} hubName={hub.name} />;
 }
 
 export function Results() {
