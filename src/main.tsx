@@ -13,6 +13,8 @@ import { GuestCampaign } from "./pages/Player";
 import { Analytics } from "./pages/Analytics";
 import { Gallery } from "./pages/Gallery";
 import { initTheme } from "./ui/theme";
+import { Toaster } from "@/components/shadcn/sonner";
+import { TooltipProvider } from "@/components/shadcn/tooltip";
 import "./ui/fonts.css";
 import "./ui/tokens.css";
 import "./ui/shadcn.css";
@@ -30,6 +32,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <IdentityProvider>
+        <TooltipProvider delayDuration={300}>
         <Routes>
           <Route element={<Shell />}>
             {/* public */}
@@ -86,6 +89,8 @@ createRoot(document.getElementById("root")!).render(
             {import.meta.env.DEV && <Route path="__gallery" element={<Gallery />} />}
           </Route>
         </Routes>
+        <Toaster />
+        </TooltipProvider>
       </IdentityProvider>
     </BrowserRouter>
   </StrictMode>

@@ -96,6 +96,99 @@
   --sidebar-ring: var(--lv-focus);
 }
 
+/* Tactile surfaces (design handoff §2): the five surfaces plus the accent CTA, the popover surface and the press.
+   Components use these instead of hand-picked colors, so light, dark and high contrast all come from tokens.css. */
+@utility surface-raised {
+  background: var(--lv-raised-bg);
+  box-shadow: var(--lv-raised-shadow);
+  border: var(--lv-control-border);
+  color: var(--lv-text);
+}
+@utility surface-card {
+  background: var(--lv-raised-bg);
+  box-shadow: var(--lv-card-shadow);
+  border: var(--lv-control-border);
+  color: var(--lv-text);
+}
+@utility surface-well {
+  background: var(--lv-well);
+  box-shadow: var(--lv-well-shadow);
+  border: var(--lv-control-border);
+  color: var(--lv-text);
+}
+@utility surface-pressed {
+  background: var(--lv-pressed-bg);
+  box-shadow: var(--lv-pressed-shadow);
+  color: var(--lv-on-accent);
+}
+@utility surface-ink {
+  background: var(--lv-ink-bg);
+  box-shadow: var(--lv-ink-shadow);
+  color: var(--lv-on-primary);
+}
+@utility surface-cta {
+  background: var(--lv-accent-cta-bg);
+  box-shadow: var(--lv-cta-shadow);
+  color: var(--lv-on-accent);
+}
+@utility surface-pop {
+  background: var(--lv-popover);
+  box-shadow: var(--lv-popover-shadow);
+  border: var(--lv-control-border);
+  color: var(--lv-text);
+}
+@utility surface-danger {
+  background: var(--lv-danger-bg);
+  color: var(--lv-danger-ink);
+}
+@utility tactile-press {
+  transition:
+    transform var(--lv-dur-press) var(--lv-ease-spring),
+    box-shadow var(--lv-dur-press) var(--lv-ease-out),
+    background var(--lv-dur-press) var(--lv-ease-out),
+    opacity var(--lv-dur-press) var(--lv-ease-out);
+  &:active:not(:disabled):not([aria-disabled='true']) {
+    transform: scale(0.94, 0.88);
+  }
+}
+@utility tactile-focus {
+  &:focus-visible {
+    outline: 2px solid var(--lv-focus);
+    outline-offset: 3px;
+  }
+}
+@utility tactile-label {
+  font-family: var(--lv-font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+@utility tactile-pop-in {
+  transform-origin: var(--radix-popover-content-transform-origin, var(--radix-dropdown-menu-content-transform-origin, var(--radix-select-content-transform-origin, center)));
+  &[data-state='open'] {
+    animation: lv-pop-in var(--lv-dur-popover) var(--lv-ease-spring);
+  }
+}
+@keyframes lv-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes lv-jelly-in {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.25, 0.82); }
+  50% { transform: scale(0.88, 1.14); }
+  70% { transform: scale(1.06, 0.96); }
+  100% { transform: scale(1); }
+}
+
 /* The parts of Tailwind's preflight that shadcn components rely on, applied to shadcn components only. Utilities
    still win (they are in a later layer), and the rest of the app never sees these rules. */
 @layer base {

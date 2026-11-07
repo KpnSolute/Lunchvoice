@@ -15,6 +15,9 @@
   --lv-ink-bg: linear-gradient(180deg, #2e2a25 0%, #14110f 100%);
   --lv-ink-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset, 0 10px 24px rgba(20, 17, 15, 0.3);
   --lv-accent-cta-bg: linear-gradient(180deg, #ffbe5c 0%, #ff9a18 55%, #f58c0c 100%);
+  --lv-cta-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), inset 0 -3px 6px rgba(160, 80, 0, 0.18), 0 8px 22px rgba(255, 154, 24, 0.4);
+  --lv-danger-bg: color-mix(in srgb, var(--lv-danger) 14%, transparent);
+  --lv-scrim: rgba(20, 17, 15, 0.42);
   --lv-control-border: 0 solid transparent;
   /* page-level extras used by the app chrome */
   --lv-well-hover: #e4e2de;
@@ -112,6 +115,8 @@
   --lv-well-hover: #1a1713;
   --lv-well-focus: #14110d;
   --lv-rim: rgba(255, 255, 255, 0.06);
+  --lv-cta-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 8px 22px rgba(255, 154, 24, 0.22);
+  --lv-scrim: rgba(0, 0, 0, 0.6);
   color-scheme: dark;
 }
 [data-theme='hc'] {
@@ -146,6 +151,8 @@
   --lv-ink-bg: #000000;
   --lv-ink-shadow: none;
   --lv-accent-cta-bg: #ffb347;
+  --lv-cta-shadow: none;
+  --lv-scrim: rgba(0, 0, 0, 0.6);
   --lv-well-hover: #ffffff;
   --lv-well-focus: #ffffff;
   --lv-rim: #000000;

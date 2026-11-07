@@ -303,3 +303,20 @@ a.lv-row:hover .lv-row-title { text-decoration: underline; text-underline-offset
 [data-theme='dark'] .lv-player-hero .lv-eyebrow-mono,
 [data-theme='dark'] .lv-thanks-title em { color: inherit !important; }
 [data-theme='dark'] .lv-player-ink { border-top-color: var(--lv-text); }
+
+/* ---------- shared layout helpers for shadcn-composed pages ---------- */
+.lv-inline-label { display: inline-flex; align-items: center; gap: 10px; text-transform: none; letter-spacing: 0; font: 500 14.5px/1.4 var(--lv-font-ui); color: var(--lv-text); }
+.lv-code { font: 700 22px/1 var(--lv-font-mono); letter-spacing: 0.18em; }
+.lv-num { text-align: right; font-variant-numeric: tabular-nums; }
+.lv-stack-16 { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.lv-stack-24 { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+
+/* ---------- dev gallery ---------- */
+.lv-gallery-section { margin: 0 0 40px; }
+.lv-gallery-h { font: 600 18px/1.3 var(--lv-font-ui); margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--lv-line); }
+.lv-gallery-body { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.lv-gallery-radios { grid-auto-flow: column; justify-content: start; }
+.lv-gallery-scroll { height: 140px; }
+.lv-gallery-icon { display: flex; align-items: center; gap: 10px; padding: 6px 4px; font: 400 13px/1.4 var(--lv-font-mono); }
+.lv-skel-circle { width: 48px; height: 48px; border-radius: 999px; }
+.lv-skel-line { width: 220px; height: 16px; }
