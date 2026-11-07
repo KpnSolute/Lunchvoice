@@ -120,7 +120,8 @@ function QuestionResult({ campaignId, q }: { campaignId: string; q: Question }) 
 }
 
 function downloadCsv(name: string, rows: ExportRow[]) {
-  const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  // Quote every cell, and neutralise spreadsheet formulas (a cell starting with = + - @ tab or CR) (NEW-07).
+  const esc = (v: string) => `"${(/^[=+\-@\t\r]/.test(v) ? `'${v}` : v).replace(/"/g, '""')}"`;
   const body = ["question,answer,responses", ...rows.map((r) => [esc(r.prompt), esc(r.answer), r.suppressed || r.n === null ? "withheld" : String(r.n)].join(","))].join("\n");
   const url = URL.createObjectURL(new Blob([body], { type: "text/csv" }));
   const a = document.createElement("a");

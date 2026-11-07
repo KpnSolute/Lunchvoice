@@ -6,6 +6,16 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed (compliance re-review, UI side)
+
+- NEW-03: the account-deletion copy no longer promises to delete anonymous written answers (they were never linked to
+  the person and cannot be found); it states what is deleted and what stays.
+- NEW-04: `/privacy` adds who can see stored data (operator access), provider request logs, the US data region and a
+  children statement (not directed at children under 13; schools through adult administrators).
+- NEW-07: CSV export neutralises spreadsheet formulas in cells.
+- `docs/compliance/LAUNCH_COMPLIANCE_REVIEW.md` section 7: reconciliation of all 41 original findings on the
+  integrated branch (every original BLOCKER and HIGH closed) and new findings NEW-01 to NEW-08.
+
 ### Added (launch backend: migrations 000014-000016)
 
 - 000014: one entitlement map (`lv.plan_limits`, products incl. Campaign Plus at 3900 + 1900/week), entitlements and

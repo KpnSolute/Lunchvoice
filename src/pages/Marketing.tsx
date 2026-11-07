@@ -185,6 +185,12 @@ export function Privacy() {
         <ul>{STORED.map(([k, v]) => <li key={k}><strong>{k}.</strong> {v}</li>)}</ul>
         <h2>Anonymity</h2>
         <p>On an anonymous survey we check that you may answer separately from what you answer, so results can’t be traced back to you. A group too small to stay anonymous is withheld, never shown as zero. Written answers on anonymous surveys appear only once enough people have answered, in random order, without names or times. On an identified survey the creator can see who answered, and you’re told before you start.</p>
+        <h2>Who can see stored data</h2>
+        <p>People who run LunchVoice can access the database to operate, secure and support the service. Anonymous answers are stored without any link to who gave them, so that access can’t tie them to you either.</p>
+        <p>Our hosting and database providers keep standard request logs, such as IP address and browser, for security and operations.</p>
+        <p>Data is stored in the United States (database in US West, sign-in in US East).</p>
+        <h2>Children</h2>
+        <p>LunchVoice is not directed at children under 13, and we don’t knowingly collect their personal information. Schools and organisations use it through adult administrators.</p>
         <h2>Guests</h2>
         <p>Guests answer link surveys without an account. They never become members, never count toward member totals or thresholds, and can’t see private Hub content. Results label guest responses as unverified.</p>
         <h2>On this device</h2>

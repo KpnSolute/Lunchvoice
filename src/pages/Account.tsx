@@ -428,7 +428,7 @@ export function RedeemInvite() {
 
 // Founder decision: what account deletion does (also summarised on /privacy).
 export const DELETE_COPY =
-  "We delete your profile, sign-in links, memberships and invitations. Your multiple-choice and rating answers stay only as anonymous totals; your written answers are deleted.";
+  "We delete your profile, sign-in links, memberships and invitations. Your multiple-choice and rating answers stay only as anonymous totals, and the written answers you gave on identified surveys are deleted. Answers you gave on anonymous surveys were never linked to you, so they can’t be found and stay only in those results.";
 
 export function Settings() {
   const { api, session, signOut } = useIdentity();
