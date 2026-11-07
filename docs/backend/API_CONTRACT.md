@@ -1,7 +1,7 @@
 # LunchVoice v2 API contract (`lv_api`)
 
-Status: migrations 000001-000013 are applied to production; 000014-000016 (launch, see the last section) are
-tested locally and not applied. Where an older section below differs from **Launch API (000014–000016)**, the
+Status: migrations 000001-000013 are applied to production; 000014-000017 (launch, see the last section) are
+tested locally and not applied. Where an older section below differs from **Launch API (000014–000017)**, the
 launch section wins.
 The frontend uses only these functions for application data. Tables and the `lv` schema are not reachable.
 
@@ -138,7 +138,9 @@ Create returns `{ ok, campaign_id }`. Activation can fail with `lv_gate_blocked`
 ## Participation
 
 ### `lv_submit_response(p_campaign, p_answers)`
-`p_answers` is `[{ question_id, value }]` and must answer every question (rating 1-5; others non-null).
+`p_answers` is `[{ question_id, value }]` and must answer every required question (rating 1-5; others non-null).
+Since 000017 a question whose `config` has `"optional": true` may be left out (members and guests alike); a missing
+required answer is `lv_invalid_input`, and a submission must answer at least one question.
 Success: `{ ok, receipt_id, duplicate }`. A repeat submission is not an error: it returns the original
 receipt with `duplicate: true`. Errors (envelope): `lv_unauthenticated`, `lv_not_found`, `lv_closed`,
 `lv_forbidden` (not an accepted member), `lv_invalid_input` (message names the problem).
@@ -286,7 +288,7 @@ a guest and their answers. Per-network limits (per IP) belong at the edge in fro
 where each `result` is the `answer_distribution` envelope (plus `summary` for rating questions) or that question's own
 refusal (for example free text). A whole-Campaign refusal (`lv_policy_undecided`, `lv_lifecycle_invalid`) is returned as is.
 
-## Launch API (000014–000016)
+## Launch API (000014–000017)
 
 Status: on the launch branch, tested by `scripts/db-test-canonical.sh` (suites 14, 15, 16). Not applied to production.
 Binding sources: `docs/v2/LAUNCH_PLAN.md` and the founder decisions of 2026-11-07 (recorded below as L-07…L-13).
@@ -373,6 +375,8 @@ can always activate its first surveys, so it never deadlocks; a survey that meet
   `p_consent_version` equal to policy `waitlist.consent_version` ("2026-11-07"), else `lv_invalid_input` with
   `consent_version`. Admission (first 50) is serialised by an advisory lock and proven by a two-connection race.
   Admitted ⇒ one Founding Hub credit (Starter family). Idempotent. The waitlist is never authorization.
+  Seats are never re-issued (000017, NEW-08): deleting an admitted account does not free its seat, positions never
+  repeat, and at most `waitlist.seats` Founding grants are ever issued. `seats_taken` counts seats issued.
 
 ### Quick Surveys (personal space)
 
@@ -456,11 +460,27 @@ Discover. It has no slug, is never listed and cannot be reserved.
   { custom_roles, custom_pages, active_campaigns, active_surveys }, reservation?, billing_ready }`. Owner or
   `billing.view`.
 - Service role only: `lv.billing_apply_event(p_provider, p_event_id, p_type, p_payload)` → `{ ok, duplicate,
-  outcome: "applied"|"ignored"|"rejected" }`, idempotent on `(provider, event_id)`, logs no payload. Semantics:
-  checkout completed ⇒ Hub credit (no `hub_id`) or hub entitlement, monthly to the period end, Campaign plans for the
-  purchased weeks, reservations for 12 months (renewal extends from the current expiry); `invoice.paid` extends to the
-  period end; `customer.subscription.deleted` keeps access to the end of the paid period (no proration, nothing
-  deleted); `charge.refunded` revokes what that payment bought (nothing else revokes); other types are ignored.
+  outcome: "applied"|"ignored"|"rejected" }`, idempotent on `(provider, event_id)`, logs no payload. Semantics
+  (000017, compliance NEW-01 and NEW-02, founder F-08):
+  - `checkout.session.completed` and `checkout.session.async_payment_succeeded` grant **only** when a checkout intent
+    exists for the session (`client_reference_id`), `payment_status` is `paid` or `no_payment_required`, `currency` is
+    `usd`, `amount_subtotal` (pre-tax) equals the intent's `amount_cents`, and the intent has not been used. Otherwise
+    the event is recorded `rejected` (or `ignored` for an already-used intent) and grants nothing. Product, account,
+    Hub, slug and weeks come from the intent only, never from metadata. A delayed payment grants on
+    `async_payment_succeeded`, exactly once.
+  - Grants: Hub credit (no `hub_id`) or hub entitlement, monthly to the period end; Campaign plans for exactly the
+    intent's weeks; reservations for 12 months (renewal extends from the current expiry).
+  - `invoice.paid` extends a subscription to the period end and records which payment paid it.
+  - `customer.subscription.deleted` keeps access to the end of the paid period (no proration, nothing deleted). Only
+    an explicit full refund of that subscription recorded first, followed by an immediate cancellation (`ended_at`),
+    ends access at `ended_at`.
+  - `charge.refunded`: a partial refund never revokes (recorded for support). A full refund revokes an unused Campaign
+    credit or a Campaign window that has not started, and releases a reservation. A Campaign window that has started
+    is kept (recorded for support). A Hub subscription refund never ends access by itself.
+  - Other types are ignored.
+  The webhook maps `amount_subtotal`, `currency`, `payment_status`, `mode` (checkout), `ended_at` (subscription
+  deleted) and `amount`, `amount_refunded`, `refunded` (charge refunded). Until `billing.provider_ready` is true and
+  payment links exist, none of this is reachable.
   Called by the `billing-webhook` Edge Function (Stripe signature verified, 503 while `STRIPE_WEBHOOK_SECRET` is unset).
 
 ### Hub Name Reservation

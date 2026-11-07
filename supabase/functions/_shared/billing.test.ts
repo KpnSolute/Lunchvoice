@@ -54,11 +54,13 @@ test("checkout.session.completed maps the intent and metadata only", () => {
   const mapped = mapStripeEvent({
     id: "evt_c", type: "checkout.session.completed",
     data: { object: { client_reference_id: ACCOUNT, subscription: "sub_9", payment_intent: null, customer_email: "pat@example.com",
+      amount_subtotal: 1300, amount_total: 1404, currency: "USD", payment_status: "paid", mode: "subscription",
       metadata: { product: "starter_hub", account_id: ACCOUNT, hub_id: HUB, weeks: "3", slug: "my-hub", extra: "dropped" } } },
   });
   assert.deepEqual(mapped, {
     provider: "stripe", eventId: "evt_c", type: "checkout.session.completed",
-    payload: { product: "starter_hub", account_id: ACCOUNT, hub_id: HUB, slug: "my-hub", weeks: 3, intent_id: ACCOUNT, subscription: "sub_9" },
+    payload: { product: "starter_hub", account_id: ACCOUNT, hub_id: HUB, slug: "my-hub", weeks: 3, intent_id: ACCOUNT, subscription: "sub_9",
+               amount_subtotal: 1300, currency: "usd", payment_status: "paid", mode: "subscription" },
   });
   assert.equal(JSON.stringify(mapped).includes("pat@example.com"), false);
 });
@@ -82,11 +84,38 @@ test("customer.subscription.deleted keeps access to the period end", () => {
   assert.deepEqual(mapStripeEvent({ id: "evt_s", type: "customer.subscription.deleted",
     data: { object: { id: "sub_1", items: { data: [{ current_period_end: 1900000002 }] } } } })?.payload,
     { subscription: "sub_1", period_end: 1900000002 });
+  assert.deepEqual(mapStripeEvent({ id: "evt_s2", type: "customer.subscription.deleted",
+    data: { object: { id: "sub_2", current_period_end: 1900000009, ended_at: 1800000000 } } })?.payload,
+    { subscription: "sub_2", period_end: 1900000009, ended_at: 1800000000 });
 });
 
-test("charge.refunded maps the payment reference", () => {
+test("charge.refunded maps the payment reference and whether the refund is full", () => {
   assert.deepEqual(mapStripeEvent({ id: "evt_r", type: "charge.refunded", data: { object: { payment_intent: "pi_1" } } })?.payload,
     { payment_ref: "pi_1" });
+  assert.deepEqual(mapStripeEvent({ id: "evt_r2", type: "charge.refunded",
+    data: { object: { payment_intent: "pi_2", amount: 1900, amount_refunded: 500, refunded: false } } })?.payload,
+    { payment_ref: "pi_2", amount: 1900, amount_refunded: 500, refunded: false });
+});
+
+test("NEW-01: a checkout maps the confirmed amount, currency, payment status and mode", () => {
+  const mapped = mapStripeEvent({ id: "evt_m", type: "checkout.session.completed",
+    data: { object: { client_reference_id: ACCOUNT, amount_subtotal: 1900, currency: "usd", payment_status: "unpaid", mode: "payment",
+      payment_intent: "pi_m" } } });
+  assert.deepEqual(mapped?.payload, { intent_id: ACCOUNT, payment_ref: "pi_m", amount_subtotal: 1900, currency: "usd",
+    payment_status: "unpaid", mode: "payment" });
+});
+
+test("NEW-01: async_payment_succeeded is handled like a completed checkout", () => {
+  const mapped = mapStripeEvent({ id: "evt_a", type: "checkout.session.async_payment_succeeded",
+    data: { object: { client_reference_id: ACCOUNT, amount_subtotal: 7700, currency: "usd", payment_status: "paid", mode: "payment" } } });
+  assert.equal(mapped?.type, "checkout.session.async_payment_succeeded");
+  assert.deepEqual(mapped?.payload, { intent_id: ACCOUNT, amount_subtotal: 7700, currency: "usd", payment_status: "paid", mode: "payment" });
+});
+
+test("NEW-01: a non-numeric amount or an oversized currency is dropped, so the database rejects the grant", () => {
+  const mapped = mapStripeEvent({ id: "evt_b", type: "checkout.session.completed",
+    data: { object: { client_reference_id: ACCOUNT, amount_subtotal: "1900", currency: "dollars", payment_status: "paid" } } });
+  assert.deepEqual(mapped?.payload, { intent_id: ACCOUNT, payment_status: "paid" });
 });
 
 test("unknown types and malformed events are ignored", () => {
