@@ -8,11 +8,11 @@ import { About, Beta, Discover, HowItWorks, NotFoundPage, Privacy, Status, Suppo
 import { CreateHub, Join, Me, RedeemInvite, Settings } from "./pages/Account";
 import { Pricing } from "./pages/Pricing";
 import { Waitlist } from "./pages/Waitlist";
-import { NewSurvey, SurveyInvite, SurveyList, SurveyResults, SurveyStudio } from "./pages/Surveys";
-import { HubAddon, HubBilling, HubBuilder, HubDiscover, HubLayout, HubOverview, HubReservation, HubSettings, Invites, Members, Roles } from "./pages/Hub";
-import { CampaignDetail, Campaigns, NewCampaign, Results, Studio } from "./pages/Campaigns";
 import { GuestCampaign } from "./pages/Player";
-import { Analytics } from "./pages/Analytics";
+import {
+  Analytics, CampaignDetail, Campaigns, HubAddon, HubBilling, HubBuilder, HubDiscover, HubLayout, HubOverview, HubReservation,
+  HubSettings, Invites, Members, NewCampaign, NewSurvey, Results, Roles, Studio, SurveyInvite, SurveyList, SurveyResults, SurveyStudio,
+} from "./pages/lazy";
 import { Gallery } from "./pages/Gallery";
 import { initTheme } from "./ui/theme";
 import { Toaster } from "@/components/shadcn/sonner";

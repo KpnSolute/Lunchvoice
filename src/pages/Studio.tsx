@@ -28,6 +28,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/shadcn/alert-dialog";
 import { CopyField, Eyebrow, Field, LoadingRows, Notice, PhaseBadge, QuotaMeter, Segmented, ToggleRow } from "@/components/shadcn/blocks";
+import { QrCode } from "@/components/shadcn/blocks/qr";
 
 /**
  * Campaign Studio. The same editor serves Hub Campaigns and Quick Surveys (the personal space): Quick Surveys add the
@@ -48,7 +49,22 @@ const toLocalInput = (iso: string | null) => (iso ? new Date(new Date(iso).getTi
 
 type Pane = "outline" | "edit" | "share";
 
-export function StudioView({ campaignId, backTo, crumb, resultsTo, shareBase = "https://lunchvoice.com" }: { campaignId: string; backTo: string; crumb: string; resultsTo: string; shareBase?: string }) {
+export function StudioView({
+  campaignId,
+  backTo,
+  crumb,
+  resultsTo,
+  quick,
+  shareBase = "https://lunchvoice.com",
+}: {
+  campaignId: string;
+  backTo: string;
+  crumb: string;
+  resultsTo: string;
+  /** Set for Quick Surveys: the personal-space limits from lv_my_context / lv_quick_survey_list. */
+  quick?: { questionLimit: number | null; active: number; activeLimit: number | null };
+  shareBase?: string;
+}) {
   const { api } = useIdentity();
   const detail = useLv(() => api.campaignGet(campaignId), [api, campaignId]);
   const [sel, setSel] = useState<string>("new");
@@ -62,8 +78,8 @@ export function StudioView({ campaignId, backTo, crumb, resultsTo, shareBase = "
 
   const phase = campaignPhase(d.campaign);
   const draft = d.campaign.status === "draft";
-  const personal = d.campaign.space === "personal";
-  const limit = d.campaign.question_limit ?? null;
+  const personal = Boolean(quick) || d.campaign.space === "personal";
+  const limit = quick?.questionLimit ?? d.campaign.question_limit ?? null;
   const atLimit = limit !== null && d.questions.length >= limit;
   const current = d.questions.find((q) => q.question_id === sel) ?? null;
 
@@ -103,6 +119,15 @@ export function StudioView({ campaignId, backTo, crumb, resultsTo, shareBase = "
               onConfirm={() => run(() => api.campaignClose(campaignId), "Closed")}
             />
           )}
+          {personal && (d.campaign.status === "active" || d.campaign.status === "paused") && (
+            <ConfirmAction
+              trigger={<Button variant="quiet">Archive</Button>}
+              title="Close and archive this survey?"
+              body="Nobody can answer after this. It leaves your list and frees one of your active Quick Survey slots. Results are kept."
+              action="Close and archive"
+              onConfirm={() => run(async () => { const c = await api.campaignClose(campaignId); return c.ok ? api.campaignArchive(campaignId) : c; }, "Archived. One slot is free again.")}
+            />
+          )}
           {d.campaign.status === "closed" && (
             <ConfirmAction
               trigger={<Button variant="quiet">Archive</Button>}
@@ -127,6 +152,9 @@ export function StudioView({ campaignId, backTo, crumb, resultsTo, shareBase = "
 
       {error && <Notice tone="error">{error}</Notice>}
       {!draft && <Notice>Published surveys can’t change their questions. Close it to stop answers.</Notice>}
+      {quick && draft && quick.activeLimit !== null && quick.active >= quick.activeLimit && (
+        <Notice tone="warn" title={`${quick.active} of ${quick.activeLimit} Quick Surveys are active`}>Publishing needs a free slot. Close or archive an active survey first.</Notice>
+      )}
 
       <div className="lv-studio-grid">
         <section className="lv-pane lv-pane-outline" aria-label="Questions">
@@ -176,6 +204,12 @@ export function StudioView({ campaignId, backTo, crumb, resultsTo, shareBase = "
         </section>
 
         <aside className="lv-pane lv-pane-share" aria-label={draft ? "Settings" : "Share"}>
+          {quick && (
+            <Card>
+              <h2 className="lv-share-h">Your free slots</h2>
+              <QuotaMeter label="Active Quick Surveys" used={quick.active} limit={quick.activeLimit} hint="Archiving a survey frees a slot." />
+            </Card>
+          )}
           <ParticipationCard d={d} personal={personal} onChange={() => detail.reload()} setError={setError} />
           {!draft && <ShareCard d={d} shareBase={shareBase} />}
           {personal && d.campaign.access === "invite" && <InvitesCard campaignId={campaignId} shareBase={shareBase} disabled={draft} />}
@@ -193,6 +227,7 @@ function TitleEditor({ d, onSave }: { d: CampaignDetailData; onSave: (t: string)
     <h1>
       <input
         className="lv-title-input"
+        data-slot="title-input"
         aria-label="Title"
         value={t}
         maxLength={120}
@@ -322,9 +357,10 @@ function ShareCard({ d, shareBase }: { d: CampaignDetailData; shareBase: string 
       <h2 className="lv-share-h">Share</h2>
       {open ? (
         <>
-          <div className="lv-qr" role="img" aria-label="QR code placeholder">QR code<br /><small>coming with the QR service</small></div>
-          <CopyField label="Link" value={`${shareBase}/c/${d.join_code}`} />
+          <CopyField label="Direct link" value={`${shareBase}/c/${d.join_code}`} />
+          <QrCode value={`${shareBase}/c/${d.join_code}`} label={`QR code for ${d.campaign.title}`} size={180} />
           <ul className="lv-facts"><li><span>Join code</span><strong className="lv-code">{d.join_code}</strong></li></ul>
+          <p className="ui-help lv-m0">Anyone with the link, QR or code can answer. It’s never listed publicly.</p>
         </>
       ) : d.campaign.access === "invite" ? (
         <p className="ui-muted lv-m0">Invite only: send the invite links below. Each person signs in to answer.</p>

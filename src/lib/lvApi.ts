@@ -334,10 +334,13 @@ export function createLvApi(transport: LvTransport) {
     myContext: () => call<MyContext>("lv_my_context"),
     planLimits: () => call<PlanLimits>("lv_plan_limits"),
     waitlistStatus: () => call<WaitlistStatus>("lv_waitlist_status"),
-    waitlistJoin: (contactEmail?: string | null, note?: string | null) =>
+    // p_consent_version is sent only with a contact email (consent is required only then). Contract request: the
+    // deployed lv_waitlist_join(p_contact_email, p_note) needs this parameter added before an email can be stored.
+    waitlistJoin: (contactEmail?: string | null, note?: string | null, consentVersion?: string | null) =>
       call<{ status: Exclude<WaitlistState, "none">; position: number; granted?: Entitlement }>("lv_waitlist_join", {
         p_contact_email: contactEmail || null,
         p_note: note || null,
+        ...(contactEmail ? { p_consent_version: consentVersion ?? null } : {}),
       }),
 
     /* ---- account ---- */
@@ -347,7 +350,14 @@ export function createLvApi(transport: LvTransport) {
 
     /* ---- hubs ---- */
     hubCreate: (slug: string, name: string) => call<{ hub_id: string; slug: string }>("lv_hub_create", { p_slug: slug, p_name: name }),
-    hubGet: (slug: string) => call<{ hub: HubInfo; membership: HubMembership | null }>("lv_hub_get", { p_slug: slug }),
+    // The backend returns the accent palette at the top level (`accents`) and the plan under `membership.plan`;
+    // normalize both onto `hub` so pages read one shape.
+    hubGet: (slug: string) =>
+      call<{ hub: HubInfo; membership: (HubMembership & { plan?: HubPlan }) | null; accents?: string[] }>("lv_hub_get", { p_slug: slug }).then((r) => {
+        if (!r.ok) return r;
+        const hub: HubInfo = { ...r.hub, accent_palette: r.hub.accent_palette ?? r.accents, plan: r.hub.plan ?? r.membership?.plan };
+        return { ...r, hub };
+      }),
     hubUpdate: (
       hub: string,
       patch: { display_name?: string; visibility?: Visibility; membership_mode?: MembershipMode; about?: string; accent?: string },
@@ -425,7 +435,21 @@ export function createLvApi(transport: LvTransport) {
     /* ---- respond ---- */
     submit: (campaign: string, answers: Answer[]) =>
       call<SubmitReceipt>("lv_submit_response", { p_campaign: campaign, p_answers: answers }),
-    guestCampaignGet: (joinCode: string) => call<CampaignDetailData>("lv_guest_campaign_get", { p_join_code: joinCode }),
+    // The guest read returns `phase` (not `status`) and no member fields; map it onto the member shape.
+    guestCampaignGet: (joinCode: string) =>
+      call<CampaignDetailData & { campaign: { phase?: string; guests_allowed?: boolean } }>("lv_guest_campaign_get", { p_join_code: joinCode }).then((r) => {
+        if (!r.ok) return r;
+        const ph = r.campaign.phase;
+        const status = r.campaign.status ?? (ph === "closed" || ph === "ended" ? "closed" : ph === "paused" ? "paused" : ph === "draft" ? "draft" : "active");
+        return {
+          ...r,
+          campaign: { ...r.campaign, status, audience: r.campaign.audience ?? (r.campaign.guests_allowed === false ? "members" : "members_and_guests") },
+          has_responded: r.has_responded ?? false,
+          receipt_id: r.receipt_id ?? null,
+          can_manage: false,
+          join_code: r.join_code ?? joinCode,
+        } as LvResult<CampaignDetailData>;
+      }),
     guestSubmit: (joinCode: string, guestKey: string, answers: Answer[]) =>
       call<SubmitReceipt>("lv_guest_submit", { p_join_code: joinCode, p_guest_key: guestKey, p_answers: answers }),
 

@@ -35,7 +35,7 @@ const fmtDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString
 
 /** Plain-language state of the Founding / plan entitlement. Display only. */
 export function entitlementLine(e: Entitlement | undefined): { tone: "ok" | "neutral" | "danger"; label: string; body: string } {
-  if (!e) return { tone: "neutral", label: "No plan", body: "Quick Surveys are free. A Hub needs a Hub credit from the waitlist or, once billing launches, a plan." };
+  if (!e) return { tone: "neutral", label: "No plan", body: "Quick Surveys are free. A Hub needs a Hub credit: admitted waitlist members receive one, and anyone can buy a plan once billing opens." };
   if (e.state === "expired") return { tone: "danger", label: "Expired", body: "Premium actions are locked. Your Hubs, Campaigns and results are all kept." };
   if (e.source === "waitlist")
     return {
@@ -66,7 +66,7 @@ export function Me() {
           <div className="lv-stack">
             <div className="lv-tiles">
               <StatTile tone="ink" label="Hubs" value={c.hubs.length} note={c.hubs.length ? "Communities you belong to" : "None yet"} />
-              <StatTile tone="accent" label="Hub credits" value={c.hub_credits} note={c.hub_credits ? "Ready to create a Hub" : "From the waitlist or a plan"} />
+              <StatTile tone="accent" label="Hub credits" value={c.hub_credits} note={c.hub_credits ? "Ready to create a Hub" : "Founding seat or a plan"} />
               <StatTile
                 label="Quick Surveys"
                 value={`${c.quick_surveys.active}/${c.quick_surveys.limit ?? "–"}`}
@@ -181,9 +181,9 @@ function NextStep({ c }: { c: MyContext }) {
     return (
       <Card variant="ink" className="lv-resume-card">
         <div>
-          <Eyebrow accent>Founding waitlist</Eyebrow>
+          <Eyebrow accent>Founding seats</Eyebrow>
           <h2 className="lv-resume-title">Want a Hub? Join the waitlist.</h2>
-          <p className="lv-m0 lv-dim">The first 50 get a Starter Hub free until billing launches, plus 30 days.</p>
+          <p className="lv-m0 lv-dim">The first 50 admitted receive a Founding Hub credit: a Starter Hub free until billing launches, plus 30 days.</p>
         </div>
         <LinkButton to="/waitlist" variant="primary" size="lg">Join the waitlist</LinkButton>
       </Card>
@@ -283,7 +283,7 @@ export function CreateHub() {
       {ctx.loading && !ctx.data && <LoadingRows rows={1} />}
       {ctx.data && credits === 0 && (
         <Notice tone="warn" title="You don’t have a Hub credit">
-          Hub credits come with a Founding seat on the <Link to="/waitlist" className="lv-inline-link">waitlist</Link>, or with a plan once billing launches. You can make <Link to="/surveys/new" className="lv-inline-link">free Quick Surveys</Link> today.
+          Admitted people on the <Link to="/waitlist" className="lv-inline-link">waitlist</Link> receive a Founding Hub credit; anyone can buy a plan once billing opens. You can make <Link to="/surveys/new" className="lv-inline-link">free Quick Surveys</Link> today.
         </Notice>
       )}
 

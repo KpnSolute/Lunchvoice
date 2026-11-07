@@ -20,9 +20,10 @@ function SheetClose(props: React.ComponentProps<typeof SheetPrimitive.Close>) {
 function SheetPortal(props: React.ComponentProps<typeof SheetPrimitive.Portal>) {
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
 }
-function SheetOverlay({ className, ...props }: React.ComponentProps<typeof SheetPrimitive.Overlay>) {
-  return <SheetPrimitive.Overlay data-slot="sheet-overlay" className={cn(scrimClass, className)} {...props} />
-}
+// forwardRef: Radix Presence hands the overlay a ref, which React 18 only passes to forwardRef components.
+const SheetOverlay = React.forwardRef<HTMLDivElement, React.ComponentProps<typeof SheetPrimitive.Overlay>>(function SheetOverlay({ className, ...props }, ref) {
+  return <SheetPrimitive.Overlay ref={ref} data-slot="sheet-overlay" className={cn(scrimClass, className)} {...props} />
+})
 
 const SIDE = {
   bottom:

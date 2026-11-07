@@ -663,10 +663,10 @@ export function HubBilling() {
             </Card>
             <Card>
               <SectionTitle>Usage</SectionTitle>
-              <QuotaMeter label="Custom roles" used={s.usage.custom_roles} limit={lim("custom_roles")} />
-              <QuotaMeter label="Custom pages" used={s.usage.custom_pages} limit={lim("custom_pages")} />
-              <QuotaMeter label="Active Campaigns" used={s.usage.active_campaigns} limit={lim("active_campaigns")} />
-              <QuotaMeter label="Active surveys" used={s.usage.active_surveys} limit={lim("active_surveys")} />
+              <QuotaMeter label="Custom roles" used={s.usage.custom_roles} limit={lim("roles.max_custom")} />
+              <QuotaMeter label="Custom pages" used={s.usage.custom_pages} limit={lim("pages.max_custom")} />
+              <QuotaMeter label="Active Campaigns" used={s.usage.active_campaigns} limit={lim("campaigns.max_active")} />
+              <QuotaMeter label="Active surveys" used={s.usage.active_surveys} limit={lim("surveys.max_active")} />
             </Card>
           </div>
           <Card>

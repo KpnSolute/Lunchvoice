@@ -23,6 +23,19 @@ const LIMITS = {
   starter: { custom_roles: 3, custom_pages: 3, active_campaigns: 15, active_surveys: 2, survey_threshold_pct: 50, quick_surveys_active: 5, quick_survey_questions: 10 },
   team: { custom_roles: 6, custom_pages: 10, active_campaigns: 15, active_surveys: 5, survey_threshold_pct: 20, discover_min_members: 700, quick_surveys_active: 5, quick_survey_questions: 10 },
 } as const;
+// Output keys follow lv.plan_limits (000014): roles.max_custom, pages.max_custom, campaigns.max_active, ...
+function limitsOut(fam: "free" | "starter" | "team") {
+  const l = LIMITS[fam] as Record<string, number>;
+  return {
+    "quick.max_active": l.quick_surveys_active ?? null,
+    "quick.max_questions": l.quick_survey_questions ?? null,
+    "roles.max_custom": fam === "free" ? null : l.custom_roles,
+    "pages.max_custom": fam === "free" ? null : l.custom_pages,
+    "campaigns.max_active": fam === "free" ? null : l.active_campaigns,
+    "surveys.max_active": fam === "free" ? null : l.active_surveys,
+    ...(fam === "team" ? { "discover.min_members": l.discover_min_members } : {}),
+  };
+}
 const PALETTE = ["#FF9A18", "#14110F", "#2E6B4F", "#2F5D8C", "#8A2E5C", "#6B4FA0"];
 const CORE_KINDS = ["rating", "single_choice", "multi_choice", "yes_no", "text"];
 
@@ -230,7 +243,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
     case "lv_plan_limits":
       return {
         ok: true,
-        families: LIMITS,
+        families: { free: limitsOut("free"), starter: limitsOut("starter"), team: limitsOut("team") },
         products: [
           { product: "starter_hub", family: "starter", price_cents: 1300, interval: "month", purchasable: false },
           { product: "team_hub", family: "team", price_cents: 2900, interval: "month", purchasable: false },
@@ -256,6 +269,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       const admitted = position <= SEATS_TOTAL;
       s.waitlist = { status: admitted ? "admitted" : "waitlisted", position, joined_at: iso(Date.now()), contact_email: email };
       if (!admitted) return { ok: true, status: "waitlisted", position };
+      if (email && a.p_consent_version !== "2026-11-07") return err("lv_invalid_input", "Consent is needed to store a contact email", { missing: ["p_consent_version"] });
       const ent: Ent = { id: id("ent"), product: "founding", family: "starter", scope: "account", starts_at: iso(Date.now()), ends_at: null, source: "waitlist" };
       s.ents.push(ent);
       s.credits.push({ id: id("cr"), family: "starter", used: false });
@@ -307,11 +321,11 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
         ok: true,
         hub: {
           hub_id: h.hub_id, slug: h.slug, name: h.name, visibility: h.visibility, membership_mode: h.membership_mode,
-          member_count: h.members.filter((m) => m.status === "accepted").length, about: h.about, accent: h.accent, accent_palette: PALETTE,
-          ...(me ? { plan: hubPlan(s, h.hub_id) } : {}),
+          member_count: h.members.filter((m) => m.status === "accepted").length, about: h.about, accent: h.accent,
         },
+        accents: PALETTE,
         membership: me
-          ? { is_owner: me.is_owner, roles: s.roles.filter((r) => me.roles.includes(r.role_id)).map((r) => ({ key: r.key, name: r.name })), capabilities: me.is_owner ? caps : [], active_campaigns: s.campaigns.filter((c) => c.hub_id === h.hub_id && isActive(c)).length }
+          ? { is_owner: me.is_owner, roles: s.roles.filter((r) => me.roles.includes(r.role_id)).map((r) => ({ key: r.key, name: r.name })), capabilities: me.is_owner ? caps : [], active_campaigns: s.campaigns.filter((c) => c.hub_id === h.hub_id && isActive(c)).length, plan: hubPlan(s, h.hub_id) }
           : null,
       };
     }
@@ -475,13 +489,12 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       const h = hubById(c.hub_id)!;
       const manage = h.kind === "personal" || owns(h);
       if (!manage && c.access === "invite" && !s.eligible.includes(c.campaign_id)) return err("lv_not_found", "Campaign not found");
-      const limit = h.kind === "personal" ? LIMITS.free.quick_survey_questions : null;
       const reasons = [c.questions.length ? "" : "no_questions", c.status === "draft" ? "" : "not_draft"].filter(Boolean);
       return {
         ok: true,
         campaign: {
           campaign_id: c.campaign_id, hub_id: c.hub_id, title: c.title, mode: c.mode, anonymity: c.anonymity, status: c.status, revision: 1,
-          opens_at: c.opens_at, closes_at: c.closes_at, audience: c.audience, space: h.kind, access: c.access, question_limit: limit,
+          opens_at: c.opens_at, closes_at: c.closes_at, audience: c.audience, access: c.access ?? null,
         },
         questions: c.questions, has_responded: Boolean(c.mine_answered), receipt_id: c.mine_answered ? `r-${c.campaign_id}-me` : null,
         can_respond: isActive(c) && !c.mine_answered, can_manage: manage, join_code: c.status === "draft" ? undefined : c.join_code,
@@ -610,9 +623,9 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       const h = hubById(c.hub_id)!;
       return {
         ok: true,
-        campaign: { campaign_id: c.campaign_id, hub_id: c.hub_id, title: c.title, mode: c.mode, anonymity: c.anonymity, status: c.status, revision: 1, opens_at: c.opens_at, closes_at: c.closes_at, space: h.kind },
+        campaign: { campaign_id: c.campaign_id, title: c.title, mode: c.mode, anonymity: c.anonymity, phase: isActive(c) ? "open" : c.status, opens_at: c.opens_at, closes_at: c.closes_at, access: c.access ?? null, guests_allowed: true },
         hub: { name: h.kind === "community" ? h.name : null },
-        questions: c.questions, has_responded: false, receipt_id: null, can_respond: isActive(c), can_manage: false, join_code: c.join_code,
+        questions: c.questions, signed_in: false, can_respond: isActive(c),
       };
     }
     case "lv_guest_submit": {
@@ -733,7 +746,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       return {
         ok: true,
         plan: { family: plan.family, product: plan.product, state: plan.state, starts_at: ent?.starts_at ?? null, ends_at: plan.ends_at },
-        limits: LIMITS[(plan.family === "free" ? "free" : plan.family) as keyof typeof LIMITS] ?? LIMITS[fam],
+        limits: limitsOut(fam),
         usage: { custom_roles: s.roles.filter((r) => r.hub === h.hub_id).length, custom_pages: h.pages.filter((p) => p.kind === "custom").length, active_campaigns: active.length, active_surveys: active.filter((c) => c.mode === "survey").length },
         reservation: h.reservation ? { slug: h.slug, state: "active", expires_at: h.reservation.expires_at, mine: true } : null,
       };

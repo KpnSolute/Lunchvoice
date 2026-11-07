@@ -76,7 +76,8 @@ export function SurveyList() {
           <aside className="lv-rail" aria-label="Limits">
             <Card>
               <h2 className="lv-share-h">Your free limits</h2>
-              <QuotaMeter label="Active Quick Surveys" used={d.active} limit={d.limit} hint="Close one to publish another." />
+              <QuotaMeter label="Active Quick Surveys" used={d.active} limit={d.limit} hint="Archiving a survey frees a slot." />
+              <p className="lv-m0"><strong>{d.active} of {d.limit ?? "–"} active</strong></p>
               <p className="ui-muted lv-m0">Up to 10 questions each: rating, single choice, multiple choice, yes/no and short text.</p>
             </Card>
             <Card variant="dashed">
@@ -157,9 +158,13 @@ export function NewSurvey() {
 
 export function SurveyStudio() {
   const { id = "" } = useParams();
+  const { api } = useIdentity();
+  const list = useLv(() => api.quickSurveyList(), [api]);
+  const ctx = useLv(() => api.myContext(), [api]);
+  const quick = { questionLimit: ctx.data?.quick_surveys.question_limit ?? 10, active: list.data?.active ?? 0, activeLimit: list.data?.limit ?? null };
   return (
     <div className="ui-page lv-studio-page">
-      <StudioView campaignId={id} backTo="/surveys" crumb="Quick Surveys" resultsTo={`/surveys/${id}/results`} />
+      <StudioView campaignId={id} backTo="/surveys" crumb="Quick Surveys" resultsTo={`/surveys/${id}/results`} quick={quick} />
     </div>
   );
 }

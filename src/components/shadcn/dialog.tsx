@@ -20,9 +20,10 @@ function DialogPortal(props: React.ComponentProps<typeof DialogPrimitive.Portal>
 function DialogClose(props: React.ComponentProps<typeof DialogPrimitive.Close>) {
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
-function DialogOverlay({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
-  return <DialogPrimitive.Overlay data-slot="dialog-overlay" className={cn(scrimClass, className)} {...props} />
-}
+// forwardRef: Radix Presence hands the overlay a ref, which React 18 only passes to forwardRef components.
+const DialogOverlay = React.forwardRef<HTMLDivElement, React.ComponentProps<typeof DialogPrimitive.Overlay>>(function DialogOverlay({ className, ...props }, ref) {
+  return <DialogPrimitive.Overlay ref={ref} data-slot="dialog-overlay" className={cn(scrimClass, className)} {...props} />
+})
 
 function DialogContent({
   className,

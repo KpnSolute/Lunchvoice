@@ -16,9 +16,10 @@ function AlertDialogTrigger(props: React.ComponentProps<typeof AlertDialogPrimit
 function AlertDialogPortal(props: React.ComponentProps<typeof AlertDialogPrimitive.Portal>) {
   return <AlertDialogPrimitive.Portal data-slot="alert-dialog-portal" {...props} />
 }
-function AlertDialogOverlay({ className, ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Overlay>) {
-  return <AlertDialogPrimitive.Overlay data-slot="alert-dialog-overlay" className={cn(scrimClass, className)} {...props} />
-}
+// forwardRef: Radix Presence hands the overlay a ref, which React 18 only passes to forwardRef components.
+const AlertDialogOverlay = React.forwardRef<HTMLDivElement, React.ComponentProps<typeof AlertDialogPrimitive.Overlay>>(function AlertDialogOverlay({ className, ...props }, ref) {
+  return <AlertDialogPrimitive.Overlay ref={ref} data-slot="alert-dialog-overlay" className={cn(scrimClass, className)} {...props} />
+})
 
 function AlertDialogContent({ className, ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
   return (

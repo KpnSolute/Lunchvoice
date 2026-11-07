@@ -71,7 +71,8 @@ export function ResultBars({ cells, caption }: { cells: ResultCell[]; caption: s
                   <b className="block h-full rounded-full bg-[var(--lv-accent)] transition-[width] duration-[var(--lv-dur-toggle)]" style={{ width: `${Math.max(3, ((c.n ?? 0) / top) * 100)}%` }} />
                 </span>
                 <span className="min-w-[64px] text-right font-[family-name:var(--lv-font-mono)] text-[13px] font-bold [font-variant-numeric:tabular-nums]">
-                  {c.n} <span className="font-normal text-[var(--lv-muted)]">{pct}%</span>
+                  {/* No share when part of the total is withheld: a percentage of the released part would mislead. */}
+                  {c.n} {withheld.length === 0 && <span className="font-normal text-[var(--lv-muted)]">{pct}%</span>}
                 </span>
               </li>
             )

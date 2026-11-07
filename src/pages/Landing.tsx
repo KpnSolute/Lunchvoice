@@ -67,11 +67,12 @@ function WaitlistBand() {
     <section id="waitlist" className="lv-l-section" aria-labelledby="wl-h">
       <div className="lv-l-waitlist">
         <div className="lv-l-waitlist-copy">
-          <span className="lv-l-eyebrow lv-l-eyebrow-accent">Founding waitlist</span>
-          <h2 id="wl-h" className="lv-l-h2">The first 50 creators get a Hub, free.</h2>
+          <span className="lv-l-eyebrow lv-l-eyebrow-accent">Founding seats</span>
+          <h2 id="wl-h" className="lv-l-h2">50 Founding seats. A Hub on us.</h2>
           <p>
-            LunchVoice opens through a waitlist. Sign in and join: the first 50 people get a Founding seat with one Starter
-            Hub, free until paid billing launches and for 30 days after. Everyone after that joins the waitlist.
+            LunchVoice opens through a waitlist. Sign in and join: the first 50 people admitted receive a Founding Hub
+            credit, a Starter Hub free until paid billing launches and for 30 days after. Everyone else can buy a plan once
+            billing opens.
           </p>
           <div className="lv-l-actions">
             <Button asChild variant="primary" size="lg"><Link to="/waitlist">Join the waitlist</Link></Button>
@@ -83,7 +84,7 @@ function WaitlistBand() {
           <strong className="lv-l-seats-n">{left === null ? "…" : left}</strong>
           <span>{left === null ? "Checking seats" : left === 1 ? "seat left of 50" : `seats left of ${s!.seats_total}`}</span>
           {s && <Progress value={(s.seats_taken / s.seats_total) * 100} aria-label={`${s.seats_taken} of ${s.seats_total} seats taken`} />}
-          {s && !s.open && <span className="lv-l-seats-note">All seats are taken. You can still join the waitlist.</span>}
+          {s && !s.open && <span className="lv-l-seats-note">All Founding seats are taken. You can still join and wait for billing to open.</span>}
         </div>
       </div>
     </section>

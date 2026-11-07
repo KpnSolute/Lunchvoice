@@ -61,3 +61,24 @@
 
 /* Respondent extras */
 .lv-report { display: flex; justify-content: center; margin-top: 8px; }
+
+/* Shared small helpers */
+.lv-small { font-size: 13px; }
+.lv-stack-8 { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.lv-detail-title { margin: 0; font: 800 clamp(26px, 3.6vw, 36px)/1.02 var(--lv-font-display); letter-spacing: -0.035em; overflow-wrap: anywhere; }
+.lv-consent { align-items: flex-start; }
+.lv-consent > span { line-height: 1.45; }
+
+/* Campaign cards */
+.lv-campaign-card { display: block; color: inherit; border-radius: var(--lv-radius-card); text-decoration: none; transition: transform var(--lv-dur-press) var(--lv-ease-spring); }
+.lv-campaign-card:hover { transform: translateY(-2px); }
+.lv-campaign-card:active { transform: scale(0.98); }
+.lv-campaign-card:focus-visible { outline: 2px solid var(--lv-focus); outline-offset: 4px; }
+.lv-campaign-card-inner { height: 100%; }
+.lv-campaign-title { margin: 0; font: 800 24px/1.05 var(--lv-font-display); letter-spacing: -0.03em; overflow-wrap: anywhere; }
+.lv-lifecycle-step { display: inline-flex; align-items: center; gap: 8px; }
+
+/* Hub chrome */
+.lv-hubmark-wrap { display: inline-flex; border-radius: 20px; }
+.lv-member-name { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lv-kv-ink dt { color: inherit; opacity: 0.7; }
