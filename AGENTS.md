@@ -23,7 +23,9 @@ Dining is one customer use case, not the product.
   A person is the verified `(issuer, subject)` pair; email is never an identity
   key. LunchVoice owns authorization, memberships, roles and entitlements.
 - Canonical spec: `docs/v2/LunchVoice_v2_CANONICAL_MASTER_SPEC_2026-10-25.md`.
-  Read it before implementing anything. Worker handoffs live in
+  Read it before implementing anything. The founder direction of 2026-11-07
+  (Quick Surveys, whitelist launch) and the launch definition of done live in
+  `docs/v2/LAUNCH_PLAN.md`, which wins where it differs. Worker handoffs live in
   `docs/v2/handoffs/`. Product detail is `docs/v2/PRODUCT_SPEC.md`; the
   identity boundary is `docs/v2/IDENTITY_CONTRACT.md`.
 - Supabase refs: Lunchvoice `qprfonxvthmaoxfixigk`, KpnIdentity

@@ -6,6 +6,13 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (launch plan)
+
+- `docs/v2/LAUNCH_PLAN.md`: the founder direction of 2026-11-07 (free Quick Surveys, 50-seat whitelist launch with a
+  free Founding Starter entitlement), the decisions taken for the founder with Jev (L-01 to L-06), architecture
+  decisions A-01 to A-05, the launch definition of done, the roadmap and the API contract the backend and UI build to.
+  `AGENTS.md` and `CLAUDE.md` point to it.
+
 ### Added (shadcn/ui on the design system)
 
 - Tailwind v4 (`tailwindcss`, `@tailwindcss/vite`) and shadcn/ui (`components.json`, Radix, Nova style), with the
