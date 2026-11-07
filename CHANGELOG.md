@@ -6,6 +6,12 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Compliance (launch gate met)
+
+- `docs/compliance/LAUNCH_COMPLIANCE_REVIEW.md` §7.7: targeted re-review at 5c665e1 confirms 0 BLOCKER and 0 HIGH
+  open (NEW-01 reproduced and refused; NEW-02, NEW-06, NEW-08, LC-31, NEW-03, NEW-04, NEW-07 closed). Open: 4 MEDIUM
+  (LC-10, LC-12, LC-13, LC-14) and 5 LOW, each with an owner.
+
 ### Security (000017 billing hardening)
 
 - NEW-01 (HIGH): `lv.billing_apply_event` grants only for a matching checkout intent with `payment_status` paid (or no
