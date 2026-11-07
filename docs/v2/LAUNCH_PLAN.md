@@ -35,6 +35,18 @@ to without further backend or UI work. Nothing in this plan charges money.
 | L-04 | Analytics minimum cohort | 5 (`campaign.min_cohort`) | 0.43 |
 | L-05 | Guest submissions per Campaign per minute | 10 (`participation.guest_rate_per_minute`) | 0.26 |
 | L-06 | Quick Survey question limit | 10 | 0.28 |
+| L-07 | Anonymous analytics strictness (LC-01, LC-02) | Strict: withhold mean/n of a question with any withheld cell, one merged withheld bucket, dominance rule, no participation rate at 100% or when non-respondents < min cohort | 0.98 |
+| L-08 | Account deletion (LC-16) | De-identify identified answers; nothing traceable remains | 0.08 (coin flip; founder should confirm) |
+| L-09 | Deleted Hub slug cooldown (LC-27) | 0 days, configurable policy `hub.deleted_slug_cooldown_days` | 1.00 |
+| L-10 | Free text at launch (LC-41) | Allowed; shown only as an unlinked list once min cohort is reached, with a creator warning | 0.30 |
+| L-11 | Guests (LC-11) | Allowed on link surveys with the 10/min cap; results labelled with the guest count; never counted as members | 0.50 |
+| L-12 | Whitelist contact email (LC-18) | Optional; launch and account updates only; deleted with the account | 0.56 |
+| L-13 | Retention (LC-17) | Campaign data while account/Hub exists; logs 12 months; guest rate-limit hashes 7 days | 0.74 |
+| L-14 | Abuse policy for free surveys (LC-26) | None beyond the support contact for now | 0.30 (low; founder should confirm) |
+
+Still the founder's alone (not delegated): refunds/cancellation/taxes before Stripe (F-08), the Campaign Plus price
+(F-09), minors and school posture with counsel (F-05), counsel review of Terms and Privacy and the legal entity
+(F-15), and approval to apply migrations to production (F-13).
 
 Governing-agent decisions (architecture, not product):
 

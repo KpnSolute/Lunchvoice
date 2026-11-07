@@ -8,6 +8,8 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added (launch compliance review)
 
+- `docs/v2/LAUNCH_PLAN.md` records decisions L-07 to L-14 taken with Jev on the review's founder questions, and lists
+  the decisions that stay with the founder (refunds, Campaign Plus price, minors, legal review, production approval).
 - `docs/compliance/LAUNCH_COMPLIANCE_REVIEW.md`: privacy, security, payments-readiness, policy, legal-surface and
   accessibility review of the launch plan and current code (1 blocker, 7 high, 21 medium, 12 low), a reusable
   re-review checklist and the founder decisions needed. Findings are assigned to the backend and UI work in progress.
