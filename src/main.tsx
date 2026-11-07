@@ -1,12 +1,14 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { IdentityProvider } from "./identity/IdentityProvider";
 import { AuthCallback, RequireSignIn, Shell, SignIn } from "./pages/Public";
 import { Landing } from "./pages/Landing";
 import { About, Beta, Discover, HowItWorks, NotFoundPage, Privacy, Status, Support, Terms, UseCases } from "./pages/Marketing";
 import { CreateHub, Join, Me, RedeemInvite, Settings } from "./pages/Account";
 import { Pricing } from "./pages/Pricing";
+import { Waitlist } from "./pages/Waitlist";
+import { NewSurvey, SurveyInvite, SurveyList, SurveyResults, SurveyStudio } from "./pages/Surveys";
 import { HubAddon, HubBilling, HubBuilder, HubDiscover, HubLayout, HubOverview, HubReservation, HubSettings, Invites, Members, Roles } from "./pages/Hub";
 import { CampaignDetail, Campaigns, NewCampaign, Results, Studio } from "./pages/Campaigns";
 import { GuestCampaign } from "./pages/Player";
@@ -20,6 +22,7 @@ import "./ui/tokens.css";
 import "./ui/shadcn.css";
 import "./index.css";
 import "./ui/ui.css";
+import "./ui/app.css";
 import "./styles/system.css";
 import "./styles/landing.css";
 
@@ -47,6 +50,9 @@ createRoot(document.getElementById("root")!).render(
             <Route path="privacy" element={<Privacy />} />
             <Route path="support" element={<Support />} />
             <Route path="discover" element={<Discover />} />
+            <Route path="waitlist" element={<Waitlist />} />
+            {/* the founder already shared /whitelist: keep that link working */}
+            <Route path="whitelist" element={<Navigate to="/waitlist" replace />} />
 
             {/* auth and account */}
             <Route path="signin" element={<SignIn />} />
@@ -57,8 +63,15 @@ createRoot(document.getElementById("root")!).render(
             <Route path="create" element={<RequireSignIn><CreateHub /></RequireSignIn>} />
             <Route path="settings" element={<RequireSignIn><Settings /></RequireSignIn>} />
 
+            {/* Quick Surveys (personal space) */}
+            <Route path="surveys" element={<RequireSignIn><SurveyList /></RequireSignIn>} />
+            <Route path="surveys/new" element={<RequireSignIn><NewSurvey /></RequireSignIn>} />
+            <Route path="surveys/:id" element={<RequireSignIn><SurveyStudio /></RequireSignIn>} />
+            <Route path="surveys/:id/results" element={<RequireSignIn><SurveyResults /></RequireSignIn>} />
+
             {/* respondents */}
             <Route path="c/:joinCode" element={<GuestCampaign />} />
+            <Route path="s/:token" element={<SurveyInvite />} />
 
             {/* a Hub and everything under it */}
             <Route path=":hub" element={<HubLayout />}>

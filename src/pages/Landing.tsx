@@ -1,357 +1,255 @@
-import { useEffect, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Icon } from "../components/Icon";
-import { MadeBy } from "../components/MakerMark";
+import { useIdentity } from "../identity/IdentityProvider";
+import { useLv } from "../lib/useLv";
 import { PLANS } from "../config/pricing";
+import { Button } from "@/components/shadcn/button";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/shadcn/input-otp";
+import { Progress } from "@/components/shadcn/progress";
 
-const TEASER_PLANS = PLANS.filter((p) => p.id === "free" || p.id === "starter" || p.id === "team");
+// `/` is built 1:1 from the design handoff's "LunchVoice v2 Landing" (founder decision): ink hero with the join-code
+// card, amber ticker, three steps, live results, your Hub, for participants, pricing. The founder's launch adds the
+// waitlist section. Prices come from src/config/pricing.ts; dining is one use case among many.
 
-// The amber ticker band is carried over from v1: it states the product in one line
-// and gives the page its printed-sheet rhythm.
-const TICKER = [
-  "Ask your community",
-  "Five answer modes",
-  "Results you can defend",
-  "Withheld is never zero",
-  "Guests stay guests",
-  "Hubs from $13 a month",
+const ROTATOR: [string, string][] = [
+  ["Rating scales people tap in seconds", ": stars, choices, yes or no, and a short answer."],
+  ["One QR per survey", ": print it, post it anywhere, and answers start."],
+  ["Public or private Hubs", ": anonymous for everyone, or members with a LunchVoice account."],
 ];
+const TICKER = ["Clubs", "Classrooms", "Teams", "Events", "Clinics", "Communities", "Libraries", "Campuses", "Dining"];
+const BARS = [4, 9, 6, 3, 18, 34, 22, 8, 5, 12, 20, 9];
 
-// Adds .in to .lv-reveal as it scrolls in. Honours reduced motion and no-observer browsers
-// by revealing everything immediately.
-function useReveal() {
-  const ref = useRef<HTMLDivElement>(null);
+function Rotator() {
+  const [i, setI] = useState(0);
   useEffect(() => {
-    const root = ref.current;
-    if (!root) return;
-    const els = Array.from(root.querySelectorAll(".lv-reveal"));
-    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (still || !("IntersectionObserver" in window)) {
-      els.forEach((el) => el.classList.add("in"));
-      return;
-    }
-    const io = new IntersectionObserver(
-      (entries) =>
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            e.target.classList.add("in");
-            io.unobserve(e.target);
-          }
-        }),
-      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
+    const t = window.setInterval(() => setI((x) => (x + 1) % ROTATOR.length), 3800);
+    return () => window.clearInterval(t);
   }, []);
-  return ref;
+  const [b, rest] = ROTATOR[i];
+  return (
+    <div className="lv-l-rotator" aria-live="off">
+      <span className="lv-l-rotator-icon"><Icon name="check" size={18} /></span>
+      <p key={i}><b>{b}</b>{rest}</p>
+    </div>
+  );
 }
 
-const STEPS = [
-  {
-    icon: "home" as const,
-    title: "Create a Hub",
-    body: "One page for your community at lunchvoice.com/your-hub. Open to all, open on request, invite only, or closed.",
-  },
-  {
-    icon: "survey" as const,
-    title: "Run a Campaign",
-    body: "Rating, single choice, multiple choice, yes or no, or an open answer. One question per screen, on a phone, in under a minute.",
-  },
-  {
-    icon: "dashboard" as const,
-    title: "Read the whole room",
-    body: "Aggregate results that cannot be traced back to a person. Small cohorts are withheld instead of guessed.",
-  },
-];
+function CodeCard() {
+  const [code, setCode] = useState("");
+  const nav = useNavigate();
+  const go = () => code.length === 6 && nav(`/c/${code.toUpperCase()}`);
+  return (
+    <form id="join" className="lv-l-code" onSubmit={(e) => { e.preventDefault(); go(); }} aria-labelledby="code-h">
+      <div className="lv-l-code-head">
+        <h2 id="code-h">Got a code?</h2>
+        <span className="lv-l-mono">No account needed</span>
+      </div>
+      <InputOTP maxLength={6} value={code} onChange={(v) => setCode(v.toUpperCase())} aria-label="Six-character join code" pattern="^[A-Za-z0-9]*$">
+        <InputOTPGroup>{[0, 1, 2, 3, 4, 5].map((i) => <InputOTPSlot key={i} index={i} />)}</InputOTPGroup>
+      </InputOTP>
+      <div className="lv-l-code-foot">
+        <Button type="submit" variant="ink" size="lg" disabled={code.length < 6}>
+          Join survey <Icon name="arrow" size={16} />
+        </Button>
+        <span>or scan the QR on the poster</span>
+      </div>
+    </form>
+  );
+}
 
-const PRIVACY = [
-  {
-    icon: "lock" as const,
-    title: "Anonymous by default",
-    body: "Eligibility is proven once and kept apart from the answer itself, so a response never resolves to a name.",
-  },
-  {
-    icon: "voice" as const,
-    title: "Withheld, never zero",
-    body: "When a cohort is too small to protect the people in it, the number reads withheld. A suppressed value is never reported as 0.",
-  },
-  {
-    icon: "roster" as const,
-    title: "Guests stay guests",
-    body: "People without an account can answer an open Campaign, and never count as members or toward any threshold.",
-  },
-];
-
-const USE_CASES = [
-  { icon: "home" as const, name: "Schools and campuses", line: "Course feedback and student life, without naming a respondent." },
-  { icon: "star" as const, name: "Clubs and societies", line: "Pick a direction, rate an event, settle a small decision." },
-  { icon: "roster" as const, name: "Teams and leagues", line: "Availability, feedback on the season, ideas for next year." },
-  { icon: "sparkle" as const, name: "Events and meetups", line: "A QR code on the table, results before you pack up." },
-  { icon: "bulb" as const, name: "Workplaces", line: "Pulse questions and idea boxes with a defensible privacy floor." },
-  { icon: "dashboard" as const, name: "Neighborhoods", line: "Ask a local question once, and see what the street actually thinks." },
-];
-
-const FAQ = [
-  {
-    q: "Can anyone trace an answer back to me?",
-    a: "No. LunchVoice proves you were eligible to answer without storing that proof next to your response, and results only show aggregates. When a group is small enough that a total could identify someone, the number is withheld.",
-  },
-  {
-    q: "Why do some results say withheld instead of a number?",
-    a: "Because reporting a small number can expose the people behind it, and correcting for that by subtraction would defeat the point. Withheld means the data exists and stays private, not that the answer was zero.",
-  },
-  {
-    q: "Do participants pay?",
-    a: "Never. Answering is free forever. Creating a Hub starts at $13 a month, and a single Campaign window costs $19 for the first two weeks.",
-  },
-  {
-    q: "Do I need an account to answer?",
-    a: "Not for a Campaign the organiser has opened to guests. Guests can answer a join-code link without creating an account, and they are never counted as members.",
-  },
-];
+function WaitlistBand() {
+  const { api } = useIdentity();
+  const status = useLv(() => api.waitlistStatus(), [api]);
+  const s = status.data;
+  const left = s ? Math.max(0, s.seats_total - s.seats_taken) : null;
+  return (
+    <section id="waitlist" className="lv-l-section" aria-labelledby="wl-h">
+      <div className="lv-l-waitlist">
+        <div className="lv-l-waitlist-copy">
+          <span className="lv-l-eyebrow lv-l-eyebrow-accent">Founding waitlist</span>
+          <h2 id="wl-h" className="lv-l-h2">The first 50 creators get a Hub, free.</h2>
+          <p>
+            LunchVoice opens through a waitlist. Sign in and join: the first 50 people get a Founding seat with one Starter
+            Hub, free until paid billing launches and for 30 days after. Everyone after that joins the waitlist.
+          </p>
+          <div className="lv-l-actions">
+            <Button asChild variant="primary" size="lg"><Link to="/waitlist">Join the waitlist</Link></Button>
+            <Button asChild variant="secondary" size="lg"><Link to="/surveys/new">Or start a free Quick Survey</Link></Button>
+          </div>
+        </div>
+        <div className="lv-l-seats" aria-live="polite">
+          <span className="lv-l-mono">Founding seats</span>
+          <strong className="lv-l-seats-n">{left === null ? "…" : left}</strong>
+          <span>{left === null ? "Checking seats" : left === 1 ? "seat left of 50" : `seats left of ${s!.seats_total}`}</span>
+          {s && <Progress value={(s.seats_taken / s.seats_total) * 100} aria-label={`${s.seats_taken} of ${s.seats_total} seats taken`} />}
+          {s && !s.open && <span className="lv-l-seats-note">All seats are taken. You can still join the waitlist.</span>}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export function Landing() {
-  const { hash } = useLocation();
-  const revealRef = useReveal();
-
-  // The header links to in-page sections (/#how, /#use-cases). Router navigation does not
-  // scroll to a hash on its own, so honour it whenever it changes.
-  useEffect(() => {
-    if (!hash) return;
-    document.getElementById(hash.slice(1))?.scrollIntoView({ block: "start" });
-  }, [hash]);
+  const plans = ["free", "starter", "team"].map((id) => PLANS.find((p) => p.id === id)!);
 
   return (
-    <div className="lv-landing" ref={revealRef}>
-      {/* ---------- hero ---------- */}
-      <section className="lv-hero" aria-labelledby="lv-hero-title">
-        <div className="lv-hero-copy">
-          <p className="lv-eyebrow lv-rise">Community feedback, private by design</p>
-          <h1 id="lv-hero-title" className="lv-h1 lv-rise lv-rise-2">
-            Ask your community.
-            <br />
-            <em>Hear the whole room.</em>
-          </h1>
-          <p className="lv-sub lv-rise lv-rise-3">
-            LunchVoice gives any group a Hub and a set of Campaigns — ratings, polls, surveys and open
-            ideas — with results that stay honest about who answered.
-          </p>
-          <div className="lv-cta-row lv-rise lv-rise-4">
-            <Link className="btn btn-primary lv-btn-lg" to="/signin">
-              Get started
-              <Icon name="arrow" size={18} />
-            </Link>
-            <a className="btn btn-ghost lv-btn-lg" href="#how">
-              See how it works
-            </a>
+    <div className="lv-l">
+      {/* ---------------- hero (ink) ---------------- */}
+      <div className="lv-l-ink">
+        <header className="lv-l-hero">
+          <div className="lv-l-hero-copy">
+            <span className="lv-l-eyebrow"><i aria-hidden="true" />LunchVoice 2.0<span>· surveys for any community</span></span>
+            <h1 className="lv-l-h1">Every voice has a story. <em>Hear it.</em></h1>
+            <p className="lv-l-lede">
+              Build a survey in minutes, share it with one QR code or a six-character code, and watch anonymous answers
+              arrive while it’s still happening. Every community gets its own Hub at <b>lunchvoice.com/yourname</b>.
+            </p>
+            <Rotator />
           </div>
-          <p className="lv-micro">
-            Free for participants · Hubs from $13/month · No credit card to create an account
-          </p>
-
-          <div className="lv-metrics" aria-label="At a glance">
-            <div><b>$0</b><span>to answer, always</span></div>
-            <div><b>5</b><span>answer modes</span></div>
-            <div><b>0</b><span>names in results</span></div>
+          <div className="lv-l-hero-side">
+            <CodeCard />
+            <div className="lv-l-cta-row">
+              <Button asChild variant="primary" size="lg" data-lv-cta="hero" className="lv-l-cta">
+                <Link to="/waitlist">Create your Hub</Link>
+              </Button>
+            </div>
           </div>
-        </div>
-
-        <div className="lv-hero-art">
-        <figure className="lv-preview" aria-label="Example of a Campaign and its results">
-          <div className="lv-preview-top">
-            <span className="lv-chip">Example Campaign</span>
-            <span className="lv-lock">
-              <Icon name="lock" size={13} /> Anonymous
-            </span>
+        </header>
+        <div className="lv-l-ticker" aria-hidden="true">
+          <div className="lv-l-ticker-track">
+            {[...TICKER, ...TICKER].map((w, i) => <span key={i}>{w}<i>·</i></span>)}
           </div>
-          <p className="lv-preview-q">How useful was tonight&rsquo;s meetup?</p>
-          <ul className="lv-bars">
-            {[
-              { label: "Very useful", pct: 46 },
-              { label: "Useful", pct: 31 },
-              { label: "Mixed", pct: 14 },
-            ].map((r) => (
-              <li key={r.label}>
-                <span className="lv-bar-label">{r.label}</span>
-                <span className="lv-bar-track" aria-hidden="true">
-                  <b style={{ width: `${r.pct}%` }} />
-                </span>
-                <span className="lv-bar-value">{r.pct}%</span>
-              </li>
-            ))}
-            <li>
-              <span className="lv-bar-label">Not useful</span>
-              <span className="lv-bar-track lv-bar-withheld" aria-hidden="true" />
-              <span className="lv-bar-value lv-withheld">Withheld</span>
-            </li>
-          </ul>
-          <figcaption className="lv-preview-note">
-            <Icon name="voice" size={14} /> 38 responses · a small cohort is withheld, never shown as zero
-          </figcaption>
-        </figure>
-
-        <Link className="lv-code-card lv-rise lv-rise-3" to="/join">
-          <div>
-            <div className="lv-code-title">Have a join code?</div>
-            <span className="lv-code-hint ui-mono">Six characters, on your invitation</span>
-          </div>
-          <span className="lv-code-cells" aria-hidden="true">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <i key={i} />
-            ))}
-          </span>
-          <Icon name="arrow" size={18} />
-        </Link>
-        </div>
-      </section>
-
-      {/* ---------- ticker ---------- */}
-      <div className="lv-ticker" aria-hidden="true">
-        <div className="lv-ticker-track">
-          {[...TICKER, ...TICKER].map((t, i) => (
-            <span key={`${t}-${i}`}>{t} ◆</span>
-          ))}
         </div>
       </div>
 
-      {/* ---------- how it works ---------- */}
-      <section id="how" className="lv-section" aria-labelledby="lv-how-title">
-        <header className="lv-section-head">
-          <p className="lv-eyebrow">How it works</p>
-          <h2 id="lv-how-title" className="lv-h2">
-            Three steps from a question to a decision.
-          </h2>
-        </header>
-        <ol className="lv-steps">
-          {STEPS.map((s, i) => (
-            <li key={s.title} className="lv-reveal" data-step={String(i + 1).padStart(2, "0")} style={{ transitionDelay: `${i * 80}ms` }}>
-              <span className="lv-step-num" aria-hidden="true">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <span className="lv-step-icon">
-                <Icon name={s.icon} size={20} />
-              </span>
-              <h3>{s.title}</h3>
-              <p>{s.body}</p>
-            </li>
-          ))}
+      {/* ---------------- how it works ---------------- */}
+      <section id="how" className="lv-l-section" aria-labelledby="how-h">
+        <div className="lv-l-head">
+          <span className="lv-l-eyebrow lv-l-eyebrow-muted">How it works</span>
+          <h2 id="how-h" className="lv-l-h2">Build it, share it, hear it. Same afternoon.</h2>
+        </div>
+        <ol className="lv-l-steps">
+          <li className="lv-l-step lv-l-step-light">
+            <div><span className="lv-l-step-n">01</span><span className="lv-l-step-icon"><Icon name="survey" size={20} /></span></div>
+            <b>Build</b>
+            <p>Start from a blank page or a Quick Survey. Five question types, all built to tap on a phone.</p>
+          </li>
+          <li className="lv-l-step lv-l-step-amber">
+            <div><span className="lv-l-step-n">02</span><span className="lv-l-step-icon"><Icon name="join" size={20} /></span></div>
+            <b>Share</b>
+            <p>Print a QR poster, send a link, or give out a six-character code. No app download.</p>
+          </li>
+          <li className="lv-l-step lv-l-step-ink">
+            <div><span className="lv-l-step-n">03</span><span className="lv-l-step-icon"><Icon name="voice" size={20} /></span></div>
+            <b>Hear</b>
+            <p>See answers arrive, post a “you said, we did” update, and close the loop.</p>
+          </li>
         </ol>
       </section>
 
-      {/* ---------- privacy ---------- */}
-      <section className="lv-band" aria-labelledby="lv-privacy-title">
-        <div className="lv-band-inner">
-          <header className="lv-section-head">
-            <p className="lv-eyebrow">Privacy is the product</p>
-            <h2 id="lv-privacy-title" className="lv-h2">
-              An answer you give is not an answer you can be blamed for.
-            </h2>
-            <p className="lv-lead">
-              Most feedback tools ask people to trust a promise. LunchVoice enforces the promise in the
-              database, then refuses to publish anything that would break it.
-            </p>
-          </header>
-          <div className="lv-grid-3">
-            {PRIVACY.map((p, i) => (
-              <article key={p.title} className="lv-card lv-reveal" style={{ transitionDelay: `${i * 80}ms` }}>
-                <span className="lv-icon-dot">
-                  <Icon name={p.icon} size={20} />
-                </span>
-                <h3>{p.title}</h3>
-                <p>{p.body}</p>
-              </article>
-            ))}
+      {/* ---------------- live results (ink) ---------------- */}
+      <section className="lv-l-band lv-l-band-ink" aria-labelledby="live-h">
+        <div className="lv-l-split">
+          <div className="lv-l-split-copy">
+            <span className="lv-l-eyebrow lv-l-eyebrow-accent">Live results</span>
+            <h2 id="live-h" className="lv-l-h2">Know before the line clears.</h2>
+            <p>Answers land by the minute. Question summaries and charts are built in, and you only ever see totals, never names. A group too small to stay anonymous is withheld, never shown as zero.</p>
+          </div>
+          <div className="lv-l-live" aria-label="Sample results">
+            <div className="lv-l-live-top">
+              <span className="lv-l-mono"><i aria-hidden="true" />Live · Sample survey</span>
+              <span className="lv-l-mono lv-l-dim">updated 2 min ago</span>
+            </div>
+            <div className="lv-l-live-metrics">
+              <div><strong className="lv-l-amber">412</strong><span>Responses</span></div>
+              <div><strong>78%</strong><span>Completion</span></div>
+              <div><strong>1:52</strong><span>Median time</span></div>
+            </div>
+            <div className="lv-l-bars" aria-hidden="true">
+              {BARS.map((v, i) => <span key={i} style={{ height: `${Math.round((v / 34) * 100)}%` }} data-peak={i === 5 || undefined} />)}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ---------- use cases ---------- */}
-      <section id="use-cases" className="lv-section" aria-labelledby="lv-uc-title">
-        <header className="lv-section-head">
-          <p className="lv-eyebrow">Built for any community</p>
-          <h2 id="lv-uc-title" className="lv-h2">
-            Dining is one use case. Yours is probably different.
-          </h2>
-        </header>
-        <div className="lv-grid-3">
-          {USE_CASES.map((u, i) => (
-            <article key={u.name} className="lv-card lv-card-quiet lv-reveal" style={{ transitionDelay: `${i * 60}ms` }}>
-              <span className="lv-icon-dot">
-                <Icon name={u.icon} size={20} />
-              </span>
-              <h3>{u.name}</h3>
-              <p>{u.line}</p>
-            </article>
-          ))}
+      {/* ---------------- your Hub ---------------- */}
+      <section id="hubs" className="lv-l-section" aria-labelledby="hub-h">
+        <div className="lv-l-head">
+          <span className="lv-l-eyebrow lv-l-eyebrow-muted">Your Hub</span>
+          <h2 id="hub-h" className="lv-l-h2">A home for your surveys, in your colors.</h2>
+          <p>Every Hub gets <b>lunchvoice.com/yourname</b>. Add pages as your community grows, and choose who gets in.</p>
+        </div>
+        <div className="lv-l-hubgrid">
+          <div className="lv-l-browser" aria-hidden="true">
+            <div className="lv-l-browser-bar"><span><i>lunchvoice.com/</i><b>yourname</b></span></div>
+            <div className="lv-l-browser-cover">
+              <div><span className="lv-l-logo">LOGO</span><b>Your community</b></div>
+              <div className="lv-l-browser-tabs"><span data-on>Campaigns</span><span>News</span><span>Leaderboard</span><span>Comments</span></div>
+            </div>
+            <div className="lv-l-browser-body">
+              <div className="lv-l-browser-row"><div><b>Monthly pulse</b><span>7 questions · ~2 min</span></div><em data-live>Live</em></div>
+              <div className="lv-l-browser-row"><div><b>Event feedback</b><span>Opens Friday</span></div><em>Scheduled</em></div>
+              <p>Powered by <b>LunchVoice</b></p>
+            </div>
+          </div>
+          <div className="lv-l-modes">
+            <div className="lv-l-mode lv-l-mode-light">
+              <span><Icon name="globe" size={22} /></span>
+              <div><b>Public</b><p>Anyone with the link, QR or code can answer, anonymously and with no account.</p></div>
+            </div>
+            <div className="lv-l-mode lv-l-mode-ink">
+              <span><Icon name="lock" size={22} /></span>
+              <div><b>Private</b><p>Only members signed in with a LunchVoice account. Approve requests or send invite codes.</p></div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ---------- pricing teaser ---------- */}
-      <section className="lv-section lv-pricing" aria-labelledby="lv-price-title">
-        <header className="lv-section-head">
-          <p className="lv-eyebrow">Pricing</p>
-          <h2 id="lv-price-title" className="lv-h2">
-            Free to answer. Pay to create.
-          </h2>
-        </header>
-        <div className="lv-grid-3">
-          {TEASER_PLANS.map((p, i) => (
-            <article key={p.id} className="lv-card lv-plan lv-reveal" style={{ transitionDelay: `${i * 80}ms` }}>
-              <h3>{p.name}</h3>
-              <p className="lv-price">
-                <span>{p.priceLabel}</span>
-                <small>{p.cadence}</small>
-              </p>
-              <ul className="lv-plan-list">
-                {p.features.map((f) => (
-                  <li key={f}>
-                    <Icon name="check" size={15} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </article>
+      {/* ---------------- for participants (amber) ---------------- */}
+      <section id="people" className="lv-l-band lv-l-band-amber" aria-labelledby="people-h">
+        <div className="lv-l-split">
+          <div className="lv-l-split-copy">
+            <span className="lv-l-eyebrow">For participants</span>
+            <h2 id="people-h" className="lv-l-h2">One account. Every voice you’ve given.</h2>
+            <p>A free LunchVoice account lets you join private Hubs, answer invite-only surveys, and see what changed because you spoke up. Creators still see only totals.</p>
+            <div className="lv-l-actions">
+              <Button asChild variant="ink" size="lg"><Link to="/signin">Create free account</Link></Button>
+              <Link className="lv-l-outline-btn" to="/join">Join with a code</Link>
+            </div>
+          </div>
+          <div className="lv-l-stats" aria-label="Example account">
+            <div data-tone="ink"><span>Surveys answered</span><strong>37</strong></div>
+            <div><span>Hubs joined</span><strong>3</strong></div>
+            <div><span>Quick Surveys made</span><strong>2</strong></div>
+            <div data-tone="ink"><span>Changes made</span><strong>4</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <WaitlistBand />
+
+      {/* ---------------- pricing ---------------- */}
+      <section id="pricing" className="lv-l-section" aria-labelledby="price-h">
+        <div className="lv-l-head">
+          <span className="lv-l-eyebrow lv-l-eyebrow-muted">Pricing</span>
+          <h2 id="price-h" className="lv-l-h2">Free to start. Grow when you’re ready.</h2>
+        </div>
+        <div className="lv-l-plans">
+          {plans.map((p) => (
+            <div key={p.id} className={`lv-l-plan${p.id === "starter" ? " lv-l-plan-ink" : ""}`}>
+              <div className="lv-l-plan-top"><b>{p.name}</b><span className="lv-l-mono">{p.id === "starter" ? "Founding seat" : p.id === "free" ? "No Hub needed" : "More of everything"}</span></div>
+              <div className="lv-l-plan-price"><strong>{p.priceLabel ?? "Price not set"}</strong><span>{p.cadence}</span></div>
+              <ul>{p.features.slice(0, 5).map((f) => <li key={f}><Icon name="check" size={16} />{f}</li>)}</ul>
+              {p.id === "free" && <Button asChild variant="secondary" size="lg" block><Link to="/surveys/new">Start a Quick Survey</Link></Button>}
+              {p.id === "starter" && <Button asChild variant="primary" size="lg" block><Link to="/waitlist">Join the waitlist</Link></Button>}
+              {p.id === "team" && <Button asChild variant="secondary" size="lg" block><Link to="/pricing">See every plan</Link></Button>}
+            </div>
           ))}
         </div>
-        <p className="lv-pricing-foot">
-          <Link to="/pricing">
-            See every plan, including single-Campaign windows <Icon name="arrow" size={15} />
-          </Link>
+        <p className="lv-l-foot">
+          Campaign Starter, Campaign Plus and Hub URL reservations are on the <Link to="/pricing">pricing page</Link>. Checkout opens when billing launches; nothing here charges money.
         </p>
-      </section>
-
-      {/* ---------- faq ---------- */}
-      <section className="lv-section" aria-labelledby="lv-faq-title">
-        <header className="lv-section-head">
-          <p className="lv-eyebrow">Questions</p>
-          <h2 id="lv-faq-title" className="lv-h2">
-            The things people ask before they answer.
-          </h2>
-        </header>
-        <div className="lv-faq">
-          {FAQ.map((f) => (
-            <details key={f.q}>
-              <summary>
-                {f.q}
-                <Icon name="plus" size={18} />
-              </summary>
-              <p>{f.a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
-
-      {/* ---------- closing cta ---------- */}
-      <section className="lv-cta-band" aria-labelledby="lv-cta-title">
-        <h2 id="lv-cta-title" className="lv-h2">
-          Start with one question.
-        </h2>
-        <p>Create a Hub, invite the people who care, and get an answer you can act on.</p>
-        <Link className="btn btn-primary lv-btn-lg" to="/signin">
-          Get started
-          <Icon name="arrow" size={18} />
-        </Link>
-        <MadeBy className="lv-cta-made" />
       </section>
     </div>
   );

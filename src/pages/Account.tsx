@@ -1,132 +1,151 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { slugProblem } from "../lib/reservedSlugs";
 import { useLv } from "../lib/useLv";
-import { Btn, Card, ErrorNote, Loading, Micro, Notice, PageHead, Pill } from "../components/ui";
+import { describeError } from "../lib/errors";
+import type { Entitlement, MyContext, ReservationStatus } from "../lib/lvApi";
 import { Icon } from "../components/Icon";
+import { campaignPhase, LinkButton } from "../components/ui";
 import { ThemeControl } from "../ui/ThemeControl";
 import { HubMark } from "../ui/HubMark";
-import { describeError } from "../lib/errors";
-import type { BetaStatus } from "../lib/lvApi";
+import { Button } from "@/components/shadcn/button";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/shadcn/card";
+import { Input } from "@/components/shadcn/input";
+import { Badge } from "@/components/shadcn/badge";
+import { Separator } from "@/components/shadcn/separator";
+import {
+  EmptyState,
+  Eyebrow,
+  Field,
+  LoadingRows,
+  Notice,
+  PageHeader,
+  PhaseBadge,
+  QuotaMeter,
+  RowItem,
+  RowList,
+  SectionTitle,
+  StatTile,
+  TypedConfirm,
+} from "@/components/shadcn/blocks";
+
+const fmtDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : null);
+
+/** Plain-language state of the Founding / plan entitlement. Display only. */
+export function entitlementLine(e: Entitlement | undefined): { tone: "ok" | "neutral" | "danger"; label: string; body: string } {
+  if (!e) return { tone: "neutral", label: "No plan", body: "Quick Surveys are free. A Hub needs a Hub credit from the waitlist or, once billing launches, a plan." };
+  if (e.state === "expired") return { tone: "danger", label: "Expired", body: "Premium actions are locked. Your Hubs, Campaigns and results are all kept." };
+  if (e.source === "waitlist")
+    return {
+      tone: "ok",
+      label: "Founding · Starter",
+      body: e.ends_at ? `Free Starter features until ${fmtDate(e.ends_at)}.` : "Free Starter features until paid billing launches, then for 30 more days.",
+    };
+  return { tone: "ok", label: `${e.family === "team" ? "Team" : "Starter"} plan`, body: e.ends_at ? `Active until ${fmtDate(e.ends_at)}.` : "Active." };
+}
 
 /* ------------------------------------------------------------------ /me */
-
-const BETA_COPY: Record<BetaStatus, { tone: "muted" | "accent" | "ok" | "danger"; label: string; body: string }> = {
-  none: { tone: "muted", label: "No application", body: "Creating a Hub needs an approved beta application. Participants never do." },
-  pending: { tone: "accent", label: "Under review", body: "Your beta application is with us. You'll get an answer at your KpnIdentity email." },
-  approved: { tone: "ok", label: "Approved", body: "You can create a Hub now." },
-  rejected: { tone: "danger", label: "Not approved", body: "This application was declined. You can keep participating in Hubs you're invited to." },
-  consumed: { tone: "ok", label: "Used", body: "Your approval created a Hub. A second Hub needs a paid plan." },
-};
 
 export function Me() {
   const { session, api } = useIdentity();
   const ctx = useLv(() => api.myContext(), [api]);
+  const surveys = useLv(() => api.quickSurveyList(), [api]);
   const c = ctx.data;
-  const beta = c ? BETA_COPY[c.beta_status] : null;
   const name = c?.display_name || session?.name || "";
   const first = name.split(/\s+/)[0] || "there";
-  const owned = c ? c.hubs.filter((h) => h.is_owner).length : 0;
-  const lead = c?.hubs[0];
 
   return (
-    <div className="ui-page lv-l7">
-      <h1 className="lv-hello">Hey {first}.</h1>
-      <p className="lv-hello-sub">Your Hubs, your beta state, and everything waiting on you.</p>
-
-      {ctx.error && <ErrorNote error={ctx.error} />}
-      {ctx.loading && <Loading rows={3} />}
-
+    <div className="ui-page">
+      <PageHeader eyebrow="My home" title={`Hey ${first}.`} sub="Your Hubs, your Quick Surveys and everything waiting on you." />
+      {ctx.error && <Notice tone="error">{describeError(ctx.error)}</Notice>}
+      {ctx.loading && !c && <LoadingRows rows={4} />}
       {c && (
         <div className="lv-dash">
           <div className="lv-stack">
             <div className="lv-tiles">
-              <div className="lv-tile lv-tile-ink">
-                <span className="lv-tile-label">Hubs</span>
-                <span className="lv-tile-value">{c.hubs.length}</span>
-                <span className="lv-tile-note">{c.hubs.length === 1 ? "You belong to one Hub" : "You belong to these Hubs"}</span>
-              </div>
-              <div className="lv-tile lv-tile-accent">
-                <span className="lv-tile-label">Owned</span>
-                <span className="lv-tile-value">{owned}</span>
-                <span className="lv-tile-note">{owned ? "Hubs you run" : "Hubs you run appear here"}</span>
-              </div>
-              <div className="lv-tile">
-                <span className="lv-tile-label">Beta</span>
-                <span className="lv-tile-value" style={{ fontSize: 26, lineHeight: 1.05 }}>{beta!.label}</span>
-                <span className="lv-tile-note">Needed to create a Hub</span>
-              </div>
+              <StatTile tone="ink" label="Hubs" value={c.hubs.length} note={c.hubs.length ? "Communities you belong to" : "None yet"} />
+              <StatTile tone="accent" label="Hub credits" value={c.hub_credits} note={c.hub_credits ? "Ready to create a Hub" : "From the waitlist or a plan"} />
+              <StatTile
+                label="Quick Surveys"
+                value={`${c.quick_surveys.active}/${c.quick_surveys.limit ?? "–"}`}
+                note="Active right now"
+              />
             </div>
 
-            {lead ? (
-              <div className="lv-panel lv-panel-ink lv-resume">
-                <div>
-                  <span className="lv-eyebrow-mono" style={{ color: "var(--lv-accent)" }}>Pick up where you left off</span>
-                  <h2 className="lv-resume-title">{lead.name}</h2>
-                  <span className="lv-row-sub" style={{ color: "inherit", opacity: 0.7 }}>lunchvoice.com/{lead.slug}</span>
-                </div>
-                <Link className="ui-btn ui-btn-primary" to={`/${lead.slug}`}>Continue</Link>
-              </div>
-            ) : (
-              <div className="lv-panel lv-panel-ink lv-resume">
-                <div>
-                  <span className="lv-eyebrow-mono" style={{ color: "var(--lv-accent)" }}>Start here</span>
-                  <h2 className="lv-resume-title">Create your first Hub</h2>
-                  <span className="lv-row-sub" style={{ color: "inherit", opacity: 0.7 }}>
-                    {c.beta_status === "approved" ? "Your beta is approved." : "Creating a Hub needs an approved beta application."}
-                  </span>
-                </div>
-                <Link className="ui-btn ui-btn-primary" to="/create">Create a Hub</Link>
-              </div>
+            <NextStep c={c} />
+
+            <Card>
+              <SectionTitle action={<LinkButton to="/surveys/new" variant="ink" size="sm" icon="plus">New Quick Survey</LinkButton>}>Quick Surveys</SectionTitle>
+              {surveys.loading && !surveys.data ? (
+                <LoadingRows rows={2} />
+              ) : (surveys.data?.surveys.length ?? 0) === 0 ? (
+                <EmptyState icon={<Icon name="survey" size={22} />} title="Ask your first question">
+                  Free for everyone: up to {c.quick_surveys.limit ?? 5} active surveys with up to {c.quick_surveys.question_limit ?? 10} questions each. No Hub needed.
+                </EmptyState>
+              ) : (
+                <>
+                  <RowList>
+                    {surveys.data!.surveys.slice(0, 5).map((s) => (
+                      <RowItem
+                        key={s.campaign_id}
+                        asChild={<Link to={`/surveys/${s.campaign_id}`} />}
+                        title={s.title}
+                        sub={`${s.access === "invite" ? "Invite only" : "Anyone with the link"} · ${s.question_count} ${s.question_count === 1 ? "question" : "questions"}`}
+                        trailing={<PhaseBadge phase={campaignPhase(s)} />}
+                      />
+                    ))}
+                  </RowList>
+                  <LinkButton to="/surveys" variant="quiet" size="sm" icon="arrow">All Quick Surveys</LinkButton>
+                </>
+              )}
+            </Card>
+
+            {c.recent_participation && (
+              <Card>
+                <SectionTitle>Recently answered</SectionTitle>
+                {c.recent_participation.length === 0 ? (
+                  <p className="ui-muted lv-m0">Surveys you answer while signed in show up here. Only you can see this list.</p>
+                ) : (
+                  <RowList>
+                    {c.recent_participation.slice(0, 5).map((p) => (
+                      <RowItem key={p.campaign_id} title={p.title} sub={p.hub_name ?? "Quick Survey"} trailing={<Badge variant="ok">Answered</Badge>} />
+                    ))}
+                  </RowList>
+                )}
+              </Card>
             )}
-
-            <div className="lv-panel">
-              <h2>Beta application</h2>
-              <div className="ui-row ui-gap-8" style={{ marginBottom: 8 }}>
-                <Pill tone={beta!.tone}>{beta!.label}</Pill>
-              </div>
-              <p className="ui-muted" style={{ margin: 0, fontSize: 14.5 }}>{beta!.body}</p>
-            </div>
           </div>
 
-          <aside className="lv-rail" aria-label="My Hubs">
-            <div className="lv-panel">
-              <h2>My Hubs</h2>
+          <aside className="lv-rail" aria-label="My Hubs and status">
+            <PlanCard c={c} />
+            <Card>
+              <SectionTitle>My Hubs</SectionTitle>
               {c.hubs.length === 0 ? (
-                <p className="ui-muted" style={{ margin: 0, fontSize: 14.5 }}>
-                  You're not in any Hubs yet. A Hub is your community's home: its Campaigns, its members and its results.
-                </p>
+                <p className="ui-muted lv-m0">A Hub is your community’s home: its Campaigns, its members and its results.</p>
               ) : (
-                <ul className="lv-rows">
+                <RowList>
                   {c.hubs.map((h) => (
-                    <li key={h.hub_id}>
-                      <Link to={`/${h.slug}`} className="lv-row">
-                        <HubMark name={h.name} />
-                        <span className="lv-row-main">
-                          <span className="lv-row-title">{h.name}</span>
-                          <span className="lv-row-sub">lunchvoice.com/{h.slug}</span>
-                        </span>
-                        {h.is_owner && <Pill tone="accent">Owner</Pill>}
-                      </Link>
-                    </li>
+                    <RowItem
+                      key={h.hub_id}
+                      asChild={<Link to={`/${h.slug}`} />}
+                      leading={<HubMark name={h.name} size={36} />}
+                      title={h.name}
+                      sub={`lunchvoice.com/${h.slug}`}
+                      trailing={h.is_owner ? <Badge variant="ink">Owner</Badge> : undefined}
+                    />
                   ))}
-                </ul>
+                </RowList>
               )}
-            </div>
-            <div className="lv-panel lv-panel-dash">
-              <h3 style={{ margin: "0 0 10px", font: "600 16px/1.3 var(--lv-font-ui)" }}>Got a join code?</h3>
-              <div className="ui-row ui-gap-8">
-                <Link className="ui-btn ui-btn-ink" to="/join">Join a Hub</Link>
-                <Link className="ui-btn ui-btn-outline" to="/create">Create a Hub</Link>
-              </div>
-            </div>
-            <div className="lv-panel">
-              <h3 style={{ margin: "0 0 6px", font: "600 16px/1.3 var(--lv-font-ui)" }}>Identity</h3>
-              <p className="ui-muted" style={{ margin: 0, fontSize: 13.5 }}>
-                Signed in through KpnIdentity. LunchVoice keeps your verified issuer and subject, never your email as an identity key.
-              </p>
-            </div>
+            </Card>
+            <Card variant="dashed">
+              <CardHeader>
+                <CardTitle>Got a code?</CardTitle>
+                <CardDescription>A Hub invite or a six-character survey code.</CardDescription>
+              </CardHeader>
+              <LinkButton to="/join" variant="ink" icon="arrow">Enter a code</LinkButton>
+            </Card>
           </aside>
         </div>
       )}
@@ -134,110 +153,196 @@ export function Me() {
   );
 }
 
+function NextStep({ c }: { c: MyContext }) {
+  if (c.hub_credits > 0)
+    return (
+      <Card variant="ink" className="lv-resume-card">
+        <div>
+          <Eyebrow accent>Your Hub credit is ready</Eyebrow>
+          <h2 className="lv-resume-title">Create your Hub</h2>
+          <p className="lv-m0 lv-dim">Pick a name and an address. You become its Owner.</p>
+        </div>
+        <LinkButton to="/create" variant="primary" size="lg">Create your Hub</LinkButton>
+      </Card>
+    );
+  const lead = c.hubs[0];
+  if (lead)
+    return (
+      <Card variant="ink" className="lv-resume-card">
+        <div>
+          <Eyebrow accent>Pick up where you left off</Eyebrow>
+          <h2 className="lv-resume-title">{lead.name}</h2>
+          <p className="lv-m0 lv-dim">lunchvoice.com/{lead.slug}</p>
+        </div>
+        <LinkButton to={`/${lead.slug}`} variant="primary" size="lg">Open Hub</LinkButton>
+      </Card>
+    );
+  if (c.waitlist.status === "none")
+    return (
+      <Card variant="ink" className="lv-resume-card">
+        <div>
+          <Eyebrow accent>Founding waitlist</Eyebrow>
+          <h2 className="lv-resume-title">Want a Hub? Join the waitlist.</h2>
+          <p className="lv-m0 lv-dim">The first 50 get a Starter Hub free until billing launches, plus 30 days.</p>
+        </div>
+        <LinkButton to="/waitlist" variant="primary" size="lg">Join the waitlist</LinkButton>
+      </Card>
+    );
+  return (
+    <Card variant="ink" className="lv-resume-card">
+      <div>
+        <Eyebrow accent>Waitlisted</Eyebrow>
+        <h2 className="lv-resume-title">Ask a question today</h2>
+        <p className="lv-m0 lv-dim">Hubs open to everyone when billing launches. Quick Surveys are free now.</p>
+      </div>
+      <LinkButton to="/surveys/new" variant="primary" size="lg">Start a Quick Survey</LinkButton>
+    </Card>
+  );
+}
+
+function PlanCard({ c }: { c: MyContext }) {
+  const founding = c.entitlements.find((e) => e.source === "waitlist" && e.scope === "account") ?? c.entitlements[0];
+  const line = entitlementLine(founding);
+  const wl = c.waitlist.status;
+  return (
+    <Card>
+      <SectionTitle>Plan and waitlist</SectionTitle>
+      <div className="ui-row">
+        <Badge variant={wl === "admitted" ? "ok" : wl === "waitlisted" ? "neutral" : "outline"}>
+          {wl === "admitted" ? `Founding seat ${c.waitlist.position ?? ""}` : wl === "waitlisted" ? `Waitlist position ${c.waitlist.position ?? ""}` : "Not on the waitlist"}
+        </Badge>
+        <Badge variant={line.tone}>{line.label}</Badge>
+      </div>
+      <p className="ui-muted lv-m0">{line.body}</p>
+      <QuotaMeter label="Active Quick Surveys" used={c.quick_surveys.active} limit={c.quick_surveys.limit} />
+      {wl === "none" && <LinkButton to="/waitlist" variant="secondary" size="sm">Join the waitlist</LinkButton>}
+    </Card>
+  );
+}
+
 /* ------------------------------------------------------------------ /create */
+
+type Step = 0 | 1 | 2;
 
 export function CreateHub() {
   const { api } = useIdentity();
   const ctx = useLv(() => api.myContext(), [api]);
   const nav = useNavigate();
+  const [step, setStep] = useState<Step>(0);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [touched, setTouched] = useState(false);
+  const [avail, setAvail] = useState<ReservationStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [needsBeta, setNeedsBeta] = useState(false);
 
-  const problem = slug ? slugProblem(slug.toLowerCase()) : null;
-  const beta = ctx.data?.beta_status;
+  const problem = slug ? slugProblem(slug) : null;
+  const credits = ctx.data?.hub_credits ?? 0;
+
+  // Suggest an address from the name until the person edits it.
+  useEffect(() => {
+    if (touched) return;
+    setSlug(name.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").replace(/-{2,}/g, "-").slice(0, 40));
+  }, [name, touched]);
+
+  // Live availability (also covers reserved addresses held by someone else).
+  useEffect(() => {
+    setAvail(null);
+    if (!slug || problem) return;
+    const t = window.setTimeout(async () => {
+      const r = await api.reservationStatus(slug);
+      if (r.ok) setAvail(r);
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [api, slug, problem]);
+
+  // A reserved address (ACTIVE or GRACE) is claimable only by its holder; RELEASED is free again.
+  const taken = Boolean(avail && (avail.state === "taken" || ((avail.state === "active" || avail.state === "grace") && !avail.mine)));
+  const slugHelp =
+    problem === "reserved" ? "That address is reserved for the platform."
+    : problem === "format" ? "3 to 40 characters: lowercase letters, numbers and single hyphens."
+    : taken ? "That address is taken."
+    : avail ? "Available." : "lunchvoice.com/ followed by this address.";
 
   async function create() {
     setBusy(true);
     setError(null);
-    const r = await api.hubCreate(slug.toLowerCase(), name.trim());
+    const r = await api.hubCreate(slug, name.trim());
     setBusy(false);
     if (r.ok) {
+      toast.success(`${name.trim()} is live at lunchvoice.com/${r.slug}`);
       nav(`/${r.slug}`);
       return;
     }
-    if (r.error.code === "lv_beta_required") setNeedsBeta(true);
-    else setError(describeError(r.error));
-  }
-
-  async function applyBeta() {
-    const r = await api.betaApply();
-    if (r.ok) ctx.reload();
-    else setError(describeError(r.error));
+    setError(describeError(r.error));
   }
 
   return (
-    <div className="ui-page">
-      <PageHead
-        eyebrow="New Hub"
-        title="Create a Hub"
-        sub="One address, one community. You become the Owner and cannot be removed from it."
-        actions={<Link className="ui-btn ui-btn-quiet" to="/me">Back to account</Link>}
-      />
-
-      {ctx.loading && <Loading rows={1} />}
-      {error && <ErrorNote error={{ code: "lv_server_error", message: error }} />}
-
-      {(needsBeta || beta === "pending" || beta === "none") && (
-        <div style={{ marginBottom: 16 }}>
-          {beta === "pending" && <Notice tone="info">Your beta application is under review. Creating a Hub unlocks when it's approved.</Notice>}
-          {beta === "none" && (
-            <Notice tone="info">
-              <div className="ui-spread">
-                <span>Creating a Hub needs an approved beta application. Participation stays free.</span>
-                <Btn size="sm" variant="outline" onClick={applyBeta}>Apply for the beta</Btn>
-              </div>
-            </Notice>
-          )}
-          {beta === "rejected" && <Notice tone="warn">This account's beta application was declined. You can still join Hubs you're invited to.</Notice>}
-          {needsBeta && beta !== "none" && beta !== "pending" && <Notice tone="warn">Creating a Hub needs an approved beta application.</Notice>}
-        </div>
+    <div className="ui-page lv-narrow-page">
+      <PageHeader eyebrow="New Hub" title="Create your Hub" sub="One address, one community. You become the Owner and can’t be removed from it." actions={<LinkButton to="/me" variant="quiet">Cancel</LinkButton>} />
+      {ctx.loading && !ctx.data && <LoadingRows rows={1} />}
+      {ctx.data && credits === 0 && (
+        <Notice tone="warn" title="You don’t have a Hub credit">
+          Hub credits come with a Founding seat on the <Link to="/waitlist" className="lv-inline-link">waitlist</Link>, or with a plan once billing launches. You can make <Link to="/surveys/new" className="lv-inline-link">free Quick Surveys</Link> today.
+        </Notice>
       )}
 
-      <div className="ui-grid-2">
-        <Card>
-          <div className="ui-field">
-            <label className="ui-label" htmlFor="hub-name">Hub name</label>
-            <input id="hub-name" className="ui-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Riverside Runners" maxLength={60} />
-          </div>
-          <div className="ui-field">
-            <label className="ui-label" htmlFor="hub-slug">Address</label>
-            <div className="ui-row" style={{ flexWrap: "nowrap" }}>
-              <span className="ui-mono ui-muted" style={{ fontSize: 13 }}>lunchvoice.com/</span>
-              <input
-                id="hub-slug"
-                className="ui-input"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value.toLowerCase())}
-                placeholder="riverside-runners"
-                aria-invalid={Boolean(problem)}
-                aria-describedby="hub-slug-help"
-              />
-            </div>
-            <span id="hub-slug-help" className="ui-help">
-              {problem === "reserved" ? "That address is reserved for the platform." : problem === "format" ? "3–40 characters: lowercase letters, numbers and single hyphens." : "3–40 characters: lowercase letters, numbers and single hyphens."}
-            </span>
-          </div>
-          <Btn variant="primary" block disabled={!name.trim() || !slug || Boolean(problem) || busy} onClick={create}>
-            {busy ? "Creating…" : "Create Hub"}
-          </Btn>
-          <p className="ui-help" style={{ marginTop: 10 }}>
-            The address is a name, not an identity: links and permissions always use the Hub's immutable id.
-          </p>
-        </Card>
+      <ol className="lv-stepper" aria-label="Steps">
+        {["Name", "Address", "Review"].map((label, i) => (
+          <li key={label} data-state={i < step ? "done" : i === step ? "current" : "todo"} aria-current={i === step ? "step" : undefined}>
+            <span>{i + 1}</span>{label}
+          </li>
+        ))}
+      </ol>
 
-        <Card quiet>
-          <Micro>What you get as Owner</Micro>
-          <ul style={{ margin: "10px 0 0", paddingLeft: 18, lineHeight: 1.8, fontSize: 14.5 }}>
-            <li>An Owner seat that never consumes a custom-role slot</li>
-            <li>Roles, invites and membership decisions</li>
-            <li>Campaigns in rating, poll, survey and feedback modes</li>
-            <li>Privacy-safe results with withheld cohorts</li>
-          </ul>
-        </Card>
-      </div>
+      <Card>
+        {step === 0 && (
+          <form className="lv-stack-16" onSubmit={(e) => { e.preventDefault(); if (name.trim()) setStep(1); }}>
+            <Field label="Hub name" htmlFor="hub-name" help="What members will see. You can change it later." counter={{ value: name.length, max: 60 }}>
+              <Input id="hub-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Northside Running Club" maxLength={60} autoFocus />
+            </Field>
+            <div className="ui-row"><Button type="submit" variant="ink" disabled={!name.trim()}>Next <Icon name="arrow" size={16} /></Button></div>
+          </form>
+        )}
+        {step === 1 && (
+          <form className="lv-stack-16" onSubmit={(e) => { e.preventDefault(); if (!problem && !taken && slug) setStep(2); }}>
+            <Field label="Address" htmlFor="hub-slug" help={slugHelp} error={problem || taken ? slugHelp : undefined}>
+              <div className="lv-slug">
+                <span className="ui-mono">lunchvoice.com/</span>
+                <Input id="hub-slug" value={slug} onChange={(e) => { setTouched(true); setSlug(e.target.value.toLowerCase()); }} aria-invalid={Boolean(problem || taken)} aria-describedby="hub-slug-help" autoFocus />
+              </div>
+            </Field>
+            <p className="ui-help lv-m0">The address is a name, not an identity: links and permissions always use the Hub’s permanent id.</p>
+            <div className="ui-row">
+              <Button variant="secondary" onClick={() => setStep(0)}>Back</Button>
+              <Button type="submit" variant="ink" disabled={!slug || Boolean(problem) || Boolean(taken)}>Next <Icon name="arrow" size={16} /></Button>
+            </div>
+          </form>
+        )}
+        {step === 2 && (
+          <div className="lv-stack-16">
+            <div className="lv-review-hub">
+              <HubMark name={name} size={56} />
+              <div>
+                <strong className="lv-review-name">{name}</strong>
+                <span className="ui-mono ui-muted">lunchvoice.com/{slug}</span>
+              </div>
+            </div>
+            <Separator />
+            <ul className="lv-checklist">
+              <li><Icon name="check" size={16} />Uses one Hub credit ({credits} available)</li>
+              <li><Icon name="check" size={16} />Starter features: 3 custom roles, 3 custom pages, 15 active Campaigns</li>
+              <li><Icon name="check" size={16} />Starts invite only and public; change both in settings</li>
+              <li><Icon name="check" size={16} />You’re the Owner, and the Owner never uses a role slot</li>
+            </ul>
+            {error && <Notice tone="error">{error}</Notice>}
+            <div className="ui-row">
+              <Button variant="secondary" onClick={() => setStep(1)}>Back</Button>
+              <Button variant="primary" size="lg" disabled={busy || credits === 0} onClick={create}>{busy ? "Creating…" : "Create Hub"}</Button>
+            </div>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
@@ -247,17 +352,18 @@ export function CreateHub() {
 export function Join() {
   const [code, setCode] = useState("");
   const nav = useNavigate();
+  const clean = code.trim().toUpperCase();
+  const isSurvey = /^[A-Z0-9]{6}$/.test(clean);
   return (
-    <div className="ui-page">
-      <PageHead eyebrow="Invitation" title="Join with an invite code" sub="Paste the code from your invitation. It works once per person." />
+    <div className="ui-page lv-narrow-page">
+      <PageHeader eyebrow="Join" title="Enter a code" sub="A six-character survey code opens the survey. A Hub invite code (like ABCD-2345) opens the invitation." />
       <Card>
-        <div className="ui-field">
-          <label className="ui-label" htmlFor="invite-code">Invite code</label>
-          <input id="invite-code" className="ui-input ui-mono" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="ABCD-2345" />
-        </div>
-        <Btn variant="primary" disabled={!code.trim()} onClick={() => nav(`/j/${encodeURIComponent(code.trim())}`)} icon="arrow">
-          Open invitation
-        </Btn>
+        <form className="lv-stack-16" onSubmit={(e) => { e.preventDefault(); if (clean) nav(isSurvey ? `/c/${clean}` : `/j/${encodeURIComponent(clean)}`); }}>
+          <Field label="Code" htmlFor="invite-code" help={clean ? (isSurvey ? "Opens a survey. No account needed for public surveys." : "Opens a Hub invitation.") : undefined}>
+            <Input id="invite-code" className="lv-code-input" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="482913 or ABCD-2345" autoComplete="off" autoCapitalize="characters" spellCheck={false} aria-describedby="invite-code-help" />
+          </Field>
+          <div className="ui-row"><Button type="submit" variant="primary" disabled={!clean}>Continue <Icon name="arrow" size={16} /></Button></div>
+        </form>
       </Card>
     </div>
   );
@@ -271,44 +377,46 @@ export function RedeemInvite() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => setError(null), [code]);
-
   async function redeem() {
     setBusy(true);
     const r = await api.inviteRedeem(code);
     setBusy(false);
-    if (r.ok) nav(`/${(preview.data?.hub.slug ?? "").toString()}`);
+    if (r.ok) nav(`/${preview.data?.hub.slug ?? ""}`);
     else setError(describeError(r.error));
   }
 
   return (
-    <div className="ui-page" style={{ maxWidth: 560 }}>
-      <PageHead eyebrow="Invitation" title="You've been invited" />
-      {preview.loading && <Loading rows={2} />}
+    <div className="ui-page lv-narrow-page">
+      <PageHeader eyebrow="Invitation" title="You’ve been invited" />
+      {preview.loading && <LoadingRows rows={2} />}
       {preview.error && (
         <Card>
-          <Notice tone="err">{describeError(preview.error)}</Notice>
-          <Link className="ui-btn ui-btn-outline" to="/join">Try another code</Link>
+          <Notice tone="error">{describeError(preview.error)}</Notice>
+          <LinkButton to="/join" variant="secondary">Try another code</LinkButton>
         </Card>
       )}
-      {error && <ErrorNote error={{ code: "lv_server_error", message: error }} />}
+      {error && <Notice tone="error">{error}</Notice>}
       {preview.data && (
         <Card>
-          <Micro>Hub</Micro>
-          <h2 className="ui-display ui-display-lg" style={{ margin: "6px 0 4px" }}>{preview.data.hub.name}</h2>
-          <p className="ui-muted ui-mono" style={{ margin: "0 0 16px", fontSize: 13 }}>lunchvoice.com/{preview.data.hub.slug}</p>
+          <div className="lv-review-hub">
+            <HubMark name={preview.data.hub.name} size={56} />
+            <div>
+              <strong className="lv-review-name">{preview.data.hub.name}</strong>
+              <span className="ui-mono ui-muted">lunchvoice.com/{preview.data.hub.slug}</span>
+            </div>
+          </div>
           {preview.data.already_member ? (
-            <div className="ui-stack ui-gap-12">
-              <Notice tone="ok">You're already a member of this Hub.</Notice>
-              <Link className="ui-btn ui-btn-primary" to={`/${preview.data.hub.slug}`}>Open the Hub</Link>
-            </div>
+            <>
+              <Notice tone="ok">You’re already a member of this Hub.</Notice>
+              <LinkButton to={`/${preview.data.hub.slug}`} variant="primary">Open the Hub</LinkButton>
+            </>
           ) : session ? (
-            <Btn variant="primary" onClick={redeem} disabled={busy} icon="check">{busy ? "Joining…" : "Join this Hub"}</Btn>
+            <Button variant="primary" onClick={redeem} disabled={busy}>{busy ? "Joining…" : "Join this Hub"}</Button>
           ) : (
-            <div className="ui-stack ui-gap-12">
-              <Notice tone="info">Sign in to accept. Your invite code is kept and you'll come straight back here.</Notice>
-              <Link className="ui-btn ui-btn-primary" to="/signin" state={{ from: `/j/${code}` }}>Sign in to join</Link>
-            </div>
+            <>
+              <Notice>Sign in to accept. You’ll come straight back here.</Notice>
+              <LinkButton to="/signin" state={{ from: `/j/${code}` }} variant="primary">Sign in to join</LinkButton>
+            </>
           )}
         </Card>
       )}
@@ -316,29 +424,98 @@ export function RedeemInvite() {
   );
 }
 
-/* ------------------------------------------------------------------ /settings (local only) */
+/* ------------------------------------------------------------------ /settings (account) */
+
+// Founder decision: what account deletion does (also summarised on /privacy).
+export const DELETE_COPY =
+  "We delete your profile, sign-in links, memberships and invitations. Your multiple-choice and rating answers stay only as anonymous totals; your written answers are deleted.";
 
 export function Settings() {
+  const { api, session, signOut } = useIdentity();
+  const ctx = useLv(() => api.myContext(), [api]);
+  const nav = useNavigate();
+  const [name, setName] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [delError, setDelError] = useState<string | null>(null);
+  const current = name ?? ctx.data?.display_name ?? session?.name ?? "";
+  const owned = ctx.data?.hubs.filter((h) => h.is_owner) ?? [];
+
+  async function saveName() {
+    setSaving(true);
+    const r = await api.profileUpdate(current.trim());
+    setSaving(false);
+    if (r.ok) {
+      toast.success("Name saved");
+      ctx.reload();
+    } else toast.error(describeError(r.error));
+  }
+
+  async function deleteAccount(typed: string) {
+    setDeleting(true);
+    setDelError(null);
+    const r = await api.accountDelete(typed);
+    setDeleting(false);
+    if (!r.ok) {
+      setDelError(r.error.code === "lv_owner_protected" ? "You still own a Hub. Transfer ownership or delete the Hub first, then try again." : describeError(r.error));
+      return false;
+    }
+    signOut();
+    nav("/");
+    toast.success("Your account was deleted.");
+    return true;
+  }
+
   return (
-    <div className="ui-page">
-      <PageHead eyebrow="Settings" title="Settings" sub="Local preferences only. Account and notification settings have no API yet." />
-      <Card>
-        <div className="ui-stack ui-gap-8">
-          <strong>Appearance</strong>
-          <p className="ui-muted" style={{ margin: 0 }}>Choose a theme for this device. System follows your device setting.</p>
+    <div className="ui-page lv-narrow-page">
+      <PageHeader eyebrow="Account" title="Settings" sub="Your profile, how LunchVoice looks on this device, and your account." />
+      <div className="lv-stack-16">
+        <Card>
+          <SectionTitle>Profile</SectionTitle>
+          <form className="lv-stack-16" onSubmit={(e) => { e.preventDefault(); void saveName(); }}>
+            <Field label="Display name" htmlFor="display-name" help="Shown to Hub managers on identified Campaigns and member lists. Never on anonymous answers." counter={{ value: current.length, max: 60 }}>
+              <Input id="display-name" value={current} maxLength={60} onChange={(e) => setName(e.target.value)} aria-describedby="display-name-help" />
+            </Field>
+            <div className="ui-row"><Button type="submit" variant="ink" disabled={saving || !current.trim()}>{saving ? "Saving…" : "Save name"}</Button></div>
+          </form>
+          <p className="ui-help lv-m0">You sign in through KpnIdentity. LunchVoice keeps your verified sign-in, never your email as an identity key.</p>
+        </Card>
+
+        <Card>
+          <SectionTitle>Appearance</SectionTitle>
+          <p className="ui-muted lv-m0">Saved on this device. System follows your device setting.</p>
           <ThemeControl />
-        </div>
-      </Card>
-      <Card>
-        <div className="ui-row ui-gap-8" style={{ marginBottom: 8 }}>
-          <Icon name="lock" size={18} />
-          <strong>Not available yet</strong>
-        </div>
-        <p className="ui-muted" style={{ margin: 0 }}>
-          Profile editing, notification preferences and account deletion need `lv_profile_update`, `lv_notification_prefs`
-          and `lv_account_delete`. Until those ship, this page reports the gap instead of pretending to save.
-        </p>
-      </Card>
+        </Card>
+
+        <Card>
+          <SectionTitle>Session</SectionTitle>
+          <div className="ui-row">
+            <Button variant="secondary" onClick={() => { signOut(); nav("/"); }}><Icon name="logout" size={16} />Sign out</Button>
+          </div>
+        </Card>
+
+        <Card>
+          <SectionTitle>Delete account</SectionTitle>
+          <p className="ui-muted lv-m0">
+            {DELETE_COPY} Your Quick Surveys, your waitlist seat and any waitlist contact email go too.
+          </p>
+          {owned.length > 0 && (
+            <Notice tone="warn">You own {owned.map((h) => h.name).join(", ")}. Transfer ownership or delete {owned.length === 1 ? "that Hub" : "those Hubs"} first.</Notice>
+          )}
+          <div className="ui-row">
+            <TypedConfirm
+              trigger={<Button variant="danger">Delete account</Button>}
+              title="Delete your account?"
+              description={`This can’t be undone. ${DELETE_COPY}`}
+              phrase="DELETE"
+              actionLabel="Delete account"
+              busy={deleting}
+              error={delError}
+              onConfirm={deleteAccount}
+            />
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }

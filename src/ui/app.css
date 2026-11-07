@@ -1,0 +1,63 @@
+/* App-surface layout for pages composed from the shadcn layer (Studio, results, Quick Surveys, Hub workspace).
+   Layout and placement only; every surface and control comes from src/components/shadcn. */
+
+.lv-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.lv-legend { padding: 0; margin-bottom: 4px; font: 700 11.5px/1.2 var(--lv-font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--lv-muted); }
+
+/* Studio */
+.lv-studio-page { max-width: 1240px; }
+.lv-pane-switch { display: none; }
+@media (max-width: 960px) { .lv-pane-switch { display: block; } }
+.lv-outline-li { display: flex; align-items: flex-start; gap: 4px; }
+.lv-outline-li > .lv-outline-item { flex: 1; min-width: 0; }
+.lv-outline-move { display: flex; flex-direction: column; gap: 2px; }
+.lv-rot180 { transform: rotate(180deg); }
+.lv-add:disabled { opacity: 0.55; cursor: not-allowed; }
+.lv-title-input { width: 100%; min-width: 0; border: 0; padding: 2px 6px; margin: -2px -6px; border-radius: 12px; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; }
+.lv-title-input:hover { background: var(--lv-well); }
+.lv-title-input:focus-visible { outline: 2px solid var(--lv-focus); outline-offset: 2px; background: var(--lv-well-focus); }
+.lv-studio .lv-q-title-preview { font-size: 24px; margin: 4px 0 6px; animation: none; }
+.lv-invite-form { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.lv-invite-form > div { flex: 1 1 140px; }
+
+/* Results */
+.lv-q-result-title { margin: 0; font: 600 18px/1.3 var(--lv-font-ui); letter-spacing: -0.01em; min-width: 0; overflow-wrap: anywhere; }
+.lv-invite-badge { display: flex; margin: 16px auto 0; }
+
+/* Hub workspace */
+.lv-hubhead { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
+.lv-hubhead-main { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.lv-hubhead-main > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.lv-hubhead h1 { margin: 0; font: 800 clamp(28px, 4vw, 40px)/1 var(--lv-font-display); letter-spacing: -0.035em; overflow-wrap: anywhere; }
+.lv-hubtabs-wrap { margin-bottom: 20px; }
+@media (max-width: 720px) { .lv-hubtabs-wrap { display: none; } }
+.lv-swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.lv-swatch { width: 44px; height: 44px; border-radius: 999px; border: 0; cursor: pointer; box-shadow: var(--lv-raised-shadow); transition: transform var(--lv-dur-press) var(--lv-ease-spring); }
+.lv-swatch:active { transform: scale(0.9); }
+.lv-swatch[aria-checked='true'] { box-shadow: 0 0 0 3px var(--lv-page), 0 0 0 6px var(--lv-text); }
+.lv-swatch:focus-visible { outline: 2px solid var(--lv-focus); outline-offset: 6px; }
+.lv-builder { display: grid; gap: 16px; align-items: start; }
+@media (min-width: 961px) { .lv-builder { grid-template-columns: minmax(0, 1fr) 340px; } }
+.lv-page-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--lv-line); }
+.lv-page-row:last-child { border-bottom: 0; }
+.lv-page-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lv-page-row-main strong { font-size: 15px; }
+.lv-page-row-main span { font-size: 13px; color: var(--lv-muted); }
+.lv-preview-phone { border-radius: 28px; padding: 14px; background: var(--lv-well); box-shadow: var(--lv-well-shadow); display: flex; flex-direction: column; gap: 10px; }
+.lv-preview-cover { border-radius: 18px; padding: 16px; color: #fff; display: flex; flex-direction: column; gap: 10px; }
+.lv-preview-cover b { font: 800 20px/1.05 var(--lv-font-display); letter-spacing: -0.03em; overflow-wrap: anywhere; }
+.lv-preview-cover nav { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12.5px; }
+.lv-preview-cover nav span[data-soon] { opacity: 0.65; }
+.lv-kv { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; margin: 0; font-size: 14.5px; }
+.lv-kv dt { color: var(--lv-muted); }
+.lv-kv dd { margin: 0; font-weight: 600; text-align: right; }
+.lv-member-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.lv-caps { display: grid; gap: 14px; }
+@media (min-width: 720px) { .lv-caps { grid-template-columns: 1fr 1fr; } }
+.lv-cap-group { display: flex; flex-direction: column; gap: 8px; }
+.lv-check-row { display: flex; align-items: center; gap: 10px; font-size: 14.5px; cursor: pointer; }
+.lv-check-row code { font: 400 11px/1 var(--lv-font-mono); color: var(--lv-subtle); }
+.lv-icon-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* Respondent extras */
+.lv-report { display: flex; justify-content: center; margin-top: 8px; }

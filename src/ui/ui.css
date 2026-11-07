@@ -320,3 +320,28 @@ a.lv-row:hover .lv-row-title { text-decoration: underline; text-underline-offset
 .lv-gallery-icon { display: flex; align-items: center; gap: 10px; padding: 6px 4px; font: 400 13px/1.4 var(--lv-font-mono); }
 .lv-skel-circle { width: 48px; height: 48px; border-radius: 999px; }
 .lv-skel-line { width: 220px; height: 16px; }
+
+/* ---------- account and app pages ---------- */
+.lv-m0 { margin: 0; }
+.lv-dim { opacity: 0.75; }
+.lv-narrow-page { max-width: 760px; }
+.lv-resume-card { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.lv-resume-card > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.lv-resume-title { margin: 0; font: 800 clamp(26px, 3.4vw, 34px)/1 var(--lv-font-display); letter-spacing: -0.035em; }
+.lv-stepper { list-style: none; margin: 0 0 16px; padding: 0; display: flex; gap: 8px; flex-wrap: wrap; }
+.lv-stepper li { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; border-radius: 999px; font: 500 14px/1 var(--lv-font-ui); color: var(--lv-muted); background: var(--lv-well); box-shadow: var(--lv-well-shadow); }
+.lv-stepper li span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 999px; background: var(--lv-raised-bg); box-shadow: var(--lv-raised-shadow); font: 700 12px/1 var(--lv-font-mono); color: var(--lv-text); }
+.lv-stepper li[data-state='current'] { color: var(--lv-text); font-weight: 600; }
+.lv-stepper li[data-state='current'] span { background: var(--lv-pressed-bg); box-shadow: var(--lv-pressed-shadow); color: var(--lv-on-accent); }
+.lv-stepper li[data-state='done'] span { background: var(--lv-ink-bg); color: var(--lv-on-primary); }
+.lv-slug { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.lv-slug > span { font-size: 13px; color: var(--lv-muted); flex: none; }
+.lv-review-hub { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.lv-review-hub > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.lv-review-hub .ui-mono { font-size: 13px; overflow-wrap: anywhere; }
+.lv-review-name { font: 800 26px/1.05 var(--lv-font-display); letter-spacing: -0.03em; overflow-wrap: anywhere; }
+.lv-checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 14.5px; }
+.lv-checklist li { display: flex; gap: 10px; align-items: flex-start; }
+.lv-checklist svg { flex: none; margin-top: 2px; color: var(--lv-accent-deep); }
+.lv-code-input { font-family: var(--lv-font-mono) !important; letter-spacing: 0.14em; text-transform: uppercase; font-size: 18px !important; }
+@media (max-width: 520px) { .lv-slug { flex-direction: column; align-items: stretch; } }
