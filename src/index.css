@@ -66,7 +66,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
-a { color: var(--accent); text-decoration: none; }
+a:where(:not([data-slot])) { color: var(--accent); text-decoration: none; }
 .mono { font-family: var(--font-mono); }
 .muted { color: var(--muted); }
 .center { text-align: center; }
@@ -137,7 +137,7 @@ button { font-family: var(--font-sans); cursor: pointer; }
 
 /* ---------- forms ---------- */
 label.field { display: block; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
-input:not([type]), input[type=text], input[type=email], input[type=password], input[type=number], input[type=file], textarea, select {
+input:where(:not([data-slot])):not([type]), input:where(:not([data-slot]))[type=text], input:where(:not([data-slot]))[type=email], input:where(:not([data-slot]))[type=password], input:where(:not([data-slot]))[type=number], input:where(:not([data-slot]))[type=file], textarea:where(:not([data-slot])), select:where(:not([data-slot])) {
   width: 100%; font-family: var(--font-sans); font-size: 15px; color: var(--ink);
   border: 1px solid transparent; background: var(--well); border-radius: var(--r-field);
   padding: 13px 15px; resize: vertical;
@@ -145,22 +145,22 @@ input:not([type]), input[type=text], input[type=email], input[type=password], in
   appearance: none; -webkit-appearance: none; -moz-appearance: textfield;
   transition: border-color var(--dur), box-shadow var(--dur), background var(--dur);
 }
-input::placeholder, textarea::placeholder { color: var(--subtle); opacity: 1; }
-input:hover:not(:focus), textarea:hover:not(:focus), select:hover:not(:focus) { background: var(--well-hover); }
-input:focus, textarea:focus, select:focus {
+input:where(:not([data-slot]))::placeholder, textarea:where(:not([data-slot]))::placeholder { color: var(--subtle); opacity: 1; }
+input:where(:not([data-slot])):hover:not(:focus), textarea:where(:not([data-slot])):hover:not(:focus), select:where(:not([data-slot])):hover:not(:focus) { background: var(--well-hover); }
+input:where(:not([data-slot])):focus, textarea:where(:not([data-slot])):focus, select:where(:not([data-slot])):focus {
   outline: none; background: var(--well-focus);
   box-shadow: inset 0 0 0 1.5px var(--ink), 0 0 0 5px rgba(255, 154, 24, 0.35);
 }
-input[type=file] { padding: 10px; cursor: pointer; }
-input[type=file]::file-selector-button {
+input:where(:not([data-slot]))[type=file] { padding: 10px; cursor: pointer; }
+input:where(:not([data-slot]))[type=file]::file-selector-button {
   border: 0; border-radius: var(--r-sm); background: var(--ink); color: var(--bg);
   font-family: var(--font-sans); font-weight: 800; padding: 10px 13px; margin-right: 12px;
   cursor: pointer; transition: opacity var(--dur), transform var(--dur) var(--ease);
 }
-input[type=file]::file-selector-button:hover { opacity: 0.9; }
-input[type=file]::file-selector-button:active { transform: scale(0.97); }
-input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-select {
+input:where(:not([data-slot]))[type=file]::file-selector-button:hover { opacity: 0.9; }
+input:where(:not([data-slot]))[type=file]::file-selector-button:active { transform: scale(0.97); }
+input:where(:not([data-slot]))[type=number]::-webkit-outer-spin-button, input:where(:not([data-slot]))[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+select:where(:not([data-slot])) {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%23999' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer;
 }

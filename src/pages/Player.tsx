@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import type { Answer } from "../lib/lvApi";
-import { Loading, campaignPhase } from "../components/ui";
+import { Loading, campaignPhase, LinkButton } from "../components/ui";
+import { Button } from "@/components/shadcn/button";
+import { ReportSurvey } from "./ReportSurvey";
 import { Icon } from "../components/Icon";
 import { describeError } from "../lib/errors";
 import { QuestionInput, summarize } from "../ui/QuestionControls";
@@ -81,15 +83,23 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
     </div>
   );
 
+  const reportCode = guest?.joinCode ?? d?.join_code ?? null;
+  const report = reportCode ? <ReportSurvey joinCode={reportCode} /> : null;
+
   if (detail.loading) return frame(<Loading rows={3} label="Loading Campaign" />);
   if (detail.error) {
     const code = detail.error.code;
+    if (code === "lv_not_available" || code === "lv_forbidden")
+      return frame(<><StateScreen kind="ineligible" title="This survey is unavailable." detail="It can’t be answered right now." />{guest && <ReportSurvey joinCode={guest.joinCode} />}</>);
     return frame(
-      <StateScreen
-        kind={code === "lv_not_found" ? "notfound" : "error"}
-        detail={describeError(detail.error)}
-        action={<button type="button" className="ui-btn ui-btn-outline" onClick={() => detail.reload()}>Try again</button>}
-      />,
+      <>
+        <StateScreen
+          kind={code === "lv_not_found" ? "notfound" : "error"}
+          detail={describeError(detail.error)}
+          action={code === "lv_not_found" ? <LinkButton to="/join" variant="secondary">Try another code</LinkButton> : <Button variant="secondary" onClick={() => detail.reload()}>Try again</Button>}
+        />
+        {guest && code !== "lv_not_found" && <ReportSurvey joinCode={guest.joinCode} />}
+      </>,
     );
   }
   if (!d) return null;
@@ -105,11 +115,12 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
           {receipt?.duplicate || (!receipt && d.has_responded)
             ? "You had already answered, so we kept your original response and didn't store a second one."
             : d.campaign.anonymity === "anonymous"
-              ? "Your answers went in anonymously. Hub managers see totals, never names."
-              : "Your answers were recorded. Hub managers can see who answered this Campaign."}
+              ? "Your answers went in anonymously. The creator sees totals, never names."
+              : "Your answers were recorded. The creator can see who answered."}
         </p>
         {(receipt?.id || d.receipt_id) && <p className="lv-thanks-receipt">Receipt {receipt?.id ?? d.receipt_id}</p>}
-        <Link className="ui-btn ui-btn-outline lv-thanks-done" to="/">Done</Link>
+        <LinkButton to="/" variant="secondary" className="lv-thanks-done">Done</LinkButton>
+        {report}
       </div>,
       "ink",
     );
@@ -126,6 +137,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
           : phase === "closed" ? "It has been closed."
           : "It isn't available to you right now."
         }
+        action={report}
       />,
     );
   }
@@ -137,6 +149,15 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
     const v = answers[questions[i]!.question_id];
     return v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0);
   };
+  // Compliance LC-03: every question is required unless its config says optional; the promises must be true.
+  const optional = (i: number) => Boolean((questions[i]?.config as { optional?: boolean } | undefined)?.optional);
+  const anyOptional = questions.some((_, i) => optional(i));
+  const missing = questions.map((_, i) => i).filter((i) => !optional(i) && !answered(i));
+  const privacyPromise = guest
+    ? { title: "No account needed", body: anonymous ? "Guests answer without signing in. Your answers aren’t linked to you, and guests never count as members." : "Guests answer without signing in. The creator can see the answers you give, and guests never count as members." }
+    : anonymous
+      ? { title: "Anonymous", body: "Your answers are never linked to your name; you sign in only so we can count you once." }
+      : { title: "Not anonymous", body: "The creator can see who answered and what they said." };
 
   if (view === "welcome") {
     return frame(
@@ -146,17 +167,17 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
           <h1 className="lv-player-title">{d.campaign.title}</h1>
           <div className="lv-player-hero-foot">
             <span className="lv-row-sub" style={{ color: "inherit", opacity: 0.8 }}>{total} {total === 1 ? "question" : "questions"} · ~{minutes} min</span>
-            <button type="button" className="ui-btn ui-btn-primary" onClick={() => { setStep(0); setView("question"); }} disabled={total === 0}>
+            <Button variant="primary" onClick={() => { setStep(0); setView("question"); }} disabled={total === 0}>
               Start <Icon name="arrow" size={16} />
-            </button>
+            </Button>
           </div>
         </div>
         <ul className="lv-promises">
-          <li><span><Icon name="lock" size={18} /></span><div><strong>{anonymous ? "Anonymous" : "Not anonymous"}</strong><p>{anonymous ? "No name, no login, no email." : "Hub managers can see who answered."}</p></div></li>
-          <li><span><Icon name="arrow" size={18} /></span><div><strong>Skip anything</strong><p>Every question is optional.</p></div></li>
+          <li><span><Icon name="lock" size={18} /></span><div><strong>{privacyPromise.title}</strong><p>{privacyPromise.body}</p></div></li>
+          <li><span><Icon name="check" size={18} /></span><div><strong>{anyOptional ? "Some questions are optional" : "Every question needs an answer"}</strong><p>{anyOptional ? "Optional questions are marked. Answer the rest to submit." : "You can go back and change answers before you submit."}</p></div></li>
           <li><span><Icon name="clock" size={18} /></span><div><strong>About {minutes} {minutes === 1 ? "minute" : "minutes"}</strong><p>Mostly taps.</p></div></li>
         </ul>
-        {guest && <p className="lv-hint">Guests answer without an account and are never counted as members.</p>}
+        {report}
       </>,
     );
   }
@@ -171,17 +192,18 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
               <div>
                 <span className="lv-row-sub">Question {i + 1}</span>
                 <strong>{qq.prompt}</strong>
-                <span className={answered(i) ? "" : "lv-skipped"}>{summarize(qq, answers[qq.question_id])}</span>
+                <span className={answered(i) ? "" : "lv-skipped"}>{!answered(i) && !optional(i) ? "Needs an answer" : summarize(qq, answers[qq.question_id])}</span>
               </div>
-              <button type="button" className="ui-btn ui-btn-quiet ui-btn-sm" onClick={() => { setStep(i); setView("question"); }}>Edit</button>
+              <Button variant="quiet" size="sm" onClick={() => { setStep(i); setView("question"); }}>Edit</Button>
             </li>
           ))}
         </ul>
         {offline && <p className="lv-banner" role="status">You're offline. Your answers are saved on this device; send them when you're back online.</p>}
+        {missing.length > 0 && <p className="lv-banner" role="status">Answer {missing.length === 1 ? "question" : "questions"} {missing.map((i) => i + 1).join(", ")} to submit.</p>}
         {error && <p className="lv-banner lv-banner-err" role="alert">{error}</p>}
         <div className="lv-player-nav">
           <button type="button" className="lv-circle-btn" aria-label="Back to questions" onClick={() => { setStep(total - 1); setView("question"); }}><Icon name="back" size={20} /></button>
-          <button type="button" className="lv-next" onClick={submit} disabled={busy || offline}>{busy ? "Sending…" : error ? "Try again" : "Submit"}</button>
+          <button type="button" className="lv-next" onClick={submit} disabled={busy || offline || missing.length > 0}>{busy ? "Sending…" : error ? "Try again" : "Submit"}</button>
         </div>
       </>,
     );
@@ -193,7 +215,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
     <>
       <div className="lv-player-top">
         <span className="lv-row-sub" aria-label={`Question ${step + 1} of ${total}`}>{String(step + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}</span>
-        <button type="button" className="lv-skip" onClick={go}>Skip</button>
+        {optional(step) ? <button type="button" className="lv-skip" onClick={go}>Skip</button> : <span className="lv-row-sub">Required</span>}
       </div>
       <div className="lv-progress" role="progressbar" aria-valuemin={1} aria-valuemax={total} aria-valuenow={step + 1} aria-label="Progress">
         {questions.map((_, i) => <i key={i} data-state={i < step ? "done" : i === step ? "current" : "todo"} />)}
@@ -204,7 +226,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
       </div>
       <div className="lv-player-nav">
         <button type="button" className="lv-circle-btn" aria-label="Back" disabled={step === 0} onClick={() => setStep((s) => s - 1)}><Icon name="back" size={20} /></button>
-        <button type="button" className="lv-next" onClick={go}>{last ? "Review" : "Next"}</button>
+        <button type="button" className="lv-next" onClick={go} disabled={!optional(step) && !answered(step)}>{last ? "Review" : "Next"}</button>
       </div>
     </>,
   );
