@@ -6,6 +6,29 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (launch UI on the shadcn layer)
+
+- One UI system: shadcn components (button, inputs, select, checkbox, radio, switch, tabs, dialog, alert-dialog,
+  sheet, menus, popover, tooltip, toasts, badge, card, table, skeleton, progress, accordion, avatar, scroll-area,
+  input-otp, alert) restyled to the tactile tokens, plus composite blocks (QuotaMeter, ResultBars with one striped
+  withheld bucket, TypedConfirm, QrCode, Notice, EmptyState). `src/components/ui.tsx` is now a thin wrapper over it.
+- Launch journey: landing with the waitlist section, `/waitlist` (and `/whitelist` redirecting to it), `/me`
+  dashboard, Quick Surveys (`/surveys`, editor, results, `/s/:token` invites) with link, client-side QR and join code,
+  `/create` stepper on Hub credits, the rebuilt Hub workspace (overview, Campaigns, Studio, results, members, invites,
+  roles, settings with owner transfer and delete, Builder pages, billing, reservation, Discover) and the player.
+- Respondent copy derives from the Campaign's settings (LC-03); "Report this survey" on every respondent screen;
+  blocked Campaign and "This Hub is no longer available" states.
+- `/privacy` plain-language data summary (stored data, anonymity, guests, browser storage keys, subprocessors,
+  retention, deletion), `/support` and footer contact (`src/config/contact.ts`, address to confirm), legal operator
+  placeholder (LC-08). Reserved slugs gain `how-it-works`, `use-cases`, `whitelist`, `waitlist`, `signup`, `surveys`,
+  `s`, `c`, `j`, `brand`, `licenses` (LC-24, UI side).
+- Pricing: the founder's capability table, Campaign Plus at $39 for 2 weeks + $19 per week, tax, cancellation and
+  refund notes; checkout disabled with a reason.
+- Typed `lvApi` and dev-only mock for every launch operation; new error copy (`lv_entitlement_required`,
+  `lv_billing_unavailable`, `lv_hub_gone`, `lv_confirmation_mismatch`, `lv_not_available`).
+- Dependency: `qrcode` (client-side QR, own chunk). The Hub workspace and Quick Surveys are lazy route chunks
+  (JS 238.7 kB gzip in total).
+
 ### Changed (founder final decisions, 2026-11-07)
 
 - Campaign Plus is priced: $39 for the first 2 weeks, $19 per additional week (master spec 11.5, `AGENTS.md`,
