@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Btn, Card, CopyField, Dialog, Empty, Loading, Meter, Metric, Micro, Notice, PageHead, PhaseBadge, Pill, Tabs, type Phase } from "../components/ui";
 import { Icon, type IconName } from "../components/Icon";
 import { MadeBy } from "../components/MakerMark";
+import { Button } from "@/components/shadcn/button";
 
 const ICONS: IconName[] = ["home", "star", "survey", "voice", "roster", "dashboard", "bulb", "flame", "sparkle", "lock", "check", "arrow", "plus"];
 const PHASES: Phase[] = ["draft", "scheduled", "open", "ended", "paused", "closed", "archived"];
@@ -156,6 +157,18 @@ export function Gallery() {
           actions={<><Btn variant="quiet" onClick={() => setOpen(false)}>Cancel</Btn><Btn variant="primary" onClick={() => setOpen(false)}>Confirm</Btn></>}>
           <p className="ui-muted" style={{ margin: 0 }}>Dialogs trap focus and close on Escape.</p>
         </Dialog>
+      </Section>
+
+      <Section title="shadcn/ui (on LunchVoice tokens)">
+        <div className="ui-row ui-gap-12" style={{ flexWrap: "wrap" }}>
+          <Button>Default</Button>
+          <Button variant="secondary">Secondary</Button>
+          <Button variant="outline">Outline</Button>
+          <Button variant="ghost">Ghost</Button>
+          <Button variant="destructive">Destructive</Button>
+          <Button variant="link">Link</Button>
+          <Button disabled>Disabled</Button>
+        </div>
       </Section>
     </div>
   );

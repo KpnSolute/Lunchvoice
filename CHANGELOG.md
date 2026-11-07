@@ -6,6 +6,20 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (shadcn/ui on the design system)
+
+- Tailwind v4 (`tailwindcss`, `@tailwindcss/vite`) and shadcn/ui (`components.json`, Radix, Nova style), with the
+  `@/` import alias in `tsconfig.json` and `vite.config.ts`. New runtime dependencies: `radix-ui`,
+  `class-variance-authority`, `cn` (shadcn's class merger), `lucide-react`, `tw-animate-css`; `shadcn` is a
+  dev dependency (its `tailwind.css` is only read at build time).
+- `src/ui/shadcn.css` maps every shadcn variable onto the `--lv-*` tokens, so components follow light, dark and high
+  contrast with no per-theme block. It imports no preflight, scopes its reset to `[data-slot]`, and Tailwind scans
+  only `src/components/shadcn/`: scanning the whole app generated `container`, `grid`, `hidden` and `table` utilities
+  from existing class names. `--muted` is left to `index.css` (muted text); shadcn's muted surface maps to the well.
+- First component: `src/components/shadcn/button.tsx`, shown in the dev-only gallery (`/__gallery`). Checked in the
+  browser in all three themes; the landing page still has no horizontal scroll at 390px.
+- `docs/frontend/FRONTEND.md` documents how to add components and the rules above.
+
 ### Added (shadcn MCP server)
 
 - `.mcp.json` registers the shadcn MCP server (`shadcn mcp init --client claude`) so agents can browse, search and get

@@ -62,6 +62,23 @@ When a function lands, move it from the mock to the real transport and delete th
 Every expected failure is `{ ok:false, error:{ code, message, ... } }` (backend migration 000008;
 gate failures add `reasons`). A thrown exception is a genuine fault and maps to `lv_server_error`.
 
+## shadcn/ui and Tailwind
+
+shadcn/ui (Radix, Nova style) runs on Tailwind v4 as an addition to the design system, not a
+replacement. `src/ui/tokens.css` stays the single source of tokens.
+
+- Add components with `npx shadcn@4.23.0 add <name>` (or the shadcn MCP server). They land in
+  `src/components/shadcn/`; `src/components/ui.tsx` is the app's own primitives and is unrelated.
+- `src/ui/shadcn.css` maps every shadcn variable onto an `--lv-*` token, so components follow the
+  light, dark (`data-theme="dark"`) and high-contrast themes automatically. `--muted` is not
+  redefined there because `index.css` uses it for muted text.
+- No Tailwind preflight: the global reset would restyle existing pages. A reset scoped to
+  `[data-slot]` (every shadcn component) gives the components what they need.
+- Tailwind only scans `src/components/shadcn/`. Scanning the whole app turned existing class
+  names (`container`, `grid`, `hidden`, `table`) into utilities. Tailwind classes written in any
+  other folder generate nothing unless that folder is added with another `@source`.
+- Imports use the `@/` alias for `src/` (tsconfig `paths` and the Vite alias).
+
 ## Pricing in code
 
 Prices come from a single config module (`src/config/pricing.ts`, not yet written) used by the

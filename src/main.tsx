@@ -15,6 +15,7 @@ import { Gallery } from "./pages/Gallery";
 import { initTheme } from "./ui/theme";
 import "./ui/fonts.css";
 import "./ui/tokens.css";
+import "./ui/shadcn.css";
 import "./index.css";
 import "./ui/ui.css";
 import "./styles/system.css";
