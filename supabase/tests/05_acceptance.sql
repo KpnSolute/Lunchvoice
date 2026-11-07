@@ -12,7 +12,7 @@ select set_config('t.file', '05_acceptance', false);
 begin;
 
 -- Policies an operator would set once for a real installation.
-update lv.policy set value = '5'::jsonb where key = 'campaign.max_active_per_hub';
+select t.set_limit('campaigns.max_active', '5'::jsonb);
 update lv.policy set value = '3'::jsonb where key = 'campaign.min_cohort';
 
 -- =========================================================================================================
@@ -57,6 +57,9 @@ select t.check('STEP 3: the reviewer approves the application',
   t.code(lv_api.lv_beta_decide(t.id('app'), true)) = 'ok');
 select t.check('STEP 3: deciding an unknown application is refused',
   t.code(lv_api.lv_beta_decide(gen_random_uuid(), true)) = 'lv_not_found');
+select t.as_kpn(2);
+select t.check('STEP 3: the applicant joins the whitelist and is admitted with a Founding Hub credit',
+  (lv_api.lv_whitelist_join() ->> 'status') = 'admitted' and (lv_api.lv_my_context() ->> 'hub_credits') = '1');
 
 -- =========================================================================================================
 -- STEP 4. Create the Hub; the creator becomes its Owner automatically
@@ -75,8 +78,11 @@ select t.check('STEP 4: the creator is an accepted member',
 select t.check('STEP 4: the Owner holds the Owner role with its capabilities',
   t.q(format($q$select lv.has_capability(%L::uuid, %L::uuid, 'campaign.manage')::text$q$,
              t.get('chef'), t.get('hub'))) = 'true');
-select t.check('STEP 4: the beta approval was consumed by creating the Hub',
-  t.q(format($q$select status from lv.beta_applications where account_id = %L::uuid$q$, t.get('chef'))) = 'consumed');
+select t.check('STEP 4: the Hub credit was consumed by creating the Hub',
+  t.q(format($q$select count(*)::text from lv.hub_credits where account_id = %L::uuid and consumed_by_hub = %L::uuid$q$,
+             t.get('chef'), t.get('hub'))) = '1');
+select t.check('STEP 4: the Hub runs on the Founding (Starter family) plan',
+  t.q(format($q$select lv.hub_family(%L::uuid)$q$, t.get('hub'))) = 'starter');
 
 -- =========================================================================================================
 -- STEP 5. Three students arrive by invitation

@@ -2,14 +2,14 @@
 select set_config('t.file', '13_analytics', false);
 begin;
 
-update lv.policy set value = '5'::jsonb where key = 'campaign.max_active_per_hub';
+select t.set_limit('campaigns.max_active', '5'::jsonb);
 update lv.policy set value = '2'::jsonb where key = 'campaign.min_cohort';
 update lv.policy set value = '50'::jsonb where key = 'participation.guest_rate_per_minute';
 select t.trust_test_issuer();
 select t.as_kpn(1, null, true, 'Owner'); select lv_api.lv_my_context();
 select t.put('owner', t.q($$select lv.current_account_id()::text$$));
 select t.as_pg();
-insert into lv.beta_applications (account_id, status) values (t.id('owner'), 'approved');
+select t.grant_credit(t.id('owner'));
 select t.as_kpn(1);
 select t.put('hub', (lv_api.lv_hub_create('results-hub', 'Results Hub')->>'hub_id'));
 select t.put('invite', (lv_api.lv_invite_create(t.id('hub'))->>'code'));

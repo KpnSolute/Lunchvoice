@@ -6,7 +6,7 @@
 select set_config('t.file', '07_read_api', false);
 begin;
 
-update lv.policy set value = '5'::jsonb where key = 'campaign.max_active_per_hub';
+select t.set_limit('campaigns.max_active', '5'::jsonb);
 select t.trust_test_issuer();
 
 -- People: 1 operator/reviewer, 2 owner, 3 member, 4 outsider.
@@ -35,7 +35,9 @@ select lv_api.lv_beta_decide(t.id('app'), true);
 select t.as_kpn(2);
 select t.check('beta: approved is visible to the applicant', lv_api.lv_beta_status() ->> 'status' = 'approved');
 select t.as_anon();
-select t.check('beta: anonymous callers are told to sign in', t.code(lv_api.lv_beta_status()) = 'lv_unauthenticated');
+select t.check('beta: anonymous callers cannot call it (no anon grant since 000014)', t.raises('select lv_api.lv_beta_status()', '42501'));
+select t.as_pg();
+select t.grant_credit(t.id('owner'));
 
 -- ===== Hub creation and reserved slugs ==================================================================
 select t.as_kpn(2);
@@ -81,7 +83,7 @@ select t.check('preview: previewing consumes no use',
 select t.as_kpn(3);
 select t.check('preview: an unknown code looks the same as a bad one', t.code(lv_api.lv_invite_preview('NOPE')) = 'lv_invalid_code');
 select t.as_anon();
-select t.check('preview: signed-out callers cannot probe codes', t.code(lv_api.lv_invite_preview('READ-API-CODE')) = 'lv_unauthenticated');
+select t.check('preview: signed-out callers cannot probe codes', t.raises($$select lv_api.lv_invite_preview('READ-API-CODE')$$, '42501'));
 select t.as_kpn(3);
 select lv_api.lv_invite_redeem('READ-API-CODE');
 select t.check('preview: a member is told they are already in', (lv_api.lv_invite_preview('READ-API-CODE') ->> 'already_member') = 'true');

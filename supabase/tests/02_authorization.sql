@@ -9,7 +9,7 @@ select t.as_kpn(10, 'owner.a@example.invalid', true, 'Owner A');
 select lv_api.lv_my_context();
 select t.put('acc_a', t.q($$select lv.current_account_id()::text$$));
 select t.as_pg();
-insert into lv.beta_applications (account_id, status) values (t.id('acc_a'), 'approved');
+select t.grant_credit(t.id('acc_a'));
 select t.as_kpn(10);
 select t.check('Hub A is created by its owner', t.code(lv_api.lv_hub_create('hub-a', 'Hub A')) = 'ok');
 select t.put('hub_a', t.q($$select id::text from lv.hubs where slug = 'hub-a'$$));
@@ -18,7 +18,7 @@ select t.as_kpn(20, 'owner.b@example.invalid', true, 'Owner B');
 select lv_api.lv_my_context();
 select t.put('acc_b', t.q($$select lv.current_account_id()::text$$));
 select t.as_pg();
-insert into lv.beta_applications (account_id, status) values (t.id('acc_b'), 'approved');
+select t.grant_credit(t.id('acc_b'));
 select t.as_kpn(20);
 select t.check('Hub B is created by its owner', t.code(lv_api.lv_hub_create('hub-b', 'Hub B')) = 'ok');
 select t.put('hub_b', t.q($$select id::text from lv.hubs where slug = 'hub-b'$$));
@@ -26,22 +26,22 @@ select t.put('hub_b', t.q($$select id::text from lv.hubs where slug = 'hub-b'$$)
 -- ---------------------------------------------------------------------------------------------------------
 -- Hub creation rules
 -- ---------------------------------------------------------------------------------------------------------
-select t.as_kpn(30, 'nobeta@example.invalid', true, 'No Beta');
+select t.as_kpn(30, 'nocredit@example.invalid', true, 'No Credit');
 select lv_api.lv_my_context();
-select t.check('creating a Hub without an approved beta application fails closed',
-  t.code(lv_api.lv_hub_create('hub-c', 'Hub C')) = 'lv_beta_required');
+select t.check('creating a Hub without a Hub credit fails closed with lv_entitlement_required',
+  t.code(lv_api.lv_hub_create('hub-c', 'Hub C')) = 'lv_entitlement_required');
 
 select t.as_kpn(10);
 select t.check('a reserved slug is refused', t.code(lv_api.lv_hub_create('admin', 'Sneaky')) = 'lv_invalid_input');
 
--- Isolate the slug rule from the beta rule: consumption of the approval is a separate behaviour, so grant a
--- fresh approval before asserting on the uniqueness failure.
+-- Isolate the slug rule from the credit rule: consumption of the credit is a separate behaviour, so grant a
+-- fresh credit before asserting on the uniqueness failure.
 select t.as_pg();
-update lv.beta_applications set status = 'approved' where account_id = t.id('acc_a');
+select t.grant_credit(t.id('acc_a'));
 select t.as_kpn(10);
 select t.check('a duplicate slug is refused', t.code(lv_api.lv_hub_create('hub-a', 'Copy')) = 'lv_conflict');
-select t.check('an approval is NOT consumed by a failed Hub creation',
-  t.q($$select status from lv.beta_applications where account_id = '$$ || t.get('acc_a') || $$'::uuid$$) = 'approved');
+select t.check('a Hub credit is NOT consumed by a failed Hub creation',
+  t.q($$select count(*)::text from lv.hub_credits where consumed_at is null and account_id = '$$ || t.get('acc_a') || $$'::uuid$$) = '1');
 
 select t.as_pg();
 select t.check('the creator becomes a member of their own Hub',

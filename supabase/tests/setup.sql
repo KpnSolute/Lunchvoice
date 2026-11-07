@@ -137,3 +137,17 @@ returns jsonb language sql as $$
                       jsonb_build_object('question_id', p_q2, 'value', to_jsonb(p_text))))
 $$;
 grant execute on function t.submit(uuid, uuid, jsonb, uuid, text) to public;
+
+-- Give an account one Hub credit (000014: lv_hub_create consumes a credit instead of a beta approval).
+create or replace function t.grant_credit(p_account uuid, p_family text default 'starter') returns void
+language sql security definer as $$
+  insert into lv.hub_credits (account_id, family, product, source)
+  values (p_account, p_family, case p_family when 'team' then 'team_hub' else 'starter_hub' end, 'grant')
+$$;
+grant execute on function t.grant_credit(uuid, text) to public;
+
+-- Override one value of the entitlement map for every family, inside the calling test's transaction.
+create or replace function t.set_limit(p_key text, p_value jsonb) returns void
+language sql security definer as $$
+  update lv.plan_limits set value = p_value where key = p_key
+$$;
