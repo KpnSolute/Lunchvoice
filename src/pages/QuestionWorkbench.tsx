@@ -46,7 +46,7 @@ export interface SaveTracker {
 }
 
 /** Positions are unique per Campaign (campaign_questions_position_key), so new ones go after the highest. */
-const nextPosition = (qs: Question[]) => (qs.length ? Math.max(...qs.map((q) => q.position)) + 1 : 0);
+const nextPosition = (qs: Question[]) => (qs.length ? Math.max(...qs.map((q) => q.position)) + 1 : 1);
 
 export function QuestionWorkbench({
   d,
