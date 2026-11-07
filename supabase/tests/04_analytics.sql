@@ -109,8 +109,11 @@ declare
   v_cells jsonb;
 begin
   v_cells := lv.analytics_core(t.id('c'), null, 'answer_distribution', t.id('q')) -> 'cells';
-  perform t.check('a distribution cell below the minimum cohort is withheld as NULL',
-    exists (select 1 from jsonb_array_elements(v_cells) e where e->>'n' is null));
+  -- 3 and 2 with a cohort of 3: the withheld bucket (2) would be pinned by subtraction, so the whole question is
+  -- withheld (000016 strict engine): no cell, no key, no count.
+  perform t.check('a distribution whose small cell could be derived is withheld as a whole',
+    jsonb_array_length(v_cells) = 0
+    and (lv.analytics_core(t.id('c'), null, 'answer_distribution', t.id('q')) ->> 'withheld') = 'true');
   perform t.check('no published cell ever leaks a count below the minimum',
     not exists (select 1 from jsonb_array_elements(v_cells) e
                 where (e->>'suppressed')::boolean = false and (e->>'n')::bigint < 3));

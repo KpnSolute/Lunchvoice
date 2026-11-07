@@ -56,7 +56,15 @@ select t.check('waitlist: status works signed out and omits me',
 select t.check('waitlist: joining signed out is impossible', t.raises('select lv_api.lv_waitlist_join()', '42501'));
 select t.as_kpn(1);
 select t.check('waitlist: a bad contact email is lv_invalid_input', t.code(lv_api.lv_waitlist_join('not-an-email')) = 'lv_invalid_input');
-select t.put('wl1', lv_api.lv_waitlist_join('founder@example.invalid', 'We run a club')::text);
+select t.check('waitlist: a contact email needs the current consent version',
+  t.code(lv_api.lv_waitlist_join('founder@example.invalid', 'Club Hub')) = 'lv_invalid_input'
+  and t.code(lv_api.lv_waitlist_join('founder@example.invalid', 'Club Hub', '1999-01-01')) = 'lv_invalid_input');
+select t.put('wl1', lv_api.lv_waitlist_join('founder@example.invalid', 'Club Hub', '2026-11-07')::text);
+select t.as_pg();
+select t.check('waitlist: the row keeps only email, intended Hub name, consent version and time',
+  t.q(format($q$select contact_email || '|' || intended_hub_name || '|' || consent_version from lv.waitlist_entries where account_id = %L::uuid$q$, t.get('founder')))
+    = 'founder@example.invalid|Club Hub|2026-11-07');
+select t.as_kpn(1);
 select t.check('waitlist: the first joiner is admitted at position 1 with a Founding grant',
   (t.get('wl1')::jsonb ->> 'status') = 'admitted' and (t.get('wl1')::jsonb ->> 'position') = '1'
   and (t.get('wl1')::jsonb #>> '{granted,product}') = 'founding' and (t.get('wl1')::jsonb #>> '{granted,family}') = 'starter'
@@ -223,6 +231,14 @@ select t.check('personal: Hub-scoped operations answer lv_not_found (members, ro
   and t.code(lv_api.lv_invite_list(t.id('personal'))) = 'lv_not_found'
   and t.code(lv_api.lv_role_create(t.id('personal'), 'R', null, array['analytics.read'])) = 'lv_not_found'
   and t.code(lv_api.lv_member_leave(t.id('personal'))) = 'lv_not_found');
+select t.check('personal (LC-06): the owner cannot admit, assign roles, update roles or delete roles in it',
+  t.code(lv_api.lv_member_admit(t.q(format($q$select id::text from lv.hub_memberships where hub_id = %L::uuid$q$, t.get('personal')))::uuid)) = 'lv_not_found'
+  and t.code(lv_api.lv_member_role_assign(t.q(format($q$select id::text from lv.hub_memberships where hub_id = %L::uuid$q$, t.get('personal')))::uuid,
+                                         t.q(format($q$select id::text from lv.roles where hub_id = %L::uuid$q$, t.get('personal')))::uuid)) = 'lv_not_found'
+  and t.code(lv_api.lv_role_update(t.q(format($q$select id::text from lv.roles where hub_id = %L::uuid$q$, t.get('personal')))::uuid, 'X')) = 'lv_not_found'
+  and t.code(lv_api.lv_role_delete(t.q(format($q$select id::text from lv.roles where hub_id = %L::uuid$q$, t.get('personal')))::uuid)) = 'lv_not_found');
+select t.check('personal (LC-06): campaign listing by Hub id and Hub search never show it as a Hub',
+  not exists (select 1 from jsonb_array_elements(lv_api.lv_my_context() -> 'hubs') e where e->>'hub_id' = t.get('personal')));
 select t.as_kpn(2);
 select t.check('personal: nobody can join it', t.code(lv_api.lv_hub_join(t.id('personal'))) = 'lv_not_found');
 select t.as_pg();
@@ -254,6 +270,21 @@ select t.check('quick: a sixth active Quick Survey is lv_limit_reached (limit 5,
 select t.check('quick: list and context report 5 of 5 active',
   (lv_api.lv_quick_survey_list() ->> 'active') = '5' and (lv_api.lv_quick_survey_list() ->> 'limit') = '5'
   and (lv_api.lv_my_context() #>> '{quick_surveys,active}') = '5' and jsonb_array_length(lv_api.lv_quick_survey_list() -> 'surveys') = 7);
+
+select t.check('quick: a paused Quick Survey still holds its slot',
+  t.code(lv_api.lv_campaign_pause((string_to_array(t.get('qx'), ','))[1]::uuid)) = 'ok'
+  and t.code(lv_api.lv_campaign_activate((string_to_array(t.get('qx'), ','))[5]::uuid)) = 'lv_limit_reached');
+select t.check('quick: an active Quick Survey can be archived in one call', t.code(lv_api.lv_campaign_archive((string_to_array(t.get('qx'), ','))[2]::uuid)) = 'ok'
+  and t.q(format($q$select status from lv.campaigns where id = %L::uuid$q$, (string_to_array(t.get('qx'), ','))[2])) = 'archived');
+select t.check('quick: archiving one frees the slot, so the sixth activation succeeds',
+  t.code(lv_api.lv_campaign_activate((string_to_array(t.get('qx'), ','))[5]::uuid)) = 'ok');
+select t.as_pg();
+update lv.policy set value = '7'::jsonb where key = 'quick.create_per_hour';
+select t.as_kpn(3);
+select t.check('quick: creation is throttled per account per hour', t.code(lv_api.lv_quick_survey_create('One more', 'link')) = 'lv_rate_limited');
+select t.as_pg();
+update lv.policy set value = '20'::jsonb where key = 'quick.create_per_hour';
+select t.as_kpn(3);
 
 -- link access: any signed-in person answers; guests too
 select t.put('q1code', t.q(format($q$select join_code from lv.campaigns where id = %L::uuid$q$, t.get('q1'))));
@@ -361,11 +392,45 @@ select t.as_pg();
 select t.check('grants: no lv_api function is executable by PUBLIC',
   t.q($$select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
          where n.nspname = 'lv_api' and exists (select 1 from aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a where a.grantee = 0)$$) = '0');
-select t.check('grants: anon executes only the signed-out allow-list',
+select t.check('grants: anon executes exactly the signed-out allow-list',
   t.q($$select coalesce(string_agg(p.proname, ',' order by p.proname), '') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'lv_api' and has_function_privilege('anon', p.oid, 'execute')$$)
+  = 'lv_capability_catalog,lv_guest_campaign_get,lv_guest_submit,lv_hub_get,lv_hub_pages_get,lv_hub_reservation_status,lv_my_context,lv_plan_limits,lv_report_abuse,lv_waitlist_status');
+select t.check('grants: no lv table or sequence is reachable by anon or authenticated',
+  t.q($$select count(*)::text from pg_class c join pg_namespace n on n.oid = c.relnamespace
+         where n.nspname = 'lv' and c.relkind in ('r', 'S', 'v')
+           and (has_table_privilege('anon', c.oid, 'select') or has_table_privilege('authenticated', c.oid, 'select')
+                or has_table_privilege('authenticated', c.oid, 'insert') or has_table_privilege('authenticated', c.oid, 'update'))$$) = '0');
+select t.check('grants: the API roles have no usage on schema lv',
+  not has_schema_privilege('anon', 'lv', 'usage') and not has_schema_privilege('authenticated', 'lv', 'usage'));
+select t.check('grants: the service-only functions are not executable by anon or authenticated',
+  t.q($$select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'lv' and p.proname in ('billing_apply_event', 'retention_sweep')
+           and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))$$) = '0');
+select t.check('grants: service-only functions never live in lv_api',
+  t.q($$select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'lv_api' and (p.proname like '%billing_apply%' or p.proname like '%retention%' or p.proname like '%grant_platform%')$$) = '0');
+select t.as_anon();
+select t.check('grants: as anon, a signed-in operation raises permission denied',
+  t.raises('select lv_api.lv_quick_survey_list()', '42501') and t.raises('select lv_api.lv_waitlist_join()', '42501')
+  and t.raises($$select lv_api.lv_hub_create('x-y-z', 'X')$$, '42501') and t.raises('select lv_api.lv_member_list(gen_random_uuid())', '42501'));
+select t.check('grants: as anon, every lv_api function outside the allow-list is denied',
+  t.q($$select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
          where n.nspname = 'lv_api' and has_function_privilege('anon', p.oid, 'execute')
-           and p.proname not in ('lv_hub_get', 'lv_guest_campaign_get', 'lv_guest_submit', 'lv_capability_catalog', 'lv_plan_limits',
-                                 'lv_waitlist_status', 'lv_hub_reservation_status', 'lv_hub_pages_get', 'lv_report_abuse')$$) = '');
+           and p.proname not in ('lv_my_context', 'lv_hub_get', 'lv_guest_campaign_get', 'lv_guest_submit', 'lv_capability_catalog',
+                                 'lv_plan_limits', 'lv_waitlist_status', 'lv_hub_reservation_status', 'lv_hub_pages_get', 'lv_report_abuse')$$) = '0');
+select t.check('grants: signed out, lv_my_context answers lv_unauthenticated as an envelope', t.code(lv_api.lv_my_context()) = 'lv_unauthenticated');
+select t.check('grants: as anon, no lv table can be read', t.raises('select count(*) from lv.accounts', '42501')
+  and t.raises('select count(*) from lv.entitlements', '42501'));
+select t.as_kpn(2);
+select t.check('grants: as authenticated, service-only functions are denied',
+  t.raises($$select lv.billing_apply_event('stripe', 'evt_x', 'invoice.paid', '{}'::jsonb)$$, '42501')
+  and t.raises('select lv.retention_sweep()', '42501'));
+select t.check('grants: as authenticated, admin operations refuse a non-admin',
+  t.code(lv_api.lv_admin_campaign_block(gen_random_uuid(), 'x')) = 'lv_forbidden'
+  and t.code(lv_api.lv_beta_decide(gen_random_uuid(), true)) = 'lv_forbidden');
+select t.check('grants: as authenticated, no lv table can be read', t.raises('select count(*) from lv.hub_credits', '42501'));
+select t.as_pg();
 select t.check('grants: no lv function is executable by anon or authenticated',
   t.q($$select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
          where n.nspname = 'lv' and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))$$) = '0');

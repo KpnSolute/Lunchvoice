@@ -638,6 +638,10 @@ $function$
 
 ;
 
+create or replace function lv_api.lv_campaign_archive(p_campaign uuid) returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$ begin return lv.api_campaign_archive(p_campaign); exception when others then return lv.api_error(sqlerrm, sqlstate); end; $$;
+
 drop function if exists lv_api.lv_member_list(uuid);
 drop function if exists lv_api.lv_invite_list(uuid);
 alter function lv.api_member_list(uuid) rename to lv_member_list;
@@ -670,7 +674,7 @@ drop function if exists lv.api_admin_campaign_block(uuid, text, boolean);
 drop table if exists lv.abuse_reports;
 drop function if exists lv_api.lv_plan_limits();
 drop function if exists lv_api.lv_waitlist_status();
-drop function if exists lv_api.lv_waitlist_join(text, text);
+drop function if exists lv_api.lv_waitlist_join(text, text, text);
 drop function if exists lv_api.lv_quick_survey_create(text, text, text, boolean);
 drop function if exists lv_api.lv_quick_survey_list();
 drop function if exists lv_api.lv_campaign_invite_create(uuid, int, timestamptz);
@@ -686,7 +690,7 @@ drop function if exists lv.campaign_invite_json(uuid);
 drop function if exists lv.api_quick_survey_list();
 drop function if exists lv.api_quick_survey_create(text, text, text, boolean);
 drop function if exists lv.api_plan_limits();
-drop function if exists lv.api_waitlist_join(text, text);
+drop function if exists lv.api_waitlist_join(text, text, text);
 drop function if exists lv.api_waitlist_status();
 drop function if exists lv.waitlist_me(uuid);
 drop function if exists lv.waitlist_seats();
@@ -738,7 +742,7 @@ alter table lv.hubs add constraint hubs_slug_length check (length(slug) between 
 alter table lv.hubs add constraint hubs_slug_no_double_hyphen check (slug !~ '--');
 
 delete from lv.reserved_slugs where reason in ('ui route', 'launch route');
-delete from lv.policy where key in ('billing.launched_at', 'waitlist.seats', 'abuse.reports_per_minute');
+delete from lv.policy where key in ('billing.launched_at', 'waitlist.seats', 'abuse.reports_per_minute', 'waitlist.consent_version', 'quick.create_per_hour');
 insert into lv.policy (key, value, note) values
   ('campaign.max_active_per_hub', null,
    'Maximum simultaneously active Campaigns per Hub. NULL means activation is refused until an owner sets it (no invented plan numbers).'),

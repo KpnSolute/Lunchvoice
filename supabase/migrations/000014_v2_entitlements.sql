@@ -227,7 +227,9 @@ alter table lv.hub_credits enable row level security;
 insert into lv.policy (key, value, note) values
   ('billing.launched_at', null,
    'ISO timestamp when paid billing went live. NULL = not launched: Founding entitlements stay open-ended. Once set, they end 30 days later.'),
-  ('waitlist.seats', '50'::jsonb, 'L-02: the first 50 signed-in waitlist joiners are admitted automatically.');
+  ('waitlist.seats', '50'::jsonb, 'L-02: the first 50 signed-in waitlist joiners are admitted automatically.'),
+  ('waitlist.consent_version', '"2026-11-07"'::jsonb, 'Version of the notice a joiner accepts when leaving a contact email.'),
+  ('quick.create_per_hour', '20'::jsonb, 'Abuse control: Quick Surveys one account may create per hour.');
 
 -- Retired: limits come from lv.plan_limits now.
 delete from lv.policy where key in ('campaign.max_active_per_hub', 'roles.max_custom_per_hub');
@@ -485,7 +487,8 @@ begin
 
   if v_kind = 'personal' then
     v_limit := lv.plan_limit(v_family, 'quick.max_active');
-    select count(*) into v_used from lv.campaigns x where x.hub_id = c.hub_id and x.status = 'active' and x.id <> c.id;
+    -- A Quick Survey holds a slot while scheduled, open or paused; closing or archiving frees it.
+    select count(*) into v_used from lv.campaigns x where x.hub_id = c.hub_id and x.status in ('active', 'paused') and x.id <> c.id;
     if v_limit is null then
       v_reasons := v_reasons || to_jsonb('limit_undefined'::text);
     elsif v_used >= (v_limit)::int then
@@ -960,14 +963,16 @@ create table lv.waitlist_entries (
   status text not null check (status in ('admitted', 'waitlisted')),
   position int not null check (position > 0),
   contact_email text check (contact_email is null or (length(contact_email) <= 254 and contact_email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$')),
-  note text check (note is null or length(note) <= 500),
+  intended_hub_name text check (intended_hub_name is null or length(intended_hub_name) <= 80),
+  consent_version text check (consent_version is null or length(consent_version) <= 40),
   created_at timestamptz not null default now(),
-  constraint waitlist_entries_account_key unique (account_id)
+  constraint waitlist_entries_account_key unique (account_id),
+  constraint waitlist_entries_email_consent check (contact_email is null or consent_version is not null)
 );
 create index waitlist_entries_status_idx on lv.waitlist_entries (status, position);
 alter table lv.waitlist_entries enable row level security;
 comment on column lv.waitlist_entries.contact_email is
-  'Optional contact address the person typed. Never an identity key; the seat is bound to the account ((issuer, subject)).';
+  'Optional contact address for launch and account updates only, kept with consent_version. Never an identity key; the seat is bound to the account ((issuer, subject)). Deleted with the account.';
 
 create function lv.waitlist_seats() returns int
 language sql stable security definer set search_path = ''
@@ -997,14 +1002,15 @@ begin
 end;
 $$;
 
-create function lv.api_waitlist_join(p_contact_email text, p_note text) returns jsonb
+create function lv.api_waitlist_join(p_contact_email text, p_intended_hub_name text, p_consent_version text) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
   v_account uuid := lv.ensure_account();
   w record;
   v_email text := nullif(btrim(p_contact_email), '');
-  v_note text := nullif(btrim(p_note), '');
+  v_hub_name text := nullif(btrim(p_intended_hub_name), '');
+  v_consent text := nullif(btrim(p_consent_version), '');
   v_taken int;
   v_status text;
   v_pos int;
@@ -1014,7 +1020,13 @@ begin
   if v_email is not null and (length(v_email) > 254 or v_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$') then
     return lv.err('lv_invalid_input', 'That contact email does not look right.');
   end if;
-  if v_note is not null and length(v_note) > 500 then return lv.err('lv_invalid_input', 'Keep the note under 500 characters.'); end if;
+  if v_hub_name is not null and length(v_hub_name) > 80 then return lv.err('lv_invalid_input', 'Keep the Hub name under 80 characters.'); end if;
+  -- A contact email is kept only with consent to the current notice (launch and account updates only).
+  if v_email is not null and v_consent is distinct from (lv.policy_json('waitlist.consent_version') #>> '{}') then
+    return lv.err_x('lv_invalid_input', 'Accept the current notice to leave a contact email.',
+                    jsonb_build_object('consent_version', lv.policy_json('waitlist.consent_version') #>> '{}'));
+  end if;
+  if v_email is null then v_consent := null; end if;
 
   -- One global lock: the seat count and the admission decision are a single serial step.
   perform pg_advisory_xact_lock(hashtextextended('lv_waitlist', 0));
@@ -1037,8 +1049,8 @@ begin
     select count(*) + 1 into v_pos from lv.waitlist_entries x where x.status = 'waitlisted';
   end if;
 
-  insert into lv.waitlist_entries (account_id, status, position, contact_email, note)
-  values (v_account, v_status, v_pos, v_email, v_note);
+  insert into lv.waitlist_entries (account_id, status, position, contact_email, intended_hub_name, consent_version)
+  values (v_account, v_status, v_pos, v_email, v_hub_name, v_consent);
 
   if v_status = 'admitted' then
     insert into lv.entitlements (scope, account_id, family, product, source, starts_at, ends_at)
@@ -1111,7 +1123,7 @@ begin
                      where c.account_id = v_account and c.consumed_at is null
                        and (lv.effective_end(c.product, c.ends_at) is null or lv.effective_end(c.product, c.ends_at) > now())),
     'quick_surveys', jsonb_build_object(
-      'active', (select count(*) from lv.campaigns c where c.hub_id = v_personal and c.status = 'active'),
+      'active', (select count(*) from lv.campaigns c where c.hub_id = v_personal and c.status in ('active', 'paused')),
       'limit', (lv.plan_limit('free', 'quick.max_active'))::int,
       'question_limit', (lv.plan_limit('free', 'quick.max_questions'))::int),
     'waitlist', lv.waitlist_me(v_account));
@@ -1140,6 +1152,11 @@ begin
     return lv.err('lv_invalid_input', 'Anonymity is anonymous or identified.');
   end if;
   v_hub := lv.ensure_personal_space(v_account);
+  perform pg_advisory_xact_lock(hashtextextended('lv_quick_create:' || v_account::text, 0));
+  if (select count(*) from lv.campaigns c where c.hub_id = v_hub and c.created_at > now() - interval '1 hour')
+     >= coalesce((lv.policy_json('quick.create_per_hour'))::int, 0) then
+    return lv.err('lv_rate_limited', 'You have created many Quick Surveys in the last hour. Try again later.');
+  end if;
   insert into lv.campaigns (hub_id, title, mode, anonymity, access, audience, created_by)
   values (v_hub, v_title, 'survey', coalesce(p_anonymity, 'anonymous'), v_access,
           -- Guests are allowed only with link access.
@@ -1163,7 +1180,7 @@ begin
   return jsonb_build_object('ok', true,
     'surveys', coalesce((select jsonb_agg(lv.campaign_summary(c.id, true) order by c.created_at desc, c.id)
                            from lv.campaigns c where c.hub_id = v_hub), jsonb_build_array()),
-    'active', (select count(*) from lv.campaigns c where c.hub_id = v_hub and c.status = 'active'),
+    'active', (select count(*) from lv.campaigns c where c.hub_id = v_hub and c.status in ('active', 'paused')),
     'limit', (lv.plan_limit('free', 'quick.max_active'))::int,
     'question_limit', (lv.plan_limit('free', 'quick.max_questions'))::int);
 end;
@@ -1389,9 +1406,10 @@ create function lv_api.lv_waitlist_status() returns jsonb
 language plpgsql stable security definer set search_path = ''
 as $$ begin return lv.api_waitlist_status(); exception when others then return lv.api_error(sqlerrm, sqlstate); end; $$;
 
-create function lv_api.lv_waitlist_join(p_contact_email text default null, p_note text default null) returns jsonb
+create function lv_api.lv_waitlist_join(p_contact_email text default null, p_intended_hub_name text default null,
+                                         p_consent_version text default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
-as $$ begin return lv.api_waitlist_join(p_contact_email, p_note); exception when others then return lv.api_error(sqlerrm, sqlstate); end; $$;
+as $$ begin return lv.api_waitlist_join(p_contact_email, p_intended_hub_name, p_consent_version); exception when others then return lv.api_error(sqlerrm, sqlstate); end; $$;
 
 create function lv_api.lv_report_abuse(p_join_code text, p_reason text) returns jsonb
 language plpgsql volatile security definer set search_path = ''
@@ -1503,6 +1521,23 @@ as $$ begin perform lv.require_community(p_hub); return lv.api_member_list(p_hub
 create function lv_api.lv_invite_list(p_hub uuid) returns jsonb
 language plpgsql stable security definer set search_path = ''
 as $$ begin perform lv.require_community(p_hub); return lv.api_invite_list(p_hub); exception when others then return lv.api_error(sqlerrm, sqlstate); end; $$;
+
+-- In the personal space an open, scheduled or paused Quick Survey can be archived in one call (closed first).
+create or replace function lv_api.lv_campaign_archive(p_campaign uuid) returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  v_close jsonb;
+begin
+  if lv.hub_kind((select c.hub_id from lv.campaigns c where c.id = p_campaign)) = 'personal'
+     and (select c.status from lv.campaigns c where c.id = p_campaign) in ('active', 'paused') then
+    v_close := lv.api_campaign_close(p_campaign);
+    if not (v_close->>'ok')::boolean then return v_close; end if;
+  end if;
+  return lv.api_campaign_archive(p_campaign);
+exception when others then return lv.api_error(sqlerrm, sqlstate);
+end;
+$$;
 
 -- Quick Surveys are created only through lv_quick_survey_create.
 create or replace function lv_api.lv_campaign_create(p_hub uuid, p_title text, p_mode text, p_anonymity text default 'anonymous')
@@ -1649,7 +1684,7 @@ begin
   if exists (select 1 from pg_roles where rolname = 'anon') then
     for r in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
               where n.nspname = 'lv_api'
-                and p.proname in ('lv_hub_get', 'lv_guest_campaign_get', 'lv_guest_submit', 'lv_capability_catalog',
+                and p.proname in ('lv_my_context', 'lv_hub_get', 'lv_guest_campaign_get', 'lv_guest_submit', 'lv_capability_catalog',
                                   'lv_plan_limits', 'lv_waitlist_status', 'lv_report_abuse') loop
       execute format('grant execute on function %s to anon', r.sig);
     end loop;

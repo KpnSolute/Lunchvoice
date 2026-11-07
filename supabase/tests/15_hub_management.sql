@@ -124,7 +124,7 @@ select t.put('ca', (lv_api.lv_campaign_create(t.id('hub'), 'Secret', 'poll', 'an
 select t.put('caq', (lv_api.lv_campaign_question_add(t.id('ca'), 1, 'yes_no', 'Yes?') ->> 'question_id'));
 select lv_api.lv_campaign_activate(t.id('ci')); select lv_api.lv_campaign_activate(t.id('ca'));
 select t.as_kpn(3);
-select lv_api.lv_waitlist_join('resp@example.invalid');
+select lv_api.lv_waitlist_join('resp@example.invalid', 'Resp Hub', '2026-11-07');
 select lv_api.lv_submit_response(t.id('ci'), format('[{"question_id":"%s","value":"yes"},{"question_id":"%s","value":"I am Pat from room 4"}]', t.get('ciq'), t.get('ciq2'))::jsonb);
 select t.put('mycampinv', (lv_api.lv_campaign_invite_create(
   (lv_api.lv_quick_survey_create('Invite me', 'invite') #>> '{campaign,campaign_id}')::uuid) #>> '{invite,token}'));
@@ -155,6 +155,25 @@ select t.check('delete: invitations it created are deleted',
 select t.check('delete: the waitlist row and contact email are gone', t.q($$select count(*)::text from lv.waitlist_entries where contact_email = 'resp@example.invalid'$$) = '0');
 select t.check('delete: no audit row names the account',
   t.q(format($q$select count(*)::text from lv.audit_events where actor_account_id = %L::uuid or target = %L or detail::text like %L$q$, t.get('resp'), t.get('resp'), '%' || t.get('resp') || '%')) = '0');
+select t.check('delete: the unlinked submission keeps no exact time (UTC day only), nor do its answers',
+  t.q(format($q$select bool_and(s.created_at = date_trunc('day', s.created_at at time zone 'UTC') at time zone 'UTC'
+                       and not exists (select 1 from lv.answers a where a.submission_id = s.id and a.created_at <> s.created_at))::text
+                 from lv.submissions s where s.campaign_id = %L::uuid$q$, t.get('ci'))) = 'true');
+-- No row anywhere in lv may still carry the old account id or its identity subject (LC-16, F-05).
+do $$
+declare
+  r record;
+  v_hits int := 0;
+  v_n int;
+  v_where text := '';
+begin
+  for r in select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'lv' and c.relkind = 'r' loop
+    execute format('select count(*) from lv.%I x where x::text like $1 or x::text like $2', r.relname)
+      into v_n using '%' || t.get('resp') || '%', '%' || t.sub(3)::text || '%';
+    if v_n > 0 then v_hits := v_hits + v_n; v_where := v_where || r.relname || ' '; end if;
+  end loop;
+  perform t.check('delete: no lv row references the deleted account id or identity subject', v_hits = 0, v_where);
+end $$;
 select t.check('delete: the membership is gone and member totals drop',
   t.q(format($q$select count(*)::text from lv.hub_memberships where hub_id = %L::uuid$q$, t.get('hub'))) = '2');
 select t.as_kpn(3);

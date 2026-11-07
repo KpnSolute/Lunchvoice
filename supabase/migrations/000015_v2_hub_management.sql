@@ -11,7 +11,8 @@
 --     community Hub. Deleted: profile, identity links, memberships and roles, Hub invitations it created and
 --     redemptions, Campaign invites it created, eligibility, credits, account entitlements, the waitlist entry and
 --     contact email, its personal space with its Quick Surveys, and its participation rows. Its identified
---     submissions are irreversibly unlinked (account_id NULL) and their free-text answers deleted; structured answers
+--     submissions are irreversibly unlinked (account_id NULL, time coarsened to the UTC day) and their free-text
+--     answers deleted; structured answers
 --     and aggregates remain. Audit rows naming the account are scrubbed. Deleting participation changes a released
 --     anonymous population, so such results are withheld afterwards (000005 rule), which is the privacy-safe side.
 --   * Owner transfer, Hub delete and account delete need a recent sign-in (LC-22): the session's iat must be within
@@ -521,7 +522,14 @@ begin
   -- Identified submissions: free text goes, structured answers stay once the link is cut irreversibly.
   delete from lv.answers a using lv.submissions s, lv.campaign_questions q
    where s.id = a.submission_id and q.id = a.question_id and s.account_id = v_account and q.kind = 'text';
-  update lv.submissions set account_id = null where account_id = v_account;
+  -- Unlink and coarsen: no account and no exact time remains that could join a submission back to the person.
+  with gone as (
+    update lv.submissions
+       set account_id = null,
+           created_at = date_trunc('day', created_at at time zone 'UTC') at time zone 'UTC'
+     where account_id = v_account
+    returning id, created_at)
+  update lv.answers a set created_at = g.created_at from gone g where a.submission_id = g.id;
   -- Participation rows are deleted, so nothing that names the account can join back to a submission.
   delete from lv.participation where account_id = v_account;
   -- Invitations it created (Hub and Campaign); redemptions and eligibility cascade with the account.
