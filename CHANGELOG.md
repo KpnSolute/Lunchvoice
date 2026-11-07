@@ -6,6 +6,21 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (live verification, 2026-11-07)
+
+- Security headers (LC-04) are live on lunchvoice.com (set in the Render dashboard because the static site is not
+  Blueprint-managed): CSP, HSTS, nosniff, referrer and permissions policies, frame blocking. With the CSP active, 10
+  live routes load with zero violations and the sign-in redirect to auth.kpnsolute.com works.
+- Founder sign-in verified on production: one account, one identity, no duplicate identity pairs; waitlist admission
+  granted one Founding credit, consumed once by the founder's Hub (Starter / founding / waitlist, protected Owner).
+- UI correction pass (#45) deployed.
+
+### Added (full build plan)
+
+- `docs/v2/BUILD_PLAN_2026-11-21.md`: definition of done for feature-complete (2026-11-21) ahead of the 2026-12-01
+  launch, three parallel full-stack tracks (hardening and gaps, commerce/email/admin, community and Discover) with
+  migration numbers, ownership rules and build decisions B-01, B-02, C-01, C-02.
+
 ### Changed (UI/UX correction pass)
 
 - Hub overview: the stat row is one responsive grid; plan names ("Starter") never wrap per character; the Plan tile is
