@@ -349,7 +349,7 @@ select t.put('team2', (lv_api.lv_hub_create('quiet-team', 'Quiet Team') ->> 'hub
 select t.put('team3', (lv_api.lv_hub_create('pending-team', 'Pending Team') ->> 'hub_id'));
 select lv_api.lv_hub_update(t.id('team3'), null, 'public');
 select t.as_kpn(1);
-select t.check('discover: a category outside the list is lv_invalid_input', t.code(lv_api.lv_community_update(t.id('hub'), null, 'lioncafe')) = 'lv_invalid_input');
+select t.check('discover: a category outside the list is lv_invalid_input', t.code(lv_api.lv_community_update(t.id('hub'), null, 'not_a_category')) = 'lv_invalid_input');
 select t.as_pg();
 insert into lv.discover_applications (hub_id, status, genuine_members) values
   (t.id('team1'), 'approved', 812), (t.id('team2'), 'approved', 800), (t.id('team3'), 'submitted', 750),
