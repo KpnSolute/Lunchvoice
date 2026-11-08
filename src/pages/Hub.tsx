@@ -93,6 +93,12 @@ export function HubLayout() {
 
   const { hub, membership } = q.data;
   const base = `/${hub.slug}`;
+  /* ---- staff panel: Hub suspension (000023) ---- */
+  // Members and visitors see a neutral state; the Owner keeps the workspace with the reason. Nothing is deleted.
+  if (hub.suspension?.suspended && !membership?.is_owner) {
+    return <StateScreen kind="notfound" title="This Hub is suspended." detail="It isn’t available right now. Nothing has been deleted." action={<LinkButton to="/" variant="secondary">LunchVoice home</LinkButton>} />;
+  }
+  /* ---- end staff panel ---- */
   const ctx: HubCtx = { hub, membership, reload: q.reload };
 
   // Visitors, and everyone on a participant page, get the Hub cover (L10), not the workspace chrome.
@@ -156,6 +162,12 @@ export function HubLayout() {
           {owner && <Badge variant="ink">Owner</Badge>}
         </div>
       </div>
+      {/* ---- staff panel: Hub suspension ---- */}
+      {hub.suspension?.suspended && (
+        <Notice tone="error" title="This Hub is suspended" className="lv-suspended-notice">
+          LunchVoice staff suspended it{hub.suspension.reason ? `: ${hub.suspension.reason}` : "."} Members can’t see it, its Campaigns don’t take responses and nothing new can be published. Everything is kept. Contact support to appeal.
+        </Notice>
+      )}
       {plan?.state === "expired" && (
         <Notice tone="warn" title="This Hub’s plan has ended">Premium actions are locked: new Campaigns can’t be published and roles and pages can’t change. Everything you made is kept.</Notice>
       )}

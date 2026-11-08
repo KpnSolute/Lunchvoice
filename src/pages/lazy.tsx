@@ -46,7 +46,8 @@ const commerce = () => import("./Commerce");
 export const HubBilling = pick(commerce, "HubBilling");
 export const HubReservation = pick(commerce, "HubReservation");
 export const Reserve = pick(commerce, "Reserve");
-export const Admin = pick(commerce, "Admin");
+// Staff panel (000023): /admin moved to its own chunk.
+export const Admin = pick(() => import("./Admin"), "Admin");
 
 /* ---- track C: community ---- */
 export const DiscoverDirectory = pick(() => import("./Community"), "DiscoverDirectory");
