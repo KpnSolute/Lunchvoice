@@ -72,6 +72,7 @@ export const HANDLED_TYPES = [
   "checkout.session.completed",
   "checkout.session.async_payment_succeeded",
   "invoice.paid",
+  "customer.subscription.updated",
   "customer.subscription.deleted",
   "charge.refunded",
 ] as const;
@@ -95,6 +96,11 @@ export interface BillingPayload {
   mode?: string;
   /** Subscription deleted: when it actually ended (an immediate cancellation). */
   ended_at?: number;
+  /** Checkout: the Stripe customer (000019 remembers it for the Customer Portal). */
+  customer?: string;
+  /** Subscription updated: display state only (000019); access never shortens on it. */
+  status?: string;
+  cancel_at_period_end?: boolean;
   /** Charge refunded: full or partial (NEW-02). */
   amount?: number;
   amount_refunded?: number;
@@ -154,16 +160,30 @@ export function mapStripeEvent(event: unknown): MappedEvent | null {
         currency: str(object.currency, 3)?.toLowerCase(),
         payment_status: str(object.payment_status, 40),
         mode: str(object.mode, 40),
+        customer: idOf(object.customer),
       };
       break;
     case "invoice.paid": {
       const parent = isObj(object.parent) && isObj(object.parent.subscription_details) ? object.parent.subscription_details : null;
       const lines = isObj(object.lines) && Array.isArray(object.lines.data) ? object.lines.data : [];
       const firstPeriod = isObj(lines[0]) && isObj(lines[0].period) ? lines[0].period : null;
+      // Newer API versions list payments under `payments` instead of `payment_intent`.
+      const payments = isObj(object.payments) && Array.isArray(object.payments.data) ? object.payments.data : [];
+      const firstPayment = isObj(payments[0]) && isObj(payments[0].payment) ? payments[0].payment : null;
       payload = {
         subscription: idOf(object.subscription) ?? (parent ? idOf(parent.subscription) : undefined),
         period_end: num(firstPeriod?.end) ?? num(object.period_end),
-        payment_ref: idOf(object.payment_intent),
+        payment_ref: idOf(object.payment_intent) ?? (firstPayment ? idOf(firstPayment.payment_intent) : undefined),
+      };
+      break;
+    }
+    case "customer.subscription.updated": {
+      const items = isObj(object.items) && Array.isArray(object.items.data) ? object.items.data : [];
+      payload = {
+        subscription: idOf(object.id),
+        status: str(object.status, 40),
+        cancel_at_period_end: typeof object.cancel_at_period_end === "boolean" ? object.cancel_at_period_end : undefined,
+        period_end: num(object.current_period_end) ?? (isObj(items[0]) ? num(items[0].current_period_end) : undefined),
       };
       break;
     }

@@ -345,6 +345,7 @@ export function createLvApi(transport: LvTransport) {
     }
   };
   return {
+    ...createCommerceApi(transport, call), // track B: commerce (block at the end of this file)
     /* ---- context, entitlements, waitlist ---- */
     myContext: () => call<MyContext>("lv_my_context"),
     planLimits: () => call<PlanLimits>("lv_plan_limits"),
@@ -531,3 +532,136 @@ export function activeFamily(plan: HubPlan | undefined | null): PlanFamily | nul
   if (!plan || plan.state !== "active") return null;
   return plan.family;
 }
+
+/* ---- track B: commerce ---- */
+// Checkout (Stripe Checkout Sessions created server-side by the `checkout` Edge Function), the Customer Portal,
+// the billing config read, Hub invites by email and the platform admin console (000019). Shapes follow
+// docs/backend/API_CONTRACT.md, section "Track B: commerce, email, admin".
+
+// Edge Functions are reached through the same transport (declaration merging keeps LvTransport one interface).
+export interface LvTransport {
+  invoke?(fn: string, body: Record<string, unknown>): Promise<unknown>;
+}
+
+export type PurchasableProduct = "starter_hub" | "team_hub" | "campaign_starter" | "campaign_plus" | "hub_reservation";
+
+export interface BillingConfig {
+  provider_ready: boolean;
+  checkout_available: boolean;
+  products: Partial<Record<PurchasableProduct, boolean>>;
+  portal_available: boolean;
+}
+
+export interface SubscriptionState {
+  status: string;
+  cancel_at_period_end: boolean;
+  current_period_end: string | null;
+  manageable: boolean;
+}
+
+/** lv_billing_summary as of 000019 (adds subscription and purchasable). */
+export type BillingSummaryV2 = BillingSummary & {
+  subscription?: SubscriptionState | null;
+  billing_ready?: boolean;
+  purchasable?: Partial<Record<PurchasableProduct, boolean>>;
+};
+
+export interface CheckoutRequest {
+  product: PurchasableProduct;
+  hub?: string | null;
+  weeks?: number | null;
+  slug?: string | null;
+  /** Same-site path Stripe returns to (`?checkout=success|cancelled` is appended). */
+  returnPath?: string;
+}
+
+export interface AdminOverview {
+  waitlist: { seats_total: number; seats_taken: number; admitted: number; waitlisted: number; with_contact: number };
+  reports_open: number;
+  campaigns_blocked: number;
+  discover_pending: number;
+  billing: { provider_ready: boolean; events_7d: number; rejected_7d: number };
+  email: { queued: number; sent: number; failed: number };
+}
+export interface AdminWaitlistEntry {
+  entry_id: string;
+  status: "admitted" | "waitlisted";
+  position: number;
+  joined_at: string;
+  has_contact_email: boolean;
+  intended_hub_name: string | null;
+}
+export interface AdminReport {
+  report_id: string;
+  status: "open" | "actioned" | "dismissed";
+  reason: string;
+  created_at: string;
+  campaign_id: string | null;
+  campaign_title: string | null;
+  join_code: string | null;
+  blocked: boolean;
+  hub_name: string | null;
+  hub_slug: string | null;
+  quick_survey: boolean;
+  open_reports: number;
+}
+export interface AdminDiscoverApplication {
+  application_id: string;
+  status: "submitted" | "approved" | "rejected";
+  hub_id: string;
+  hub_slug: string;
+  hub_name: string;
+  genuine_members_at_apply: number;
+  genuine_members_now: number;
+  family: PlanFamily | null;
+  applied_at: string;
+  decided_at: string | null;
+  note: string | null;
+}
+export interface AdminBillingEvent { id: number; type: string; outcome: "applied" | "ignored" | "rejected"; reason: string | null; received_at: string }
+export interface AdminOutbox {
+  counts: Record<string, number>;
+  by_template: Record<string, number>;
+  recent: { id: string; template: string; status: string; attempts: number; last_error: string | null; created_at: string; sent_at: string | null }[];
+}
+
+type Caller = <T>(fn: string, args?: Record<string, unknown>) => Promise<LvResult<T>>;
+
+function createCommerceApi(transport: LvTransport, call: Caller) {
+  const invoke = async <T>(fn: string, body: Record<string, unknown>): Promise<LvResult<T>> => {
+    if (!transport.invoke) return { ok: false, error: { code: "lv_billing_unavailable", message: "Checkout is not available here." } };
+    try {
+      return normalize<T>(await transport.invoke(fn, body));
+    } catch (e) {
+      return { ok: false, error: { code: "lv_server_error", message: e instanceof Error ? e.message : String(e) } };
+    }
+  };
+  return {
+    billingConfig: () => call<BillingConfig>("lv_billing_config"),
+    billingSummaryV2: (hub: string) => call<BillingSummaryV2>("lv_billing_summary", { p_hub: hub }),
+    /** Starts a Stripe Checkout Session; on success redirect the browser to `url`. */
+    checkout: (r: CheckoutRequest) =>
+      invoke<{ url: string; intent_id: string }>("checkout", {
+        action: "checkout", product: r.product, hub: r.hub ?? null, weeks: r.weeks ?? null, slug: r.slug ?? null, return_path: r.returnPath ?? "/me",
+      }),
+    /** Opens the Stripe Customer Portal for the caller's own subscription. */
+    billingPortal: (returnPath: string) => invoke<{ url: string }>("checkout", { action: "portal", return_path: returnPath }),
+    inviteEmailSend: (hub: string, code: string, to: string) =>
+      call<{ queued: boolean; already_sent: boolean }>("lv_invite_email_send", { p_hub: hub, p_code: code, p_to: to }),
+
+    adminOverview: () => call<AdminOverview>("lv_admin_overview"),
+    adminWaitlist: (limit = 50, offset = 0) => call<{ total: number; entries: AdminWaitlistEntry[] }>("lv_admin_waitlist", { p_limit: limit, p_offset: offset }),
+    adminWaitlistContact: (entry: string) => call<{ entry_id: string; contact_email: string | null }>("lv_admin_waitlist_contact", { p_entry: entry }),
+    adminAbuseReports: (status: "open" | "actioned" | "dismissed" | "all" = "open") => call<{ reports: AdminReport[] }>("lv_admin_abuse_reports", { p_status: status }),
+    adminReportDismiss: (report: string) => call<object>("lv_admin_report_dismiss", { p_report: report }),
+    adminCampaignBlock: (campaign: string, reason: string) => call<object>("lv_admin_campaign_block", { p_campaign: campaign, p_reason: reason }),
+    adminCampaignUnblock: (campaign: string) => call<object>("lv_admin_campaign_unblock", { p_campaign: campaign }),
+    adminDiscoverList: (status: "submitted" | "approved" | "rejected" | "all" = "submitted") =>
+      call<{ applications: AdminDiscoverApplication[] }>("lv_admin_discover_list", { p_status: status }),
+    adminDiscoverDecide: (application: string, approve: boolean, note?: string | null) =>
+      call<{ status: "approved" | "rejected" }>("lv_admin_discover_decide", { p_application: application, p_approve: approve, p_note: note ?? null }),
+    adminBillingEvents: (limit = 100) => call<{ events: AdminBillingEvent[] }>("lv_admin_billing_events", { p_limit: limit }),
+    adminEmailOutbox: (limit = 50) => call<AdminOutbox>("lv_admin_email_outbox", { p_limit: limit }),
+  };
+}
+/* ---- end track B: commerce ---- */

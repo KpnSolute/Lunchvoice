@@ -96,7 +96,9 @@ select t.check('waitlist: admission takes an advisory lock',
 select t.check('waitlist: no authorization check reads the waitlist table',
   t.q($$select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
          where n.nspname = 'lv' and p.prosrc like '%waitlist_entries%'
-           and p.proname not in ('api_waitlist_status', 'api_waitlist_join', 'waitlist_me')$$) = '0');
+           and p.proname not in ('api_waitlist_status', 'api_waitlist_join', 'waitlist_me',
+                                 -- 000019: the platform admin console reads it for display only, never to authorize
+                                 'api_admin_overview', 'api_admin_waitlist', 'api_admin_waitlist_contact')$$) = '0');
 select t.check('waitlist: one seat per account (unique constraint backstop)',
   t.raises(format($q$insert into lv.waitlist_entries (account_id, status, position) values (%L::uuid, 'admitted', 99)$q$, t.get('founder')), '23505'));
 

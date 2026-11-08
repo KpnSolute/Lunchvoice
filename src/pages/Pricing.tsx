@@ -5,10 +5,12 @@ import { CAPABILITY_COLUMNS, CAPABILITY_ROWS, CHECKOUT_DISABLED_REASON, PLANS, P
 import { Card } from "@/components/shadcn/card";
 import { Badge } from "@/components/shadcn/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shadcn/table";
-import { DisabledAction, Eyebrow, Notice } from "@/components/shadcn/blocks";
+import { Eyebrow, Notice } from "@/components/shadcn/blocks";
+import { PricingAction, useBillingConfig } from "../components/Checkout"; // track B: commerce
 
 // /pricing: the founder's capability table from src/config/pricing.ts. Display only; the backend's entitlement map
-// decides what a plan allows. Checkout stays disabled with a visible reason until billing opens.
+// decides what a plan allows. Checkout buttons are enabled only when lv_billing_config says a product is on sale;
+// otherwise they stay disabled with a visible reason.
 
 function CellValue({ v }: { v: string | boolean | null }) {
   if (v === true) return <span className="lv-cap-yes" aria-label="Included"><Icon name="check" size={18} /></span>;
@@ -18,6 +20,8 @@ function CellValue({ v }: { v: string | boolean | null }) {
 }
 
 export function Pricing() {
+  const { config } = useBillingConfig();
+  const open = Boolean(config?.checkout_available);
   return (
     <div className="lv-mk">
       <div className="lv-mk-head">
@@ -26,7 +30,9 @@ export function Pricing() {
         <p>Answering is always free. Quick Surveys are free for anyone who signs in. Campaign plans cover one time-bounded Campaign; Hub plans are for communities that keep going.</p>
       </div>
 
-      <Notice tone="info" title="Billing opens soon">Nothing can be bought yet and nothing is charged. The first 50 people admitted from the <Link className="lv-inline-link" to="/waitlist">waitlist</Link> receive a Founding Hub credit.</Notice>
+      {open
+        ? <Notice tone="info" title="Checkout is open">Payments run through Stripe. Tax is calculated by Stripe at checkout and shown separately. A Hub plan bought here becomes a Hub credit you use on <Link className="lv-inline-link" to="/create">Create a Hub</Link>.</Notice>
+        : <Notice tone="info" title="Billing opens soon">Nothing can be bought yet and nothing is charged. The first 50 people admitted from the <Link className="lv-inline-link" to="/waitlist">waitlist</Link> receive a Founding Hub credit.</Notice>}
 
       <div className="lv-price-cards">
         {PLANS.filter((p) => p.id !== "reservation").map((p) => (
@@ -38,7 +44,7 @@ export function Pricing() {
             {p.id === "free" ? (
               <LinkButton to="/surveys/new" variant="secondary" block>Start a Quick Survey</LinkButton>
             ) : (
-              <DisabledAction block variant={p.id === "starter" ? "primary" : "secondary"} reason="Billing opens soon.">Buy {p.name}</DisabledAction>
+              <PricingAction product={p.product as "starter_hub" | "team_hub" | "campaign_starter" | "campaign_plus"} config={config} variant={p.id === "starter" ? "primary" : "secondary"} />
             )}
           </Card>
         ))}
@@ -81,14 +87,14 @@ export function Pricing() {
               <div className="lv-price-figure"><strong>{r.priceLabel}</strong><span>{r.cadence}</span></div>
               <div className="lv-lifecycle"><span>ACTIVE</span><i aria-hidden="true">→</i><span>GRACE · 25 days</span><i aria-hidden="true">→</i><span>RELEASED</span></div>
               <ul className="lv-price-list">{r.features.map((f) => <li key={f}><Icon name="check" size={15} />{f}</li>)}</ul>
-              <DisabledAction variant="secondary" reason="Billing opens soon.">Reserve an address</DisabledAction>
+              <LinkButton to="/reserve" variant="secondary">Reserve an address</LinkButton>
             </Card>
           );
         })()}
         <Card variant="well">
           <strong>Good to know</strong>
           <ul className="lv-price-list">{PRICING_NOTES.map((n) => <li key={n}><Icon name="check" size={15} />{n}</li>)}</ul>
-          <p className="ui-help lv-m0">{CHECKOUT_DISABLED_REASON}</p>
+          {!open && <p className="ui-help lv-m0">{CHECKOUT_DISABLED_REASON}</p>}
         </Card>
       </div>
     </div>
