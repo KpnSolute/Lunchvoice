@@ -1197,20 +1197,20 @@ as $$
 declare
   v_account uuid := lv.current_account_id();
   d lv.discord_codes;
-  v_hub record;
+  v_hub jsonb;
 begin
   if v_account is null then return lv.err('lv_unauthenticated', 'Sign in with KpnIdentity first.'); end if;
   d := lv.discord_code_row(p_code);
   if d.code_hash is null then return lv.err('lv_invalid_code', 'This link has expired or was already used. Run the command in Discord again.'); end if;
   if d.kind = 'connect' then
-    select h.id, h.display_name, h.slug into v_hub from lv.hubs h where h.slug = d.hub_slug and h.kind = 'community';
-    if v_hub.id is null or not (lv.is_owner(v_account, v_hub.id) or lv.has_capability(v_account, v_hub.id, 'hub.settings.manage')) then
+    select jsonb_build_object('hub_id', h.id, 'name', h.display_name, 'slug', h.slug) into v_hub from lv.hubs h where h.slug = d.hub_slug and h.kind = 'community';
+    if v_hub is null or not (lv.is_owner(v_account, (v_hub->>'hub_id')::uuid) or lv.has_capability(v_account, (v_hub->>'hub_id')::uuid, 'hub.settings.manage')) then
       return lv.err('lv_not_found', 'Only a manager of that Hub can confirm this connection.');
     end if;
   end if;
   return jsonb_build_object('ok', true, 'kind', d.kind, 'discord_username', d.discord_username, 'expires_at', d.expires_at,
     'guild_name', (select g.guild_name from lv.discord_guilds g where g.guild_id = d.guild_id),
-    'hub', case when d.kind = 'connect' then jsonb_build_object('hub_id', v_hub.id, 'name', v_hub.display_name, 'slug', v_hub.slug) end,
+    'hub', case when d.kind = 'connect' then v_hub end,
     'consent_version', lv.policy_json('discord.consent_version') #>> '{}',
     'already_linked', exists (select 1 from lv.discord_links x where x.account_id = v_account));
 end;
