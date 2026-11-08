@@ -179,3 +179,28 @@ spaces exist (it never deletes answers); restore from the step-0 backup instead 
 `lv.retention_sweep()` (service role) trims audit and analytics query logs older than 12 months and unlinks guest
 rate-limit hashes older than 7 days. It is not scheduled by the migrations. When wanted:
 `select cron.schedule('lv-retention', '17 3 * * *', 'select lv.retention_sweep()');` (needs the `pg_cron` extension).
+
+## 000018 (track A hardening) — apply note
+
+Needs explicit founder approval for this build (F-13 covered the launch apply only). Order matters:
+
+1. **Apply `000018_v2_hardening.sql`** (after 000017, before 000019+). It hashes existing Campaign invite tokens in
+   place (existing invite links keep working), gives every Campaign a link token, and turns ownership transfer into an
+   offer. Rollback: `supabase/rollbacks/000018_v2_hardening.down.sql` is **lossy**: Campaign invites come back revoked
+   (tokens were only stored hashed), pending ownership offers, role targeting, descriptions and link tokens are dropped.
+2. **Before or at apply, confirm live sessions carry `aud = "authenticated"` and `session_kind = "lunchvoice"`** (LC-12):
+   decode a fresh session from the deployed `session` function (`issueSession` has always set both). From this
+   migration on, `lv.caller_identity()` refuses anything else. **Never configure KpnIdentity as third-party auth on the
+   LunchVoice project.**
+3. **Redeploy the `session` Edge Function** (LC-13) from `supabase/functions/session` (its `deno.json` now imports
+   `postgres`). It uses `SUPABASE_DB_URL` (provided automatically) and runs `lv.session_exchange_consume` as
+   `service_role`. Deploying it before 000018 is safe: on "undefined function" it falls back to an in-memory record.
+   No new secret. Optional: `KPNIDENTITY_*` unchanged.
+4. **Grant audit additions:** `lv.session_exchange_consume(text, timestamptz)` executable by `service_role` only; anon
+   allow-list unchanged (`lv_guest_campaign_get` and `lv_guest_submit` are now VOLATILE, still anon); new `lv_api`
+   functions (`lv_campaign_set_audience_roles`, `lv_campaign_invite_revoke_by_id`, `lv_hub_limits`,
+   `lv_owner_transfer_accept|decline|cancel|status`) are `authenticated` only.
+5. **Policies:** `joincode.misses_per_minute` 10, `joincode.global_misses_per_minute` 300, `hub.owner_offer_days` 7;
+   plan limit `campaigns.role_targeting` (starter false, team true). The join-code limiter keys signed-out callers by a
+   daily-rotated hash of `cf-connecting-ip` / `x-real-ip` / first `x-forwarded-for` from PostgREST `request.headers`;
+   smoke test: 11 wrong codes in a minute from one client ⇒ `lv_rate_limited`, the link token still opens the survey.

@@ -542,3 +542,86 @@ capability in the catalogue.
 Every top-level UI route in `src/lib/reservedSlugs.ts` plus `waitlist`, `whitelist`, `surveys`, `s`, `brand`, `c`,
 `j`, `licenses`, `__gallery`, `how-it-works`, `use-cases`, `quick`, `quick-surveys`, `q`, `builder`, `news`, `p`,
 `reservation`, `reservations`, `signup`, `checkout`, `webhooks`. No customer name is reserved.
+
+<!-- ---- track A: hardening ---- -->
+## Hardening and API gaps (000018, build plan track A)
+
+Status: branch `track-a`, tested by `scripts/db-test-canonical.sh` (suite `18_hardening`). Not applied to production.
+Where this section differs from the sections above, it wins.
+
+### Identity (LC-12)
+`lv.caller_identity()` accepts only tokens with `aud = "authenticated"` (or an array holding it) **and**
+`session_kind = "lunchvoice"` — exactly what the `session` function issues. Anything else is signed out
+(`lv_unauthenticated` / anon permissions).
+
+### Join codes and link tokens (LC-10)
+- Every Campaign has `link_token` (32 lowercase hex, 128-bit CSPRNG). Managers get it in `lv_campaign_get.link_token`
+  and Quick Survey summaries (`link_token`). Links and QR codes use `/c/<link_token>`; the 6-character `join_code` is
+  for typing only.
+- `lv_guest_campaign_get(p_join_code)` and `lv_guest_submit(p_join_code, …)` accept the join code **or** the link
+  token. `lv_guest_campaign_get` now also returns `join_code` and `campaign.description`. Both are VOLATILE.
+- Failed join-code lookups are limited per caller (account, or a daily-rotated IP hash) — `joincode.misses_per_minute`
+  10 — and across all signed-out callers — `joincode.global_misses_per_minute` 300. Over the limit every code lookup
+  answers `lv_rate_limited` (even a valid code). Link tokens are never limited. Unknown and unavailable codes still
+  answer the same `lv_not_found`.
+
+### Campaign description
+- `lv_campaign_create(p_hub, p_title, p_mode, p_anonymity?, p_description?)` (≤ 2000 characters, trimmed).
+- `lv_campaign_update(…, p_description?, p_access?)`: `p_description` NULL leaves it, `''` clears it.
+- Returned as `description` in `lv_campaign_get.campaign`, `lv_campaign_list.campaigns[]`, `CampaignSummary` and
+  `lv_guest_campaign_get.campaign`. Over 2000 ⇒ `lv_invalid_input`.
+
+### Choice options are validated on the server
+`lv_campaign_question_add` / `lv_campaign_question_update` refuse (`lv_invalid_input`, message explains) a
+`single_choice`/`multi_choice` question unless `config.options` is an array of 2–10 strings, each non-empty (after
+trimming), ≤ 200 characters, all different ignoring case and surrounding spaces, and `config.max`, if present, is an
+integer from 1 to the option count. On update the effective kind and config (new or stored) are checked.
+
+### Quick Survey access while draft
+`lv_campaign_update(p_campaign, p_access => 'link'|'invite')`: Quick Surveys (personal space) only, draft only
+(`lv_locked` after publishing). Switching to `invite` turns guests off (`audience = members`); switching to `link`
+leaves guests off until `lv_campaign_set_participation`. On a Hub Campaign ⇒ `lv_invalid_input` and nothing in the
+call is applied.
+
+### Team role targeting
+- `lv_campaign_set_audience_roles(p_campaign, p_roles uuid[])` → `{ ok, audience }`. NULL or `[]` ⇒ every member.
+  Draft only (`lv_locked`); Quick Surveys ⇒ `lv_not_available`; roles must belong to the Hub (`lv_invalid_input`, ≤ 20);
+  needs plan limit `campaigns.role_targeting = true` (Team) else `lv_entitlement_required { product: "team_hub" }`.
+- `Audience = { scope: "all_members"|"roles", roles: [{ role_id, name }], role_targeting: boolean,
+  available_roles?: [{ role_id, name, is_owner }] }`, in `lv_campaign_get.audience` for managers (`available_roles` for
+  community Hubs); `lv_campaign_list` gives managers `audience_scope`.
+- With `scope = "roles"` only accepted members holding a targeted role can see (`lv_campaign_get`, `lv_campaign_list`)
+  and answer (`lv_forbidden`) the Campaign, and only they count in eligibility, participation rate and the survey
+  threshold. Guests are unaffected. Managers always see it.
+- Gate reasons added: `role_targeting_unavailable` (plan no longer includes it) and `audience_empty` (every targeted
+  role was deleted; the audience never widens). The published version records `audience_roles`.
+
+### Plan limits for campaign managers
+`lv_hub_limits(p_hub)` → `{ ok, plan: { family, state }, limits: { key: value }, usage: { custom_roles, custom_pages,
+active_campaigns, active_surveys, active_surveys_below_threshold } }` for any member with `campaign.manage`
+(`lv_forbidden` otherwise, `lv_not_found` for non-members and personal spaces). No product, dates, reservation or
+billing state. `lv_billing_summary` is unchanged.
+
+### Campaign invites are stored hashed (NEW-05)
+- `lv_campaign_invite_create` → `{ ok, invite: { invite_id, token, shown_once: true, prefix, max_uses, uses,
+  expires_at, revoked_at, created_at, state } }`. The token is returned **only here**.
+- `lv_campaign_invite_list` → invites with `invite_id` and `prefix` (first 6 characters), never `token`.
+- `lv_campaign_invite_redeem(p_token)` and `lv_campaign_invite_revoke(p_token)` work by token hash (any case).
+  New: `lv_campaign_invite_revoke_by_id(p_invite)` (campaign.manage).
+
+### Owner transfer acceptance (supersedes "Not built" above)
+- `lv_owner_transfer(p_hub, p_membership, p_confirm)` (same checks) now returns `{ ok, pending: true, offer }` and
+  changes nothing: the Owner, the Owner role and every membership stay as they are. A new offer cancels the pending one.
+- `OwnerOffer = { offer_id, hub_id, hub_slug, hub_name, membership_id, to_display_name, from_display_name, created_at,
+  expires_at, state: "pending"|"accepted"|"declined"|"cancelled"|"expired" }`; offers last `hub.owner_offer_days` (7).
+- Receiving member: `lv_my_context.owner_transfer_offers: [OwnerOffer]`; `lv_owner_transfer_accept(p_offer)` →
+  `{ ok, accepted: true, hub_id, slug }` (the ownership and the Owner role move, the old Owner stays a member);
+  `lv_owner_transfer_decline(p_offer)` → `{ ok, accepted: false }`. Someone else's offer ⇒ `lv_not_found`; closed,
+  expired or superseded (the Owner changed) ⇒ `lv_lifecycle_invalid`; target no longer accepted ⇒ `lv_not_accepted`.
+- Owner: `lv_owner_transfer_status(p_hub)` → `{ ok, offer | null }`; `lv_owner_transfer_cancel(p_hub)` →
+  `{ ok, cancelled }`.
+
+### Service-only
+`lv.session_exchange_consume(p_key_hash, p_expires_at)` → boolean (TRUE first time). `service_role` only; used by the
+`session` Edge Function (LC-13).
+<!-- ---- end track A ---- -->
