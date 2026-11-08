@@ -1,5 +1,6 @@
 import { isLinkToken, questionConfigProblem, type LvTransport } from "./lvApi";
 import { slugProblem } from "./reservedSlugs";
+import { ACCENTS } from "./accent";
 import { commerceInvoke, commerceMock } from "./mockCommerce"; // track B: commerce
 
 /* ---- track C: community ---- */
@@ -41,7 +42,8 @@ function limitsOut(fam: "free" | "starter" | "team") {
     ...(fam === "team" ? { "discover.min_members": l.discover_min_members } : {}),
   };
 }
-const PALETTE = ["#FF9A18", "#14110F", "#2E6B4F", "#2F5D8C", "#8A2E5C", "#6B4FA0"];
+// Same shape as lv.accent_palette() (000015): objects; hubs store the key.
+const PALETTE = ACCENTS;
 const CORE_KINDS = ["rating", "single_choice", "multi_choice", "yes_no", "text"];
 
 type Q = { question_id: string; position: number; kind: string; prompt: string; config: object };
@@ -174,7 +176,7 @@ function seedDemo(s: State, expired: boolean) {
   if (expired) s.billing_launched_at = iso(Date.now() - 40 * DAY);
   const hub: H = {
     hub_id: "hub-seed-1", slug: "northside-running", name: "Northside Running Club", kind: "community",
-    about: "Weekly long runs, a monthly social, and a say in the route.", accent: "#2E6B4F", visibility: "public", membership_mode: "approval",
+    about: "Weekly long runs, a monthly social, and a say in the route.", accent: "green", visibility: "public", membership_mode: "approval",
     members: [
       { membership_id: "m-own", account_id: "mock-account", display_name: s.me.display_name, is_owner: true, status: "accepted", roles: [] },
       { membership_id: "m-2", account_id: "acc-2", display_name: "Sam Okafor", is_owner: false, status: "accepted", roles: ["role-seed-1"] },
@@ -390,8 +392,9 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (a.p_membership_mode != null) h.membership_mode = String(a.p_membership_mode);
       if (a.p_about != null) h.about = String(a.p_about).slice(0, 500);
       if (a.p_accent != null) {
-        if (!PALETTE.includes(String(a.p_accent))) return err("lv_invalid_input", "Pick a color from the palette");
-        h.accent = String(a.p_accent);
+        const key = String(a.p_accent);
+        if (key !== "" && !PALETTE.some((p) => p.key === key)) return err("lv_invalid_input", "Choose an accent from the palette.");
+        h.accent = key === "" ? null : key;
       }
       return { ok: true, hub: { hub_id: h.hub_id, slug: h.slug, name: h.name, visibility: h.visibility, membership_mode: h.membership_mode, about: h.about, accent: h.accent } };
     }

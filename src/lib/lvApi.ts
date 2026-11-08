@@ -1,3 +1,4 @@
+import { accentHex, normalizePalette, type AccentOption } from "./accent";
 // Typed client for the v2 `lv_api` functions. Shapes follow docs/backend/API_CONTRACT.md and the launch contract in
 // docs/v2/LAUNCH_PLAN.md ("API contract"). Every expected application failure arrives as {ok:false,error}.
 /* ---- track C: community ---- */
@@ -135,9 +136,12 @@ export interface HubInfo {
   membership_mode: MembershipMode;
   member_count: number;
   about?: string | null;
+  /** The palette KEY (e.g. "teal"), as stored by lv_hub_update (000015). */
   accent?: string | null;
-  /** The fixed contrast-safe palette p_accent must come from. */
-  accent_palette?: string[];
+  /** Derived in lvApi: the hex for `accent`, or null. */
+  accent_hex?: string | null;
+  /** The fixed contrast-safe palette p_accent must come from: { key, label, hex } objects (lv_hub_get `accents`). */
+  accent_palette?: AccentOption[];
   plan?: HubPlan;
 }
 
@@ -388,9 +392,11 @@ export function createLvApi(transport: LvTransport) {
     // The backend returns the accent palette at the top level (`accents`) and the plan under `membership.plan`;
     // normalize both onto `hub` so pages read one shape.
     hubGet: (slug: string) =>
-      call<{ hub: HubInfo; membership: (HubMembership & { plan?: HubPlan }) | null; accents?: string[] }>("lv_hub_get", { p_slug: slug }).then((r) => {
+      call<{ hub: HubInfo; membership: (HubMembership & { plan?: HubPlan }) | null; accents?: unknown }>("lv_hub_get", { p_slug: slug }).then((r) => {
         if (!r.ok) return r;
-        const hub: HubInfo = { ...r.hub, accent_palette: r.hub.accent_palette ?? r.accents, plan: r.hub.plan ?? r.membership?.plan };
+        // Founder bug: the palette arrives as objects; painting them as colours gave blank swatches. Normalise here.
+        const palette = normalizePalette(r.hub.accent_palette ?? r.accents);
+        const hub: HubInfo = { ...r.hub, accent_palette: palette, accent_hex: accentHex(r.hub.accent, palette), plan: r.hub.plan ?? r.membership?.plan };
         return { ...r, hub };
       }),
     hubUpdate: (

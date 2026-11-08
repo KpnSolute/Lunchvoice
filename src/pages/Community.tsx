@@ -13,7 +13,7 @@ import type { HubCtx } from "./Hub";
 import { LinkButton } from "../components/ui";
 import { Icon } from "../components/Icon";
 import { HubMark } from "../ui/HubMark";
-import { onAccent } from "../ui/HubCover";
+import { accentHex, onAccent } from "../lib/accent";
 import { StateScreen } from "../ui/StateScreen";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
@@ -156,7 +156,7 @@ function Composer({ hubId, publicHub, post, onDone }: { hubId: string; publicHub
         <Textarea id={`nb-${post?.post_id ?? "new"}`} value={body} rows={6} maxLength={20000} onChange={(e) => setBody(e.target.value)} />
       </Field>
       {publicHub ? (
-        <Segmented label="Who can read it" value={vis} onValueChange={setVis} options={[{ value: "members", label: "Members" }, { value: "public", label: "Anyone (public)" }]} />
+        <Field label="Who can read it"><Segmented label="Who can read it" value={vis} onValueChange={setVis} options={[{ value: "members", label: "Members" }, { value: "public", label: "Anyone (public)" }]} /></Field>
       ) : <p className="ui-help lv-m0">This Hub is private, so posts are for members only.</p>}
       <div className="ui-row">
         <Button variant="secondary" disabled={!title.trim() || busy} onClick={() => save(false)}>Save draft</Button>
@@ -542,8 +542,10 @@ export function PageEditor({ page, publicHub, onChange }: { page: HubPage; publi
       <Field label="Page content" htmlFor={`pb-${page.key}`} counter={{ value: (page.body ?? "").length, max: 20000 }} help="# heading, - list item, **bold**, [text](https://…). Shown as text: no HTML, no scripts.">
         <Textarea id={`pb-${page.key}`} rows={8} value={page.body ?? ""} onChange={(e) => onChange({ ...page, body: e.target.value })} />
       </Field>
+      <Field label="Who can see this page">
       <Segmented label="Who can see this page" value={page.visibility ?? "members"} onValueChange={(v) => onChange({ ...page, visibility: v })}
         options={[{ value: "members", label: "Members" }, { value: "public", label: "Anyone" }]} />
+      </Field>
       {page.visibility === "public" && !publicHub && <p className="ui-help lv-m0">This Hub is private, so the page stays members-only until the Hub is public.</p>}
       {page.body?.trim() && <Card variant="well" size="sm"><Eyebrow>Preview</Eyebrow><Markdown source={page.body} /></Card>}
     </div>
@@ -588,7 +590,7 @@ export function DiscoverDirectory() {
             {q.data!.hubs.map((h: DiscoverHub) => (
               <li key={h.slug}>
                 <Link to={`/${h.slug}`} className="lv-cm-hubcard" data-testid="discover-hub">
-                  <span className="lv-hubmark-wrap" style={h.accent ? { background: h.accent, color: onAccent(h.accent) } : undefined}><HubMark name={h.name} size={48} /></span>
+                  <span className="lv-hubmark-wrap" style={accentHex(h.accent) ? { background: accentHex(h.accent)!, color: onAccent(accentHex(h.accent)!) } : undefined}><HubMark name={h.name} size={48} /></span>
                   <span className="lv-cm-hubtext">
                     <strong>{h.name}</strong>
                     <span className="ui-muted lv-small">lunchvoice.com/{h.slug}{label(h.category) ? ` · ${label(h.category)}` : ""}</span>
