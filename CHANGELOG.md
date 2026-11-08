@@ -6,6 +6,23 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-08)
+
+- Stripe (live account "Lunchvoice"): products `lv_starter_hub`, `lv_team_hub`, `lv_campaign_starter`,
+  `lv_campaign_plus`, `lv_hub_reservation` with seven USD tax-exclusive prices at the canonical amounts (lookup keys
+  `lv_*`), and the default Customer Portal configuration (cancel at period end, no proration, payment methods,
+  invoices; no plan switching or promotion codes). Stripe Tax is pending the founder's head office address.
+- Applied 000018-000022 to production under the founder's approval after the gate was met (0 BLOCKER, 0 HIGH).
+  Rehearsed first on a database holding 000001-000017 plus production-shaped data (accounts, Hub, personal space,
+  Quick Surveys, a hashed invite, waitlist): all applied, link tokens backfilled, the founder's context still works.
+  Files hash-verified from `33cf4a7`; 000018 applied and verified alone before 000019-000022. Migration history set
+  to 000018-000022. Grant audit: 109 `lv_api` functions, 13 signed-out (as reviewed), nothing PUBLIC, no `lv`
+  reachability, RLS everywhere, every definer function pins `search_path`.
+- `billing.stripe_prices` holds the Stripe price IDs; `billing.provider_ready` stays false (no checkout yet).
+- #47 merged and deployed; 12 live routes (incl. /discover, /reserve) with zero CSP violations; sign-in reads
+  "Continue with KpnSolute". Edge Functions `session` (LC-13), `billing-webhook`, `checkout`, `email-dispatch` await
+  a CLI deploy by the founder (the Composio deploy tool cannot set `verify_jwt` or an import map).
+
 ### Compliance (feature-complete gate met)
 
 - Targeted re-review at 8f2feb0: FB-01 closed (attack refused in both directions; forced rows blocked at activation),

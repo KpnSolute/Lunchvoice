@@ -7,6 +7,11 @@ before apply: `2184898828` (2026-11-06 10:40 UTC). The Management API recorded t
 matched exactly; `lv_api` was then exposed. `billing-webhook` is not deployed yet (answers nothing until Stripe is
 wired; deploy it together with the Stripe setup). Future runs: a new procedure needs fresh founder approval.
 
+**000018-000022: EXECUTED 2026-11-08** under the founder's approval for the full build, after the gate (0 BLOCKER,
+0 HIGH), from `33cf4a7` (hashes verified), rehearsed on production-shaped data first; history versions corrected;
+grant audit exact. Pending: `supabase functions deploy session billing-webhook checkout email-dispatch` (founder,
+CLI) and the section 11 Stripe/email steps.
+
 Project: LunchVoice Supabase project, ref `qprfonxvthmaoxfixigk`. Identity provider: KpnIdentity
 (`axzwdbizblfkspduqilj`, `auth.kpnsolute.com`). Verify the ref before every step.
 
