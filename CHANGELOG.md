@@ -6,6 +6,17 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (000025, built and tested, NOT yet applied to production)
+
+- `supabase/migrations/000025_v2_suspended_participation.sql` + rollback: a suspended account can no longer answer
+  Campaigns or join Hubs (founder decision 2026-11-08, reversing the 000023 default). Enforced by table triggers on
+  `lv.participation` and `lv.hub_memberships` (`lv_suspended`), so the API and the Discord bot are covered. The account
+  can still sign in, read, leave Hubs, delete its Hubs and itself; nothing is deleted. Suite 23 updated and extended
+  (1197 checks, 0 failed, full rollback rehearsal). Staff notices and `/admin` copy updated. Needs the founder's
+  approval before production apply.
+- Discord bot: the Interactions Endpoint URL was accepted by Discord (founder, 2026-11-08); slash command `/lunchvoice`
+  registered via a one-time random `EMAIL_DISPATCH_SECRET` created in Supabase (value not retained).
+
 ### Operations (2026-11-08, founder-approved: "merge it both you do everything")
 
 - **Production:** migrations 000023 (staff panel) and 000024 (API, webhooks, Discord) applied to `qprfonxvthmaoxfixigk`

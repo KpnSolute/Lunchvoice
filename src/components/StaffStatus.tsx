@@ -31,7 +31,7 @@ export function AccountSuspendedNotice() {
   if (!s?.suspended) return null;
   return (
     <Notice tone="error" title="Your account is suspended" className="lv-suspended-notice">
-      LunchVoice staff suspended it: {s.reason} You can still sign in, read, leave Hubs, answer Campaigns and delete your data, but you can’t create or publish anything, post, comment or order. Contact support to appeal.
+      LunchVoice staff suspended it: {s.reason} You can still sign in, read, leave Hubs and delete your data, but you can’t answer Campaigns, join Hubs, create or publish anything, post, comment or order. Contact support to appeal.
     </Notice>
   );
 }
