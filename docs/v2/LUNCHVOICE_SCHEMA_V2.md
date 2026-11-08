@@ -58,6 +58,7 @@ design.)
 | `000014_v2_entitlements.sql` | `plan_limits`, `products`, `entitlements`, `hub_credits`, `waitlist_entries`, `hubs.kind` (personal space), `campaigns.access`/`blocked_at`, `campaign_invites`, `campaign_eligibility`, `abuse_reports`, explicit grants, RLS on every table |
 | `000015_v2_hub_management.sql` | `hubs.about`/`accent`, `hub_pages`, `hub_tombstones`, owner transfer, Hub delete, account delete |
 | `000016_v2_billing_ready.sql` | `checkout_intents`, `billing_events`, `hub_reservations`, `discover_applications`, strict suppression engine, export, retention sweep |
+| `000020_v2_community.sql` | `hub_pages.visibility`, `hub_community`, `news_posts`, `comments`, `comment_reports`, `leaderboard_optins`, `campaign_points`, `shop_items`, `shop_orders`, participation points trigger, Discover listing (track C) |
 
 Each file is self-contained and rolls back cleanly (`supabase/rollbacks/`).
 
@@ -196,6 +197,20 @@ audit_events (id, occurred_at, actor_account_id, hub_id, action, target, detail 
 | `billing_events` | provider, event id (unique), type, outcome, detail | Idempotency log; never the payload. |
 | `hub_reservations` | slug, account, starts, expires, released, external ref | ACTIVE/GRACE/RELEASED derived from time. |
 | `discover_applications` | Hub (unique), status, genuine member count | Team family and 700 genuine active members. |
+
+### 4.8 Community tables (000020, track C)
+
+| Table | Holds | Notes |
+| --- | --- | --- |
+| `hub_pages.visibility` | `members` / `public` | Custom pages only; public shows to visitors while the Hub is public. |
+| `hub_community` | Hub, `points_enabled` (default false), `discover_category` (fixed list) | Created on first update. |
+| `news_posts` | Hub, author (set null on account delete), title, body, `draft`/`published`, `members`/`public`, pinned, published at | Pinned implies published. |
+| `comments` | Hub, post (NULL = Comments page), author (cascade on account delete), body, hidden at/by | No Campaign, submission or answer column, by design. |
+| `comment_reports` | comment, reporter, reason | One per reporter and comment. |
+| `leaderboard_optins` | Hub, account | Opt-in rows; absence means not shown. |
+| `campaign_points` | Campaign, Hub, points 0..1000 | Read by the `participation_points` BEFORE INSERT trigger on `participation`. |
+| `shop_items` | Hub, name, description, price in points, stock (NULL = no limit), active | Deactivated, never deleted through the API. |
+| `shop_orders` | Hub, item, account, item name, points, `placed`/`fulfilled`/`cancelled`, decided by | Balance = recorded participation points minus non-cancelled orders. |
 
 ## 5. Session model
 
