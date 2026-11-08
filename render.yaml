@@ -31,11 +31,44 @@ services:
       - path: /*
         name: X-Frame-Options
         value: DENY
-    # SPA: serve index.html for client-side routes (/signin, /{hubSlug}, /c/:joinCode)
+    # SEO (src/config/seo.json, scripts/seo-prerender.mjs): each indexable public page has its own prerendered
+    # HTML with its title, description, canonical and a static content fallback. Rules apply in order, so these
+    # come before the catch-all. Every other client-side route (/signin, /{hubSlug}, /c/:joinCode) gets the
+    # noindex SPA shell app.html. scripts/seo-prerender.test.mjs keeps this list in step with seo.json.
     routes:
       - type: rewrite
-        source: /*
+        source: /
         destination: /index.html
+      - type: rewrite
+        source: /how-it-works
+        destination: /how-it-works/index.html
+      - type: rewrite
+        source: /use-cases
+        destination: /use-cases/index.html
+      - type: rewrite
+        source: /pricing
+        destination: /pricing/index.html
+      - type: rewrite
+        source: /waitlist
+        destination: /waitlist/index.html
+      - type: rewrite
+        source: /about
+        destination: /about/index.html
+      - type: rewrite
+        source: /discover
+        destination: /discover/index.html
+      - type: rewrite
+        source: /support
+        destination: /support/index.html
+      - type: rewrite
+        source: /privacy
+        destination: /privacy/index.html
+      - type: rewrite
+        source: /terms
+        destination: /terms/index.html
+      - type: rewrite
+        source: /*
+        destination: /app.html
     envVars:
       - key: NODE_VERSION
         value: 22.12.0
