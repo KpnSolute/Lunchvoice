@@ -6,6 +6,16 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (2026-11-08)
+
+- Billing paused at the founder's request: `billing.provider_ready` back to false (open 07:52-15:41 UTC; one checkout
+  session was started, no charge was made; the open Stripe session expires on its own). The paid path was proven up
+  to Stripe: a server-created session for exactly $13.00 with automatic tax. Stripe Tax is active (head office set);
+  webhook destination enabled with the six events; secrets set; all four Edge Functions deployed from main
+  (`session` v3 with LC-13 replay protection).
+- F-14: KpnWorld listed on Discover by founder override (public, Team granted, approved entry with its real
+  genuine-member count, recorded as a founder decision and in the audit log).
+
 ### Operations (production, 2026-11-08)
 
 - Stripe (live account "Lunchvoice"): products `lv_starter_hub`, `lv_team_hub`, `lv_campaign_starter`,
