@@ -1,5 +1,6 @@
 import type { LvTransport } from "./lvApi";
 import { slugProblem } from "./reservedSlugs";
+import { commerceInvoke, commerceMock } from "./mockCommerce"; // track B: commerce
 
 // DEV-ONLY stand-in for lv_api (excluded from production bundles; see transport.ts and scripts/check-bundle.mjs).
 // It mirrors the documented shapes and the launch rules in docs/v2/LAUNCH_PLAN.md closely enough to click through
@@ -221,6 +222,14 @@ export function createMockTransport(displayName = "Dana", signedIn: () => boolea
       await new Promise((res) => setTimeout(res, 60));
       return r;
     },
+    /* ---- track B: commerce ---- */
+    async invoke(fn, body) {
+      const s = load(displayName);
+      const r = commerceInvoke(fn, body, signedIn(), (f, a) => handle(s, f, a, signedIn()));
+      save();
+      await new Promise((res) => setTimeout(res, 60));
+      return r;
+    },
   };
 }
 
@@ -230,6 +239,8 @@ const PUBLIC = new Set(["lv_plan_limits", "lv_waitlist_status", "lv_hub_get", "l
 
 function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolean): unknown {
   const id = (p: string) => `${p}-${++s.n}`;
+  const trackB = commerceMock(s, fn, a, authed); // track B: commerce (billing config, invites by email, admin console)
+  if (trackB !== undefined) return trackB;
   if (!authed && !PUBLIC.has(fn)) return err("lv_unauthenticated", "Sign in to continue");
   const hubById = (h: unknown) => s.hubs.find((x) => x.hub_id === h);
   const hubBySlug = (slug: unknown) => s.hubs.find((x) => x.kind === "community" && x.slug === String(slug).toLowerCase());
