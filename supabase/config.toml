@@ -9,3 +9,14 @@ verify_jwt = false
 # and fails closed (503) while STRIPE_WEBHOOK_SECRET is unset.
 [functions.billing-webhook]
 verify_jwt = false
+
+# The caller holds a LunchVoice session (ES256, issued by `session`), not a Supabase Auth JWT, so the gateway check
+# is off. The function forwards that token to PostgREST, so the database authenticates the caller (lv_checkout_start,
+# lv_billing_portal_check) before anything is created at Stripe. Fails closed (503) while STRIPE_SECRET_KEY is unset.
+[functions.checkout]
+verify_jwt = false
+
+# Service role only: the function compares the bearer with SUPABASE_SERVICE_ROLE_KEY (or EMAIL_DISPATCH_SECRET) in
+# constant time itself. The gateway check is off because it would also accept the public anon key.
+[functions.email-dispatch]
+verify_jwt = false

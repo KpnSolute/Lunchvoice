@@ -1,0 +1,32 @@
+/* Track C: community pages and Discover. Tokens only (--lv-*), so light, dark and high contrast follow the theme. */
+.lv-cm-stack { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.lv-cm-nav { margin: 0 0 18px; max-width: 100%; }
+.lv-cm-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.lv-cm-title { margin: 4px 0 0; font: 800 clamp(24px, 4.5vw, 34px)/1.05 var(--lv-font-display); letter-spacing: -0.03em; overflow-wrap: anywhere; }
+.lv-cm-postmeta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lv-cm-posttitle { margin: 0; font: 700 20px/1.25 var(--lv-font-ui); letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.lv-cm-posttitle a { color: inherit; }
+.lv-cm-spread { justify-content: space-between; }
+.lv-cm-prose { display: flex; flex-direction: column; gap: 10px; font-size: 15.5px; line-height: 1.6; overflow-wrap: anywhere; }
+.lv-cm-prose > * { margin: 0; }
+.lv-cm-prose h2 { font: 700 20px/1.3 var(--lv-font-ui); }
+.lv-cm-prose h3 { font: 700 17px/1.3 var(--lv-font-ui); }
+.lv-cm-prose ul { padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
+.lv-cm-prose a { color: var(--lv-text); text-decoration: underline; text-underline-offset: 3px; }
+.lv-cm-comments { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.lv-cm-comment { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: var(--lv-radius-field); background: var(--lv-well); }
+.lv-cm-comment[data-hidden] { opacity: 0.7; outline: 1.5px dashed var(--lv-line); }
+.lv-cm-commentbody { white-space: pre-wrap; overflow-wrap: anywhere; }
+.lv-cm-num { text-align: right; font-variant-numeric: tabular-nums; }
+tr[data-me] td { font-weight: 600; }
+.lv-cm-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+.lv-cm-items [data-slot='card'] { display: flex; flex-direction: column; gap: 6px; }
+.lv-cm-price { font: 800 22px/1.1 var(--lv-font-display); letter-spacing: -0.02em; }
+.lv-cm-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; align-items: end; }
+.lv-cm-pts { width: 90px; }
+.lv-cm-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+.lv-cm-discover { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 12px; }
+.lv-cm-hubcard { display: flex; gap: 14px; align-items: flex-start; padding: 16px; border-radius: var(--lv-radius-card); background: var(--lv-surface); box-shadow: var(--lv-card-shadow, none); color: inherit; text-decoration: none; min-width: 0; }
+.lv-cm-hubcard:focus-visible { outline: 2px solid var(--lv-focus); outline-offset: 3px; }
+.lv-cm-hubtext { display: flex; flex-direction: column; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 520px) { .lv-cm-pts { width: 70px; } }

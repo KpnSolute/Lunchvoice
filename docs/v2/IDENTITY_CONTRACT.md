@@ -153,3 +153,13 @@ KpnIdentity issuer is not deployed yet. Therefore:
 **Remaining blocker (accepted):** one real Google → KpnIdentity → LunchVoice
 sign-in must be recorded against the deployed issuer before launch. Until then,
 "identity works" means "works against a simulated issuer of the correct shape".
+
+## 8. Session audience (000018, compliance LC-12 and LC-13)
+
+- The database accepts only LunchVoice sessions: `aud = "authenticated"` (string, or an array holding it) and
+  `session_kind = "lunchvoice"`, plus the trusted issuer and a UUID subject. A raw KpnIdentity ID token, or a token
+  another KpnSolute application minted with the same issuer, is refused. **Never configure KpnIdentity as
+  third-party auth on the LunchVoice project.**
+- The `session` function exchanges each ID token once (single-use record keyed by a SHA-256 of issuer, subject and
+  `jti`/nonce, in `lv.session_exchanges`, service role only) and refuses an ID token whose `iat` is more than 10 minutes
+  old. A token without `iat` still exchanges once.

@@ -18,6 +18,39 @@ export interface SessionConfig {
   sessionKey: JsonWebKeyWithKid;
   /** Session lifetime in seconds (default 3600). */
   ttlSeconds?: number;
+  /** LC-13: an ID token older than this (by `iat`) is refused. Default 600 s. */
+  maxTokenAgeSeconds?: number;
+  /** LC-13: single-use store; every ID token is exchanged at most once. Default: an in-memory store (per instance). */
+  replayGuard?: ReplayGuard;
+}
+
+/** LC-13: records an exchanged ID token. `consume` resolves true the first time a key is seen, false on a replay. */
+export interface ReplayGuard {
+  consume(keyHash: string, expiresAt: Date): Promise<boolean>;
+}
+
+/** Best-effort guard for one function instance. The deployed function uses the database store when it can. */
+export function memoryReplayGuard(): ReplayGuard {
+  const seen = new Map<string, number>();
+  return {
+    async consume(keyHash, expiresAt) {
+      const now = Date.now();
+      for (const [k, until] of seen) if (until < now) seen.delete(k);
+      if (seen.has(keyHash)) return false;
+      seen.set(keyHash, expiresAt.getTime());
+      return true;
+    },
+  };
+}
+
+const defaultGuard = memoryReplayGuard();
+
+/** The replay key: SHA-256 over issuer, subject and the token's jti (or its nonce). No token or profile data. */
+export async function replayKey(payload: JWTPayload): Promise<string> {
+  const id = typeof payload.jti === "string" && payload.jti ? `jti:${payload.jti}` : `nonce:${String(payload.nonce ?? "")}`;
+  const data = new TextEncoder().encode(`${payload.iss}|${payload.sub}|${id}`);
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", data));
+  return Array.from(digest, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 export interface JsonWebKeyWithKid extends JsonWebKey {
@@ -73,6 +106,16 @@ export async function verifyIdToken(idToken: string, nonce: string, config: Sess
     throw new SessionError("lv_invalid_token", "The sign-in did not carry a valid account id.");
   }
   if (payload.nonce !== nonce) throw new SessionError("lv_invalid_token", "The sign-in does not match this browser.");
+  // LC-13: a stolen ID token cannot be exchanged later or twice. `iat` is checked when present (KpnIdentity sets it);
+  // a token without `iat` still passes the single-use check, so existing sign-ins keep working.
+  const now = Math.floor(Date.now() / 1000);
+  const maxAge = config.maxTokenAgeSeconds ?? 600;
+  if (typeof payload.iat === "number" && now - payload.iat > maxAge + 30) {
+    throw new SessionError("lv_invalid_token", "This sign-in is too old. Start again.");
+  }
+  const expires = new Date(1000 * (typeof payload.exp === "number" ? payload.exp + 60 : now + maxAge));
+  const fresh = await (config.replayGuard ?? defaultGuard).consume(await replayKey(payload), expires);
+  if (!fresh) throw new SessionError("lv_invalid_token", "This sign-in was already used. Start again.");
   return payload as JWTPayload & { sub: string };
 }
 

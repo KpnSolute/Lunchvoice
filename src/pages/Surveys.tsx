@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import { describeError } from "../lib/errors";
-import type { Anonymity, SurveyAccess } from "../lib/lvApi";
+import type { Anonymity, CampaignDetailData, SurveyAccess } from "../lib/lvApi";
+import type { SaveTracker } from "./QuestionWorkbench";
 import { Icon } from "../components/Icon";
 import { campaignPhase, LinkButton } from "../components/ui";
 import { StateScreen } from "../ui/StateScreen";
@@ -16,6 +17,7 @@ import { Badge } from "@/components/shadcn/badge";
 import { RadioCard, RadioGroup } from "@/components/shadcn/radio-group";
 import { EmptyState, Field, LoadingRows, Notice, PageHeader, PhaseBadge, QuotaMeter, RowItem, RowList, ToggleRow } from "@/components/shadcn/blocks";
 import {
+  DescriptionField,
   GuestsGroup,
   IdentityGroup,
   InvitesCard,
@@ -211,6 +213,7 @@ export function SurveyStudio() {
             <Field label="Title" htmlFor="qs-title-edit" counter={{ value: (title ?? "").length, max: 120 }} error={draft && !(title ?? "").trim() ? "Add a title." : undefined}>
               <Input id="qs-title-edit" value={title ?? ""} maxLength={120} disabled={!draft} onChange={(e) => onTitle(e.target.value)} aria-describedby="qs-title-edit-help" />
             </Field>
+            <DescriptionField d={d} save={save} reload={detail.reload} />
           </Card>
         </li>
         <li>
@@ -223,11 +226,7 @@ export function SurveyStudio() {
           <div className="lv-stack-16">
             <h2 className="lv-share-h lv-step-h"><span className="lv-step-n">3</span>Who can respond</h2>
             <div className="lv-sections-2">
-              <Card data-testid="audience-who">
-                <h3 className="lv-qw-h">Access</h3>
-                <p className="lv-m0"><strong>{d.campaign.access === "invite" ? "Invite only" : "Anyone with the link"}</strong></p>
-                <p className="ui-muted lv-m0">{d.campaign.access === "invite" ? "Only people you send an invite link to. They sign in to answer." : "Link, QR code or six-character code. Never listed publicly."} Chosen when the survey was created.</p>
-              </Card>
+              <AccessCard d={d} save={save} reload={detail.reload} />
               <IdentityGroup d={d} save={save} reload={detail.reload} />
               <GuestsGroup d={d} save={save} reload={detail.reload} />
             </div>
@@ -306,5 +305,35 @@ export function SurveyInvite() {
       <Badge variant="ok" className="lv-invite-badge">Invitation accepted</Badge>
       <Player campaignId={state.campaignId} />
     </>
+  );
+}
+
+/* ---- track A: hardening ---- */
+
+/** Quick Survey access (000018): link or invite, changeable while the survey is a draft. Invite only turns guests off. */
+function AccessCard({ d, save, reload }: { d: CampaignDetailData; save: SaveTracker; reload: () => void }) {
+  const { api } = useIdentity();
+  const draft = d.campaign.status === "draft";
+  const [value, setValue] = useState<SurveyAccess>(d.campaign.access ?? "link");
+  useEffect(() => setValue(d.campaign.access ?? "link"), [d.campaign.access]);
+  return (
+    <Card data-testid="audience-who">
+      <h3 className="lv-qw-h" id="qs-access-h">Access</h3>
+      <RadioGroup
+        value={value}
+        disabled={!draft}
+        aria-labelledby="qs-access-h"
+        className="ui-grid-2"
+        onValueChange={async (v) => {
+          setValue(v as SurveyAccess);
+          const r = await save.run(api.campaignDetailsUpdate(d.campaign.campaign_id, { access: v as SurveyAccess }));
+          if (r.ok) reload(); else { setValue(d.campaign.access ?? "link"); toast.error(describeError(r.error)); }
+        }}
+      >
+        <RadioCard value="link" title="Anyone with the link" description="Link, QR code or six-character code. Never listed publicly." />
+        <RadioCard value="invite" title="Invite only" description="Only people you send an invite link to. They sign in to answer. Guests are turned off." />
+      </RadioGroup>
+      <p className="ui-help lv-m0">{draft ? "You can change this until you publish." : "Locked after publishing: it’s part of the published version."}</p>
+    </Card>
   );
 }

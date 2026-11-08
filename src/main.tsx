@@ -13,6 +13,7 @@ import {
   Analytics, CampaignDetail, Campaigns, HubAddon, HubBilling, HubBuilder, HubDiscover, HubLayout, HubOverview, HubReservation,
   HubSettings, Invites, Members, NewCampaign, NewSurvey, Results, Roles, Studio, SurveyInvite, SurveyList, SurveyResults, SurveyStudio,
 } from "./pages/lazy";
+import { Admin, Reserve } from "./pages/lazy"; // track B: commerce
 import { Gallery } from "./pages/Gallery";
 import { initTheme } from "./ui/theme";
 import { Seo } from "./ui/Seo";
@@ -74,6 +75,10 @@ createRoot(document.getElementById("root")!).render(
             {/* respondents */}
             <Route path="c/:joinCode" element={<GuestCampaign />} />
             <Route path="s/:token" element={<SurveyInvite />} />
+
+            {/* ---- track B: commerce ---- */}
+            <Route path="reserve" element={<RequireSignIn><Reserve /></RequireSignIn>} />
+            <Route path="admin" element={<RequireSignIn><Admin /></RequireSignIn>} />
 
             {/* a Hub and everything under it */}
             <Route path=":hub" element={<HubLayout />}>

@@ -124,3 +124,24 @@ test("unknown types and malformed events are ignored", () => {
   assert.equal(mapStripeEvent("nope"), null);
   assert.equal(mapStripeEvent(null), null);
 });
+
+/* ---- track B: commerce ---- */
+test("000019: a checkout also maps the Stripe customer (for the Customer Portal)", () => {
+  const mapped = mapStripeEvent({ id: "evt_cu", type: "checkout.session.completed",
+    data: { object: { client_reference_id: ACCOUNT, customer: "cus_123", subscription: { id: "sub_7" }, amount_subtotal: 1300, currency: "usd", payment_status: "paid", mode: "subscription" } } });
+  assert.equal(mapped?.payload.customer, "cus_123");
+  assert.equal(mapped?.payload.subscription, "sub_7");
+});
+
+test("000019: customer.subscription.updated maps cancel_at_period_end, status and period end only", () => {
+  assert.deepEqual(mapStripeEvent({ id: "evt_u", type: "customer.subscription.updated",
+    data: { object: { id: "sub_1", status: "active", cancel_at_period_end: true, customer: "cus_1", items: { data: [{ current_period_end: 1900000003 }] } } } })?.payload,
+    { subscription: "sub_1", status: "active", cancel_at_period_end: true, period_end: 1900000003 });
+});
+
+test("000019: invoice.paid finds the payment intent under payments on newer API versions", () => {
+  assert.deepEqual(mapStripeEvent({ id: "evt_ip", type: "invoice.paid",
+    data: { object: { parent: { subscription_details: { subscription: "sub_3" } }, lines: { data: [{ period: { end: 1900000004 } }] },
+      payments: { data: [{ payment: { payment_intent: "pi_new" } }] } } } })?.payload,
+    { subscription: "sub_3", period_end: 1900000004, payment_ref: "pi_new" });
+});

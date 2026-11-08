@@ -67,3 +67,34 @@ test("a good callback exchanges the code with the verifier, then the ID token wi
   assert.match(calls[0]!.body, /code_verifier=/);
   assert.equal(JSON.parse(calls[1]!.body).nonce, url.searchParams.get("nonce"));
 });
+
+/* ---- track A: hardening (LC-14 redirect safety) ---- */
+
+test("LC-14: backslash, encoded slashes, controls and traversal never become a return path", () => {
+  for (const bad of [
+    "/\\evil.example", "/\\/evil.example", "\\\\evil.example", "/%2f%2fevil.example", "/%5Cevil.example", "/%2Fevil",
+    "/foo%0d%0aSet-Cookie:x", "/\tevil", "/ evil", "/\u0000x", "javascript:alert(1)", "//evil.example/path", "/../me", "/a/./b",
+    "https://evil.example", "", "me", "/" + "a".repeat(3000),
+  ]) assert.equal(safeReturnTo(bad), "/me", JSON.stringify(bad));
+  assert.equal(safeReturnTo(null), "/me");
+  assert.equal(safeReturnTo(undefined), "/me");
+});
+
+test("LC-14: real app paths are kept, with their query and fragment", () => {
+  for (const ok of ["/", "/me", "/create", "/surveys/qs-12", "/northside-running/campaigns/cmp-1/studio", "/j/ABC123", "/s/0F1E2D3C4B5A69788796A5B4",
+    "/c/0123456789abcdef0123456789abcdef", "/waitlist?ref=home", "/settings#danger", "/north-side/p/faq"]) assert.equal(safeReturnTo(ok), ok);
+});
+
+test("LC-14: a tampered pending return path is re-checked at the callback", async () => {
+  const storage = new MemoryStorage();
+  const url = new URL(await startSignIn(config, "/create", storage));
+  const pending = JSON.parse(storage.getItem("lv.signin.pending")!);
+  storage.setItem("lv.signin.pending", JSON.stringify({ ...pending, returnTo: "/\\evil.example" }));
+  const payload = btoa(JSON.stringify({ name: "Pat" })).replace(/=+$/, "");
+  const fetcher = (async (input: string) =>
+    input === config.tokenUrl
+      ? new Response(JSON.stringify({ id_token: "id.token.sig" }), { status: 200 })
+      : new Response(JSON.stringify({ ok: true, session: `h.${payload}.s`, expiresIn: 3600 }), { status: 200 })) as never;
+  const result = await completeSignIn(config, `?code=abc&state=${url.searchParams.get("state")}`, storage, fetcher);
+  assert.equal(result.returnTo, "/me");
+});

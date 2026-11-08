@@ -13,6 +13,8 @@ import { kindLabel, QuestionWorkbench, type SaveTracker } from "./QuestionWorkbe
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
 import { Input } from "@/components/shadcn/input";
+import { Textarea } from "@/components/shadcn/textarea";
+import { Checkbox } from "@/components/shadcn/checkbox";
 import { Switch } from "@/components/shadcn/switch";
 import { RadioCard, RadioGroup } from "@/components/shadcn/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shadcn/tabs";
@@ -171,12 +173,14 @@ export function StudioView({ campaignId, backTo, crumb, resultsTo, hubId, hubNam
         <TabsContent value="details">
           <DetailsSection d={d} title={title ?? ""} setTitle={setTitle} save={save} reload={detail.reload} />
         </TabsContent>
-        <TabsContent value="questions">
+        {/* forceMount: the workbench stays mounted (hidden) on other tabs, so a new question that is not saved yet
+            (for example while its options are still invalid) is not lost by switching sections. */}
+        <TabsContent value="questions" forceMount className="data-[state=inactive]:hidden">
           <QuestionWorkbench d={d} locked={!draft} limit={null} save={save} reload={detail.reload} />
         </TabsContent>
         <TabsContent value="audience">
           <div className="lv-sections-2">
-            <WhoCanParticipate hubName={hubName} />
+            <WhoCanParticipate hubName={hubName} d={d} save={save} reload={detail.reload} />
             <IdentityGroup d={d} save={save} reload={detail.reload} />
             <GuestsGroup d={d} save={save} reload={detail.reload} />
           </div>
@@ -185,7 +189,7 @@ export function StudioView({ campaignId, backTo, crumb, resultsTo, hubId, hubNam
           <ScheduleSection d={d} schedule={schedule} setSchedule={setSched} save={save} reload={detail.reload} entitlement={<HubEntitlement hubId={hubId} d={d} />} />
         </TabsContent>
         <TabsContent value="review">
-          <ReviewSection d={d} title={title ?? d.campaign.title} schedule={schedule} issues={issues} goTo={setSection} audienceLabel={`Members of ${hubName}`} />
+          <ReviewSection d={d} title={title ?? d.campaign.title} schedule={schedule} issues={issues} goTo={setSection} audienceLabel={audienceLabel(d, hubName)} />
         </TabsContent>
       </Tabs>
     </div>
@@ -423,6 +427,7 @@ function DetailsSection({ d, title, setTitle, save, reload }: { d: CampaignDetai
       <Field label="Title" htmlFor="studio-title-input" counter={{ value: title.length, max: 120 }} error={draft && !title.trim() ? "Add a title." : undefined}>
         <Input id="studio-title-input" value={title} maxLength={120} disabled={!draft} onChange={(e) => onTitle(e.target.value)} aria-describedby="studio-title-input-help" />
       </Field>
+      <DescriptionField d={d} save={save} reload={reload} />
       <fieldset className="lv-fieldset">
         <legend className="lv-legend">Mode</legend>
         <RadioGroup
@@ -439,18 +444,76 @@ function DetailsSection({ d, title, setTitle, save, reload }: { d: CampaignDetai
   );
 }
 
-function WhoCanParticipate({ hubName }: { hubName: string }) {
+/** Who among the Hub's members can answer: everyone, or (Team plan, 000018) members holding chosen roles. */
+function WhoCanParticipate({ hubName, d, save, reload }: { hubName: string; d: CampaignDetailData; save: SaveTracker; reload: () => void }) {
+  const { api } = useIdentity();
+  const draft = d.campaign.status === "draft";
+  const aud = d.audience;
+  const [scope, setScope] = useState<"all_members" | "roles">(aud?.scope ?? "all_members");
+  const [picked, setPicked] = useState<string[]>(() => aud?.roles.map((r) => r.role_id) ?? []);
+  useEffect(() => { setScope(aud?.scope ?? "all_members"); setPicked(aud?.roles.map((r) => r.role_id) ?? []); }, [aud?.scope, aud?.roles]);
+  // "Specific roles" is offered only when the plan allows it (or a draft already uses it, so it can be undone).
+  const offered = Boolean(aud && (aud.role_targeting || aud.scope === "roles"));
+  // FB-01 (000022): role targeting is for identified Campaigns only; the server refuses it on anonymous ones.
+  const anonymous = d.campaign.anonymity === "anonymous";
+  async function persist(nextScope: "all_members" | "roles", nextRoles: string[]) {
+    setScope(nextScope);
+    setPicked(nextRoles);
+    if (nextScope === "roles" && nextRoles.length === 0) return; // nothing to save until a role is picked
+    const r = await save.run(api.campaignSetAudienceRoles(d.campaign.campaign_id, nextScope === "roles" ? nextRoles : null));
+    if (r.ok) reload(); else toast.error(describeError(r.error));
+  }
   return (
     <Card data-testid="audience-who">
-      <h2 className="lv-share-h">Who can participate?</h2>
-      <div className="lv-fact" role="group" aria-label="Participants">
-        <Icon name="roster" size={20} />
-        <div>
-          <strong>Members of {hubName}</strong>
-          <p className="ui-muted lv-m0">Every accepted member can answer. Anyone else needs guest responses turned on below.</p>
+      <h2 className="lv-share-h" id="audience-who-h">Who can participate?</h2>
+      {offered ? (
+        <>
+          <RadioGroup
+            value={scope}
+            disabled={!draft}
+            aria-labelledby="audience-who-h"
+            className="ui-grid-2"
+            onValueChange={(v) => void persist(v as "all_members" | "roles", v === "roles" ? picked : [])}
+          >
+            <RadioCard value="all_members" title={`All members of ${hubName}`} description="Every accepted member can answer." />
+            <RadioCard
+              value="roles"
+              title="Specific roles"
+              disabled={anonymous && scope !== "roles"}
+              description={anonymous
+                ? "Only for identified Campaigns. An anonymous Campaign goes to all members, so no answer can be traced to one person."
+                : "Only members holding one of the roles you pick. Only they count toward participation."}
+            />
+          </RadioGroup>
+          {scope === "roles" && (
+            <fieldset className="lv-fieldset" data-testid="audience-roles">
+              <legend className="lv-legend">Roles</legend>
+              {(aud?.available_roles ?? []).map((r) => (
+                <label key={r.role_id} className="ui-row">
+                  <Checkbox
+                    checked={picked.includes(r.role_id)}
+                    disabled={!draft}
+                    onCheckedChange={(on) => void persist("roles", on ? [...picked, r.role_id] : picked.filter((x) => x !== r.role_id))}
+                    aria-label={r.name}
+                  />
+                  <span>{r.name}</span>
+                </label>
+              ))}
+              {picked.length === 0 && <p className="lv-field-error lv-m0" role="status">Pick at least one role.</p>}
+              {aud && !aud.role_targeting && <p className="ui-help lv-m0">This Hub’s plan no longer includes role targeting. Switch back to all members to publish.</p>}
+            </fieldset>
+          )}
+        </>
+      ) : (
+        <div className="lv-fact" role="group" aria-label="Participants">
+          <Icon name="roster" size={20} />
+          <div>
+            <strong>Members of {hubName}</strong>
+            <p className="ui-muted lv-m0">Every accepted member can answer. Choosing members by role comes with the Team plan.</p>
+          </div>
         </div>
-      </div>
-      <p className="ui-help lv-m0">Targeting specific roles or individual people isn’t available yet, so it isn’t offered here.</p>
+      )}
+      <p className="ui-help lv-m0">Guests are separate: turn guest responses on below. Roles never limit guests.</p>
     </Card>
   );
 }
@@ -475,7 +538,14 @@ export function IdentityGroup({ d, save, reload }: { d: CampaignDetailData; save
           if (r.ok) reload(); else setValue(d.campaign.anonymity);
         }}
       >
-        <RadioCard value="anonymous" title="Anonymous" description="You see totals only. Nobody, including you, can link an answer to a person. Small groups are withheld." />
+        <RadioCard
+          value="anonymous"
+          title="Anonymous"
+          disabled={d.audience?.scope === "roles" && value !== "anonymous"}
+          description={d.audience?.scope === "roles"
+            ? "Not with specific roles: switch Who can participate back to all members first, so no answer can be traced to one person."
+            : "You see totals only. Nobody, including you, can link an answer to a person. Small groups are withheld."}
+        />
         <RadioCard value="identified" title="Identified" description="You can see who answered and what they said. People are told before they start." />
       </RadioGroup>
       <p className="ui-help lv-m0">{draft ? "You can change this until you publish." : "Locked: respondents were promised this when they answered."}</p>
@@ -589,10 +659,10 @@ function ScheduleSection({
   );
 }
 
-/** Real limits from the API: the billing summary (Owner or billing.view), else the gate's own numbers. */
+/** Real limits from the API: lv_hub_limits (anyone with campaign.manage, 000018), else the gate's own numbers. */
 function HubEntitlement({ hubId, d }: { hubId: string; d: CampaignDetailData }) {
   const { api } = useIdentity();
-  const s = useLv(() => api.billingSummary(hubId), [api, hubId]);
+  const s = useLv(() => api.hubLimits(hubId), [api, hubId]);
   const lim = (k: string) => (s.data?.limits[k] ?? null) as number | null;
   return (
     <Card data-testid="entitlement">
@@ -692,7 +762,8 @@ export function ReviewSection({
 
 export function ShareCard({ d, shareBase = "https://lunchvoice.com" }: { d: CampaignDetailData; shareBase?: string }) {
   const open = d.campaign.audience === "members_and_guests" && d.join_code && d.campaign.access !== "invite";
-  const url = `${shareBase}/c/${d.join_code}`;
+  // LC-10: links and QR codes carry the 128-bit link token; the 6-character code is for typing only.
+  const url = `${shareBase}/c/${d.link_token ?? d.join_code}`;
   return (
     <Card data-testid="share">
       <h2 className="lv-share-h">Share</h2>
@@ -734,13 +805,20 @@ export function InvitesCard({ campaignId, shareBase = "https://lunchvoice.com", 
         <Button variant="ink" onClick={create}><Icon name="plus" size={16} />Create link</Button>
       </div>
       {disabled && <p className="ui-help lv-m0">Links work once the survey is published.</p>}
-      {fresh && <CopyField label="New invite link" value={`${shareBase}/s/${fresh.token}`} />}
+      {fresh?.token && (
+        <>
+          <CopyField label="New invite link" value={`${shareBase}/s/${fresh.token}`} />
+          <p className="ui-help lv-m0">Copy it now: for safety the full link is shown only once.</p>
+        </>
+      )}
       {(list.data?.invites.length ?? 0) > 0 && (
         <ul className="lv-facts">
           {list.data!.invites.map((i) => (
-            <li key={i.token}>
-              <span className="ui-mono">…{i.token.slice(-6)} · {i.uses}{i.max_uses ? `/${i.max_uses}` : ""} used</span>
-              <Button variant="quiet" size="sm" onClick={async () => { const r = await api.campaignInviteRevoke(i.token); if (r.ok) { toast.success("Link revoked"); list.reload(); } }}>Revoke</Button>
+            <li key={i.invite_id ?? i.prefix}>
+              <span className="ui-mono">{i.prefix ?? "······"}… · {i.uses}{i.max_uses ? `/${i.max_uses}` : ""} used{i.state && i.state !== "active" ? ` · ${i.state}` : ""}</span>
+              {i.invite_id && i.state !== "revoked" && (
+                <Button variant="quiet" size="sm" onClick={async () => { const r = await api.campaignInviteRevokeById(i.invite_id!); if (r.ok) { toast.success("Link revoked"); list.reload(); } else toast.error(describeError(r.error)); }}>Revoke</Button>
+              )}
             </li>
           ))}
         </ul>
@@ -764,5 +842,41 @@ export function ConfirmAction({ trigger, title, body, action, onConfirm }: { tri
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+  );
+}
+
+/* ---- track A: hardening ---- */
+
+/** The review line for who can answer, from the real audience. */
+export function audienceLabel(d: CampaignDetailData, hubName: string): string {
+  if (d.audience?.scope === "roles") {
+    const names = d.audience.roles.map((r) => r.name);
+    return names.length ? `Members of ${hubName} with the role ${names.join(", ")}` : "No one yet: pick a role";
+  }
+  return `Members of ${hubName}`;
+}
+
+/** Description (000018): optional, up to 2000 characters, autosaved in the draft like the title. */
+export function DescriptionField({ d, save, reload }: { d: CampaignDetailData; save: SaveTracker; reload: () => void }) {
+  const { api } = useIdentity();
+  const draft = d.campaign.status === "draft";
+  const [value, setValue] = useState(d.campaign.description ?? "");
+  const timer = useRef<number | null>(null);
+  const latest = useRef(value);
+  latest.current = value;
+  useEffect(() => () => { if (timer.current) { window.clearTimeout(timer.current); void api.campaignDetailsUpdate(d.campaign.campaign_id, { description: latest.current.trim() }); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  function onChange(v: string) {
+    setValue(v);
+    if (timer.current) window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(async () => {
+      timer.current = null;
+      const r = await save.run(api.campaignDetailsUpdate(d.campaign.campaign_id, { description: v.trim() }));
+      if (r.ok) reload();
+    }, 600);
+  }
+  return (
+    <Field label="Description" htmlFor="studio-description" counter={{ value: value.length, max: 2000 }} help="Optional. Respondents see it before they start.">
+      <Textarea id="studio-description" value={value} maxLength={2000} disabled={!draft} onChange={(e) => onChange(e.target.value)} aria-describedby="studio-description-help" data-testid="studio-description" />
+    </Field>
   );
 }

@@ -19,6 +19,17 @@ function realTransport(getToken: () => string | null): LvTransport {
       if (error) throw new Error(error.message);
       return data;
     },
+    /* ---- track B: commerce ---- */
+    // Edge Functions (checkout, Customer Portal). Expected failures come back as {ok:false,error} with a 4xx/5xx.
+    async invoke(fn, body) {
+      const token = getToken();
+      const res = await fetch(`${String(url).replace(/\/+$/, "")}/functions/v1/${fn}`, {
+        method: "POST",
+        headers: { "content-type": "application/json", apikey: key as string, authorization: `Bearer ${token ?? key}` },
+        body: JSON.stringify(body),
+      });
+      return res.json().catch(() => ({ ok: false, error: { code: "lv_server_error", message: "Unexpected response" } }));
+    },
   };
 }
 

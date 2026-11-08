@@ -64,9 +64,21 @@ function base64Url(data: Uint8Array): string {
   return btoa(text).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-/** Only same-site paths may be returned to after sign-in. */
+/**
+ * Only same-site app paths may be returned to after sign-in (LC-14). react-router 6.x has no fix for the backslash
+ * open redirect (GHSA-wrjc-x8rr-h8h6; fixed only in 7.18), so every navigation target from storage or history state
+ * passes through here. Refused: absolute URLs, protocol-relative `//`, any backslash, control or whitespace
+ * characters, percent-encoded slashes, backslashes or controls, and `.`/`..` segments. Allowed: `/segment/...`
+ * with URL-safe characters, an optional query and fragment.
+ */
+const SAFE_PATH = /^\/(?:[A-Za-z0-9._~!$&'()*+,;=:@-]+(?:\/[A-Za-z0-9._~!$&'()*+,;=:@-]+)*\/?)?(?:\?[A-Za-z0-9._~!$&'()*+,;=:@/?%-]*)?(?:#[A-Za-z0-9._~!$&'()*+,;=:@/?%-]*)?$/;
 export function safeReturnTo(path: string | undefined | null): string {
-  return path && path.startsWith("/") && !path.startsWith("//") ? path : "/me";
+  if (typeof path !== "string" || path.length === 0 || path.length > 2048) return "/me";
+  if (path.startsWith("//") || /[\\\u0000-\u001f\u007f\s]/.test(path)) return "/me";
+  if (/%(?:2f|5c|0[0-9a-f]|1[0-9a-f]|7f)/i.test(path)) return "/me";
+  const pathname = path.split(/[?#]/, 1)[0]!;
+  if (pathname.split("/").some((seg) => seg === "." || seg === "..")) return "/me";
+  return SAFE_PATH.test(path) ? path : "/me";
 }
 
 export async function authorizeUrl(config: KpnIdentityConfig, pending: PendingSignIn): Promise<string> {
@@ -127,6 +139,7 @@ export async function completeSignIn(
   const claims = JSON.parse(atob(body.session.split(".")[1]!.replace(/-/g, "+").replace(/_/g, "/"))) as { name?: string; email?: string };
   return {
     session: { token: body.session, name: claims.name ?? claims.email?.split("@")[0] ?? "You", expiresAt: Date.now() + (body.expiresIn ?? 3600) * 1000 },
-    returnTo: pending.returnTo,
+    // Storage can be tampered with between the redirect and the callback: check again.
+    returnTo: safeReturnTo(pending.returnTo),
   };
 }

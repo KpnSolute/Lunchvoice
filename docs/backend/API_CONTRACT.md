@@ -542,3 +542,346 @@ capability in the catalogue.
 Every top-level UI route in `src/lib/reservedSlugs.ts` plus `waitlist`, `whitelist`, `surveys`, `s`, `brand`, `c`,
 `j`, `licenses`, `__gallery`, `how-it-works`, `use-cases`, `quick`, `quick-surveys`, `q`, `builder`, `news`, `p`,
 `reservation`, `reservations`, `signup`, `checkout`, `webhooks`. No customer name is reserved.
+
+<!-- ---- track A: hardening ---- -->
+## Hardening and API gaps (000018, build plan track A)
+
+Status: branch `track-a`, tested by `scripts/db-test-canonical.sh` (suite `18_hardening`). Not applied to production.
+Where this section differs from the sections above, it wins.
+
+### Identity (LC-12)
+`lv.caller_identity()` accepts only tokens with `aud = "authenticated"` (or an array holding it) **and**
+`session_kind = "lunchvoice"` — exactly what the `session` function issues. Anything else is signed out
+(`lv_unauthenticated` / anon permissions).
+
+### Join codes and link tokens (LC-10)
+- Every Campaign has `link_token` (32 lowercase hex, 128-bit CSPRNG). Managers get it in `lv_campaign_get.link_token`
+  and Quick Survey summaries (`link_token`). Links and QR codes use `/c/<link_token>`; the 6-character `join_code` is
+  for typing only.
+- `lv_guest_campaign_get(p_join_code)` and `lv_guest_submit(p_join_code, …)` accept the join code **or** the link
+  token. `lv_guest_campaign_get` now also returns `join_code` and `campaign.description`. Both are VOLATILE.
+- Failed join-code lookups are limited per caller (account, or a daily-rotated IP hash) — `joincode.misses_per_minute`
+  10 — and across all signed-out callers — `joincode.global_misses_per_minute` 300. Over the limit every code lookup
+  answers `lv_rate_limited` (even a valid code). Link tokens are never limited. Unknown and unavailable codes still
+  answer the same `lv_not_found`.
+
+### Campaign description
+- `lv_campaign_create(p_hub, p_title, p_mode, p_anonymity?, p_description?)` (≤ 2000 characters, trimmed).
+- `lv_campaign_update(…, p_description?, p_access?)`: `p_description` NULL leaves it, `''` clears it.
+- Returned as `description` in `lv_campaign_get.campaign`, `lv_campaign_list.campaigns[]`, `CampaignSummary` and
+  `lv_guest_campaign_get.campaign`. Over 2000 ⇒ `lv_invalid_input`.
+
+### Choice options are validated on the server
+`lv_campaign_question_add` / `lv_campaign_question_update` refuse (`lv_invalid_input`, message explains) a
+`single_choice`/`multi_choice` question unless `config.options` is an array of 2–10 strings, each non-empty (after
+trimming), ≤ 200 characters, all different ignoring case and surrounding spaces, and `config.max`, if present, is an
+integer from 1 to the option count. On update the effective kind and config (new or stored) are checked.
+
+### Quick Survey access while draft
+`lv_campaign_update(p_campaign, p_access => 'link'|'invite')`: Quick Surveys (personal space) only, draft only
+(`lv_locked` after publishing). Switching to `invite` turns guests off (`audience = members`); switching to `link`
+leaves guests off until `lv_campaign_set_participation`. On a Hub Campaign ⇒ `lv_invalid_input` and nothing in the
+call is applied.
+
+### Team role targeting
+- `lv_campaign_set_audience_roles(p_campaign, p_roles uuid[])` → `{ ok, audience }`. NULL or `[]` ⇒ every member.
+  Draft only (`lv_locked`); Quick Surveys ⇒ `lv_not_available`; roles must belong to the Hub (`lv_invalid_input`, ≤ 20);
+  needs plan limit `campaigns.role_targeting = true` (Team) else `lv_entitlement_required { product: "team_hub" }`.
+- `Audience = { scope: "all_members"|"roles", roles: [{ role_id, name }], role_targeting: boolean,
+  available_roles?: [{ role_id, name, is_owner }] }`, in `lv_campaign_get.audience` for managers (`available_roles` for
+  community Hubs); `lv_campaign_list` gives managers `audience_scope`.
+- With `scope = "roles"` only accepted members holding a targeted role can see (`lv_campaign_get`, `lv_campaign_list`)
+  and answer (`lv_forbidden`) the Campaign, and only they count in eligibility, participation rate and the survey
+  threshold. Guests are unaffected. Managers always see it.
+- Gate reasons added: `role_targeting_unavailable` (plan no longer includes it) and `audience_empty` (every targeted
+  role was deleted; the audience never widens). The published version records `audience_roles`.
+
+### Plan limits for campaign managers
+`lv_hub_limits(p_hub)` → `{ ok, plan: { family, state }, limits: { key: value }, usage: { custom_roles, custom_pages,
+active_campaigns, active_surveys, active_surveys_below_threshold } }` for any member with `campaign.manage`
+(`lv_forbidden` otherwise, `lv_not_found` for non-members and personal spaces). No product, dates, reservation or
+billing state. `lv_billing_summary` is unchanged.
+
+### Campaign invites are stored hashed (NEW-05)
+- `lv_campaign_invite_create` → `{ ok, invite: { invite_id, token, shown_once: true, prefix, max_uses, uses,
+  expires_at, revoked_at, created_at, state } }`. The token is returned **only here**.
+- `lv_campaign_invite_list` → invites with `invite_id` and `prefix` (first 6 characters), never `token`.
+- `lv_campaign_invite_redeem(p_token)` and `lv_campaign_invite_revoke(p_token)` work by token hash (any case).
+  New: `lv_campaign_invite_revoke_by_id(p_invite)` (campaign.manage).
+
+### Owner transfer acceptance (supersedes "Not built" above)
+- `lv_owner_transfer(p_hub, p_membership, p_confirm)` (same checks) now returns `{ ok, pending: true, offer }` and
+  changes nothing: the Owner, the Owner role and every membership stay as they are. A new offer cancels the pending one.
+- `OwnerOffer = { offer_id, hub_id, hub_slug, hub_name, membership_id, to_display_name, from_display_name, created_at,
+  expires_at, state: "pending"|"accepted"|"declined"|"cancelled"|"expired" }`; offers last `hub.owner_offer_days` (7).
+- Receiving member: `lv_my_context.owner_transfer_offers: [OwnerOffer]`; `lv_owner_transfer_accept(p_offer)` →
+  `{ ok, accepted: true, hub_id, slug }` (the ownership and the Owner role move, the old Owner stays a member);
+  `lv_owner_transfer_decline(p_offer)` → `{ ok, accepted: false }`. Someone else's offer ⇒ `lv_not_found`; closed,
+  expired or superseded (the Owner changed) ⇒ `lv_lifecycle_invalid`; target no longer accepted ⇒ `lv_not_accepted`.
+- Owner: `lv_owner_transfer_status(p_hub)` → `{ ok, offer | null }`; `lv_owner_transfer_cancel(p_hub)` →
+  `{ ok, cancelled }`.
+
+### Service-only
+`lv.session_exchange_consume(p_key_hash, p_expires_at)` → boolean (TRUE first time). `service_role` only; used by the
+`session` Edge Function (LC-13).
+<!-- ---- end track A ---- -->
+
+<!-- ---- track B: commerce ---- -->
+## Track B: commerce, email, admin (000019)
+
+Build plan decisions B-01 (server-created Stripe Checkout Sessions) and B-02 (provider-agnostic email outbox).
+Everything stays fail closed until the founder supplies keys and sets `billing.provider_ready`.
+
+### Grants
+
+Every new `lv_api` function below is granted to `authenticated` only (none to `anon`, none to PUBLIC). The
+`lv_admin_*` functions answer `lv_forbidden` to anyone who is not an active platform admin
+(`lv.is_platform_admin`), and `lv_unauthenticated` without an account. The service-role functions live in `lv`
+(never `lv_api`) and are granted to `service_role` only, with `usage on schema lv` and no table grants (LC-20).
+
+### Billing config and checkout
+
+- `lv_billing_config()` → `{ ok, provider_ready, checkout_available, products: { starter_hub, team_hub,
+  campaign_starter, campaign_plus, hub_reservation: boolean }, portal_available }`. A product is on sale when it is
+  purchasable in `lv.products`, `billing.provider_ready` is true, and either valid price IDs exist in
+  `billing.stripe_prices` (Checkout Session) or a legacy link exists in `billing.payment_links`. Never returns a
+  secret or a price ID. `portal_available` is true when the caller has a Stripe customer. The UI enables checkout
+  buttons from this, never from its own copy.
+- `lv_checkout_start(p_product, p_hub?, p_weeks?, p_slug?)` (replaced): same validation and order as before, plus a
+  rate limit (`billing.intents_per_hour`, 20, ⇒ `lv_rate_limited`). Success with price IDs:
+  `{ ok, intent_id, amount_cents, checkout: "session", mode: "subscription"|"payment" }` (no URL: the `checkout`
+  Edge Function creates the session). With only a legacy link: `{ ok, intent_id, amount_cents, checkout: "link",
+  checkout_url }` as before.
+- `lv_billing_portal_check()` → `{ ok, account_id }` (the caller's own) or `lv_not_found` (no Stripe customer) /
+  `lv_billing_unavailable`. Used by the Edge Function only.
+- `lv_billing_summary(p_hub)` (replaced, additive): adds `subscription: { status, cancel_at_period_end,
+  current_period_end, manageable } | null` (manageable only for the paying account) and `purchasable: { product:
+  boolean }` for the four Hub and Campaign plans.
+- Policy `billing.stripe_prices`: `starter_hub`, `team_hub`, `hub_reservation` → `"price_..."` or `{ "price":
+  "price_..." }`; `campaign_starter`, `campaign_plus` → `{ "first": "price_...", "extra_week": "price_..." }`. A Campaign
+  plan is one first-period line item plus the extra-week price with `quantity = weeks − first_period_weeks`, so the
+  subtotal equals `lv.checkout_amount` exactly ($19 + $13/extra week; $39 + $19/extra week). Malformed entries are
+  treated as not configured.
+
+### `checkout` Edge Function (`POST /functions/v1/checkout`, `verify_jwt = false`)
+
+Headers: `apikey: <anon key>`, `authorization: Bearer <LunchVoice session token>`.
+
+- `{ action: "checkout", product, hub?, weeks?, slug?, return_path? }` → `200 { ok, url, intent_id }`. The function
+  forwards the caller's token to `lv_checkout_start` (the database authenticates and authorises), reads the intent's
+  context with the service role (`lv.checkout_session_context`), creates or reuses the account's Stripe customer
+  (`lv.billing_customer_set`), creates the Checkout Session (`automatic_tax[enabled]=true`, `client_reference_id` and
+  `metadata[intent_id]` = intent id, customer address collected for Stripe Tax, no promotion codes) and records the
+  session id (`lv.checkout_intent_attach`). Subscription mode for `starter_hub`/`team_hub`; payment mode for Campaign
+  plans and `hub_reservation`. `return_path` must be a same-site path; Stripe returns to
+  `https://lunchvoice.com{return_path}?checkout=success|cancelled`. The redirect never grants: only the webhook does.
+- `{ action: "portal", return_path? }` → `200 { ok, url }`: a Stripe Customer Portal session for the caller's own
+  customer, or `404 lv_not_found`.
+- Errors: `{ ok: false, error: { code, message } }` with 401 `lv_unauthenticated`, 403, 404, 409 `lv_conflict`,
+  429 `lv_rate_limited`, 400 `lv_invalid_input`, 503 `lv_billing_unavailable` (no `STRIPE_SECRET_KEY`, no database
+  URL, no price IDs, or the database said so), 502 `lv_billing_unavailable` (Stripe unreachable: "Nothing was
+  charged"). Stripe's own error text is never returned.
+
+### Webhook additions
+
+`lv.billing_apply_event` is now a thin wrapper; the 000017 grant path is unchanged as `lv.billing_apply_event_core`
+(no longer executable by anyone but the owner). The wrapper adds:
+
+- `customer.subscription.updated`: records `status`, `cancel_at_period_end` and the period end in
+  `lv.billing_subscriptions` for display. It never changes access; a cancellation at period end ends access through
+  `customer.subscription.deleted` at that end, as before.
+- After an applied subscription checkout: remembers the subscription (account, Hub, product) and the session's
+  `customer`. `invoice.paid` (renewal) also updates the stored period end; `customer.subscription.deleted` marks it
+  `canceled`.
+- The webhook maps `customer` (checkout), `status` and `cancel_at_period_end` (subscription updated), and reads the
+  payment intent of `invoice.paid` from `payments.data[0].payment.payment_intent` on newer API versions.
+
+### Hub Name Reservation purchase
+
+`lv_checkout_start('hub_reservation', null, null, slug)` for an available (or released) name, or for the caller's own
+reservation in ACTIVE or GRACE (renewal, +12 months from the current expiry). Someone else's ACTIVE/GRACE
+reservation, an existing Hub, a reserved word or a quarantined name ⇒ `lv_conflict`. UI: `/reserve?slug=`.
+
+### Transactional email (B-02)
+
+`lv.email_outbox (id, template, account_id, to_address, payload, status queued|sending|sent|failed|cancelled,
+attempts, last_error, dedupe_key, next_attempt_at, locked_at, sent_at, provider_message_id, created_at)`. It never
+holds an answer; a sent or failed message keeps no payload; finished rows are deleted after `email.retention_days`
+(30). Rows cascade with `account_id`, so deleting an account deletes its mail.
+
+| Template | Design | Enqueued when | To |
+| --- | --- | --- | --- |
+| `waitlist_joined` | E01 | a waitlist join that left a contact email with consent (none otherwise) | the contact email |
+| `hub_created` | E03 | a community Hub is created | the Owner's verified email |
+| `hub_invite` | E04 | `lv_invite_email_send` | the given address |
+| `reservation_confirmed` | E05 | a reservation is bought or renewed | the holder's verified email |
+| `reservation_expiring` | E05 | `email.reservation_reminder_days` (14) before expiry, once per period | holder |
+| `reservation_grace` | E06 | the reservation entered GRACE, once per period | holder |
+| `participation_receipt` | E07 | a member's participation in an **identified** Campaign (never anonymous, never guests); policy `email.participation_receipts` | respondent's verified email |
+| `shop_order` | E08 | track C calls `lv.email_enqueue('shop_order', account, lv.account_email(account), payload, dedupe)` | buyer |
+
+- `lv_invite_email_send(p_hub, p_code, p_to)` → `{ ok, queued, already_sent }`. Needs `admin.members.admit`; the code
+  must be a live invite of that Hub (checked against its hash); rate-limited by `email.invites_per_hour` (30). Errors:
+  `lv_forbidden`, `lv_invalid_code`, `lv_invalid_input`, `lv_rate_limited`. The audit never records the address.
+- `lv.email_enqueue(p_template, p_account, p_to, p_payload, p_dedupe?) → uuid | null` (internal, for other tracks'
+  definer functions): returns null for an unknown template, a bad address, a payload over 4 KB, or a seen dedupe key.
+  Never raises. Payloads carry names, slugs, dates and ids only.
+- Service role (the `email-dispatch` function): `lv.email_reservation_sweep()`, `lv.email_claim(limit)` (skip-locked;
+  reclaims messages stuck in `sending` for 15 minutes), `lv.email_mark(id, 'sent'|'retry'|'failed', error?,
+  provider_id?)` (retry backs off 2^attempts minutes up to `email.max_attempts`, 5), `lv.email_retention_sweep()`.
+- `email-dispatch` Edge Function (`POST`, `verify_jwt = false`, bearer must equal `SUPABASE_SERVICE_ROLE_KEY` or
+  `EMAIL_DISPATCH_SECRET`): sweeps reservations, then sends due mail through Resend when `RESEND_API_KEY` is set
+  (idempotency key per message), otherwise claims nothing and leaves mail queued. Returns `{ ok, provider:
+  "resend"|"none", claimed, sent, retried, failed, queued }`. Templates are code in
+  `supabase/functions/_shared/email/templates.ts` (text + HTML, no images, no tracking).
+
+### Platform admin console (`/admin`)
+
+All return `lv_forbidden` to non-admins.
+
+- `lv_admin_overview()` → `{ ok, waitlist: { seats_total, seats_taken, admitted, waitlisted, with_contact },
+  reports_open, campaigns_blocked, discover_pending, billing: { provider_ready, events_7d, rejected_7d }, email:
+  { queued, sent, failed } }`.
+- `lv_admin_waitlist(p_limit = 50, p_offset = 0)` → `{ ok, total, entries: [{ entry_id, status, position, joined_at,
+  has_contact_email, intended_hub_name }] }`. Never an address.
+- `lv_admin_waitlist_contact(p_entry)` → `{ ok, entry_id, contact_email, consent_version }`; audited as
+  `admin.waitlist_contact_viewed` (target = entry id, no address).
+- `lv_admin_abuse_reports(p_status = 'open'|'actioned'|'dismissed'|'all')` → `{ ok, reports: [{ report_id, status,
+  reason, created_at, campaign_id, campaign_title, join_code, blocked, hub_name, hub_slug, quick_survey,
+  open_reports }] }` (latest 200; the reporter is never returned). Block/unblock through the existing
+  `lv_admin_campaign_block` / `lv_admin_campaign_unblock`.
+- `lv_admin_report_dismiss(p_report)` → `{ ok, status: "dismissed" }` (open reports only, else `lv_not_found`).
+- `lv_admin_discover_list(p_status = 'submitted'|'approved'|'rejected'|'all')` → `{ ok, applications: [{
+  application_id, status, hub_id, hub_slug, hub_name, genuine_members_at_apply, genuine_members_now, family,
+  applied_at, decided_at, note }] }`.
+- `lv_admin_discover_decide(p_application, p_approve, p_note?)` → `{ ok, status }`. Writes
+  `lv.discover_applications.status` (`approved`/`rejected`; **track C reads this for the listing**) and
+  `lv.discover_decisions` (who, when, note ≤ 500). A decision can be reversed. Nobody decides an application for a Hub
+  they own or submitted (`lv_forbidden`).
+- `lv_admin_billing_events(p_limit = 100)` → `{ ok, events: [{ id, type, outcome, reason, received_at }] }`. No
+  payloads (none are stored) and no references.
+- `lv_admin_email_outbox(p_limit = 50)` → `{ ok, counts: { status: n }, by_template: { template: n }, recent: [{ id,
+  template, status, attempts, last_error, created_at, sent_at }] }`. No addresses, no payloads.
+
+### Reserved slugs
+
+`reserve` is added (the `/reserve` route). `admin` was already reserved.
+<!-- ---- end track B: commerce ---- -->
+
+<!-- ---- track C: community ---- -->
+## Community and Discover (000020, track C)
+
+Decisions C-01 (leaderboard) and C-02 (Shop and Hub points) from `docs/v2/BUILD_PLAN_2026-11-21.md`, plus C-02a
+(governing agent; founder may override): all four add-on pages are in the Starter and Team families through map flags
+`community.newsroom`, `community.comments`, `community.leaderboard`, `community.shop` (booleans in `lv.plan_limits`);
+Team gets more Shop items (`shop.max_items` Starter 10, Team 50). No active plan: every community write fails closed with
+`lv_entitlement_required`; reads, opting out and deleting keep working and nothing is deleted.
+
+Every Hub-scoped function answers `lv_not_found` for a personal space (LC-06) and, for a private Hub, to a non-member.
+For a public Hub, members-only features answer `lv_forbidden` to a signed-in non-member. A feature whose page is off
+answers `lv_not_available { kind }`. Guests never post, comment, order or earn points (they have no account).
+
+### New error codes
+
+| Code | Meaning |
+|---|---|
+| `lv_insufficient_points` | Order refused: `{ balance, price }` |
+| `lv_out_of_stock` | Order refused: the item has no stock left |
+
+### Pages (replaced bodies, same signatures)
+
+- `lv_hub_pages_get(p_hub)` adds `visibility` to each Page and `addons: { news|comments|leaderboard|shop: { enabled,
+  allowed } }`. Visitors (public Hub, not a member) get Home, Campaigns, custom pages with `visibility: "public"` and the
+  news page when a public post exists; never Shop, Leaderboard, Comments or a members-only page (or its body).
+- `lv_hub_pages_update(p_hub, p_pages)`: `Page.visibility` `"members"` (default) | `"public"` (custom pages only; other
+  kinds are stored as members). One page per non-custom kind. Enabling an add-on the plan lacks:
+  `lv_entitlement_required { product, kind }`. Body is markdown-lite text (≤ 20000): the UI renders headings, lists,
+  bold and http(s)/mailto links as text nodes, never HTML.
+
+### Settings
+
+- `lv_community_get(p_hub)` (members) → `{ ok, settings: { points_enabled, discover_category }, categories: [{ key,
+  label }], addons, discover: { status: "none"|"submitted"|"approved"|"rejected" }, can: { post, moderate, shop,
+  settings }, me: { leaderboard_opt_in, points|null } }`.
+- `lv_community_update(p_hub, p_points_enabled?, p_discover_category?)` → same as get. `hub.settings.manage`. Category is
+  one of the fixed keys (`sports_fitness`, `arts_culture`, `books_learning`, `neighbourhood`, `faith`, `clubs_hobbies`,
+  `work_professional`, `health_wellbeing`, `environment`, `other`); `""` clears it.
+
+### Newsroom
+
+`NewsPost = { post_id, title, body, status: "draft"|"published", visibility: "members"|"public", pinned, published_at,
+updated_at, author_name, comment_count|null }` (`comment_count` null for visitors).
+
+- `lv_news_list(p_hub, p_include_drafts = false)` → `{ ok, posts, can_post }`. Signed out allowed (public posts of a
+  public Hub). Drafts only for `community.post`. Order: drafts, pinned, newest.
+- `lv_news_get(p_post)` → `{ ok, post, hub_id, can_post, comments_enabled }`. Signed out allowed for public posts.
+- `lv_news_save(p_hub, p_title, p_body?, p_visibility = "members", p_post?)` → `{ ok, post }` (creates a draft or edits).
+  `community.post`; public only on a public Hub; `community.posts_per_hour` (30).
+- `lv_news_publish(p_post, p_publish = true)`, `lv_news_pin(p_post, p_pinned = true)` (published only;
+  `community.max_pinned` 3 → `lv_limit_reached`), `lv_news_delete(p_post)` (also deletes its comments).
+
+### Comments
+
+`Comment = { comment_id, body, created_at, author_name, mine, hidden, reported_by_me, report_count? }` (`report_count`
+for moderators only). Comments attach to a published news post or to the Hub's Comments page (`p_post` null); never to
+Campaigns or answers.
+
+- `lv_comment_list(p_hub, p_post?)` (members) → `{ ok, comments, can_moderate, can_comment, max_length }`. Hidden
+  comments only for `community.moderate`.
+- `lv_comment_add(p_hub, p_body, p_post?)` → `{ ok, comment_id }`. 1..`community.comment_max_length` (1000; over it:
+  `lv_invalid_input { limit, used }`); `community.comments_per_minute` (5) → `lv_rate_limited`.
+- `lv_comment_delete(p_comment)` (author or `community.moderate`), `lv_comment_hide(p_comment, p_hidden = true)`
+  (`community.moderate`), `lv_comment_report(p_comment, p_reason)` → `{ ok, already_reported }` (once per member, not
+  your own, `community.reports_per_hour` 20).
+
+### Leaderboard (C-01)
+
+- `lv_leaderboard_get(p_hub)` (members, page on) → `{ ok, me: { opted_in, campaigns }, entries: [{ rank, display_name,
+  campaigns, me }] }`. Only opted-in accepted members; `campaigns` counts this Hub's Campaigns the member took part in
+  that have ended (closed, archived or past close), so the board never moves while a Campaign is live. Dense rank. No
+  answers, timings, Campaign ids or per-Campaign breakdown.
+- `lv_leaderboard_opt(p_hub, p_opt_in)` → `{ ok, opted_in }`. Default off. Opting in needs the page and an active plan;
+  opting out always works.
+
+### Shop and Hub points (C-02)
+
+- `lv_shop_get(p_hub)` (members, page on) → `{ ok, points_enabled, can_order, balance, can_manage, item_limit, items:
+  [{ item_id, name, description, price_points, stock|null, active }], my_orders: [Order], campaign_points: [{
+  campaign_id, title, status, points }]|null }` (`campaign_points` for `community.shop` only; inactive items too).
+- `lv_shop_item_save(p_hub, p_name?, p_description?, p_price_points?, p_stock?, p_active?, p_item?)` → `{ ok, item }`.
+  `community.shop`. Price 1..1,000,000 points; stock a number, NULL keeps it (no limit for a new item), -1 removes the
+  limit. Active items ≤ `shop.max_items` (`lv_limit_reached`).
+- `lv_shop_order_place(p_item)` → `{ ok, order, balance }`. Needs points on (`lv_not_available { kind: "points" }`),
+  stock (`lv_out_of_stock`) and balance (`lv_insufficient_points`); `shop.orders_per_hour` 20. Balance and stock are
+  exact under concurrency (advisory lock per member and Hub, item row lock).
+- `lv_shop_order_list(p_hub, p_status?)` → `{ ok, orders: [Order + member_name] }` (`community.shop`).
+- `lv_shop_order_update(p_order, p_status "fulfilled"|"cancelled")` → `{ ok, order }`. From `placed` only
+  (`lv_lifecycle_invalid`); the Hub fulfils, the member or the Hub cancels; cancelling refunds and restores stock.
+- `lv_campaign_points_set(p_campaign, p_points 0..1000)` → `{ ok, campaign_id, points }` (`community.shop`). Points are
+  recorded on `lv.participation.points` / `reward_state = 'recorded'` by a trigger when someone takes part while points
+  are on; changing the value never rewrites recorded points. For anonymous Campaigns the participation row has no
+  submission link, so points never link a person to answers. Points have no cash value.
+- `Order = { order_id, item_id, item_name, points, status: "placed"|"fulfilled"|"cancelled", created_at, updated_at,
+  member_name? }`. Order email: `lv.community_order_notify(order, event)` is a no-op TODO hook for track B's
+  `lv.email_enqueue`.
+
+### Discover listing
+
+- `lv_discover_list(p_query?, p_category?, p_limit = 24 (max 48), p_offset = 0)` → `{ ok, categories, hubs: [{ slug,
+  name, about (≤ 280), accent, category, membership_mode, members_rounded }] }`. Signed out allowed. Lists community
+  Hubs whose `lv.discover_applications.status = 'approved'` (set by track B's `lv_admin_discover_decide`), that are public
+  and on the Team family right now. `members_rounded` = genuine active members rounded down to the nearest 100. No Hub
+  id, owner or exact count. Search matches name, slug and About (LIKE wildcards are literal). Personal spaces and Quick
+  Surveys never appear.
+
+### Capabilities and policies
+
+Capabilities `community.post`, `community.moderate`, `community.shop` (group `community`); the Owner role holds them.
+Policies: `community.comment_max_length` 1000, `community.comments_per_minute` 5, `community.posts_per_hour` 30,
+`community.max_pinned` 3, `community.reports_per_hour` 20, `shop.orders_per_hour` 20.
+
+### Grants
+
+Authenticated: every function above. Anon: `lv_discover_list`, `lv_news_list`, `lv_news_get` only (test 14's anon
+allow-list includes them).
+<!-- ---- end track C ---- -->
