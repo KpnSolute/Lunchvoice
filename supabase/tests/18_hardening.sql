@@ -398,10 +398,16 @@ select t.check('owner: the stale offer of the former Owner is gone',
 
 -- ===== catalogue =========================================================================================
 select t.as_pg();
-select t.check('catalogue: the anon allow-list is unchanged (10 functions)',
-  (select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'lv_api' and has_function_privilege('anon', p.oid, 'execute'))
-  = 'lv_capability_catalog,lv_guest_campaign_get,lv_guest_submit,lv_hub_get,lv_hub_pages_get,lv_hub_reservation_status,lv_my_context,lv_plan_limits,lv_report_abuse,lv_waitlist_status');
+-- (Later migrations may add anon functions of their own; 000018 adds none and keeps the guest entry points.)
+select t.check('catalogue: 000018 adds nothing to the anon allow-list and keeps the guest entry points',
+  not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'lv_api' and has_function_privilege('anon', p.oid, 'execute')
+                 and p.proname in ('lv_campaign_create', 'lv_campaign_update', 'lv_campaign_set_audience_roles',
+                   'lv_campaign_invite_revoke_by_id', 'lv_hub_limits', 'lv_owner_transfer_accept', 'lv_owner_transfer_decline',
+                   'lv_owner_transfer_cancel', 'lv_owner_transfer_status', 'lv_campaign_get', 'lv_campaign_list'))
+  and has_function_privilege('anon', 'lv_api.lv_guest_campaign_get(text)', 'execute')
+  and has_function_privilege('anon', 'lv_api.lv_guest_submit(text, text, jsonb)', 'execute')
+  and not has_function_privilege('anon', 'lv.session_exchange_consume(text, timestamptz)', 'execute'));
 select t.check('catalogue: no lv or lv_api function is executable by PUBLIC',
   not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where n.nspname in ('lv', 'lv_api')

@@ -8,8 +8,9 @@ import { Card } from "@/components/shadcn/card";
 import { Badge } from "@/components/shadcn/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/shadcn/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shadcn/table";
-import { EmptyState, Eyebrow, Notice } from "@/components/shadcn/blocks";
+import { Eyebrow, Notice } from "@/components/shadcn/blocks";
 import { StateScreen } from "../ui/StateScreen";
+import { DiscoverDirectory } from "./lazy";
 
 /** The legal operator is not decided yet. Never invent a company entity (founder decision 8). */
 const OPERATOR = "[Legal operator name — pending]";
@@ -253,12 +254,8 @@ export function Discover() {
   return (
     <div className="lv-mk">
       <Head eyebrow="Discover" title="Discover" sub="A directory of large public Hubs that chose to be found." />
-      <Card variant="well">
-        <EmptyState icon={<Icon name="star" size={22} />} title="No Hubs are listed yet" action={<LinkButton to="/pricing" variant="secondary">See what Discover needs</LinkButton>}>
-          Hubs appear here only after they reach 700 genuine active members on the Team plan and are approved. Quick Surveys are never listed, and nothing is seeded to fill the page.
-        </EmptyState>
-      </Card>
-      <p className="ui-help lv-m0"><Badge>Team plan</Badge> Discover eligibility is part of the Team Hub plan.</p>
+      <DiscoverDirectory />
+      <p className="ui-help lv-m0"><Badge>Team plan</Badge> Discover eligibility is part of the Team Hub plan. Quick Surveys and personal spaces are never listed.</p>
     </div>
   );
 }

@@ -204,3 +204,94 @@ Needs explicit founder approval for this build (F-13 covered the launch apply on
    plan limit `campaigns.role_targeting` (starter false, team true). The join-code limiter keys signed-out callers by a
    daily-rotated hash of `cf-connecting-ip` / `x-real-ip` / first `x-forwarded-for` from PostgREST `request.headers`;
    smoke test: 11 wrong codes in a minute from one client ⇒ `lv_rate_limited`, the link token still opens the survey.
+
+<!-- ---- track B: commerce ---- -->
+## 11. Enabling Stripe and email (000019; build plan B-01, B-02)
+
+Nothing here is done by an agent. Each step needs the founder's explicit approval, and production migrations still
+follow sections 0-2 (apply `000019_v2_commerce.sql` after 000017/000018, one at a time). Secret **values** never go
+in chat, code, commits or this file; only their names appear here.
+
+### 11.1 Secrets (names only)
+
+| Name | Where | Needed by | Notes |
+| --- | --- | --- | --- |
+| `STRIPE_SECRET_KEY` | Edge Function secrets | `checkout` | Restricted key with write access to Customers, Checkout Sessions and Customer Portal sessions. Without it checkout answers 503. |
+| `STRIPE_WEBHOOK_SECRET` | Edge Function secrets | `billing-webhook` | The endpoint's signing secret (`whsec_...`). Without it the webhook answers 503. |
+| `RESEND_API_KEY` | Edge Function secrets | `email-dispatch` | Without it mail stays queued. |
+| `EMAIL_FROM` (optional) | Edge Function secrets | `email-dispatch` | e.g. `LunchVoice <no-reply@lunchvoice.com>`; the domain must be verified in Resend. Default is that value. |
+| `EMAIL_DISPATCH_SECRET` (optional) | Edge Function secrets | `email-dispatch` | A second bearer for the cron job if the service-role key should not be stored in the cron command. |
+| `LV_APP_ORIGIN` (optional) | Edge Function secrets | `checkout`, `email-dispatch` | Default `https://lunchvoice.com`. |
+| `LV_ALLOWED_ORIGINS` | Edge Function secrets | `checkout` | Same value as for `session`. |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL` | provided by the platform | all three | Do not set by hand. |
+
+Commands (the founder runs them; never paste values into chat):
+`supabase secrets set STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET RESEND_API_KEY` (interactive or from a local env file
+that is never committed), then `supabase functions deploy checkout`, `supabase functions deploy billing-webhook`,
+`supabase functions deploy email-dispatch`. `verify_jwt = false` for all three comes from `supabase/config.toml`
+(each function authenticates its caller itself).
+
+### 11.2 Stripe dashboard
+
+1. **Products and prices** (USD, tax behaviour "exclusive"), exactly the canonical prices in `lv.products`:
+   - Starter Hub: recurring $13/month. Team Hub: recurring $29/month.
+   - Campaign Starter: one-time $19 (first 2 weeks) and one-time $13 (per extra week).
+   - Campaign Plus: one-time $39 (first 2 weeks) and one-time $19 (per extra week).
+   - Hub Name Reservation: one-time $25 (12 months; renewal is another $25 purchase).
+   Any other amount makes the webhook reject the grant (`amount_mismatch`, NEW-01).
+2. **Stripe Tax**: enable it, add the origin address and registrations, and set the product tax codes. Checkout always
+   sends `automatic_tax[enabled]=true`; LunchVoice has no tax logic.
+3. **Customer Portal**: enable it; allow cancelling subscriptions **at the end of the billing period** (not
+   immediately), no proration (F-08), allow updating payment methods and viewing invoices. Do not enable plan
+   switching or promotion codes unless decided.
+4. **Webhook endpoint**: `https://qprfonxvthmaoxfixigk.supabase.co/functions/v1/billing-webhook`, events
+   `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `invoice.paid`,
+   `customer.subscription.updated`, `customer.subscription.deleted`, `charge.refunded`. Copy its signing secret into
+   `STRIPE_WEBHOOK_SECRET`.
+5. Promotion codes stay off (checkout never sets `allow_promotion_codes`).
+6. Test the whole path in Stripe **test mode** first, with test keys, before live keys are set.
+
+### 11.3 Policy updates (one statement each, after approval)
+
+```sql
+-- price IDs from step 11.2 (not secrets)
+update lv.policy set value = '{"starter_hub": "price_...", "team_hub": "price_...",
+  "campaign_starter": {"first": "price_...", "extra_week": "price_..."},
+  "campaign_plus": {"first": "price_...", "extra_week": "price_..."},
+  "hub_reservation": "price_..."}'::jsonb where key = 'billing.stripe_prices';
+-- open checkout (lv_billing_config then reports the products on sale)
+update lv.policy set value = 'true'::jsonb where key = 'billing.provider_ready';
+-- when paid billing goes live: Founding entitlements end 30 days later (L-01)
+update lv.policy set value = to_jsonb(now()::text) where key = 'billing.launched_at';
+```
+
+Leave `billing.payment_links` NULL (legacy). To close checkout again, set `billing.provider_ready` to false: buttons
+disable, nothing already granted changes.
+
+### 11.4 Email schedule
+
+With `pg_cron` and `pg_net` enabled, schedule the dispatcher (every 5 minutes; the bearer is read from Vault, never
+written into the job text):
+
+```sql
+select cron.schedule('lv-email-dispatch', '*/5 * * * *', $$
+  select net.http_post(
+    url := 'https://qprfonxvthmaoxfixigk.supabase.co/functions/v1/email-dispatch',
+    headers := jsonb_build_object('authorization', 'Bearer ' ||
+      (select decrypted_secret from vault.decrypted_secrets where name = 'email_dispatch_secret')))
+$$);
+```
+
+The Vault secret `email_dispatch_secret` holds the same value as the `EMAIL_DISPATCH_SECRET` function secret.
+Without `RESEND_API_KEY` the job only queues reservation reminders. Check the Admin console (Email tab) for queue
+depth and failures; addresses are never shown there.
+
+### 11.5 Verification after enabling
+
+- `/pricing` signed in shows enabled buy buttons; signed out shows "Sign in to buy".
+- A test-mode purchase of each product returns to LunchVoice with "Payment received", and the Admin console Billing tab
+  shows an `applied` `checkout.session.completed`.
+- Cancelling in the Customer Portal shows "cancelled and ends on …" on the Hub billing page; access continues to the
+  period end.
+- A Hub created from a test purchase sends E03 (with Resend configured).
+<!-- ---- end track B: commerce ---- -->

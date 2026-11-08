@@ -96,7 +96,9 @@ select t.check('waitlist: admission takes an advisory lock',
 select t.check('waitlist: no authorization check reads the waitlist table',
   t.q($$select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
          where n.nspname = 'lv' and p.prosrc like '%waitlist_entries%'
-           and p.proname not in ('api_waitlist_status', 'api_waitlist_join', 'waitlist_me')$$) = '0');
+           and p.proname not in ('api_waitlist_status', 'api_waitlist_join', 'waitlist_me',
+                                 -- 000019: the platform admin console reads it for display only, never to authorize
+                                 'api_admin_overview', 'api_admin_waitlist', 'api_admin_waitlist_contact')$$) = '0');
 select t.check('waitlist: one seat per account (unique constraint backstop)',
   t.raises(format($q$insert into lv.waitlist_entries (account_id, status, position) values (%L::uuid, 'admitted', 99)$q$, t.get('founder')), '23505'));
 
@@ -398,7 +400,8 @@ select t.check('grants: no lv_api function is executable by PUBLIC',
 select t.check('grants: anon executes exactly the signed-out allow-list',
   t.q($$select coalesce(string_agg(p.proname, ',' order by p.proname), '') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
          where n.nspname = 'lv_api' and has_function_privilege('anon', p.oid, 'execute')$$)
-  = 'lv_capability_catalog,lv_guest_campaign_get,lv_guest_submit,lv_hub_get,lv_hub_pages_get,lv_hub_reservation_status,lv_my_context,lv_plan_limits,lv_report_abuse,lv_waitlist_status');
+  -- 000020 (track C) adds lv_discover_list, lv_news_get and lv_news_list (public Discover and public news).
+  = 'lv_capability_catalog,lv_discover_list,lv_guest_campaign_get,lv_guest_submit,lv_hub_get,lv_hub_pages_get,lv_hub_reservation_status,lv_my_context,lv_news_get,lv_news_list,lv_plan_limits,lv_report_abuse,lv_waitlist_status');
 select t.check('grants: no lv table or sequence is reachable by anon or authenticated',
   t.q($$select count(*)::text from pg_class c join pg_namespace n on n.oid = c.relnamespace
          where n.nspname = 'lv' and c.relkind in ('r', 'S', 'v')
@@ -421,7 +424,8 @@ select t.check('grants: as anon, every lv_api function outside the allow-list is
   t.q($$select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
          where n.nspname = 'lv_api' and has_function_privilege('anon', p.oid, 'execute')
            and p.proname not in ('lv_my_context', 'lv_hub_get', 'lv_guest_campaign_get', 'lv_guest_submit', 'lv_capability_catalog',
-                                 'lv_plan_limits', 'lv_waitlist_status', 'lv_hub_reservation_status', 'lv_hub_pages_get', 'lv_report_abuse')$$) = '0');
+                                 'lv_plan_limits', 'lv_waitlist_status', 'lv_hub_reservation_status', 'lv_hub_pages_get', 'lv_report_abuse',
+                                 'lv_discover_list', 'lv_news_get', 'lv_news_list')$$) = '0');
 select t.check('grants: signed out, lv_my_context answers lv_unauthenticated as an envelope', t.code(lv_api.lv_my_context()) = 'lv_unauthenticated');
 select t.check('grants: as anon, no lv table can be read', t.raises('select count(*) from lv.accounts', '42501')
   and t.raises('select count(*) from lv.entitlements', '42501'));
