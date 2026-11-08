@@ -885,3 +885,86 @@ Policies: `community.comment_max_length` 1000, `community.comments_per_minute` 5
 Authenticated: every function above. Anon: `lv_discover_list`, `lv_news_list`, `lv_news_get` only (test 14's anon
 allow-list includes them).
 <!-- ---- end track C ---- -->
+
+<!-- ---- staff panel (000023) ---- -->
+## Staff panel (000023)
+
+Every function below is `lv_admin_*`, granted to `authenticated` only (never `anon` or PUBLIC), and answers
+`lv_forbidden` to anyone who is not an active platform admin ("staff"), `lv_unauthenticated` without an account.
+Every staff action writes an audit event. Nothing here deletes customer data.
+
+### New error code
+
+- `lv_suspended`: the caller's account, or the Hub written to, is suspended. Message explains what still works.
+
+### Staff management
+
+- `lv_admin_staff_list()` → `{ ok, staff: [{ account_id, display_name, granted_at, granted_by_name, is_me }] }`
+  (active staff only).
+- `lv_admin_staff_add(p_email)` → `{ ok, account_id, already_staff, display_name? }`. Finds the account by a
+  **verified** email (`lv.account_identities.email` with `email_verified_at`), case-insensitive, never by display
+  name. No match ⇒ `lv_not_found` ("They need to sign in to LunchVoice once first"); two accounts share the verified
+  email ⇒ `lv_conflict`; not an email ⇒ `lv_invalid_input`. Needs a recent sign-in (`lv_reauth_required`, LC-22).
+  Audit `staff.added` (target = account id; `platform_admin.granted` is not separately written).
+- `lv_admin_staff_revoke(p_account)` → `{ ok }`. Yourself ⇒ `lv_conflict`; not staff ⇒ `lv_not_found`; the last
+  active staff member ⇒ `lv_conflict` (counted under an advisory lock). Needs a recent sign-in. Audit `staff.revoked`
+  (plus `platform_admin.revoked` from `lv.revoke_platform_admin`).
+
+### Suspension
+
+- `lv_admin_hub_suspend(p_hub, p_reason)` / `lv_admin_hub_unsuspend(p_hub)` → `{ ok, suspended }`. Reason 1–500
+  characters (the Owner sees it). Unsuspending a Hub that is not suspended ⇒ `lv_not_found`. Audit `hub.suspended` /
+  `hub.unsuspended`.
+- `lv_admin_account_suspend(p_account, p_reason)` / `lv_admin_account_unsuspend(p_account)` → `{ ok, suspended }`.
+  Yourself or another active staff member ⇒ `lv_conflict`. Audit `account.suspended` / `account.unsuspended`.
+- Effects (enforced by one helper, `lv.assert_not_suspended(account, hub)`, called from BEFORE INSERT/UPDATE row
+  triggers on every content table, so every current and future write path is covered; deletes are never guarded):
+  - **Suspended Hub:** hidden from `lv_discover_list`; its Campaigns refuse responses (`lv_closed` for members and
+    guests; `lv_guest_campaign_get` answers `lv_closed`); nobody can join; nothing new can be created or published in
+    it (Campaigns, activation/resume, questions, invites, roles, pages, community settings, news, comments, shop
+    items, orders, Discover applications, checkout for it, renaming) ⇒ `lv_suspended`. Reads, closing and pausing
+    Campaigns, leaving, member management, Hub deletion and staff moderation keep working.
+  - **Suspended account:** can sign in, read, leave Hubs, answer Campaigns and delete its Hubs and account, but
+    cannot create a Hub or Quick Survey, create or publish Campaigns, invites, roles, pages, news, comments, shop
+    items or orders, or start a checkout ⇒ `lv_suspended`.
+- `lv_hub_get` adds `hub.suspension: { suspended: true, suspended_at, reason? }` while suspended (`reason` only for
+  the Owner and staff). The UI shows members and visitors a neutral "This Hub is suspended" state and the Owner a
+  notice with the reason.
+- `lv_my_context` adds `suspension: { suspended: true, reason, suspended_at } | null`.
+
+### Reports queue
+
+- `lv_admin_reports(p_status = 'open'|'actioned'|'dismissed'|'all', p_type = 'all'|'survey'|'comment')` →
+  `{ ok, items: [{ type, id, status, reasons[], report_count, created_at, hub_id, hub_name, hub_slug, quick_survey,
+  hub_suspended, … }] }` (latest 300). Survey items add `campaign_id, campaign_title, join_code, blocked` (`id` = the
+  abuse report id). Comment items are grouped per comment and add `comment_id, post_id, excerpt (280 chars), hidden,
+  author_account_id, author_suspended` (`id` = comment id; up to 5 latest reasons). Reporters are never returned.
+- Actions: survey dismiss `lv_admin_report_dismiss(p_report)` (000019); block/unblock
+  `lv_admin_campaign_block/unblock` (000014); `lv_admin_comment_hide(p_comment, p_hidden = true)` → `{ ok, hidden }`
+  (hiding marks the comment's reports actioned; audit `comment.hidden_by_staff` / `comment.shown_by_staff`);
+  `lv_admin_comment_reports_dismiss(p_comment)` → `{ ok, status }` (open reports only, else `lv_not_found`; audit
+  `comment_report.dismissed`); suspend Hub as above. Comment report decisions live in `lv.comment_report_reviews`.
+
+### Lookup
+
+- `lv_admin_hub_search(p_query)` (1–80 chars, slug or name, community Hubs, 25 results) → `{ ok, hubs: [{ hub_id,
+  slug, name, created_at, visibility, membership_mode, plan, member_count, owner_account_id, owner_name, suspension:
+  { reason, suspended_at } | null, open_reports }] }`.
+- `lv_admin_account_search(p_email)` (an exact, full email; partial input ⇒ `lv_invalid_input`) → `{ ok, accounts:
+  [{ account_id, display_name, created_at, hubs_owned, memberships, is_staff, suspension }] }`. The email is never
+  echoed.
+- `lv_admin_account_email_reveal(p_account)` → `{ ok, account_id, emails[] }` (verified emails). Audit
+  `admin.email_revealed` (target = account id, no address).
+
+### Audit viewer
+
+- `lv_admin_audit(p_scope = 'staff'|'all', p_action = null (prefix), p_actor = null, p_limit = 100 (≤ 500),
+  p_before = null (event id, for paging))` → `{ ok, events: [{ id, occurred_at, actor_account_id, actor_name, action,
+  target, hub_slug }] }`. `staff` scope: `staff.*`, `admin.*`, `platform_admin.*`, suspensions, Campaign block/unblock,
+  Discover decisions, report dismissals and staff comment hiding. The `detail` payload is never returned.
+
+### Overview
+
+`lv_admin_overview()` (replaced, additive) adds `comment_reports_open`, `hubs_suspended`, `accounts_suspended`,
+`staff`.
+<!-- ---- end staff panel ---- -->
