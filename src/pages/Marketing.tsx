@@ -42,6 +42,7 @@ const FAQ: [string, string][] = [
   ["What makes an answer anonymous?", "Eligibility is checked apart from the answer. On an anonymous survey the creator sees totals and can’t link an answer to a person."],
   ["Who can see results?", "The creator of a Quick Survey, and on a Hub only people with the results permission. Membership alone doesn’t grant it."],
   ["What about guests?", "A link survey can accept guests who answer without an account. Guests never become members, never count toward thresholds, and are labelled as unverified in results."],
+  ["Can totals ever reveal one person?", "We withhold small groups, merge hidden answers into one Withheld bucket, hide averages that could give a group away, and keep anonymous Campaigns open to all members rather than to chosen roles. One limit remains: if an anonymous Campaign runs again after exactly one new member joins, comparing the two sets of totals can hint at that person\u2019s answer. We\u2019re adding protection for that; until then, creators can see who joined in the member list."],
   ["Is every question required?", "Unless the creator marks a question optional, it needs an answer. The survey tells you before you start."],
 ];
 

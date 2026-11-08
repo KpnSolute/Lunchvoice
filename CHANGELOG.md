@@ -6,6 +6,15 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Compliance (feature-complete gate met)
+
+- Targeted re-review at 8f2feb0: FB-01 closed (attack refused in both directions; forced rows blocked at activation),
+  FB-02/04/05 closed; 0 BLOCKER, 0 HIGH. FB-06 (one newly admitted member between two Hub-wide anonymous Campaigns)
+  accepted as LOW for launch with a public FAQ disclosure ("Can totals ever reveal one person?"); the structural fix
+  (freeze the audience at activation, withhold results across anonymous Campaigns differing by 1-4 members) is
+  scheduled after launch. Remaining: LC-08 legal operator name (founder), accepted MEDIUM/LOW items.
+- Full e2e suite 46/46; canonical suite 1003 checks, 0 failed.
+
 ### Security (FB-01, 000022)
 
 - Full-build compliance re-review found one HIGH (FB-01): two anonymous Campaigns targeted at overlapping roles
