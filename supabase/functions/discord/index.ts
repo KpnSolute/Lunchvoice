@@ -100,7 +100,15 @@ Deno.serve(async (req) => {
 
   try {
     const run = db(dbUrl);
-    const rows = await run((tx) => tx`select lv.discord_interaction(${parsed.command!}, ${tx.json(parsed.ctx as postgres.JSONValue)}) as r`);
+    // Interactions carry no server name. For connect codes the confirming manager must see which server asks, so fetch
+    // it with the bot token (best effort; the page says "this Discord server" otherwise).
+    let guildName: string | null = null;
+    if (token && parsed.ctx.guild_id && (parsed.command === "connect" || parsed.command === "link")) {
+      const g = await fetch(`${DISCORD_API}/guilds/${parsed.ctx.guild_id}`, { headers: { authorization: `Bot ${token}` } }).catch(() => null);
+      if (g?.ok) guildName = String(((await g.json().catch(() => ({}))) as { name?: unknown }).name ?? "").slice(0, 100) || null;
+    }
+    const ctx = { ...parsed.ctx, guild_name: guildName };
+    const rows = await run((tx) => tx`select lv.discord_interaction(${parsed.command!}, ${tx.json(ctx as postgres.JSONValue)}) as r`);
     const result = (rows[0]?.r ?? { ok: false, error: { code: "lv_server_error", message: "No result." } }) as Record<string, any>;
     let summary: { added: number; removed: number } | undefined;
     const guild = parsed.ctx.guild_id;
