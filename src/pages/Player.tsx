@@ -16,7 +16,8 @@ import { StateScreen } from "../ui/StateScreen";
  * Mobile first, max 560px, no Hub navigation, no signature. Powered by LunchVoice sits at the foot.
  */
 
-const randomKey = () => Array.from({ length: 32 }, () => "abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random() * 36)]).join("");
+// LC-11: the guest key comes from the CSPRNG (256 bits, hex), never Math.random.
+const randomKey = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, "0")).join("");
 
 function PoweredBy() {
   return (
@@ -83,7 +84,8 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
     </div>
   );
 
-  const reportCode = guest?.joinCode ?? d?.join_code ?? null;
+  // A link-token visit reports by the typed join code the server returns (000018, LC-10).
+  const reportCode = d?.join_code ?? guest?.joinCode ?? null;
   const report = reportCode ? <ReportSurvey joinCode={reportCode} /> : null;
 
   if (detail.loading) return frame(<Loading rows={3} label="Loading Campaign" />);

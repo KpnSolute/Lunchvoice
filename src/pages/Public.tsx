@@ -5,6 +5,7 @@ import { MadeBy } from "../components/MakerMark";
 import { Icon } from "../components/Icon";
 import { BottomTabs } from "../ui/BottomTabs";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../config/contact";
+import { safeReturnTo } from "../lib/kpnIdentity";
 import { Button } from "@/components/shadcn/button";
 import { Input } from "@/components/shadcn/input";
 import { Card } from "@/components/shadcn/card";
@@ -200,7 +201,8 @@ export function SignIn() {
   const [name, setName] = useState("Dana Reyes");
   const location = useLocation();
   const nav = useNavigate();
-  const from = (location.state as { from?: string } | null)?.from ?? "/me";
+  // LC-14: history state is caller-controlled; only safe same-site paths are followed.
+  const from = safeReturnTo((location.state as { from?: string } | null)?.from);
   if (session) return <Navigate to={from} replace />;
   return (
     <div className="lv-narrow">
@@ -264,7 +266,7 @@ export function AuthCallback() {
     if (started.current) return;
     started.current = true;
     completeSignIn(window.location.search)
-      .then((to) => nav(to, { replace: true }))
+      .then((to) => nav(safeReturnTo(to), { replace: true }))
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "Sign-in failed."));
   }, [completeSignIn, nav]);
   return (
