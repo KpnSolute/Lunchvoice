@@ -65,7 +65,7 @@ select t.check('caps: the catalogue lists community.post, community.moderate and
   and (lv_api.lv_capability_catalog())::text like '%community.shop%');
 select t.check('caps: the Owner holds the community capabilities',
   (lv_api.lv_my_context())::text like '%community.post%' and (lv_api.lv_my_context())::text like '%community.moderate%');
-select t.put('r_editor', (lv_api.lv_role_create(t.id('hub'), 'Editor', 'star', array['community.post', 'community.moderate']) ->> 'role_id'));
+select t.put('r_editor', (lv_api.lv_role_create(t.id('hub'), 'Editor', 'star', array['community.post', 'community.moderate']) #>> '{role,role_id}'));
 select lv_api.lv_member_role_assign(t.id('m_poster'), t.id('r_editor'));
 
 -- ===== pages: content, visibility, add-on gating =========================================================
@@ -228,8 +228,8 @@ select t.check('leaderboard: entries carry no answers, timings or Campaign ids',
 select t.as_kpn(1); select lv_api.lv_campaign_close(t.id('clive'));
 select t.as_kpn(3);
 select t.check('leaderboard: once the live Campaign ends it counts', (lv_api.lv_leaderboard_get(t.id('hub')) #>> '{entries,0,campaigns}') = '3');
-select t.check('leaderboard: opting out removes the member', (lv_api.lv_leaderboard_opt(t.id('hub'), false) ->> 'opted_in') = 'false'
-  and (lv_api.lv_leaderboard_get(t.id('hub')))::text not like '%Member Three%');
+select t.check('leaderboard: opting out works', (lv_api.lv_leaderboard_opt(t.id('hub'), false) ->> 'opted_in') = 'false');
+select t.check('leaderboard: an opted-out member is gone', (lv_api.lv_leaderboard_get(t.id('hub')))::text not like '%Member Three%');
 select t.as_kpn(4);
 select t.check('leaderboard: a non-member cannot read it', t.code(lv_api.lv_leaderboard_get(t.id('hub'))) = 'lv_forbidden');
 
@@ -280,9 +280,9 @@ select t.as_kpn(1);
 select t.check('shop: the Hub lists orders with the member name',
   (lv_api.lv_shop_order_list(t.id('hub'), 'placed') #>> '{orders,0,member_name}') = 'Member Three');
 select t.as_kpn(3);
-select t.check('shop: the member cancels their own open order: points and stock come back',
-  t.code(lv_api.lv_shop_order_update((t.get('o1')::jsonb #>> '{order,order_id}')::uuid, 'cancelled')) = 'ok'
-  and (lv_api.lv_shop_get(t.id('hub')) ->> 'balance') = '40'
+select t.check('shop: the member cancels their own open order',
+  t.code(lv_api.lv_shop_order_update((t.get('o1')::jsonb #>> '{order,order_id}')::uuid, 'cancelled')) = 'ok');
+select t.check('shop: cancelling refunds the points and restores the stock', (lv_api.lv_shop_get(t.id('hub')) ->> 'balance') = '40'
   and (select (e->>'stock')::int from jsonb_array_elements(lv_api.lv_shop_get(t.id('hub')) -> 'items') e where e->>'item_id' = t.get('item')) = 1);
 select t.put('o2', lv_api.lv_shop_order_place(t.id('item'))::text);
 select t.as_kpn(1);
