@@ -311,7 +311,10 @@ select lv_api.lv_campaign_close(t.id('q1'));
 select t.check('invite: activation works', t.code(lv_api.lv_campaign_activate(t.id('inv_c'))) = 'ok');
 select t.check('invite: link-access surveys do not use Campaign invites', t.code(lv_api.lv_campaign_invite_create(t.id('q1'))) in ('lv_invalid_input', 'lv_lifecycle_invalid'));
 select t.put('tok', (lv_api.lv_campaign_invite_create(t.id('inv_c'), 1) #>> '{invite,token}'));
-select t.check('invite: the creator lists invites with their tokens', (lv_api.lv_campaign_invite_list(t.id('inv_c')) #>> '{invites,0,token}') = t.get('tok'));
+-- 000018 (NEW-05): the token is shown once at creation; the list carries only a prefix.
+select t.check('invite: the creator lists invites by prefix, never the token',
+  (lv_api.lv_campaign_invite_list(t.id('inv_c')) #>> '{invites,0,prefix}') = left(t.get('tok'), 6)
+  and not ((lv_api.lv_campaign_invite_list(t.id('inv_c')) #> '{invites,0}') ? 'token'));
 select t.put('inv_code', t.q(format($q$select join_code from lv.campaigns where id = %L::uuid$q$, t.get('inv_c'))));
 select t.as_kpn(2);
 select t.check('invite: an uninvited signed-in person cannot see it', t.code(lv_api.lv_campaign_get(t.id('inv_c'))) = 'lv_not_found'

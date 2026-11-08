@@ -53,8 +53,10 @@ as $$ select 'https://kpn.test.invalid/auth/v1' $$;
 create or replace function t.sub(n int) returns uuid language sql immutable
 as $$ select ('00000000-0000-4000-8c00-' || lpad(n::text, 12, '0'))::uuid $$;
 
--- Sign in as person n with a correctly shaped token. Mirrors what PostgREST would present after verifying a
--- KpnIdentity ID token. This ONLY fabricates the claim; it is not a real OAuth round trip.
+-- Sign in as person n with a correctly shaped token. Mirrors what PostgREST presents for a LunchVoice session issued
+-- by the `session` Edge Function (supabase/functions/_shared/session.ts issueSession: aud 'authenticated',
+-- role 'authenticated', session_kind 'lunchvoice', KpnIdentity issuer and subject; 000018 LC-12 requires aud and
+-- session_kind). This ONLY fabricates the claim; it is not a real OAuth round trip.
 create or replace function t.as_kpn(
   p_n int,
   p_email text default null,
@@ -68,8 +70,9 @@ begin
   perform set_config('request.jwt.claims', jsonb_build_object(
     'sub', t.sub(p_n)::text,
     'iss', coalesce(p_issuer, t.issuer()),
-    'aud', 'lunchvoice',
+    'aud', 'authenticated',
     'role', 'authenticated',
+    'session_kind', 'lunchvoice',
     'email', coalesce(p_email, 'person' || p_n || '@example.invalid'),
     'email_verified', coalesce(p_verified, true),
     'name', coalesce(p_name, 'Person ' || p_n),
