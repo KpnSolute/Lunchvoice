@@ -454,6 +454,8 @@ function WhoCanParticipate({ hubName, d, save, reload }: { hubName: string; d: C
   useEffect(() => { setScope(aud?.scope ?? "all_members"); setPicked(aud?.roles.map((r) => r.role_id) ?? []); }, [aud?.scope, aud?.roles]);
   // "Specific roles" is offered only when the plan allows it (or a draft already uses it, so it can be undone).
   const offered = Boolean(aud && (aud.role_targeting || aud.scope === "roles"));
+  // FB-01 (000022): role targeting is for identified Campaigns only; the server refuses it on anonymous ones.
+  const anonymous = d.campaign.anonymity === "anonymous";
   async function persist(nextScope: "all_members" | "roles", nextRoles: string[]) {
     setScope(nextScope);
     setPicked(nextRoles);
@@ -474,7 +476,14 @@ function WhoCanParticipate({ hubName, d, save, reload }: { hubName: string; d: C
             onValueChange={(v) => void persist(v as "all_members" | "roles", v === "roles" ? picked : [])}
           >
             <RadioCard value="all_members" title={`All members of ${hubName}`} description="Every accepted member can answer." />
-            <RadioCard value="roles" title="Specific roles" description="Only members holding one of the roles you pick. Only they count toward participation." />
+            <RadioCard
+              value="roles"
+              title="Specific roles"
+              disabled={anonymous && scope !== "roles"}
+              description={anonymous
+                ? "Only for identified Campaigns. An anonymous Campaign goes to all members, so no answer can be traced to one person."
+                : "Only members holding one of the roles you pick. Only they count toward participation."}
+            />
           </RadioGroup>
           {scope === "roles" && (
             <fieldset className="lv-fieldset" data-testid="audience-roles">
@@ -529,7 +538,14 @@ export function IdentityGroup({ d, save, reload }: { d: CampaignDetailData; save
           if (r.ok) reload(); else setValue(d.campaign.anonymity);
         }}
       >
-        <RadioCard value="anonymous" title="Anonymous" description="You see totals only. Nobody, including you, can link an answer to a person. Small groups are withheld." />
+        <RadioCard
+          value="anonymous"
+          title="Anonymous"
+          disabled={d.audience?.scope === "roles" && value !== "anonymous"}
+          description={d.audience?.scope === "roles"
+            ? "Not with specific roles: switch Who can participate back to all members first, so no answer can be traced to one person."
+            : "You see totals only. Nobody, including you, can link an answer to a person. Small groups are withheld."}
+        />
         <RadioCard value="identified" title="Identified" description="You can see who answered and what they said. People are told before they start." />
       </RadioGroup>
       <p className="ui-help lv-m0">{draft ? "You can change this until you publish." : "Locked: respondents were promised this when they answered."}</p>

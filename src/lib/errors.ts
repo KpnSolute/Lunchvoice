@@ -76,5 +76,6 @@ export function describeGate(reasons: string[] | undefined): string[] {
 // 000018 gate reasons for role-targeted Campaigns.
 Object.assign(GATE_REASONS, {
   role_targeting_unavailable: "This Hub’s plan doesn’t include choosing participants by role. Switch the audience back to all members.",
+  role_targeting_anonymous: "Choosing participants by role is only for identified Campaigns. Switch the audience back to all members, or make the Campaign identified.",
   audience_empty: "None of the chosen roles exists any more. Pick a role or switch to all members.",
 });

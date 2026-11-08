@@ -78,7 +78,7 @@ export function Waitlist() {
           {!session ? (
             <div className="lv-wl-result">
               <h2 className="lv-mk-card-title">Sign in, then join</h2>
-              <p className="lv-mk-card-body">Joining needs a LunchVoice sign-in so your place belongs to you. It takes one step with Google.</p>
+              <p className="lv-mk-card-body">Joining needs a LunchVoice sign-in so your place belongs to you. It takes one step with your KpnSolute account.</p>
               <Button asChild variant="primary" size="lg"><Link to="/signin" state={{ from: "/waitlist" }}>Sign in to join</Link></Button>
             </div>
           ) : status.loading && !s ? (

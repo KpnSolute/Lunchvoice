@@ -621,6 +621,8 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (bad) return err("lv_invalid_input", bad);
       if (a.p_title != null) c.title = String(a.p_title).trim();
       if (a.p_mode != null) c.mode = String(a.p_mode);
+      if (a.p_anonymity === "anonymous" && (c as { audience_scope?: string }).audience_scope === "roles") // 000022 (FB-01)
+        return err("lv_not_available", "Choosing participants by role is only for identified Campaigns. An anonymous Campaign goes to all members, so no answer can be traced to one person.");
       if (a.p_anonymity != null) c.anonymity = String(a.p_anonymity);
       c.opens_at = opens;
       c.closes_at = closes;
@@ -923,6 +925,7 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
     if ((c.audience_scope ?? "all_members") !== "roles") return [];
     const out: string[] = [];
     if (!targeting(c.hub_id)) out.push("role_targeting_unavailable");
+    if (c.anonymity === "anonymous") out.push("role_targeting_anonymous"); // 000022 (FB-01)
     if (!(c.audience_roles ?? []).some((rid) => s.roles.some((r) => r.role_id === rid))) out.push("audience_empty");
     return out;
   };
@@ -1007,6 +1010,7 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
       const roles = [...new Set(((a.p_roles as string[] | null) ?? []).filter(Boolean))];
       if (!roles.length) { c.audience_scope = "all_members"; c.audience_roles = []; return { ok: true, audience: audience(c, false) }; }
       if (!targeting(c.hub_id)) return err("lv_entitlement_required", "Choosing Campaign participants by role comes with the Team plan.", { product: "team_hub" });
+      if (c.anonymity === "anonymous") return err("lv_not_available", "Choosing participants by role is only for identified Campaigns. An anonymous Campaign goes to all members, so no answer can be traced to one person."); // 000022 (FB-01)
       if (roles.length > 20) return err("lv_invalid_input", "Pick at most 20 roles.");
       if (roles.some((rid) => !s.roles.some((r) => r.role_id === rid && r.hub === c.hub_id) && rid !== `owner-${c.hub_id}`)) return err("lv_invalid_input", "Every role must belong to this Hub.");
       c.audience_scope = "roles";

@@ -227,7 +227,7 @@ function OutlineList({
           </li>
         ))}
         {sel === "new" && !locked && !atLimit && (
-          <li className="lv-outline-li"><span className="lv-outline-item" aria-current="true"><span className="lv-outline-n">{String(qs.length + 1).padStart(2, "0")}</span><span className="lv-outline-text"><span>New question</span><small>Not saved until it has a question text</small></span></span></li>
+          <li className="lv-outline-li"><span className="lv-outline-item" aria-current="true"><span className="lv-outline-n">{String(qs.length + 1).padStart(2, "0")}</span><span className="lv-outline-text"><span>New question</span><small>Not saved yet: type the question text</small></span></span></li>
         )}
       </ol>
       {!locked && (
@@ -364,8 +364,20 @@ function QuestionEditor({
             <SelectContent>{KINDS.map((k) => <SelectItem key={k.key} value={k.key}>{k.label}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
-        <Field label="Question" htmlFor={`prompt-${n}`} counter={{ value: draft.prompt.length, max: 200 }} error={q && !draft.prompt.trim() ? "A question needs a question text." : undefined}>
-          <Input id={`prompt-${n}`} value={draft.prompt} maxLength={200} disabled={locked} onChange={(e) => schedule({ ...draft, prompt: e.target.value })} placeholder="Which night works for the social?" aria-describedby={`prompt-${n}-help`} />
+        {/* A new question saves only once it has question text. Say so on the field as soon as anything else has been
+            filled in (founder bug report: options were typed, the example placeholder looked like a question, and nothing
+            saved). The placeholder no longer reads like a real question. */}
+        <Field
+          label="Question"
+          htmlFor={`prompt-${n}`}
+          counter={{ value: draft.prompt.length, max: 200 }}
+          error={
+            !draft.prompt.trim() && (q || draft.options.some((o) => o.trim()))
+              ? q ? "A question needs a question text." : "Type the question text to save this question."
+              : undefined
+          }
+        >
+          <Input id={`prompt-${n}`} value={draft.prompt} maxLength={200} disabled={locked} onChange={(e) => schedule({ ...draft, prompt: e.target.value })} placeholder="Type your question" aria-invalid={!draft.prompt.trim() && (Boolean(q) || draft.options.some((o) => o.trim())) || undefined} aria-describedby={`prompt-${n}-help`} autoFocus={!q} />
         </Field>
 
         {isChoice(draft.kind) && (

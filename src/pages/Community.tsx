@@ -356,7 +356,7 @@ export function LeaderboardPage() {
       <Card>
         <ToggleRow
           title="Show me on the leaderboard"
-          description={`Off unless you turn it on. It shows your name and how many ended Campaigns you took part in (you: ${d.me.campaigns}). Never your answers, never when you answered.`}
+          description={`Off unless you turn it on. It shows your name and how many of this Hub’s ended Campaigns you took part in, anonymous ones included (you: ${d.me.campaigns}). Never your answers, never when you answered.`}
           control={<Switch aria-label="Show me on the leaderboard" checked={d.me.opted_in} disabled={busy} onCheckedChange={toggle} />}
         />
       </Card>

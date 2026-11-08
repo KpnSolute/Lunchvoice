@@ -6,6 +6,30 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Security (FB-01, 000022)
+
+- Full-build compliance re-review found one HIGH (FB-01): two anonymous Campaigns targeted at overlapping roles
+  that differ by one member let the creator difference out that member's answer. Role targeting is now for
+  identified Campaigns only: a trigger refuses an anonymous, role-targeted Campaign (setting roles on an anonymous
+  draft, or switching a role-targeted draft to anonymous, answers `lv_not_available` with an explanation) and the
+  activation gate adds `role_targeting_anonymous`. Track A's tests now target roles on identified Campaigns. New
+  suite `22_anonymous_role_targeting.sql` (9 checks, including the reproduced attack). The Studio disables
+  "Specific roles" on anonymous Campaigns and "Anonymous" while roles are chosen, each with the reason; the mock
+  follows the same rule.
+
+### Fixed
+
+- Founder bug report: a new question with options but no question text never saved and the editor did not say why
+  (the example placeholder looked like real text). The Question field now has a neutral placeholder and shows
+  "Type the question text to save this question." as soon as options are entered; the outline says
+  "Not saved yet: type the question text". E2e test added.
+- Sign-in button reads "Continue with KpnSolute" (KpnSolute account; Google is one way to sign in to it); the
+  waitlist page says the same.
+- FB-02: `/privacy` lists community data, payments (Stripe), service emails and their 30-day retention, the
+  Discover listing, and Stripe and Resend as processors. FB-04: the leaderboard opt-in says anonymous Campaigns
+  count too. FB-05: invite emails say who sent them and how to report abuse (function test added).
+- Full-build compliance re-review merged into `docs/compliance/LAUNCH_COMPLIANCE_REVIEW.md` §8.
+
 ### Security and gaps (full build: track A; 000018)
 
 - LC-10: every Campaign has a 128-bit link token for links and QR codes; failed join-code lookups are rate-limited

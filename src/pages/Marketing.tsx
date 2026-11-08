@@ -166,6 +166,10 @@ const STORED: [string, string][] = [
   ["Waitlist contact email", "Optional. Only if you give it and agree; used for launch and account updates; deleted when you delete your account."],
   ["Answers", "What you answer on surveys and Campaigns. On anonymous surveys the creator sees totals only and can’t link an answer to you."],
   ["Hubs and memberships", "Hubs you create or join, your roles in them, and invitations."],
+  ["Community activity", "In Hubs that switch them on: posts and comments you write, reports you file, whether you opted in to the leaderboard, Hub points and shop orders. The leaderboard shows only members who opt in, and only how many of the Hub’s ended Campaigns (anonymous ones included) they took part in, never what they answered."],
+  ["Payments", "If you buy a plan, Stripe handles your card and billing details. We keep your Stripe customer reference and which plan you bought, never your card number."],
+  ["Emails we send", "Only service emails: waitlist confirmation, Hub created, invitations someone sends you, reservation reminders, receipts for identified Campaigns (never anonymous ones, and never your answers) and shop order updates. Queued emails are kept up to 30 days after sending, then deleted, and are deleted with your account."],
+  ["Discover", "Approved Team Hubs can be listed publicly at /discover with their name, category and a member count rounded down to the nearest 100. Quick Surveys and private Hubs are never listed."],
 ];
 
 const STORAGE_KEYS: [string, string, string][] = [
@@ -208,6 +212,7 @@ export function Privacy() {
         <ul>
           <li>Survey and Campaign data: while the account or Hub that owns it exists.</li>
           <li>Logs: 12 months.</li>
+          <li>Sent or failed emails: up to 30 days.</li>
           <li>Guest rate-limit data: 7 days.</li>
           <li>A deleted Hub’s address is held for 30 days before anyone can claim it. A reused address never shows the previous Hub’s data.</li>
         </ul>
@@ -218,6 +223,8 @@ export function Privacy() {
           <li><strong>Supabase</strong>: database and server functions.</li>
           <li><strong>Render</strong>: hosting of this website.</li>
           <li><strong>KpnIdentity (KpnSolute) and Google</strong>: sign-in.</li>
+          <li><strong>Stripe</strong>: payments, invoices and tax calculation, only if you buy a plan.</li>
+          <li><strong>Resend</strong>: delivery of the service emails above.</li>
         </ul>
         <h2>Contact</h2>
         <p>Questions, access or deletion requests: <a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a>.</p>

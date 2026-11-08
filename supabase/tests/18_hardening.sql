@@ -135,6 +135,8 @@ select t.check('options: changing a rating to a choice without options is refuse
   t.code(lv_api.lv_campaign_question_update(t.id('q_rate'), p_kind => 'single_choice')) = 'lv_invalid_input');
 
 -- ===== Team role targeting ===============================================================================
+-- 000022 (FB-01): role targeting is for identified Campaigns only, so c1 is switched to identified first.
+select lv_api.lv_campaign_update(t.id('c1'), p_anonymity => 'identified');
 select t.check('roles: a Starter Hub cannot target roles (lv_entitlement_required, team_hub)',
   (lv_api.lv_campaign_set_audience_roles((lv_api.lv_campaign_create(t.id('starter'), 'S', 'poll') ->> 'campaign_id')::uuid,
      array[t.id('r_other')]) #>> '{error,product}') = 'team_hub');
@@ -184,7 +186,7 @@ select t.check('roles: a guest never counts toward eligibility or participation'
   t.q(format($q$select lv.campaign_member_participation(%L::uuid)::text$q$, t.get('c1')))::jsonb = '{"eligible": 1, "participants": 1}'::jsonb);
 -- A plan without role targeting (e.g. after a downgrade) and a targeted role that was deleted both block publishing.
 select t.as_kpn(1);
-select t.put('c2', (lv_api.lv_campaign_create(t.id('team'), 'Volunteers only', 'poll') ->> 'campaign_id'));
+select t.put('c2', (lv_api.lv_campaign_create(t.id('team'), 'Volunteers only', 'poll', 'identified') ->> 'campaign_id'));
 select lv_api.lv_campaign_question_add(t.id('c2'), 1, 'yes_no', 'Can you help?');
 select lv_api.lv_campaign_set_audience_roles(t.id('c2'), array[t.id('r_plain')]);
 select t.set_limit('campaigns.role_targeting', 'false');

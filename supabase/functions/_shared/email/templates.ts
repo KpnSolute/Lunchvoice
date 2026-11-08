@@ -110,7 +110,8 @@ export function renderEmail(template: string, payload: Payload, appOrigin = "htt
         body: [`Accepting makes you a member of ${hub}. You can leave any time.${expires ? ` This invite expires on ${expires}.` : ""}`,
                `Your invite code is ${code}.`],
         action: { label: "Review invitation", url: `${origin}/j/${encodeURIComponent(code)}` },
-        footer: "Didn't expect this? You can ignore it; nothing happens unless you accept.",
+        // FB-05: say who sent it and how to report abuse (invites are sent by Hub members, not by LunchVoice).
+        footer: `${inviter || "A member"} of ${hub} sent this through LunchVoice. Didn't expect it? Ignore it; nothing happens unless you accept. To report abuse, write to support@lunchvoice.com.`,
       });
     }
     case "reservation_confirmed": {

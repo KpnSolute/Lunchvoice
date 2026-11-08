@@ -225,7 +225,7 @@ export function SignIn() {
               });
             }}
           >
-            {busy ? "Opening KpnIdentity…" : "Continue with Google"}
+            {busy ? "Opening KpnSolute sign-in…" : "Continue with KpnSolute"}
           </Button>
         ) : (
           <Notice tone="warn" title="Sign-in isn't available in this build">

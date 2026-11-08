@@ -99,6 +99,45 @@ test("Audience: Team can restrict a Campaign to a role, and Review says so", asy
   await ctx.close();
 });
 
+test("FB-01: role targeting is only for identified Campaigns, in both directions", async () => {
+  const { page, ctx, errors } = await studio({ family: "team" });
+  await tab(page, "Audience").click();
+  const who = page.getByTestId("audience-who");
+  const identity = page.getByTestId("audience-identity");
+  // Anonymous: Specific roles cannot be chosen, and says why.
+  await identity.getByRole("radio", { name: /^Anonymous/ }).click();
+  await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
+  const roles = who.getByRole("radio", { name: /Specific roles/ });
+  assert.ok(await roles.isDisabled(), "Specific roles is disabled on an anonymous Campaign");
+  await who.getByText("Only for identified Campaigns.", { exact: false }).waitFor();
+  // Identified with roles: Anonymous cannot be chosen until the audience is all members again.
+  await identity.getByRole("radio", { name: /^Identified/ }).click();
+  await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
+  await roles.click();
+  await page.getByTestId("audience-roles").getByRole("checkbox", { name: "coach" }).click();
+  await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
+  assert.ok(await identity.getByRole("radio", { name: /^Anonymous/ }).isDisabled(), "Anonymous is disabled while roles are chosen");
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test("Questions: a new question without question text says so, and saves once it has one", async () => {
+  const { page, ctx } = await studio();
+  await tab(page, "Questions").click();
+  const add = page.getByTestId("question-workbench").locator(":visible").getByTestId("add-question");
+  if (await add.count()) await add.first().click();
+  await page.getByRole("textbox", { name: "Option 1" }).fill("Eat");
+  await page.getByRole("textbox", { name: "Option 2" }).fill("Sleep");
+  await page.getByText("Type the question text to save this question.").waitFor();
+  const prompt = page.getByRole("textbox", { name: "Question", exact: true });
+  assert.equal(await prompt.getAttribute("placeholder"), "Type your question");
+  assert.equal(await prompt.getAttribute("aria-invalid"), "true");
+  await prompt.fill("What should we do after the run?");
+  await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
+  await page.getByText(/^Questions · 1$/).first().waitFor();
+  await ctx.close();
+});
+
 test("Quick Survey: access can change while draft; invite only turns guests off", async () => {
   const { page, go, ctx } = await openPage(app);
   await go("/surveys/qs-seed-3");
