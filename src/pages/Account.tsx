@@ -74,6 +74,7 @@ export function Me() {
               />
             </div>
 
+            <OwnerOffers c={c} onChanged={ctx.reload} />
             <NextStep c={c} />
 
             <Card>
@@ -517,5 +518,44 @@ export function Settings() {
         </Card>
       </div>
     </div>
+  );
+}
+
+/* ---- track A: hardening ---- */
+
+/** Ownership offers addressed to me (000018): nothing changes until I accept. */
+function OwnerOffers({ c, onChanged }: { c: MyContext; onChanged: () => void }) {
+  const { api } = useIdentity();
+  const nav = useNavigate();
+  const [busy, setBusy] = useState(false);
+  const offers = c.owner_transfer_offers ?? [];
+  if (!offers.length) return null;
+  return (
+    <>
+      {offers.map((o) => (
+        <Card key={o.offer_id} data-testid="owner-offer-incoming">
+          <SectionTitle>Become the Owner of {o.hub_name}?</SectionTitle>
+          <p className="lv-m0">{o.from_display_name ?? "The Owner"} offered you ownership. As Owner you control the Hub, its plan and its members. The offer ends {new Date(o.expires_at).toLocaleDateString()}.</p>
+          <div className="ui-row">
+            <Button variant="primary" disabled={busy} onClick={async () => {
+              setBusy(true);
+              const r = await api.ownerTransferAccept(o.offer_id);
+              setBusy(false);
+              if (!r.ok) return void toast.error(describeError(r.error));
+              toast.success(`You are now the Owner of ${o.hub_name}`);
+              nav(`/${r.slug}`);
+            }}>Accept ownership</Button>
+            <Button variant="secondary" disabled={busy} onClick={async () => {
+              setBusy(true);
+              const r = await api.ownerTransferDecline(o.offer_id);
+              setBusy(false);
+              if (!r.ok) return void toast.error(describeError(r.error));
+              toast.success("Offer declined");
+              onChanged();
+            }}>Decline</Button>
+          </div>
+        </Card>
+      ))}
+    </>
   );
 }

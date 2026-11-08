@@ -112,6 +112,8 @@ export interface MyContext {
   waitlist: { status: WaitlistState; position?: number };
   /** Contract request (not in LAUNCH_PLAN yet): recent answers, own account only. Hidden when absent. */
   recent_participation?: ParticipationItem[];
+  /** 000018 (track A): ownership offers waiting for this account's answer. */
+  owner_transfer_offers?: OwnerOffer[];
 }
 
 /* ------------------------------------------------------------------ hubs */
@@ -241,6 +243,8 @@ export interface CampaignDetailData {
     space?: "personal" | "community";
     access?: SurveyAccess;
     question_limit?: number | null;
+    /** 000018 (track A) */
+    description?: string | null;
   };
   questions: Question[];
   has_responded: boolean;
@@ -251,10 +255,19 @@ export interface CampaignDetailData {
   /** Managers only: the activation gate with the limit in force when one is reached (000014 gate_evaluate). */
   gate?: { ok: boolean; reasons: string[]; family?: string | null; limit?: number; used?: number; limit_key?: string };
   blocked?: boolean;
+  /** 000018 (track A, managers only): the 128-bit link token for links and QR codes (LC-10) and the member audience. */
+  link_token?: string;
+  audience?: CampaignAudience;
 }
 
 export interface CampaignInvite {
-  token: string;
+  /** Shown once, only in the lv_campaign_invite_create result (000018, NEW-05). */
+  token?: string;
+  /** 000018: listing shows the invite id and a 6-character prefix instead of the token. */
+  invite_id?: string;
+  prefix?: string;
+  state?: InviteState;
+  shown_once?: boolean;
   max_uses: number | null;
   uses: number;
   expires_at: string | null;
@@ -521,6 +534,24 @@ export function createLvApi(transport: LvTransport) {
 
     /* ---- abuse ---- */
     reportAbuse: (joinCode: string, reason: string) => call<object>("lv_report_abuse", { p_join_code: joinCode, p_reason: reason }),
+
+    /* ---- track A: hardening ---- */
+    // lv_campaign_create(..., p_description) (000018).
+    campaignCreateDescribed: (hub: string, title: string, mode: CampaignMode, anonymity: Anonymity, description: string | null) =>
+      call<{ campaign_id: string }>("lv_campaign_create", { p_hub: hub, p_title: title, p_mode: mode, p_anonymity: anonymity, p_description: description }),
+    // lv_campaign_update(p_campaign, p_description?, p_access?) (000018): draft only; '' clears the description; access
+    // is for Quick Surveys only and switching to invite turns guests off.
+    campaignDetailsUpdate: (campaign: string, patch: { description?: string; access?: SurveyAccess }) =>
+      call<object>("lv_campaign_update", { p_campaign: campaign, p_description: patch.description ?? null, p_access: patch.access ?? null }),
+    // NULL or [] = every member; Team family only (lv_entitlement_required { product: "team_hub" } otherwise).
+    campaignSetAudienceRoles: (campaign: string, roles: string[] | null) =>
+      call<{ audience: CampaignAudience }>("lv_campaign_set_audience_roles", { p_campaign: campaign, p_roles: roles && roles.length ? roles : null }),
+    hubLimits: (hub: string) => call<HubLimits>("lv_hub_limits", { p_hub: hub }),
+    campaignInviteRevokeById: (invite: string) => call<object>("lv_campaign_invite_revoke_by_id", { p_invite: invite }),
+    ownerTransferStatus: (hub: string) => call<{ offer: OwnerOffer | null }>("lv_owner_transfer_status", { p_hub: hub }),
+    ownerTransferCancel: (hub: string) => call<{ cancelled: boolean }>("lv_owner_transfer_cancel", { p_hub: hub }),
+    ownerTransferAccept: (offer: string) => call<{ accepted: true; hub_id: string; slug: string }>("lv_owner_transfer_accept", { p_offer: offer }),
+    ownerTransferDecline: (offer: string) => call<{ accepted: false }>("lv_owner_transfer_decline", { p_offer: offer }),
   };
 }
 
@@ -531,3 +562,54 @@ export function activeFamily(plan: HubPlan | undefined | null): PlanFamily | nul
   if (!plan || plan.state !== "active") return null;
   return plan.family;
 }
+
+/* ---- track A: hardening ---- */
+
+/** 000018: who among the Hub's members a Campaign is for. Guests are never affected by roles. */
+export interface CampaignAudience {
+  scope: "all_members" | "roles";
+  roles: { role_id: string; name: string }[];
+  /** The Hub's plan includes role targeting (Team family). */
+  role_targeting: boolean;
+  /** Managers of community Hubs: every role of the Hub. */
+  available_roles?: { role_id: string; name: string; is_owner: boolean }[];
+}
+
+/** 000018 lv_hub_limits: limits and usage for anyone with campaign.manage. No billing data. */
+export interface HubLimits {
+  plan: { family: PlanFamily | null; state: EntitlementState | "none" };
+  limits: Record<string, unknown>;
+  usage: { custom_roles: number; custom_pages: number; active_campaigns: number; active_surveys: number; active_surveys_below_threshold: number };
+}
+
+/** 000018: an ownership transfer waiting for the receiving member. */
+export interface OwnerOffer {
+  offer_id: string;
+  hub_id: string;
+  hub_slug: string;
+  hub_name: string;
+  membership_id: string;
+  to_display_name: string | null;
+  from_display_name: string | null;
+  created_at: string;
+  expires_at: string;
+  state: "pending" | "accepted" | "declined" | "cancelled" | "expired";
+}
+
+/** The rule lv.question_config_problem (000018) enforces, shared by the editor and the dev mock. */
+export function questionConfigProblem(kind: string, config: unknown): string | null {
+  if (config !== null && config !== undefined && (typeof config !== "object" || Array.isArray(config))) return "Question settings must be an object.";
+  if (kind !== "single_choice" && kind !== "multi_choice") return null;
+  const c = (config ?? {}) as { options?: unknown; max?: unknown };
+  if (!Array.isArray(c.options) || c.options.length < 2 || c.options.length > 10) return "A choice question needs 2 to 10 options.";
+  if (c.options.some((o) => typeof o !== "string" || !o.trim())) return "Every option needs text.";
+  const opts = c.options as string[];
+  if (opts.some((o) => o.length > 200)) return "Keep each option to 200 characters.";
+  if (new Set(opts.map((o) => o.trim().toLowerCase())).size < opts.length) return "Options must all be different.";
+  if (c.max !== undefined && c.max !== null && (typeof c.max !== "number" || !Number.isInteger(c.max) || c.max < 1 || c.max > opts.length))
+    return "The most choices a person can pick must be between 1 and the number of options.";
+  return null;
+}
+
+/** A 32-character hex link token (LC-10) rather than a 6-character join code. */
+export const isLinkToken = (code: string) => /^[0-9a-fA-F]{32}$/.test(code.trim());

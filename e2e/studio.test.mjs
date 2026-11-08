@@ -153,11 +153,15 @@ test("Review: exact checklist; Publish disabled while invalid, enabled when vali
   await tab(page, "Questions").click();
   await page.getByRole("textbox", { name: "Question", exact: true }).fill("Shirt size?");
   await page.getByRole("textbox", { name: "Option 1" }).fill("M");
-  await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
+  // 000018: the server stores only valid options, so a one-option question is not saved yet and the editor says so.
+  await page.getByText("Changes to this question save once the options are valid.").waitFor();
   await tab(page, "Review").click();
-  await page.getByTestId("readiness").getByText("Question 1 needs at least two options.").waitFor();
+  await page.getByTestId("readiness").getByText("Add at least one question.").waitFor();
   assert.ok(await page.getByTestId("publish").isDisabled());
   await tab(page, "Questions").click();
+  // The unsaved new question lived only in the editor, which leaving the tab closed.
+  await page.getByRole("textbox", { name: "Question", exact: true }).fill("Shirt size?");
+  await page.getByRole("textbox", { name: "Option 1" }).fill("M");
   await page.getByRole("textbox", { name: "Option 2" }).fill("L");
   await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
   await tab(page, "Review").click();

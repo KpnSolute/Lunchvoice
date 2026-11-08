@@ -1,4 +1,4 @@
-import type { LvTransport } from "./lvApi";
+import { isLinkToken, questionConfigProblem, type LvTransport } from "./lvApi";
 import { slugProblem } from "./reservedSlugs";
 
 // DEV-ONLY stand-in for lv_api (excluded from production bundles; see transport.ts and scripts/check-bundle.mjs).
@@ -215,7 +215,7 @@ export function createMockTransport(displayName = "Dana", signedIn: () => boolea
   return {
     async rpc(fn, a = {}) {
       const s = load(displayName);
-      const r = handle(s, fn, a, signedIn());
+      const r = handleTrackA(s, fn, a, signedIn(), () => handle(s, fn, a, signedIn()));
       save();
       // a short delay so loading states are visible in development
       await new Promise((res) => setTimeout(res, 60));
@@ -858,4 +858,218 @@ function texts(c: C, questionId: string): string[] | null {
   const all = c.responses.flatMap((r) => r.answers.filter((x) => x.question_id === questionId && typeof x.value === "string" && x.value.trim()).map((x) => String(x.value)));
   if (c.responses.length < MIN_COHORT) return null;
   return all.sort(() => Math.random() - 0.5);
+}
+
+/* ---- track A: hardening ---- */
+// Mirrors 000018: Campaign description, link tokens (LC-10), option validation, Quick Survey access change, Team role
+// targeting, lv_hub_limits, hashed Campaign invites shown once (NEW-05) and owner-transfer offers. It wraps the base
+// handler: pre-checks and the new operations here, the unchanged behaviour in `handle`.
+// Dev helper: localStorage["lv.mock.family"] = "team" runs every community Hub on the Team family.
+
+type CA = C & { description?: string | null; audience_scope?: "all_members" | "roles"; audience_roles?: string[]; link_token?: string };
+type Offer = { offer_id: string; hub_id: string; membership_id: string; created_at: string; expires_at: string; state: string };
+
+const hex = (bytes: number) => Array.from(crypto.getRandomValues(new Uint8Array(bytes)), (b) => b.toString(16).padStart(2, "0")).join("");
+
+function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: boolean, base: () => unknown): unknown {
+  const st = s as State & { offers?: Offer[] };
+  st.offers ??= [];
+  try {
+    if (localStorage.getItem("lv.mock.family") === "team") for (const e of s.ents) if (e.scope === "hub") e.family = "team";
+  } catch { /* storage unavailable */ }
+  for (const c of s.campaigns as CA[]) c.link_token ??= hex(16);
+  const camp = (id: unknown) => (s.campaigns as CA[]).find((c) => c.campaign_id === id);
+  const hubOf = (c: CA) => s.hubs.find((h) => h.hub_id === c.hub_id);
+  const byToken = (code: unknown) => (isLinkToken(String(code ?? "")) ? (s.campaigns as CA[]).find((c) => c.link_token === String(code).toLowerCase()) : undefined);
+  const targeting = (hubId: string) => hubPlan(s, hubId).state === "active" && hubPlan(s, hubId).family === "team";
+  const audience = (c: CA, options: boolean) => {
+    const roles = (c.audience_roles ?? []).map((rid) => s.roles.find((r) => r.role_id === rid)).filter(Boolean) as State["roles"];
+    return {
+      scope: c.audience_scope ?? "all_members",
+      roles: roles.map((r) => ({ role_id: r.role_id, name: r.name })),
+      role_targeting: targeting(c.hub_id),
+      ...(options ? { available_roles: [{ role_id: `owner-${c.hub_id}`, name: "Owner", is_owner: true }, ...s.roles.filter((r) => r.hub === c.hub_id).map((r) => ({ role_id: r.role_id, name: r.name, is_owner: false }))] } : {}),
+    };
+  };
+  const roleGate = (c: CA): string[] => {
+    if ((c.audience_scope ?? "all_members") !== "roles") return [];
+    const out: string[] = [];
+    if (!targeting(c.hub_id)) out.push("role_targeting_unavailable");
+    if (!(c.audience_roles ?? []).some((rid) => s.roles.some((r) => r.role_id === rid))) out.push("audience_empty");
+    return out;
+  };
+  const descProblem = (v: unknown) => (typeof v === "string" && v.trim().length > 2000 ? "Keep the description to 2000 characters." : null);
+
+  switch (fn) {
+    case "lv_my_context": {
+      const r = base() as Record<string, unknown>;
+      return r.ok ? { ...r, owner_transfer_offers: [] } : r;
+    }
+    case "lv_campaign_create": {
+      const bad = descProblem(a.p_description);
+      if (bad) return err("lv_invalid_input", bad);
+      const r = base() as { ok: boolean; campaign_id?: string };
+      if (r.ok && typeof a.p_description === "string" && a.p_description.trim()) camp(r.campaign_id)!.description = a.p_description.trim();
+      return r;
+    }
+    case "lv_campaign_update": {
+      const c = camp(a.p_campaign);
+      const bad = descProblem(a.p_description);
+      if (bad) return err("lv_invalid_input", bad);
+      if (a.p_access != null && a.p_access !== "link" && a.p_access !== "invite") return err("lv_invalid_input", "Access is link or invite.");
+      if (c && a.p_mode != null && a.p_mode !== "survey" && isPersonal(s, c)) return err("lv_invalid_input", "A Quick Survey is always a survey.");
+      if (c && a.p_access != null && c.status === "draft" && !isPersonal(s, c))
+        return err("lv_invalid_input", "Only a Quick Survey chooses link or invite access; Hub Campaigns are for members.");
+      const r = base() as { ok: boolean };
+      if (!r.ok || !c) return r;
+      if (a.p_access != null) { c.access = String(a.p_access); if (c.access === "invite") c.audience = "members"; }
+      if (a.p_description != null) c.description = String(a.p_description).trim() || null;
+      return r;
+    }
+    case "lv_campaign_question_add": {
+      // Same order as the backend: the Quick Survey size guard first, then the option rule, then the body.
+      const c = camp(a.p_campaign);
+      if (c && isPersonal(s, c) && c.questions.length >= LIMITS.free.quick_survey_questions) return base();
+      const bad = questionConfigProblem(String(a.p_kind), a.p_config ?? {});
+      if (bad && c) return err("lv_invalid_input", bad);
+      return base();
+    }
+    case "lv_campaign_question_update": {
+      const c = s.campaigns.find((x) => x.questions.some((q) => q.question_id === a.p_question));
+      const q = c?.questions.find((x) => x.question_id === a.p_question);
+      if (q && (a.p_kind != null || a.p_config != null)) {
+        const bad = questionConfigProblem(String(a.p_kind ?? q.kind), a.p_config ?? q.config);
+        if (bad) return err("lv_invalid_input", bad);
+      }
+      return base();
+    }
+    case "lv_campaign_get": {
+      const r = base() as { ok: boolean; can_manage?: boolean; campaign?: Record<string, unknown>; gate?: { ok: boolean; reasons: string[] } };
+      const c = camp(a.p_campaign);
+      if (!r.ok || !c) return r;
+      const h = hubOf(c);
+      const out: Record<string, unknown> = { ...r, campaign: { ...r.campaign, description: c.description ?? null } };
+      if (r.can_manage) {
+        out.link_token = c.link_token;
+        out.audience = audience(c, h?.kind === "community");
+        const extra = roleGate(c);
+        if (r.gate && extra.length) out.gate = { ...r.gate, ok: false, reasons: [...r.gate.reasons, ...extra] };
+      }
+      return out;
+    }
+    case "lv_campaign_list":
+    case "lv_quick_survey_list": {
+      const r = base() as { ok: boolean; campaigns?: { campaign_id: string }[]; surveys?: { campaign_id: string }[] };
+      if (!r.ok) return r;
+      const add = (row: { campaign_id: string }) => ({ ...row, description: camp(row.campaign_id)?.description ?? null, ...(fn === "lv_quick_survey_list" ? { link_token: camp(row.campaign_id)?.link_token } : {}) });
+      return fn === "lv_campaign_list" ? { ...r, campaigns: r.campaigns!.map(add) } : { ...r, surveys: r.surveys!.map(add) };
+    }
+    case "lv_campaign_activate":
+    case "lv_campaign_schedule": {
+      const c = camp(a.p_campaign);
+      const extra = c && c.status === "draft" ? roleGate(c) : [];
+      if (extra.length) return err("lv_gate_blocked", extra.join(","), { reasons: extra });
+      return base();
+    }
+    case "lv_campaign_set_audience_roles": {
+      const c = camp(a.p_campaign);
+      if (!c) return err("lv_not_found", "Campaign not found");
+      if (isPersonal(s, c)) return err("lv_not_available", "Quick Surveys are answered by link or invite, not by Hub role.");
+      if (c.status !== "draft") return err("lv_locked", "The audience is part of the published version and can only change in a draft.");
+      const roles = [...new Set(((a.p_roles as string[] | null) ?? []).filter(Boolean))];
+      if (!roles.length) { c.audience_scope = "all_members"; c.audience_roles = []; return { ok: true, audience: audience(c, false) }; }
+      if (!targeting(c.hub_id)) return err("lv_entitlement_required", "Choosing Campaign participants by role comes with the Team plan.", { product: "team_hub" });
+      if (roles.length > 20) return err("lv_invalid_input", "Pick at most 20 roles.");
+      if (roles.some((rid) => !s.roles.some((r) => r.role_id === rid && r.hub === c.hub_id) && rid !== `owner-${c.hub_id}`)) return err("lv_invalid_input", "Every role must belong to this Hub.");
+      c.audience_scope = "roles";
+      c.audience_roles = roles;
+      return { ok: true, audience: audience(c, false) };
+    }
+    case "lv_hub_limits": {
+      const h = s.hubs.find((x) => x.hub_id === a.p_hub && x.kind === "community");
+      if (!h) return err("lv_not_found", "No such Hub.");
+      const plan = hubPlan(s, h.hub_id);
+      const fam = activeFamily(s, h.hub_id);
+      const active = s.campaigns.filter((c) => c.hub_id === h.hub_id && c.status === "active");
+      return {
+        ok: true,
+        plan: { family: plan.state === "none" ? null : plan.family, state: plan.state },
+        limits: fam === "free" ? {} : { ...limitsOut(fam), "campaigns.role_targeting": fam === "team" },
+        usage: {
+          custom_roles: s.roles.filter((r) => r.hub === h.hub_id).length,
+          custom_pages: h.pages.filter((p) => p.kind === "custom").length,
+          active_campaigns: active.length,
+          active_surveys: active.filter((c) => c.mode === "survey").length,
+          active_surveys_below_threshold: active.filter((c) => c.mode === "survey").length,
+        },
+      };
+    }
+    case "lv_guest_campaign_get":
+    case "lv_guest_submit": {
+      const viaToken = byToken(a.p_join_code);
+      const code = viaToken ? viaToken.join_code : a.p_join_code;
+      const r = handle(s, fn, { ...a, p_join_code: code }, authed) as { ok: boolean; campaign?: Record<string, unknown> };
+      if (!r.ok || fn === "lv_guest_submit") return r;
+      const c = (s.campaigns as CA[]).find((x) => x.join_code === String(code).toUpperCase());
+      return { ...r, join_code: c?.join_code, campaign: { ...r.campaign, description: c?.description ?? null } };
+    }
+    case "lv_campaign_invite_create": {
+      const r = base() as { ok: boolean; invite?: { token: string } };
+      if (!r.ok) return r;
+      const inv = s.cinvites.find((i) => i.token === r.invite!.token)! as State["cinvites"][number] & { invite_id?: string };
+      inv.invite_id = `cinv-${++s.n}`;
+      return { ok: true, invite: { invite_id: inv.invite_id, token: inv.token, prefix: inv.token.slice(0, 6).toUpperCase(), shown_once: true, max_uses: inv.max_uses, uses: 0, expires_at: inv.expires_at, state: "active" } };
+    }
+    case "lv_campaign_invite_list":
+      return {
+        ok: true,
+        invites: (s.cinvites as (State["cinvites"][number] & { invite_id?: string })[]).filter((i) => i.campaign === a.p_campaign).map((i) => ({
+          invite_id: i.invite_id ?? `cinv-${i.token.slice(0, 6)}`, prefix: i.token.slice(0, 6).toUpperCase(), max_uses: i.max_uses, uses: i.uses, expires_at: i.expires_at,
+          state: i.revoked ? "revoked" : i.expires_at && new Date(i.expires_at).getTime() <= Date.now() ? "expired" : i.max_uses !== null && i.uses >= i.max_uses ? "exhausted" : "active",
+        })),
+      };
+    case "lv_campaign_invite_revoke_by_id": {
+      const i = (s.cinvites as (State["cinvites"][number] & { invite_id?: string })[]).find((x) => (x.invite_id ?? `cinv-${x.token.slice(0, 6)}`) === a.p_invite);
+      if (!i) return err("lv_not_found", "No such invite.");
+      i.revoked = true;
+      return { ok: true };
+    }
+    case "lv_campaign_invite_redeem":
+      return handle(s, fn, { ...a, p_token: (s.cinvites.find((i) => i.token.toLowerCase() === String(a.p_token ?? "").toLowerCase())?.token) ?? a.p_token }, authed);
+    case "lv_owner_transfer": {
+      const h = s.hubs.find((x) => x.hub_id === a.p_hub);
+      if (!h || h.kind !== "community") return err("lv_not_found", "No such Hub.");
+      if (!h.members.some((m) => m.account_id === "mock-account" && m.is_owner)) return err("lv_forbidden", "Only the Owner can transfer ownership.");
+      if (a.p_confirm !== h.slug) return err("lv_confirmation_mismatch", "Type the Hub's address name exactly to confirm.");
+      const m = h.members.find((x) => x.membership_id === a.p_membership);
+      if (!m) return err("lv_not_found", "No such member.");
+      if (m.is_owner) return err("lv_invalid_input", "You are already the Owner.");
+      if (m.status !== "accepted") return err("lv_not_accepted", "Only an accepted member can become the Owner.");
+      for (const o of st.offers!) if (o.hub_id === h.hub_id && o.state === "pending") o.state = "cancelled";
+      const o: Offer = { offer_id: `offer-${++s.n}`, hub_id: h.hub_id, membership_id: m.membership_id, created_at: iso(Date.now()), expires_at: iso(Date.now() + 7 * DAY), state: "pending" };
+      st.offers!.push(o);
+      return { ok: true, pending: true, offer: offerOut(s, o) };
+    }
+    case "lv_owner_transfer_status": {
+      const o = st.offers!.find((x) => x.hub_id === a.p_hub && x.state === "pending");
+      return { ok: true, offer: o ? offerOut(s, o) : null };
+    }
+    case "lv_owner_transfer_cancel": {
+      const open = st.offers!.filter((x) => x.hub_id === a.p_hub && x.state === "pending");
+      for (const o of open) o.state = "cancelled";
+      return { ok: true, cancelled: open.length > 0 };
+    }
+    case "lv_owner_transfer_accept":
+    case "lv_owner_transfer_decline":
+      // The mock signs in only as the Owner, so no offer is ever addressed to this account.
+      return err("lv_not_found", "No such offer.");
+    default:
+      return base();
+  }
+}
+
+function offerOut(s: State, o: Offer) {
+  const h = s.hubs.find((x) => x.hub_id === o.hub_id)!;
+  const m = h.members.find((x) => x.membership_id === o.membership_id);
+  return { offer_id: o.offer_id, hub_id: h.hub_id, hub_slug: h.slug, hub_name: h.name, membership_id: o.membership_id, to_display_name: m?.display_name ?? null, from_display_name: s.me.display_name, created_at: o.created_at, expires_at: o.expires_at, state: o.state };
 }

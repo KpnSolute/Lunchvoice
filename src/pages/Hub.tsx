@@ -627,7 +627,8 @@ export function HubSettings() {
           <div className="lv-stack-16">
             <div className="lv-stack-8">
               <strong>Transfer ownership</strong>
-              <p className="ui-muted lv-m0">The new Owner gets everything, and you become a regular member.</p>
+              <p className="ui-muted lv-m0">The member you pick gets an offer. Once they accept, they become the Owner and you become a regular member. Until then nothing changes.</p>
+              <PendingOwnerOffer hubId={hub.hub_id} />
               {heirs.length === 0 ? (
                 <p className="ui-help lv-m0">Only accepted members can become Owner. Invite someone first.</p>
               ) : (
@@ -641,16 +642,16 @@ export function HubSettings() {
                   <TypedConfirm
                     trigger={<Button variant="secondary" disabled={!heir}>Transfer</Button>}
                     title="Transfer ownership?"
-                    description={`${heirs.find((m) => m.membership_id === heir)?.display_name ?? "This member"} becomes the Owner of ${hub.name}. You can’t undo this yourself.`}
+                    description={`${heirs.find((m) => m.membership_id === heir)?.display_name ?? "This member"} is offered ownership of ${hub.name}. When they accept, they become the Owner. You can’t undo that yourself.`}
                     phrase={hub.slug}
-                    actionLabel="Transfer ownership"
+                    actionLabel="Send ownership offer"
                     busy={busy}
                     onConfirm={async (typed) => {
                       setBusy(true);
                       const r = await api.ownerTransfer(hub.hub_id, heir, typed);
                       setBusy(false);
                       if (!r.ok) { setDangerError(describeError(r.error)); return false; }
-                      toast.success("Ownership transferred");
+                      toast.success("Offer sent. They become the Owner once they accept.");
                       reload();
                       return true;
                     }}
@@ -928,5 +929,21 @@ export function HubBuilder() {
         <p className="ui-help lv-m0">Pages that aren’t built yet show a “Coming with M2” screen to members.</p>
       </Card>
     </div>
+  );
+}
+
+/* ---- track A: hardening ---- */
+
+/** The Owner's pending ownership offer (000018), with a way to withdraw it. */
+function PendingOwnerOffer({ hubId }: { hubId: string }) {
+  const { api } = useIdentity();
+  const status = useLv(() => api.ownerTransferStatus(hubId), [api, hubId]);
+  const offer = status.data?.offer;
+  if (!offer) return null;
+  return (
+    <div data-testid="owner-offer"><Notice title="Ownership offer pending">
+      {offer.to_display_name ?? "The member"} hasn’t answered yet. The offer ends {new Date(offer.expires_at).toLocaleDateString()}.{" "}
+      <Button variant="quiet" size="sm" onClick={async () => { const r = await api.ownerTransferCancel(hubId); if (r.ok) { toast.success("Offer withdrawn"); status.reload(); } else toast.error(describeError(r.error)); }}>Withdraw offer</Button>
+    </Notice></div>
   );
 }
