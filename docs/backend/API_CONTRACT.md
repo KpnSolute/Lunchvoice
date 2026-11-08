@@ -542,3 +542,145 @@ capability in the catalogue.
 Every top-level UI route in `src/lib/reservedSlugs.ts` plus `waitlist`, `whitelist`, `surveys`, `s`, `brand`, `c`,
 `j`, `licenses`, `__gallery`, `how-it-works`, `use-cases`, `quick`, `quick-surveys`, `q`, `builder`, `news`, `p`,
 `reservation`, `reservations`, `signup`, `checkout`, `webhooks`. No customer name is reserved.
+
+<!-- ---- track B: commerce ---- -->
+## Track B: commerce, email, admin (000019)
+
+Build plan decisions B-01 (server-created Stripe Checkout Sessions) and B-02 (provider-agnostic email outbox).
+Everything stays fail closed until the founder supplies keys and sets `billing.provider_ready`.
+
+### Grants
+
+Every new `lv_api` function below is granted to `authenticated` only (none to `anon`, none to PUBLIC). The
+`lv_admin_*` functions answer `lv_forbidden` to anyone who is not an active platform admin
+(`lv.is_platform_admin`), and `lv_unauthenticated` without an account. The service-role functions live in `lv`
+(never `lv_api`) and are granted to `service_role` only, with `usage on schema lv` and no table grants (LC-20).
+
+### Billing config and checkout
+
+- `lv_billing_config()` → `{ ok, provider_ready, checkout_available, products: { starter_hub, team_hub,
+  campaign_starter, campaign_plus, hub_reservation: boolean }, portal_available }`. A product is on sale when it is
+  purchasable in `lv.products`, `billing.provider_ready` is true, and either valid price IDs exist in
+  `billing.stripe_prices` (Checkout Session) or a legacy link exists in `billing.payment_links`. Never returns a
+  secret or a price ID. `portal_available` is true when the caller has a Stripe customer. The UI enables checkout
+  buttons from this, never from its own copy.
+- `lv_checkout_start(p_product, p_hub?, p_weeks?, p_slug?)` (replaced): same validation and order as before, plus a
+  rate limit (`billing.intents_per_hour`, 20, ⇒ `lv_rate_limited`). Success with price IDs:
+  `{ ok, intent_id, amount_cents, checkout: "session", mode: "subscription"|"payment" }` (no URL: the `checkout`
+  Edge Function creates the session). With only a legacy link: `{ ok, intent_id, amount_cents, checkout: "link",
+  checkout_url }` as before.
+- `lv_billing_portal_check()` → `{ ok, account_id }` (the caller's own) or `lv_not_found` (no Stripe customer) /
+  `lv_billing_unavailable`. Used by the Edge Function only.
+- `lv_billing_summary(p_hub)` (replaced, additive): adds `subscription: { status, cancel_at_period_end,
+  current_period_end, manageable } | null` (manageable only for the paying account) and `purchasable: { product:
+  boolean }` for the four Hub and Campaign plans.
+- Policy `billing.stripe_prices`: `starter_hub`, `team_hub`, `hub_reservation` → `"price_..."` or `{ "price":
+  "price_..." }`; `campaign_starter`, `campaign_plus` → `{ "first": "price_...", "extra_week": "price_..." }`. A Campaign
+  plan is one first-period line item plus the extra-week price with `quantity = weeks − first_period_weeks`, so the
+  subtotal equals `lv.checkout_amount` exactly ($19 + $13/extra week; $39 + $19/extra week). Malformed entries are
+  treated as not configured.
+
+### `checkout` Edge Function (`POST /functions/v1/checkout`, `verify_jwt = false`)
+
+Headers: `apikey: <anon key>`, `authorization: Bearer <LunchVoice session token>`.
+
+- `{ action: "checkout", product, hub?, weeks?, slug?, return_path? }` → `200 { ok, url, intent_id }`. The function
+  forwards the caller's token to `lv_checkout_start` (the database authenticates and authorises), reads the intent's
+  context with the service role (`lv.checkout_session_context`), creates or reuses the account's Stripe customer
+  (`lv.billing_customer_set`), creates the Checkout Session (`automatic_tax[enabled]=true`, `client_reference_id` and
+  `metadata[intent_id]` = intent id, customer address collected for Stripe Tax, no promotion codes) and records the
+  session id (`lv.checkout_intent_attach`). Subscription mode for `starter_hub`/`team_hub`; payment mode for Campaign
+  plans and `hub_reservation`. `return_path` must be a same-site path; Stripe returns to
+  `https://lunchvoice.com{return_path}?checkout=success|cancelled`. The redirect never grants: only the webhook does.
+- `{ action: "portal", return_path? }` → `200 { ok, url }`: a Stripe Customer Portal session for the caller's own
+  customer, or `404 lv_not_found`.
+- Errors: `{ ok: false, error: { code, message } }` with 401 `lv_unauthenticated`, 403, 404, 409 `lv_conflict`,
+  429 `lv_rate_limited`, 400 `lv_invalid_input`, 503 `lv_billing_unavailable` (no `STRIPE_SECRET_KEY`, no database
+  URL, no price IDs, or the database said so), 502 `lv_billing_unavailable` (Stripe unreachable: "Nothing was
+  charged"). Stripe's own error text is never returned.
+
+### Webhook additions
+
+`lv.billing_apply_event` is now a thin wrapper; the 000017 grant path is unchanged as `lv.billing_apply_event_core`
+(no longer executable by anyone but the owner). The wrapper adds:
+
+- `customer.subscription.updated`: records `status`, `cancel_at_period_end` and the period end in
+  `lv.billing_subscriptions` for display. It never changes access; a cancellation at period end ends access through
+  `customer.subscription.deleted` at that end, as before.
+- After an applied subscription checkout: remembers the subscription (account, Hub, product) and the session's
+  `customer`. `invoice.paid` (renewal) also updates the stored period end; `customer.subscription.deleted` marks it
+  `canceled`.
+- The webhook maps `customer` (checkout), `status` and `cancel_at_period_end` (subscription updated), and reads the
+  payment intent of `invoice.paid` from `payments.data[0].payment.payment_intent` on newer API versions.
+
+### Hub Name Reservation purchase
+
+`lv_checkout_start('hub_reservation', null, null, slug)` for an available (or released) name, or for the caller's own
+reservation in ACTIVE or GRACE (renewal, +12 months from the current expiry). Someone else's ACTIVE/GRACE
+reservation, an existing Hub, a reserved word or a quarantined name ⇒ `lv_conflict`. UI: `/reserve?slug=`.
+
+### Transactional email (B-02)
+
+`lv.email_outbox (id, template, account_id, to_address, payload, status queued|sending|sent|failed|cancelled,
+attempts, last_error, dedupe_key, next_attempt_at, locked_at, sent_at, provider_message_id, created_at)`. It never
+holds an answer; a sent or failed message keeps no payload; finished rows are deleted after `email.retention_days`
+(30). Rows cascade with `account_id`, so deleting an account deletes its mail.
+
+| Template | Design | Enqueued when | To |
+| --- | --- | --- | --- |
+| `waitlist_joined` | E01 | a waitlist join that left a contact email with consent (none otherwise) | the contact email |
+| `hub_created` | E03 | a community Hub is created | the Owner's verified email |
+| `hub_invite` | E04 | `lv_invite_email_send` | the given address |
+| `reservation_confirmed` | E05 | a reservation is bought or renewed | the holder's verified email |
+| `reservation_expiring` | E05 | `email.reservation_reminder_days` (14) before expiry, once per period | holder |
+| `reservation_grace` | E06 | the reservation entered GRACE, once per period | holder |
+| `participation_receipt` | E07 | a member's participation in an **identified** Campaign (never anonymous, never guests); policy `email.participation_receipts` | respondent's verified email |
+| `shop_order` | E08 | track C calls `lv.email_enqueue('shop_order', account, lv.account_email(account), payload, dedupe)` | buyer |
+
+- `lv_invite_email_send(p_hub, p_code, p_to)` → `{ ok, queued, already_sent }`. Needs `admin.members.admit`; the code
+  must be a live invite of that Hub (checked against its hash); rate-limited by `email.invites_per_hour` (30). Errors:
+  `lv_forbidden`, `lv_invalid_code`, `lv_invalid_input`, `lv_rate_limited`. The audit never records the address.
+- `lv.email_enqueue(p_template, p_account, p_to, p_payload, p_dedupe?) → uuid | null` (internal, for other tracks'
+  definer functions): returns null for an unknown template, a bad address, a payload over 4 KB, or a seen dedupe key.
+  Never raises. Payloads carry names, slugs, dates and ids only.
+- Service role (the `email-dispatch` function): `lv.email_reservation_sweep()`, `lv.email_claim(limit)` (skip-locked;
+  reclaims messages stuck in `sending` for 15 minutes), `lv.email_mark(id, 'sent'|'retry'|'failed', error?,
+  provider_id?)` (retry backs off 2^attempts minutes up to `email.max_attempts`, 5), `lv.email_retention_sweep()`.
+- `email-dispatch` Edge Function (`POST`, `verify_jwt = false`, bearer must equal `SUPABASE_SERVICE_ROLE_KEY` or
+  `EMAIL_DISPATCH_SECRET`): sweeps reservations, then sends due mail through Resend when `RESEND_API_KEY` is set
+  (idempotency key per message), otherwise claims nothing and leaves mail queued. Returns `{ ok, provider:
+  "resend"|"none", claimed, sent, retried, failed, queued }`. Templates are code in
+  `supabase/functions/_shared/email/templates.ts` (text + HTML, no images, no tracking).
+
+### Platform admin console (`/admin`)
+
+All return `lv_forbidden` to non-admins.
+
+- `lv_admin_overview()` → `{ ok, waitlist: { seats_total, seats_taken, admitted, waitlisted, with_contact },
+  reports_open, campaigns_blocked, discover_pending, billing: { provider_ready, events_7d, rejected_7d }, email:
+  { queued, sent, failed } }`.
+- `lv_admin_waitlist(p_limit = 50, p_offset = 0)` → `{ ok, total, entries: [{ entry_id, status, position, joined_at,
+  has_contact_email, intended_hub_name }] }`. Never an address.
+- `lv_admin_waitlist_contact(p_entry)` → `{ ok, entry_id, contact_email, consent_version }`; audited as
+  `admin.waitlist_contact_viewed` (target = entry id, no address).
+- `lv_admin_abuse_reports(p_status = 'open'|'actioned'|'dismissed'|'all')` → `{ ok, reports: [{ report_id, status,
+  reason, created_at, campaign_id, campaign_title, join_code, blocked, hub_name, hub_slug, quick_survey,
+  open_reports }] }` (latest 200; the reporter is never returned). Block/unblock through the existing
+  `lv_admin_campaign_block` / `lv_admin_campaign_unblock`.
+- `lv_admin_report_dismiss(p_report)` → `{ ok, status: "dismissed" }` (open reports only, else `lv_not_found`).
+- `lv_admin_discover_list(p_status = 'submitted'|'approved'|'rejected'|'all')` → `{ ok, applications: [{
+  application_id, status, hub_id, hub_slug, hub_name, genuine_members_at_apply, genuine_members_now, family,
+  applied_at, decided_at, note }] }`.
+- `lv_admin_discover_decide(p_application, p_approve, p_note?)` → `{ ok, status }`. Writes
+  `lv.discover_applications.status` (`approved`/`rejected`; **track C reads this for the listing**) and
+  `lv.discover_decisions` (who, when, note ≤ 500). A decision can be reversed. Nobody decides an application for a Hub
+  they own or submitted (`lv_forbidden`).
+- `lv_admin_billing_events(p_limit = 100)` → `{ ok, events: [{ id, type, outcome, reason, received_at }] }`. No
+  payloads (none are stored) and no references.
+- `lv_admin_email_outbox(p_limit = 50)` → `{ ok, counts: { status: n }, by_template: { template: n }, recent: [{ id,
+  template, status, attempts, last_error, created_at, sent_at }] }`. No addresses, no payloads.
+
+### Reserved slugs
+
+`reserve` is added (the `/reserve` route). `admin` was already reserved.
+<!-- ---- end track B: commerce ---- -->
