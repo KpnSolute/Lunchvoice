@@ -95,6 +95,20 @@ test("Questions: exactly one Add question action; options add, remove; required 
   await ctx.close();
 });
 
+test("Questions: an unsaved new question survives switching sections", async () => {
+  const { page, ctx } = await studio();
+  await tab(page, "Questions").click();
+  const add = page.getByTestId("question-workbench").locator(":visible").getByTestId("add-question");
+  if (await add.count()) await add.first().click();
+  await page.getByRole("textbox", { name: "Question", exact: true }).fill("Which trail next month?");
+  await page.getByRole("textbox", { name: "Option 1" }).fill("Ridge"); // only one option: not valid, so not saved yet
+  await tab(page, "Details").click();
+  await tab(page, "Questions").click();
+  assert.equal(await page.getByRole("textbox", { name: "Question", exact: true }).inputValue(), "Which trail next month?");
+  assert.equal(await page.getByRole("textbox", { name: "Option 1" }).inputValue(), "Ridge");
+  await ctx.close();
+});
+
 test("Questions: changing to a type without options asks first", async () => {
   const { page, ctx } = await studio();
   await addChoiceQuestion(page);
@@ -153,11 +167,15 @@ test("Review: exact checklist; Publish disabled while invalid, enabled when vali
   await tab(page, "Questions").click();
   await page.getByRole("textbox", { name: "Question", exact: true }).fill("Shirt size?");
   await page.getByRole("textbox", { name: "Option 1" }).fill("M");
-  await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
+  // 000018: the server stores only valid options, so a one-option question is not saved yet and the editor says so.
+  await page.getByText("Changes to this question save once the options are valid.").waitFor();
   await tab(page, "Review").click();
-  await page.getByTestId("readiness").getByText("Question 1 needs at least two options.").waitFor();
+  await page.getByTestId("readiness").getByText("Add at least one question.").waitFor();
   assert.ok(await page.getByTestId("publish").isDisabled());
   await tab(page, "Questions").click();
+  // The unsaved new question lived only in the editor, which leaving the tab closed.
+  await page.getByRole("textbox", { name: "Question", exact: true }).fill("Shirt size?");
+  await page.getByRole("textbox", { name: "Option 1" }).fill("M");
   await page.getByRole("textbox", { name: "Option 2" }).fill("L");
   await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
   await tab(page, "Review").click();

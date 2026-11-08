@@ -12,7 +12,12 @@ import { join } from "node:path";
 const REQUIRED_MARKERS = ["lv_my_context", "lv_hub_create", "lv_submit_response", "lv_analytics_query"];
 
 // Dev-only code that must never reach a production bundle.
-const FORBIDDEN_MARKERS = ["Sign in (simulated)", "mock-account", "Mock does not implement"];
+// LC-30: and no secret may ever ship: service-role keys, Supabase secret keys, a private JWK ("d" member), Stripe
+// live/test secret keys and webhook secrets.
+const FORBIDDEN_MARKERS = [
+  "Sign in (simulated)", "mock-account", "Mock does not implement",
+  "service_role", "sb_secret_", '"d":"', "sk_live_", "sk_test_", "whsec_",
+];
 
 export function findForbiddenMarkers(source, markers = FORBIDDEN_MARKERS) {
   return markers.filter((marker) => source.includes(marker));

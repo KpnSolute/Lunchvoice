@@ -1,5 +1,8 @@
 // Typed client for the v2 `lv_api` functions. Shapes follow docs/backend/API_CONTRACT.md and the launch contract in
 // docs/v2/LAUNCH_PLAN.md ("API contract"). Every expected application failure arrives as {ok:false,error}.
+/* ---- track C: community ---- */
+import { communityApi } from "./communityApi";
+/* ---- end track C ---- */
 
 export type LvErrorCode =
   | "lv_unauthenticated"
@@ -28,7 +31,10 @@ export type LvErrorCode =
   | "lv_not_available"
   | "lv_confirmation_mismatch"
   | "lv_hub_gone"
-  | "lv_server_error";
+  | "lv_server_error"
+  /* ---- track C: community ---- */
+  | "lv_insufficient_points"
+  | "lv_out_of_stock";
 
 export interface LvError {
   code: LvErrorCode;
@@ -112,6 +118,8 @@ export interface MyContext {
   waitlist: { status: WaitlistState; position?: number };
   /** Contract request (not in LAUNCH_PLAN yet): recent answers, own account only. Hidden when absent. */
   recent_participation?: ParticipationItem[];
+  /** 000018 (track A): ownership offers waiting for this account's answer. */
+  owner_transfer_offers?: OwnerOffer[];
 }
 
 /* ------------------------------------------------------------------ hubs */
@@ -241,6 +249,8 @@ export interface CampaignDetailData {
     space?: "personal" | "community";
     access?: SurveyAccess;
     question_limit?: number | null;
+    /** 000018 (track A) */
+    description?: string | null;
   };
   questions: Question[];
   has_responded: boolean;
@@ -251,10 +261,19 @@ export interface CampaignDetailData {
   /** Managers only: the activation gate with the limit in force when one is reached (000014 gate_evaluate). */
   gate?: { ok: boolean; reasons: string[]; family?: string | null; limit?: number; used?: number; limit_key?: string };
   blocked?: boolean;
+  /** 000018 (track A, managers only): the 128-bit link token for links and QR codes (LC-10) and the member audience. */
+  link_token?: string;
+  audience?: CampaignAudience;
 }
 
 export interface CampaignInvite {
-  token: string;
+  /** Shown once, only in the lv_campaign_invite_create result (000018, NEW-05). */
+  token?: string;
+  /** 000018: listing shows the invite id and a 6-character prefix instead of the token. */
+  invite_id?: string;
+  prefix?: string;
+  state?: InviteState;
+  shown_once?: boolean;
   max_uses: number | null;
   uses: number;
   expires_at: string | null;
@@ -345,6 +364,7 @@ export function createLvApi(transport: LvTransport) {
     }
   };
   return {
+    ...createCommerceApi(transport, call), // track B: commerce (block at the end of this file)
     /* ---- context, entitlements, waitlist ---- */
     myContext: () => call<MyContext>("lv_my_context"),
     planLimits: () => call<PlanLimits>("lv_plan_limits"),
@@ -505,9 +525,11 @@ export function createLvApi(transport: LvTransport) {
     /* ---- roles ---- */
     capabilityCatalog: () =>
       call<{ groups: { key: string; label: string; capabilities: { key: string; label: string }[] }[] }>("lv_capability_catalog"),
-    roleList: (hub: string) => call<{ roles: Role[]; custom_slots: number | null; slots_used: number }>("lv_role_list", { p_hub: hub }),
+    // lv_role_list (000010/000014): custom_slots is { used, limit } (limit null = undecided, fails closed).
+    roleList: (hub: string) => call<{ roles: Role[]; custom_slots: { used: number; limit: number | null } }>("lv_role_list", { p_hub: hub }),
+    // lv_role_create returns { ok, role } (000010).
     roleCreate: (hub: string, name: string, icon: string, capabilities: string[]) =>
-      call<{ role_id: string }>("lv_role_create", { p_hub: hub, p_name: name, p_icon: icon, p_capabilities: capabilities }),
+      call<{ role: Role }>("lv_role_create", { p_hub: hub, p_name: name, p_icon: icon, p_capabilities: capabilities }),
     roleUpdate: (role: string, patch: { name?: string; icon?: string; capabilities?: string[] }) =>
       call<object>("lv_role_update", { p_role: role, p_name: patch.name ?? null, p_icon: patch.icon ?? null, p_capabilities: patch.capabilities ?? null }),
     roleDelete: (role: string) => call<object>("lv_role_delete", { p_role: role }),
@@ -521,6 +543,27 @@ export function createLvApi(transport: LvTransport) {
 
     /* ---- abuse ---- */
     reportAbuse: (joinCode: string, reason: string) => call<object>("lv_report_abuse", { p_join_code: joinCode, p_reason: reason }),
+
+    /* ---- track A: hardening ---- */
+    // lv_campaign_create(..., p_description) (000018).
+    campaignCreateDescribed: (hub: string, title: string, mode: CampaignMode, anonymity: Anonymity, description: string | null) =>
+      call<{ campaign_id: string }>("lv_campaign_create", { p_hub: hub, p_title: title, p_mode: mode, p_anonymity: anonymity, p_description: description }),
+    // lv_campaign_update(p_campaign, p_description?, p_access?) (000018): draft only; '' clears the description; access
+    // is for Quick Surveys only and switching to invite turns guests off.
+    campaignDetailsUpdate: (campaign: string, patch: { description?: string; access?: SurveyAccess }) =>
+      call<object>("lv_campaign_update", { p_campaign: campaign, p_description: patch.description ?? null, p_access: patch.access ?? null }),
+    // NULL or [] = every member; Team family only (lv_entitlement_required { product: "team_hub" } otherwise).
+    campaignSetAudienceRoles: (campaign: string, roles: string[] | null) =>
+      call<{ audience: CampaignAudience }>("lv_campaign_set_audience_roles", { p_campaign: campaign, p_roles: roles && roles.length ? roles : null }),
+    hubLimits: (hub: string) => call<HubLimits>("lv_hub_limits", { p_hub: hub }),
+    campaignInviteRevokeById: (invite: string) => call<object>("lv_campaign_invite_revoke_by_id", { p_invite: invite }),
+    ownerTransferStatus: (hub: string) => call<{ offer: OwnerOffer | null }>("lv_owner_transfer_status", { p_hub: hub }),
+    ownerTransferCancel: (hub: string) => call<{ cancelled: boolean }>("lv_owner_transfer_cancel", { p_hub: hub }),
+    ownerTransferAccept: (offer: string) => call<{ accepted: true; hub_id: string; slug: string }>("lv_owner_transfer_accept", { p_offer: offer }),
+    ownerTransferDecline: (offer: string) => call<{ accepted: false }>("lv_owner_transfer_decline", { p_offer: offer }),
+    /* ---- track C: community ---- */
+    ...communityApi(call),
+    /* ---- end track C ---- */
   };
 }
 
@@ -531,3 +574,202 @@ export function activeFamily(plan: HubPlan | undefined | null): PlanFamily | nul
   if (!plan || plan.state !== "active") return null;
   return plan.family;
 }
+
+/* ---- track A: hardening ---- */
+
+/** 000018: who among the Hub's members a Campaign is for. Guests are never affected by roles. */
+export interface CampaignAudience {
+  scope: "all_members" | "roles";
+  roles: { role_id: string; name: string }[];
+  /** The Hub's plan includes role targeting (Team family). */
+  role_targeting: boolean;
+  /** Managers of community Hubs: every role of the Hub. */
+  available_roles?: { role_id: string; name: string; is_owner: boolean }[];
+}
+
+/** 000018 lv_hub_limits: limits and usage for anyone with campaign.manage. No billing data. */
+export interface HubLimits {
+  plan: { family: PlanFamily | null; state: EntitlementState | "none" };
+  limits: Record<string, unknown>;
+  usage: { custom_roles: number; custom_pages: number; active_campaigns: number; active_surveys: number; active_surveys_below_threshold: number };
+}
+
+/** 000018: an ownership transfer waiting for the receiving member. */
+export interface OwnerOffer {
+  offer_id: string;
+  hub_id: string;
+  hub_slug: string;
+  hub_name: string;
+  membership_id: string;
+  to_display_name: string | null;
+  from_display_name: string | null;
+  created_at: string;
+  expires_at: string;
+  state: "pending" | "accepted" | "declined" | "cancelled" | "expired";
+}
+
+/** The rule lv.question_config_problem (000018) enforces, shared by the editor and the dev mock. */
+export function questionConfigProblem(kind: string, config: unknown): string | null {
+  if (config !== null && config !== undefined && (typeof config !== "object" || Array.isArray(config))) return "Question settings must be an object.";
+  if (kind !== "single_choice" && kind !== "multi_choice") return null;
+  const c = (config ?? {}) as { options?: unknown; max?: unknown };
+  if (!Array.isArray(c.options) || c.options.length < 2 || c.options.length > 10) return "A choice question needs 2 to 10 options.";
+  if (c.options.some((o) => typeof o !== "string" || !o.trim())) return "Every option needs text.";
+  const opts = c.options as string[];
+  if (opts.some((o) => o.length > 200)) return "Keep each option to 200 characters.";
+  if (new Set(opts.map((o) => o.trim().toLowerCase())).size < opts.length) return "Options must all be different.";
+  if (c.max !== undefined && c.max !== null && (typeof c.max !== "number" || !Number.isInteger(c.max) || c.max < 1 || c.max > opts.length))
+    return "The most choices a person can pick must be between 1 and the number of options.";
+  return null;
+}
+
+/** A 32-character hex link token (LC-10) rather than a 6-character join code. */
+export const isLinkToken = (code: string) => /^[0-9a-fA-F]{32}$/.test(code.trim());
+/* ---- track B: commerce ---- */
+// Checkout (Stripe Checkout Sessions created server-side by the `checkout` Edge Function), the Customer Portal,
+// the billing config read, Hub invites by email and the platform admin console (000019). Shapes follow
+// docs/backend/API_CONTRACT.md, section "Track B: commerce, email, admin".
+
+// Edge Functions are reached through the same transport (declaration merging keeps LvTransport one interface).
+export interface LvTransport {
+  invoke?(fn: string, body: Record<string, unknown>): Promise<unknown>;
+}
+
+export type PurchasableProduct = "starter_hub" | "team_hub" | "campaign_starter" | "campaign_plus" | "hub_reservation";
+
+export interface BillingConfig {
+  provider_ready: boolean;
+  checkout_available: boolean;
+  products: Partial<Record<PurchasableProduct, boolean>>;
+  portal_available: boolean;
+}
+
+export interface SubscriptionState {
+  status: string;
+  cancel_at_period_end: boolean;
+  current_period_end: string | null;
+  manageable: boolean;
+}
+
+/** lv_billing_summary as of 000019 (adds subscription and purchasable). */
+export type BillingSummaryV2 = BillingSummary & {
+  subscription?: SubscriptionState | null;
+  billing_ready?: boolean;
+  purchasable?: Partial<Record<PurchasableProduct, boolean>>;
+};
+
+export interface CheckoutRequest {
+  product: PurchasableProduct;
+  hub?: string | null;
+  weeks?: number | null;
+  slug?: string | null;
+  /** Same-site path Stripe returns to (`?checkout=success|cancelled` is appended). */
+  returnPath?: string;
+}
+
+export interface AdminOverview {
+  waitlist: { seats_total: number; seats_taken: number; admitted: number; waitlisted: number; with_contact: number };
+  reports_open: number;
+  campaigns_blocked: number;
+  discover_pending: number;
+  billing: { provider_ready: boolean; events_7d: number; rejected_7d: number };
+  email: { queued: number; sent: number; failed: number };
+}
+export interface AdminWaitlistEntry {
+  entry_id: string;
+  status: "admitted" | "waitlisted";
+  position: number;
+  joined_at: string;
+  has_contact_email: boolean;
+  intended_hub_name: string | null;
+}
+export interface AdminReport {
+  report_id: string;
+  status: "open" | "actioned" | "dismissed";
+  reason: string;
+  created_at: string;
+  campaign_id: string | null;
+  campaign_title: string | null;
+  join_code: string | null;
+  blocked: boolean;
+  hub_name: string | null;
+  hub_slug: string | null;
+  quick_survey: boolean;
+  open_reports: number;
+}
+export interface AdminDiscoverApplication {
+  application_id: string;
+  status: "submitted" | "approved" | "rejected";
+  hub_id: string;
+  hub_slug: string;
+  hub_name: string;
+  genuine_members_at_apply: number;
+  genuine_members_now: number;
+  family: PlanFamily | null;
+  applied_at: string;
+  decided_at: string | null;
+  note: string | null;
+}
+export interface AdminBillingEvent { id: number; type: string; outcome: "applied" | "ignored" | "rejected"; reason: string | null; received_at: string }
+export interface AdminOutbox {
+  counts: Record<string, number>;
+  by_template: Record<string, number>;
+  recent: { id: string; template: string; status: string; attempts: number; last_error: string | null; created_at: string; sent_at: string | null }[];
+}
+
+type Caller = <T>(fn: string, args?: Record<string, unknown>) => Promise<LvResult<T>>;
+
+function createCommerceApi(transport: LvTransport, call: Caller) {
+  const invoke = async <T>(fn: string, body: Record<string, unknown>): Promise<LvResult<T>> => {
+    if (!transport.invoke) return { ok: false, error: { code: "lv_billing_unavailable", message: "Checkout is not available here." } };
+    try {
+      return normalize<T>(await transport.invoke(fn, body));
+    } catch (e) {
+      return { ok: false, error: { code: "lv_server_error", message: e instanceof Error ? e.message : String(e) } };
+    }
+  };
+  return {
+    billingConfig: () => call<BillingConfig>("lv_billing_config"),
+    billingSummaryV2: (hub: string) => call<BillingSummaryV2>("lv_billing_summary", { p_hub: hub }),
+    /** Starts a Stripe Checkout Session; on success redirect the browser to `url`. */
+    checkout: (r: CheckoutRequest) =>
+      invoke<{ url: string; intent_id: string }>("checkout", {
+        action: "checkout", product: r.product, hub: r.hub ?? null, weeks: r.weeks ?? null, slug: r.slug ?? null, return_path: r.returnPath ?? "/me",
+      }),
+    /** Opens the Stripe Customer Portal for the caller's own subscription. */
+    billingPortal: (returnPath: string) => invoke<{ url: string }>("checkout", { action: "portal", return_path: returnPath }),
+    inviteEmailSend: (hub: string, code: string, to: string) =>
+      call<{ queued: boolean; already_sent: boolean }>("lv_invite_email_send", { p_hub: hub, p_code: code, p_to: to }),
+
+    adminOverview: () => call<AdminOverview>("lv_admin_overview"),
+    adminWaitlist: (limit = 50, offset = 0) => call<{ total: number; entries: AdminWaitlistEntry[] }>("lv_admin_waitlist", { p_limit: limit, p_offset: offset }),
+    adminWaitlistContact: (entry: string) => call<{ entry_id: string; contact_email: string | null }>("lv_admin_waitlist_contact", { p_entry: entry }),
+    adminAbuseReports: (status: "open" | "actioned" | "dismissed" | "all" = "open") => call<{ reports: AdminReport[] }>("lv_admin_abuse_reports", { p_status: status }),
+    adminReportDismiss: (report: string) => call<object>("lv_admin_report_dismiss", { p_report: report }),
+    adminCampaignBlock: (campaign: string, reason: string) => call<object>("lv_admin_campaign_block", { p_campaign: campaign, p_reason: reason }),
+    adminCampaignUnblock: (campaign: string) => call<object>("lv_admin_campaign_unblock", { p_campaign: campaign }),
+    adminDiscoverList: (status: "submitted" | "approved" | "rejected" | "all" = "submitted") =>
+      call<{ applications: AdminDiscoverApplication[] }>("lv_admin_discover_list", { p_status: status }),
+    adminDiscoverDecide: (application: string, approve: boolean, note?: string | null) =>
+      call<{ status: "approved" | "rejected" }>("lv_admin_discover_decide", { p_application: application, p_approve: approve, p_note: note ?? null }),
+    adminBillingEvents: (limit = 100) => call<{ events: AdminBillingEvent[] }>("lv_admin_billing_events", { p_limit: limit }),
+    adminEmailOutbox: (limit = 50) => call<AdminOutbox>("lv_admin_email_outbox", { p_limit: limit }),
+  };
+}
+/* ---- end track B: commerce ---- */
+
+/* ---- track C: community ---- */
+// Declaration merging: 000020 adds page visibility, the add-on plan flags and new error extras.
+export interface HubPage {
+  /** Custom pages only: "public" shows the page to visitors while the Hub is public. */
+  visibility?: "members" | "public";
+}
+export interface LvError {
+  /** lv_insufficient_points */
+  balance?: number;
+  price?: number;
+  /** lv_not_available / lv_entitlement_required for an add-on page */
+  kind?: string;
+}
+export type { AddonKind, AddonState, CommentRow, CommunityInfo, DiscoverHub, LeaderboardEntry, NewsPost, ShopData, ShopItem, ShopOrder } from "./communityApi";
+/* ---- end track C ---- */

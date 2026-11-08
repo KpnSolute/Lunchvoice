@@ -8,8 +8,9 @@ import { Card } from "@/components/shadcn/card";
 import { Badge } from "@/components/shadcn/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/shadcn/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shadcn/table";
-import { EmptyState, Eyebrow, Notice } from "@/components/shadcn/blocks";
+import { Eyebrow, Notice } from "@/components/shadcn/blocks";
 import { StateScreen } from "../ui/StateScreen";
+import { DiscoverDirectory } from "./lazy";
 
 /** The legal operator is not decided yet. Never invent a company entity (founder decision 8). */
 const OPERATOR = "[Legal operator name — pending]";
@@ -41,6 +42,7 @@ const FAQ: [string, string][] = [
   ["What makes an answer anonymous?", "Eligibility is checked apart from the answer. On an anonymous survey the creator sees totals and can’t link an answer to a person."],
   ["Who can see results?", "The creator of a Quick Survey, and on a Hub only people with the results permission. Membership alone doesn’t grant it."],
   ["What about guests?", "A link survey can accept guests who answer without an account. Guests never become members, never count toward thresholds, and are labelled as unverified in results."],
+  ["Can totals ever reveal one person?", "We withhold small groups, merge hidden answers into one Withheld bucket, hide averages that could give a group away, and keep anonymous Campaigns open to all members rather than to chosen roles. One limit remains: if an anonymous Campaign runs again after exactly one new member joins, comparing the two sets of totals can hint at that person\u2019s answer. We\u2019re adding protection for that; until then, creators can see who joined in the member list."],
   ["Is every question required?", "Unless the creator marks a question optional, it needs an answer. The survey tells you before you start."],
 ];
 
@@ -165,6 +167,10 @@ const STORED: [string, string][] = [
   ["Waitlist contact email", "Optional. Only if you give it and agree; used for launch and account updates; deleted when you delete your account."],
   ["Answers", "What you answer on surveys and Campaigns. On anonymous surveys the creator sees totals only and can’t link an answer to you."],
   ["Hubs and memberships", "Hubs you create or join, your roles in them, and invitations."],
+  ["Community activity", "In Hubs that switch them on: posts and comments you write, reports you file, whether you opted in to the leaderboard, Hub points and shop orders. The leaderboard shows only members who opt in, and only how many of the Hub’s ended Campaigns (anonymous ones included) they took part in, never what they answered."],
+  ["Payments", "If you buy a plan, Stripe handles your card and billing details. We keep your Stripe customer reference and which plan you bought, never your card number."],
+  ["Emails we send", "Only service emails: waitlist confirmation, Hub created, invitations someone sends you, reservation reminders, receipts for identified Campaigns (never anonymous ones, and never your answers) and shop order updates. Queued emails are kept up to 30 days after sending, then deleted, and are deleted with your account."],
+  ["Discover", "Approved Team Hubs can be listed publicly at /discover with their name, category and a member count rounded down to the nearest 100. Quick Surveys and private Hubs are never listed."],
 ];
 
 const STORAGE_KEYS: [string, string, string][] = [
@@ -207,6 +213,7 @@ export function Privacy() {
         <ul>
           <li>Survey and Campaign data: while the account or Hub that owns it exists.</li>
           <li>Logs: 12 months.</li>
+          <li>Sent or failed emails: up to 30 days.</li>
           <li>Guest rate-limit data: 7 days.</li>
           <li>A deleted Hub’s address is held for 30 days before anyone can claim it. A reused address never shows the previous Hub’s data.</li>
         </ul>
@@ -217,6 +224,8 @@ export function Privacy() {
           <li><strong>Supabase</strong>: database and server functions.</li>
           <li><strong>Render</strong>: hosting of this website.</li>
           <li><strong>KpnIdentity (KpnSolute) and Google</strong>: sign-in.</li>
+          <li><strong>Stripe</strong>: payments, invoices and tax calculation, only if you buy a plan.</li>
+          <li><strong>Resend</strong>: delivery of the service emails above.</li>
         </ul>
         <h2>Contact</h2>
         <p>Questions, access or deletion requests: <a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a>.</p>
@@ -253,12 +262,8 @@ export function Discover() {
   return (
     <div className="lv-mk">
       <Head eyebrow="Discover" title="Discover" sub="A directory of large public Hubs that chose to be found." />
-      <Card variant="well">
-        <EmptyState icon={<Icon name="star" size={22} />} title="No Hubs are listed yet" action={<LinkButton to="/pricing" variant="secondary">See what Discover needs</LinkButton>}>
-          Hubs appear here only after they reach 700 genuine active members on the Team plan and are approved. Quick Surveys are never listed, and nothing is seeded to fill the page.
-        </EmptyState>
-      </Card>
-      <p className="ui-help lv-m0"><Badge>Team plan</Badge> Discover eligibility is part of the Team Hub plan.</p>
+      <DiscoverDirectory />
+      <p className="ui-help lv-m0"><Badge>Team plan</Badge> Discover eligibility is part of the Team Hub plan. Quick Surveys and personal spaces are never listed.</p>
     </div>
   );
 }

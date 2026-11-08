@@ -6,6 +6,107 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Compliance (feature-complete gate met)
+
+- Targeted re-review at 8f2feb0: FB-01 closed (attack refused in both directions; forced rows blocked at activation),
+  FB-02/04/05 closed; 0 BLOCKER, 0 HIGH. FB-06 (one newly admitted member between two Hub-wide anonymous Campaigns)
+  accepted as LOW for launch with a public FAQ disclosure ("Can totals ever reveal one person?"); the structural fix
+  (freeze the audience at activation, withhold results across anonymous Campaigns differing by 1-4 members) is
+  scheduled after launch. Remaining: LC-08 legal operator name (founder), accepted MEDIUM/LOW items.
+- Full e2e suite 46/46; canonical suite 1003 checks, 0 failed.
+
+### Security (FB-01, 000022)
+
+- Full-build compliance re-review found one HIGH (FB-01): two anonymous Campaigns targeted at overlapping roles
+  that differ by one member let the creator difference out that member's answer. Role targeting is now for
+  identified Campaigns only: a trigger refuses an anonymous, role-targeted Campaign (setting roles on an anonymous
+  draft, or switching a role-targeted draft to anonymous, answers `lv_not_available` with an explanation) and the
+  activation gate adds `role_targeting_anonymous`. Track A's tests now target roles on identified Campaigns. New
+  suite `22_anonymous_role_targeting.sql` (9 checks, including the reproduced attack). The Studio disables
+  "Specific roles" on anonymous Campaigns and "Anonymous" while roles are chosen, each with the reason; the mock
+  follows the same rule.
+
+### Fixed
+
+- Founder bug report: a new question with options but no question text never saved and the editor did not say why
+  (the example placeholder looked like real text). The Question field now has a neutral placeholder and shows
+  "Type the question text to save this question." as soon as options are entered; the outline says
+  "Not saved yet: type the question text". E2e test added.
+- Sign-in button reads "Continue with KpnSolute" (KpnSolute account; Google is one way to sign in to it); the
+  waitlist page says the same.
+- FB-02: `/privacy` lists community data, payments (Stripe), service emails and their 30-day retention, the
+  Discover listing, and Stripe and Resend as processors. FB-04: the leaderboard opt-in says anonymous Campaigns
+  count too. FB-05: invite emails say who sent them and how to report abuse (function test added).
+- Full-build compliance re-review merged into `docs/compliance/LAUNCH_COMPLIANCE_REVIEW.md` §8.
+
+### Security and gaps (full build: track A; 000018)
+
+- LC-10: every Campaign has a 128-bit link token for links and QR codes; failed join-code lookups are rate-limited
+  per caller and globally. LC-11: guest keys from `crypto.getRandomValues`. LC-12: the database requires
+  `aud = authenticated` and `session_kind = lunchvoice` (the deployed `session` function already issues both, checked
+  in its deployed bundle). LC-13: single-use ID-token exchange and a 10-minute `iat` limit in `session`. LC-14: strict
+  return-path checks (react-router has no fixed 6.x; mitigated). LC-30: bundle check forbids key and secret
+  patterns. LC-37: the More sheet is a real modal. NEW-05: Campaign invite tokens stored hashed.
+- Gaps closed: Campaign description; server-side option validation; Quick Survey access change while draft; Team
+  role targeting (eligibility and thresholds count only role holders); `lv_hub_limits` for managers; new-question
+  save race; owner transfer is now an offer the member accepts or declines.
+
+### Fixed (integration)
+
+- Roles page read `custom_slots` as a number, but `lv_role_list` returns `{ used, limit }`: on production the slot
+  meter showed an object and "all slots used" never triggered. Types, mock and page now follow the SQL shape.
+- An unsaved new question was lost when switching Studio sections; the Questions workbench now stays mounted.
+  New e2e test confirmed to fail without the fix.
+
+### Verification (all tracks)
+
+- Canonical suite through 000021: 994 checks, 0 failed, races and full rollback. Function tests 60/60, unit 26/26,
+  e2e 44/44, `test:pr` and high-severity audit clean; every UI API call matches its SQL signature.
+
+### Added (full build: track B commerce, email and admin; 000019)
+
+- Stripe-ready checkout end to end: `checkout` Edge Function creating server-side Checkout Sessions (subscriptions
+  for Hub plans; Campaign plans as first period + extra weeks so the subtotal equals the intent amount; automatic tax;
+  no promotion codes), Customer Portal, `lv_billing_config`, renewals and period-end cancellation in the webhook
+  (NEW-01 guarantees kept), Hub Name Reservation purchase and renewal at `/reserve`. Fails closed until the founder
+  sets `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs and `billing.provider_ready`.
+- Transactional email outbox and `email-dispatch` (Resend when `RESEND_API_KEY` is set; otherwise queued) with
+  templates E01-E08; never an answer in mail; receipts only for identified Campaigns; deleted with the account.
+- Platform admin console `/admin` (waitlist without emails, abuse reports, Campaign block, Discover decisions,
+  billing events, outbox); every admin function refuses non-admins.
+
+### Added (full build: track C community and Discover; 000020)
+
+- Custom pages with safe limited markdown and members/public visibility; Newsroom (drafts, publish, pin; public posts
+  only on public Hubs); Comments with report, hide and delete moderation and rate limits; opt-in Leaderboard counting
+  ended Campaigns only; optional Hub points and a Shop with manual fulfilment (no cash value); public `/discover`
+  directory of approved Team Hubs with rounded member counts. Builder add-ons are real (no more "Coming with M2").
+  Every community operation refuses personal spaces; guests never post, comment, order or rank.
+
+### Added (integration; 000021)
+
+- A fulfilled shop order queues one E08 email to the member's verified address (placed/cancelled send nothing).
+
+### Verification
+
+- Canonical suite through 000021: 881 checks, 0 failed, races and full rollback rehearsed. Function tests 54/54,
+  unit 23/23, e2e 30/30, `test:pr` and high-severity audit clean; 95 UI API calls match their SQL signatures.
+
+### Operations (live verification, 2026-11-07)
+
+- Security headers (LC-04) are live on lunchvoice.com (set in the Render dashboard because the static site is not
+  Blueprint-managed): CSP, HSTS, nosniff, referrer and permissions policies, frame blocking. With the CSP active, 10
+  live routes load with zero violations and the sign-in redirect to auth.kpnsolute.com works.
+- Founder sign-in verified on production: one account, one identity, no duplicate identity pairs; waitlist admission
+  granted one Founding credit, consumed once by the founder's Hub (Starter / founding / waitlist, protected Owner).
+- UI correction pass (#45) deployed.
+
+### Added (full build plan)
+
+- `docs/v2/BUILD_PLAN_2026-11-21.md`: definition of done for feature-complete (2026-11-21) ahead of the 2026-12-01
+  launch, three parallel full-stack tracks (hardening and gaps, commerce/email/admin, community and Discover) with
+  migration numbers, ownership rules and build decisions B-01, B-02, C-01, C-02.
+
 ### Changed (UI/UX correction pass)
 
 - Hub overview: the stat row is one responsive grid; plan names ("Starter") never wrap per character; the Plan tile is

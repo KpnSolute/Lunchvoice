@@ -31,6 +31,10 @@ const COPY: Record<string, string> = {
   lv_reauth_required: "For your safety, sign in again, then try this once more.",
   lv_confirmation_mismatch: "The confirmation text didn't match. Type it exactly as shown.",
   lv_server_error: "Something went wrong on our side. Try again.",
+  /* ---- track C: community ---- */
+  lv_insufficient_points: "You don't have enough points for this yet.",
+  lv_out_of_stock: "This item is out of stock.",
+  /* ---- end track C ---- */
 };
 
 export const GATE_REASONS: Record<string, string> = {
@@ -67,3 +71,11 @@ export function describeError(
 export function describeGate(reasons: string[] | undefined): string[] {
   return (reasons ?? []).map((r) => GATE_REASONS[r] ?? r);
 }
+
+/* ---- track A: hardening ---- */
+// 000018 gate reasons for role-targeted Campaigns.
+Object.assign(GATE_REASONS, {
+  role_targeting_unavailable: "This Hub’s plan doesn’t include choosing participants by role. Switch the audience back to all members.",
+  role_targeting_anonymous: "Choosing participants by role is only for identified Campaigns. Switch the audience back to all members, or make the Campaign identified.",
+  audience_empty: "None of the chosen roles exists any more. Pick a role or switch to all members.",
+});

@@ -25,8 +25,6 @@ export const Members = pick(hub, "Members");
 export const Invites = pick(hub, "Invites");
 export const Roles = pick(hub, "Roles");
 export const HubSettings = pick(hub, "HubSettings");
-export const HubBilling = pick(hub, "HubBilling");
-export const HubReservation = pick(hub, "HubReservation");
 export const HubDiscover = pick(hub, "HubDiscover");
 export const HubBuilder = pick(hub, "HubBuilder");
 export const HubAddon = pick(hub, "HubAddon") as (p: { kind: "shop" | "leaderboard" | "news" | "post" | "comments" | "page" }) => JSX.Element;
@@ -41,3 +39,15 @@ export const NewSurvey = pick(surveys, "NewSurvey");
 export const SurveyStudio = pick(surveys, "SurveyStudio");
 export const SurveyResults = pick(surveys, "SurveyResults");
 export const SurveyInvite = pick(surveys, "SurveyInvite");
+
+/* ---- track B: commerce ---- */
+// Billing, reservation (Hub page and /reserve) and the platform admin console replace the Hub.tsx placeholders.
+const commerce = () => import("./Commerce");
+export const HubBilling = pick(commerce, "HubBilling");
+export const HubReservation = pick(commerce, "HubReservation");
+export const Reserve = pick(commerce, "Reserve");
+export const Admin = pick(commerce, "Admin");
+
+/* ---- track C: community ---- */
+export const DiscoverDirectory = pick(() => import("./Community"), "DiscoverDirectory");
+/* ---- end track C ---- */

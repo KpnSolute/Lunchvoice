@@ -94,7 +94,12 @@ select t.as_pg();
 update lv.hub_memberships set status = 'pending' where id = t.id('m_resp');
 select t.as_kpn(1);
 select t.check('transfer: the target must be an accepted member', t.code(lv_api.lv_owner_transfer(t.id('hub'), t.id('m_resp'), 'manage-hub')) = 'lv_not_accepted');
-select t.check('transfer: the Owner transfers to an accepted member', t.code(lv_api.lv_owner_transfer(t.id('hub'), t.id('m_heir'), 'manage-hub')) = 'ok');
+select t.put('offer', lv_api.lv_owner_transfer(t.id('hub'), t.id('m_heir'), 'manage-hub')::text);
+select t.check('transfer: the Owner offers ownership to an accepted member', t.code(t.get('offer')::jsonb) = 'ok');
+-- 000018: the offer is accepted by the receiving member; nothing moved before that (see 18_hardening).
+select t.as_kpn(2);
+select t.check('transfer: the receiving member accepts the offer',
+  t.code(lv_api.lv_owner_transfer_accept((t.get('offer')::jsonb #>> '{offer,offer_id}')::uuid)) = 'ok');
 select t.as_pg();
 select t.check('transfer: the Hub owner and the Owner role moved together',
   t.q(format($q$select (h.owner_account_id = %L::uuid)::text || '|' || (select count(*) from lv.membership_roles mr join lv.roles r on r.id = mr.role_id
@@ -151,7 +156,7 @@ select t.check('delete: the account''s participation rows are deleted (nothing j
 select t.check('delete: the anonymous answer stays as an aggregate',
   t.q(format($q$select count(*)::text from lv.submissions where campaign_id = %L::uuid$q$, t.get('ca'))) = '1');
 select t.check('delete: invitations it created are deleted',
-  t.q(format($q$select count(*)::text from lv.campaign_invites where token = %L$q$, t.get('mycampinv'))) = '0');
+  t.q(format($q$select count(*)::text from lv.campaign_invites where token_hash = lv.invite_hash(%L)$q$, t.get('mycampinv'))) = '0');
 select t.check('delete: the waitlist row and contact email are gone', t.q($$select count(*)::text from lv.waitlist_entries where contact_email = 'resp@example.invalid'$$) = '0');
 select t.check('delete: no audit row names the account',
   t.q(format($q$select count(*)::text from lv.audit_events where actor_account_id = %L::uuid or target = %L or detail::text like %L$q$, t.get('resp'), t.get('resp'), '%' || t.get('resp') || '%')) = '0');
