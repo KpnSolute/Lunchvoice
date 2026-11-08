@@ -6,6 +6,21 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (2026-11-08, founder-approved: "merge it both you do everything")
+
+- **Production:** migrations 000023 (staff panel) and 000024 (API, webhooks, Discord) applied to `qprfonxvthmaoxfixigk`
+  one at a time from commit `81a7deb` (file hashes verified; 000023 `844b98ba…`, 000024 `d6c8b7d8…`), after a rehearsal on a
+  seeded 000022 database. Migration history versions normalized to `000023` / `000024`. Post-apply audit matched the
+  rehearsal: 139 `lv_api` functions, the same 13 callable signed out, nothing in `lv` granted to `anon`/`authenticated`,
+  RLS on every `lv` table, data unchanged (3 accounts, 3 Hubs). PR #52 merged to `main`.
+- **Edge Functions `api`, `discord`, `webhook-dispatch` deployed** (v2, `verify_jwt=false`) from single-file Deno bundles
+  with a small Node-globals shim (`Buffer`, `process`, `setImmediate`): the Management API deploy cannot take an import
+  map, and the bundled database driver needs `Buffer` (the first deploy crashed with `Buffer is not defined`). Live
+  checks: unsigned Discord request 401, `/v1` without a key 401, unknown key 401 "Invalid API key" (database reached),
+  `webhook-dispatch` without service auth 401.
+- `discord` gained a service-role-only `POST /discord/register` that bulk-registers the slash commands using the bot token
+  held in the function's secrets, so the token never leaves Supabase.
+
 ### Added (LunchVoice API, webhooks and Discord bot, 000024 — not yet applied to production)
 
 - `supabase/migrations/000024_v2_api_discord.sql` + rollback + `supabase/tests/24_api_discord.sql`: Team-only Hub

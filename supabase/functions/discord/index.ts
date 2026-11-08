@@ -9,7 +9,7 @@
 // Never logs tokens, codes, user ids or message bodies.
 import postgres from "postgres";
 import { dispatchAuthorized } from "../_shared/email/dispatch.ts";
-import { applyRolePlan, buildCard, DISCORD_API, ephemeral, parseInteraction, replyFor, verifyDiscordRequest, type Card, type RolePlan } from "../_shared/discord.ts";
+import { applyRolePlan, buildCard, COMMAND_DEFINITIONS, DISCORD_API, ephemeral, parseInteraction, replyFor, verifyDiscordRequest, type Card, type RolePlan } from "../_shared/discord.ts";
 
 const MAX_BODY_BYTES = 64 * 1024;
 let sql: ReturnType<typeof postgres> | null = null;
@@ -79,6 +79,24 @@ Deno.serve(async (req) => {
       console.error("discord: dispatch failed");
       return reply(500, { ok: false, error: { code: "lv_server_error", message: "Dispatch failed; queued work is kept." } });
     }
+  }
+
+  // Service-role only: (re)register the slash commands with Discord using the bot token held in this function's secrets,
+  // so the token never has to leave Supabase. Bulk overwrite, idempotent. Never echoes a secret.
+  if (new URL(req.url).pathname.endsWith("/register")) {
+    if (!dispatchAuthorized(req.headers.get("authorization"), env)) return reply(401, { ok: false, error: { code: "lv_unauthenticated", message: "Service role only." } });
+    const app = env("DISCORD_APPLICATION_ID") ?? "";
+    if (!token || !/^[0-9]{5,25}$/.test(app)) return reply(503, { ok: false, error: { code: "lv_not_configured", message: "DISCORD_APPLICATION_ID or DISCORD_BOT_TOKEN is missing." } });
+    const res = await fetch(`${DISCORD_API}/applications/${app}/commands`, {
+      method: "PUT",
+      headers: { authorization: `Bot ${token}`, "content-type": "application/json" },
+      body: JSON.stringify(COMMAND_DEFINITIONS),
+    }).catch(() => null);
+    if (!res) return reply(502, { ok: false, error: { code: "lv_unavailable", message: "Could not reach Discord." } });
+    const out = (await res.json().catch(() => null)) as unknown;
+    return reply(res.ok ? 200 : 502, res.ok
+      ? { ok: true, registered: Array.isArray(out) ? out.map((c: { name?: unknown }) => String(c.name)) : [] }
+      : { ok: false, error: { code: "lv_unavailable", message: `Discord refused the registration (HTTP ${res.status}).` } });
   }
 
   const publicKey = env("DISCORD_PUBLIC_KEY");
