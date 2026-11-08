@@ -338,6 +338,7 @@ export function CreateHub() {
               <li><Icon name="check" size={16} />You’re the Owner, and the Owner never uses a role slot</li>
             </ul>
             {error && <Notice tone="error">{error}</Notice>}
+            <p className="ui-muted lv-small lv-m0">By creating a Hub you agree to the <Link to="/guidelines">Community Guidelines</Link>.</p>
             <div className="ui-row">
               <Button variant="secondary" onClick={() => setStep(1)}>Back</Button>
               <Button variant="primary" size="lg" disabled={busy || credits === 0} onClick={create}>{busy ? "Creating…" : "Create Hub"}</Button>

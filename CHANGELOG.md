@@ -6,6 +6,22 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed
+
+- `/connect/discord`: the optional "roles" consent checkbox rendered as a stray empty box with its text underneath (a
+  wrapping `ui-row`). Both consent rows now use the one-line `lv-check-row`; a new e2e test measures that the text sits
+  beside the box at 1100px and 390px, and fails on the old markup.
+
+### Added (community guidelines, founder-approved 2026-11-08 "publish it")
+
+- `/guidelines` page (seven rules incl. respect anonymity, Hub owner duties, reporting, what we may do incl.
+  suspension, appeals by email), linked from the footer, Terms, the Create Hub step ("By creating a Hub you agree…") and
+  above every comment thread; route, SEO entry, prerender and `render.yaml` rewrite. It keeps the "legal text pending
+  review" banner until a lawyer has read it. The Builder "House rules" starter page is not built yet.
+- `supabase/migrations/000026_v2_reserve_platform_pages.sql` + rollback: reserves `guidelines`, `terms`, `privacy`,
+  `about`, `status`, `how-it-works`, `use-cases`, `whitelist` so no Hub can claim a name a platform page answers. Built,
+  not yet applied to production (needs the founder's approval, together with 000025).
+
 ### Changed (000025, built and tested, NOT yet applied to production)
 
 - `supabase/migrations/000025_v2_suspended_participation.sql` + rollback: a suspended account can no longer answer

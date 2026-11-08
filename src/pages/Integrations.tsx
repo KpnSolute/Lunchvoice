@@ -368,8 +368,8 @@ export function ConnectDiscord() {
               <p className="lv-m0">LunchVoice stores your Discord user id as a linked handle, the time and this notice’s version ({p!.consent_version}). It never becomes how you sign in.</p>
               <p className="lv-m0">Identified polls you answer with Discord buttons are recorded as your identified answers. Anonymous Campaigns are always answered in LunchVoice, so Discord never sees those answers.</p>
             </div>
-            <label className="ui-row" htmlFor="dc-agree"><Checkbox id="dc-agree" checked={agree} onCheckedChange={(c) => setAgree(Boolean(c))} />I understand and want to link this account</label>
-            <label className="ui-row" htmlFor="dc-roles"><Checkbox id="dc-roles" checked={roles} onCheckedChange={(c) => setRoles(Boolean(c))} />
+            <label className="lv-check-row" htmlFor="dc-agree"><Checkbox id="dc-agree" checked={agree} onCheckedChange={(c) => setAgree(Boolean(c))} />I understand and want to link this account</label>
+            <label className="lv-check-row lv-check-row--top" htmlFor="dc-roles"><Checkbox id="dc-roles" checked={roles} onCheckedChange={(c) => setRoles(Boolean(c))} />
               <span>Let servers I verify in give me roles based on LunchVoice facts their rules ask about: waitlist Founding member, member of a Hub, has a Team Hub. <span className="ui-muted">Optional.</span></span>
             </label>
             <div className="ui-row"><Button variant="ink" disabled={!agree || busy || p!.already_linked} onClick={() => void confirm()}>{busy ? "Linking…" : "Link Discord"}</Button></div>

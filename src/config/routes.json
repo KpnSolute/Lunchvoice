@@ -75,6 +75,14 @@
       "milestone": "M1"
     },
     {
+      "path": "/guidelines",
+      "name": "Community Guidelines",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M1"
+    },
+    {
       "path": "/privacy",
       "name": "Privacy",
       "layout": "L1",

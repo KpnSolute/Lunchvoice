@@ -67,6 +67,9 @@ services:
         source: /terms
         destination: /terms/index.html
       - type: rewrite
+        source: /guidelines
+        destination: /guidelines/index.html
+      - type: rewrite
         source: /*
         destination: /app.html
     envVars:

@@ -2,7 +2,7 @@
   "note": "Search metadata. The single source for the runtime <Seo/> component (src/ui/Seo.tsx) and the build-time prerender (scripts/seo-prerender.mjs), which writes per-page HTML, sitemap.xml and robots.txt into dist/. Only paths listed under pages are indexable; every other route is served noindex. Hubs are never indexed here: a customer's Hub is its own, and listing is the Discover feature's job.",
   "siteUrl": "https://lunchvoice.com",
   "siteName": "LunchVoice",
-  "titleSuffix": " · LunchVoice",
+  "titleSuffix": " \u00b7 LunchVoice",
   "defaultTitle": "LunchVoice: anonymous surveys and polls for any community",
   "defaultDescription": "Build a survey in minutes, share it by QR code or a six-character code, and see anonymous, privacy-safe results live. Free Quick Surveys; Hubs for communities from $13/month.",
   "image": "/og-image.png",
@@ -96,6 +96,15 @@
       "description": "The plain-language terms for using LunchVoice: privacy as a product constraint, plans and cancellation, and reporting abuse.",
       "h1": "LunchVoice terms",
       "body": "Using LunchVoice, privacy as a product constraint, plans and cancellation, and reporting abuse.",
+      "changefreq": "yearly",
+      "priority": 0.3
+    },
+    {
+      "path": "/guidelines",
+      "title": "Community Guidelines",
+      "description": "The rules for Hubs, surveys, comments and shops on LunchVoice: respect people, respect anonymity, ask honestly and keep it legal.",
+      "h1": "LunchVoice Community Guidelines",
+      "body": "Respect people, respect anonymity, ask honestly, keep it legal and safe, no spam, protect other people's information.",
       "changefreq": "yearly",
       "priority": 0.3
     }

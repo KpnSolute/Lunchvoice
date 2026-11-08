@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { Icon, type IconName } from "../components/Icon";
 import { LinkButton } from "../components/ui";
 import { MadeBy } from "../components/MakerMark";
@@ -153,9 +154,36 @@ export function Terms() {
         <h2>Plans and cancellation</h2>
         <p>Prices exclude applicable tax. Cancel a Hub plan anytime; access continues to the end of the paid period. Campaign plans are refundable until the Campaign window starts. When paid access ends, premium actions lock; your data is not deleted.</p>
         <h2>Reporting abuse</h2>
-        <p>Every survey has a “Report this survey” action. We may block a survey that breaks these terms.</p>
+        <p>Every survey has a “Report this survey” action. Everything you post or ask must follow the <Link to="/guidelines">Community Guidelines</Link>. We may block a survey that breaks these terms.</p>
         <h2>Contact</h2>
         <p><a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a></p>
+      </div>
+    </div>
+  );
+}
+
+export function Guidelines() {
+  return (
+    <div className="lv-mk">
+      <Head eyebrow="Community" title="Community Guidelines" sub="LunchVoice is for asking people things and listening to the answers. These rules apply to every Hub, Campaign, Quick Survey, post, comment and shop item." />
+      <LegalPending />
+      <div className="lv-mk-prose">
+        <h2>The rules</h2>
+        <ol>
+          <li><strong>Respect people.</strong> No harassment, threats, bullying or hate based on who someone is.</li>
+          <li><strong>Respect anonymity.</strong> Don’t try to work out who gave an anonymous answer, pressure people to reveal their answers, or design surveys to single someone out. This is the one rule that is unique to LunchVoice, and we take it seriously.</li>
+          <li><strong>Ask honestly.</strong> No surveys that trick people: no collecting passwords, payment details or ID numbers, no phishing, no pretending to be someone you’re not.</li>
+          <li><strong>Keep it legal and safe.</strong> No illegal content, no sexual content involving minors, no promoting violence or self-harm, no selling prohibited goods in a Hub shop.</li>
+          <li><strong>No spam or manipulation.</strong> No bulk-created surveys, fake accounts or vote stuffing, and no misleading Discover listings. Polls are opinions, not official elections; don’t present them as binding votes unless they are.</li>
+          <li><strong>Protect other people’s information.</strong> Don’t post someone’s private details (doxxing), and don’t ask for more personal data than your question needs.</li>
+          <li><strong>Respect others’ work.</strong> Don’t post content you don’t have the right to share.</li>
+        </ol>
+        <h2>Hub owners and moderators</h2>
+        <p>Owners and moderators are responsible for their Hub. Use the tools: hide or delete comments, remove members and review reports. A Hub can add its own rules on a custom page; they can be stricter than these, never looser.</p>
+        <h2>Reporting</h2>
+        <p>Use “Report this survey” or “Report” on a comment, or email <a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a>. Reports are confidential: the person you report is never told who reported them.</p>
+        <h2>What we may do</h2>
+        <p>We may remove content, block a survey, remove a Hub from Discover, or suspend a Hub or an account. A suspended account can still sign in, read, leave Hubs and delete its data, but can’t answer, join, create or post. Answers are never deleted to punish a respondent. To appeal, email <a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a>.</p>
       </div>
     </div>
   );

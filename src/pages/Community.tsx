@@ -291,6 +291,7 @@ export function CommentThread({ hubId, postId }: { hubId: string; postId?: strin
   return (
     <section className="lv-cm-stack" data-testid="comments" aria-label="Comments">
       <SectionTitle>Comments</SectionTitle>
+      <p className="ui-muted lv-small lv-m0">Be kind and keep it on topic: <Link to="/guidelines">Community Guidelines</Link>.</p>
       {d.comments.length === 0 && <p className="ui-muted lv-m0">No comments yet.</p>}
       <ul className="lv-cm-comments">
         {d.comments.map((c) => (

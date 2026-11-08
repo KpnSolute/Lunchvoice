@@ -25,7 +25,7 @@ import { AccountSuspendedNotice, StaffMenuItem } from "../components/StaffStatus
 // In-product routes keep the compact header so Hub chrome stays the focus.
 const MARKETING_ROUTES = new Set([
   "/", "/how-it-works", "/use-cases", "/pricing", "/beta", "/about", "/waitlist",
-  "/status", "/terms", "/privacy", "/support", "/discover",
+  "/status", "/terms", "/guidelines", "/privacy", "/support", "/discover",
 ]);
 
 // Account routes get the account shell: header pills on desktop, bottom tabs on phones.
@@ -182,6 +182,7 @@ function Footer() {
           <Link to="/about">About</Link>
           <Link to="/privacy">Privacy</Link>
           <Link to="/terms">Terms</Link>
+          <Link to="/guidelines">Guidelines</Link>
           <Link to="/support">Support</Link>
           <Link to="/status">Status</Link>
           <a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a>
