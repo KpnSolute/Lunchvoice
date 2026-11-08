@@ -6,6 +6,19 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (staff panel, 000023 — not yet applied to production)
+
+- `supabase/migrations/000023_v2_staff_panel.sql` + rollback + `supabase/tests/23_staff_panel.sql` (90 checks):
+  staff add/revoke by verified email only (recent sign-in required, no self-revoke, last admin kept, audited);
+  Hub and account suspension with a required reason, enforced by `lv.assert_not_suspended` row triggers on 17
+  content tables (deletes, leaving, reading and answering stay allowed; nothing is deleted; suspended Hubs leave
+  Discover); one reports queue for survey and comment reports (reporters never returned); Hub/account lookup (exact
+  email only, audited reveal); audit viewer without detail payloads. New error code `lv_suspended`. Every
+  `lv_admin_*` function is gated by `lv.admin_denied()` and granted to `authenticated` only.
+- `/admin` moved to `src/pages/Admin.tsx` with Overview/audit, Reports, Hubs, Accounts, Staff, Waitlist, Discover,
+  Billing and Email tabs; staff entry in the account menu; suspension notices for Hubs and accounts; mock and
+  `e2e/staff.test.mjs`. Canonical DB suite 1093/0 with rollback rehearsal, e2e 66/66, unit 29/29.
+
 ### Added (plan)
 
 - `docs/v2/API_AND_DISCORD_PLAN.md`: Team-only LunchVoice API (scoped Hub keys, `/v1`, signed webhooks, suppression
