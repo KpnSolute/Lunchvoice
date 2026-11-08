@@ -17,6 +17,8 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   "terms", "privacy", "blog", "legal", "security", "contact",
   /* ---- track B: commerce ---- */
   "reserve",
+  /* ---- track D: api + discord ---- */
+  "developers", "connect", "webhooks",
 ]);
 
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;

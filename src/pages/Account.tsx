@@ -15,6 +15,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/shadc
 import { Input } from "@/components/shadcn/input";
 import { Badge } from "@/components/shadcn/badge";
 import { Separator } from "@/components/shadcn/separator";
+import { AccountDiscord } from "./Integrations"; // track D: api + discord
 import {
   EmptyState,
   Eyebrow,
@@ -481,6 +482,9 @@ export function Settings() {
           </form>
           <p className="ui-help lv-m0">You sign in through KpnIdentity. LunchVoice keeps your verified sign-in, never your email as an identity key.</p>
         </Card>
+
+        {/* ---- track D: api + discord ---- */}
+        <AccountDiscord />
 
         <Card>
           <SectionTitle>Appearance</SectionTitle>

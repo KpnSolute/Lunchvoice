@@ -51,3 +51,8 @@ export const Admin = pick(commerce, "Admin");
 /* ---- track C: community ---- */
 export const DiscoverDirectory = pick(() => import("./Community"), "DiscoverDirectory");
 /* ---- end track C ---- */
+
+/* ---- track D: api + discord ---- */
+export const Developers = pick(() => import("./Developers"), "Developers");
+export const ConnectDiscord = pick(() => import("./Integrations"), "ConnectDiscord");
+/* ---- end track D ---- */

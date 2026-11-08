@@ -14,6 +14,7 @@ import {
   HubSettings, Invites, Members, NewCampaign, NewSurvey, Results, Roles, Studio, SurveyInvite, SurveyList, SurveyResults, SurveyStudio,
 } from "./pages/lazy";
 import { Admin, Reserve } from "./pages/lazy"; // track B: commerce
+import { ConnectDiscord, Developers } from "./pages/lazy"; // track D: api + discord
 import { Gallery } from "./pages/Gallery";
 import { initTheme } from "./ui/theme";
 import { Toaster } from "@/components/shadcn/sonner";
@@ -78,6 +79,11 @@ createRoot(document.getElementById("root")!).render(
             {/* ---- track B: commerce ---- */}
             <Route path="reserve" element={<RequireSignIn><Reserve /></RequireSignIn>} />
             <Route path="admin" element={<RequireSignIn><Admin /></RequireSignIn>} />
+
+            {/* ---- track D: api + discord ---- */}
+            <Route path="developers" element={<Developers />} />
+            {/* signs in on the page itself, so the one-time code in ?c= survives the sign-in round trip */}
+            <Route path="connect/discord" element={<ConnectDiscord />} />
 
             {/* a Hub and everything under it */}
             <Route path=":hub" element={<HubLayout />}>

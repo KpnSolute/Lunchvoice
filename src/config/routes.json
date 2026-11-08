@@ -211,6 +211,22 @@
       "milestone": "M2"
     },
     {
+      "path": "/developers",
+      "name": "Developers: API, webhooks and Discord reference",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M2"
+    },
+    {
+      "path": "/connect/discord",
+      "name": "Connect Discord (one-time code: link account or confirm a server)",
+      "layout": "L8",
+      "shell": "account",
+      "access": "signed-in",
+      "milestone": "M2"
+    },
+    {
       "path": "/:hub",
       "name": "Overview (manager) / Hub landing (visitor, L10)",
       "layout": "L7",
