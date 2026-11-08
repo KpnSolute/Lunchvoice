@@ -15,6 +15,7 @@ import {
 } from "./pages/lazy";
 import { Gallery } from "./pages/Gallery";
 import { initTheme } from "./ui/theme";
+import { Seo } from "./ui/Seo";
 import { Toaster } from "@/components/shadcn/sonner";
 import { TooltipProvider } from "@/components/shadcn/tooltip";
 import "./ui/fonts.css";
@@ -34,6 +35,7 @@ initTheme();
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
+      <Seo />
       <IdentityProvider>
         <TooltipProvider delayDuration={300}>
         <Routes>

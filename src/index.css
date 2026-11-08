@@ -265,3 +265,11 @@ select:where(:not([data-slot])) {
 .slider-row input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; }
 .slider-value { min-width: 2ch; text-align: center; font-size: 19px; color: var(--accent); }
 
+
+/* Prerendered content for crawlers (scripts/seo-prerender.mjs). React replaces it on mount; until then it reads
+   as a calm page rather than unstyled text. */
+.lv-seo-fallback { max-width: 720px; margin: 0 auto; padding: 48px 16px; color: var(--ink); }
+.lv-seo-fallback h1 { font-size: clamp(2rem, 6vw, 3rem); line-height: 1.1; margin: 24px 0 16px; }
+.lv-seo-fallback p { line-height: 1.6; }
+.lv-seo-fallback a { color: inherit; }
+.lv-seo-fallback ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 32px; }

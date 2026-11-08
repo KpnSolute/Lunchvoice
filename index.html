@@ -3,15 +3,44 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LunchVoice</title>
-  <meta name="description" content="Hubs, campaigns and aggregate results." />
+  <title>LunchVoice: anonymous surveys and polls for any community</title>
+  <meta name="description" content="Build a survey in minutes, share it by QR code or a six-character code, and see anonymous, privacy-safe results live. Free Quick Surveys; Hubs for communities from $13/month." />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <link rel="canonical" href="https://lunchvoice.com/" />
   <meta name="theme-color" content="#EEEDEA" />
+  <meta name="application-name" content="LunchVoice" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon-180.png" />
-  <meta property="og:title" content="LunchVoice" />
-  <meta property="og:description" content="Hubs, campaigns and aggregate results." />
-  <meta property="og:image" content="/brand/lunchvoice-mark.svg" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <!-- Search and social metadata. src/config/seo.json is the source; scripts/seo-prerender.mjs rewrites these per page. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="LunchVoice" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:title" content="LunchVoice: anonymous surveys and polls for any community" />
+  <meta property="og:description" content="Build a survey in minutes, share it by QR code or a six-character code, and see anonymous, privacy-safe results live. Free Quick Surveys; Hubs for communities from $13/month." />
+  <meta property="og:url" content="https://lunchvoice.com/" />
+  <meta property="og:image" content="https://lunchvoice.com/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="LunchVoice: every voice has a story. Hear it." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="LunchVoice: anonymous surveys and polls for any community" />
+  <meta name="twitter:description" content="Build a survey in minutes, share it by QR code or a six-character code, and see anonymous, privacy-safe results live. Free Quick Surveys; Hubs for communities from $13/month." />
+  <meta name="twitter:image" content="https://lunchvoice.com/og-image.png" />
+  <!-- Structured data (a JSON data block: never executed, so the script-src hash below does not cover it). -->
+  <script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Organization","@id":"https://lunchvoice.com/#org","name":"LunchVoice","url":"https://lunchvoice.com/","logo":"https://lunchvoice.com/android-icon-192.png","email":"support@lunchvoice.com","brand":"KpnSolute"},
+{"@type":"WebSite","@id":"https://lunchvoice.com/#site","name":"LunchVoice","url":"https://lunchvoice.com/","publisher":{"@id":"https://lunchvoice.com/#org"},"inLanguage":"en"},
+{"@type":"SoftwareApplication","name":"LunchVoice","applicationCategory":"BusinessApplication","operatingSystem":"Web","url":"https://lunchvoice.com/","description":"Anonymous surveys, polls, ratings, ideas and elections for any community, with privacy-safe live results.","publisher":{"@id":"https://lunchvoice.com/#org"},
+"offers":[
+{"@type":"Offer","name":"Free Quick Survey","price":"0","priceCurrency":"USD"},
+{"@type":"Offer","name":"Starter Hub","price":"13","priceCurrency":"USD","priceSpecification":{"@type":"UnitPriceSpecification","price":"13","priceCurrency":"USD","unitCode":"MON"}},
+{"@type":"Offer","name":"Team Hub","price":"29","priceCurrency":"USD","priceSpecification":{"@type":"UnitPriceSpecification","price":"29","priceCurrency":"USD","unitCode":"MON"}}
+]}
+]}
+  </script>
   <!-- Fonts are self-hosted (src/ui/fonts.css, SIL OFL 1.1; licenses in /licenses). -->
   <script>
     /* Apply the saved theme before first paint (same rules as src/ui/theme.ts). */
@@ -26,7 +55,7 @@
   </script>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root"><!--lv:seo-fallback--></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>
