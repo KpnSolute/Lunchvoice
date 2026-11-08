@@ -7,8 +7,11 @@
 - **Not legal advice.** Items about law (privacy notices, COPPA, FERPA, state student-privacy law, payments) are
   risks for the founder to take to counsel. They are not statements of what the law requires.
 
-> **Current status (targeted re-review at `5c665e1`, section 7.7): 0 BLOCKER and 0 HIGH open. The F-13 compliance
-> condition is met.** At `7ea5853` (sections 7.1-7.6) one new HIGH, NEW-01, was open. 000017 (`8f300b3`) closes it,
+> **Latest (full build `9e951ec`, section 8): 0 BLOCKER and 1 HIGH open (FB-01, role targeting on anonymous
+> Campaigns allows differencing).** The feature-complete gate is not met until FB-01 is fixed.
+>
+> **Earlier (targeted re-review at `5c665e1`, section 7.7): 0 BLOCKER and 0 HIGH open. The F-13 compliance
+> condition was met for the launch scope.** At `7ea5853` (sections 7.1-7.6) one new HIGH, NEW-01, was open. 000017 (`8f300b3`) closes it,
 > with runtime evidence. Sections 1-6 below are the original review, kept as history.
 
 ## 1. Summary verdict
@@ -578,6 +581,10 @@ Open counts, previously open items plus the new findings below: **0 BLOCKER, 1 H
 | LC-12 | A raw KpnIdentity ID token (`aud` = client id) gives `caller_identity` NULL; `aud=authenticated` without `session_kind` gives NULL; the deployed session shape (`aud=authenticated`, `session_kind=lunchvoice`, which `_shared/session.ts` issues) is accepted |
 | LC-01 regression | 5×"5" + 1×"1": overview, `lv_analytics_query(rating_summary)` and export each withhold the question (no keys, no cells, mean and n null) |
 | Outbox | After an identified and an anonymous text Campaign: templates are `hub_created`, `waitlist_joined` and **one** `participation_receipt` (identified only); 0 outbox rows contain an answer; 0 receipts for the anonymous Campaign |
+| Billing through the 000019 wrapper | `lv.billing_apply_event` (`000019:292-358`) handles `customer.subscription.updated` itself and delegates every grant to the unchanged 000017 core, which service_role can no longer call directly (`000019:973`). Test "webhook: NEW-01 still binds grants to the confirmed amount through the wrapper" passes. Line items (`_shared/stripe.ts` `lineItemsFor`): first period plus `quantity = weeks - first_period_weeks`. These match `lv.checkout_amount` only if the Stripe prices equal `lv.products`, so a misconfigured price is rejected by the webhook amount check rather than granted |
+| Edge Function auth | `checkout`: forwards the caller's own session to PostgREST (`lv_checkout_start` / `lv_billing_portal_check`) before using the service role; returns a generic 502 and never echoes Stripe text (`_shared/checkout.ts:131-139`); 503 without `STRIPE_SECRET_KEY`. `email-dispatch`: constant-time bearer compare against the service role key or `EMAIL_DISPATCH_SECRET`, where an empty secret never matches (`_shared/email/dispatch.ts:90-103`); no addresses logged. Each `verify_jwt=false` is justified in `supabase/config.toml` (LunchVoice ES256 sessions are not Supabase Auth JWTs; Stripe signs its own requests; the dispatcher checks its own bearer) |
+| Markdown-lite and email | `src/lib/markdownLite.ts:8-37` keeps only http(s) and mailto links and renders text nodes only (no `dangerouslySetInnerHTML`); links get `rel="noopener noreferrer nofollow ugc"` (`src/pages/Community.tsx:40`). The QR SVG comes from the `qrcode` library, not user HTML. Email templates escape every user value (`_shared/email/templates.ts:29-69`) |
+| Shop and points | Balances are visible to the member only; managers see orders with display names. Each order takes a per-member advisory lock plus a lock on the item row (`000020:933-968`); cancelling refunds points and restores stock. UI copy says "Points have no cash value" (`src/pages/Community.tsx:423,482`) |
 | **Role-targeting differencing (FB-01)** | See 8.3 |
 
 ### 8.3 FB-01 reproduction
