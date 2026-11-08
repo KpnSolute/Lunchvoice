@@ -156,7 +156,7 @@ select t.check('delete: the account''s participation rows are deleted (nothing j
 select t.check('delete: the anonymous answer stays as an aggregate',
   t.q(format($q$select count(*)::text from lv.submissions where campaign_id = %L::uuid$q$, t.get('ca'))) = '1');
 select t.check('delete: invitations it created are deleted',
-  t.q(format($q$select count(*)::text from lv.campaign_invites where token = %L$q$, t.get('mycampinv'))) = '0');
+  t.q(format($q$select count(*)::text from lv.campaign_invites where token_hash = lv.invite_hash(%L)$q$, t.get('mycampinv'))) = '0');
 select t.check('delete: the waitlist row and contact email are gone', t.q($$select count(*)::text from lv.waitlist_entries where contact_email = 'resp@example.invalid'$$) = '0');
 select t.check('delete: no audit row names the account',
   t.q(format($q$select count(*)::text from lv.audit_events where actor_account_id = %L::uuid or target = %L or detail::text like %L$q$, t.get('resp'), t.get('resp'), '%' || t.get('resp') || '%')) = '0');

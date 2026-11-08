@@ -56,10 +56,13 @@ select t.as_kpn(3, null, true, 'Runner'); select lv_api.lv_my_context();
 select t.put('runner', t.q($$select lv.current_account_id()::text$$));
 select t.as_kpn(4, null, true, 'Stranger'); select lv_api.lv_my_context();
 select t.as_pg();
+-- One credit at a time: credits created in one transaction share created_at, so the order would be arbitrary.
 select t.grant_credit(t.id('owner'), 'team');
-select t.grant_credit(t.id('owner'), 'starter');
 select t.as_kpn(1);
 select t.put('team', (lv_api.lv_hub_create('track-a-team', 'Track A Team') ->> 'hub_id'));
+select t.as_pg();
+select t.grant_credit(t.id('owner'), 'starter');
+select t.as_kpn(1);
 select t.put('starter', (lv_api.lv_hub_create('track-a-starter', 'Track A Starter') ->> 'hub_id'));
 select t.put('code_t', (lv_api.lv_invite_create(t.id('team')) ->> 'code'));
 select t.put('code_s', (lv_api.lv_invite_create(t.id('starter')) ->> 'code'));
@@ -69,9 +72,9 @@ select t.as_pg();
 select t.put('m_coach', t.q(format($q$select id::text from lv.hub_memberships where hub_id = %L::uuid and account_id = %L::uuid$q$, t.get('team'), t.get('coach'))));
 select t.put('m_runner', t.q(format($q$select id::text from lv.hub_memberships where hub_id = %L::uuid and account_id = %L::uuid$q$, t.get('team'), t.get('runner'))));
 select t.as_kpn(1);
-select t.put('r_coach', (lv_api.lv_role_create(t.id('team'), 'Coaches', 'star', array['campaign.manage']) ->> 'role_id'));
-select t.put('r_plain', (lv_api.lv_role_create(t.id('team'), 'Volunteers', 'heart', array[]::text[]) ->> 'role_id'));
-select t.put('r_other', (lv_api.lv_role_create(t.id('starter'), 'Elsewhere', 'star', array[]::text[]) ->> 'role_id'));
+select t.put('r_coach', (lv_api.lv_role_create(t.id('team'), 'Coaches', 'star', array['campaign.manage']) #>> '{role,role_id}'));
+select t.put('r_plain', (lv_api.lv_role_create(t.id('team'), 'Volunteers', 'heart', array[]::text[]) #>> '{role,role_id}'));
+select t.put('r_other', (lv_api.lv_role_create(t.id('starter'), 'Elsewhere', 'star', array[]::text[]) #>> '{role,role_id}'));
 select lv_api.lv_member_role_assign(t.id('m_coach'), t.id('r_coach'));
 
 -- ===== Campaign description ==============================================================================
@@ -80,12 +83,15 @@ select t.check('description: lv_campaign_create stores it (trimmed) and lv_campa
   (lv_api.lv_campaign_get(t.id('c1')) #>> '{campaign,description}') = 'What should we run next?');
 select t.check('description: lv_campaign_list returns it',
   (select e->>'description' from jsonb_array_elements(lv_api.lv_campaign_list(t.id('team')) -> 'campaigns') e where e->>'campaign_id' = t.get('c1')) = 'What should we run next?');
+-- (A write and a read of a STABLE function in one statement share a snapshot, so they are separate statements.)
+select t.put('u1', lv_api.lv_campaign_update(t.id('c1'), p_description => 'Pick the next race.')::text);
+select t.put('u2', lv_api.lv_campaign_update(t.id('c1'), p_title => 'Season survey 2')::text);
 select t.check('description: lv_campaign_update changes it and NULL leaves it',
-  t.code(lv_api.lv_campaign_update(t.id('c1'), p_description => 'Pick the next race.')) = 'ok'
-  and t.code(lv_api.lv_campaign_update(t.id('c1'), p_title => 'Season survey 2')) = 'ok'
+  t.code(t.get('u1')::jsonb) = 'ok' and t.code(t.get('u2')::jsonb) = 'ok'
   and (lv_api.lv_campaign_get(t.id('c1')) #>> '{campaign,description}') = 'Pick the next race.');
+select t.put('u3', lv_api.lv_campaign_update(t.id('c1'), p_description => '')::text);
 select t.check('description: an empty string clears it',
-  t.code(lv_api.lv_campaign_update(t.id('c1'), p_description => '')) = 'ok'
+  t.code(t.get('u3')::jsonb) = 'ok'
   and (lv_api.lv_campaign_get(t.id('c1')) #> '{campaign,description}') = 'null'::jsonb);
 select t.check('description: more than 2000 characters is lv_invalid_input on create and update',
   t.code(lv_api.lv_campaign_create(t.id('team'), 'Long', 'poll', 'anonymous', repeat('x', 2001))) = 'lv_invalid_input'
@@ -101,7 +107,7 @@ select t.check('options: eleven options are lv_invalid_input',
     (select jsonb_build_object('options', jsonb_agg('o' || g)) from generate_series(1, 11) g))) = 'lv_invalid_input');
 select t.check('options: ten options are fine',
   t.code(lv_api.lv_campaign_question_add(t.id('c1'), 9, 'single_choice', 'Ten',
-    (select jsonb_build_object('options', jsonb_agg('o' || g)) from generate_series(1, 10) g))) = 'ok');
+    (select jsonb_build_object('options', jsonb_agg('o' || g), 'optional', true) from generate_series(1, 10) g))) = 'ok');
 select t.check('options: duplicates (ignoring case and spaces) are lv_invalid_input',
   t.code(lv_api.lv_campaign_question_add(t.id('c1'), 1, 'multi_choice', 'Pick', '{"options":["Tue"," tue "]}'::jsonb)) = 'lv_invalid_input');
 select t.check('options: an empty option is lv_invalid_input',
@@ -138,8 +144,9 @@ select t.check('roles: the manager sees the option and the Hub''s roles before c
   (lv_api.lv_campaign_get(t.id('c1')) #>> '{audience,scope}') = 'all_members'
   and (lv_api.lv_campaign_get(t.id('c1')) #>> '{audience,role_targeting}') = 'true'
   and jsonb_array_length(lv_api.lv_campaign_get(t.id('c1')) #> '{audience,available_roles}') = 3);
+select t.put('a1', lv_api.lv_campaign_set_audience_roles(t.id('c1'), array[t.id('r_coach')])::text);
 select t.check('roles: a Team Hub targets one role',
-  (lv_api.lv_campaign_set_audience_roles(t.id('c1'), array[t.id('r_coach')]) #>> '{audience,scope}') = 'roles'
+  (t.get('a1')::jsonb #>> '{audience,scope}') = 'roles'
   and (lv_api.lv_campaign_get(t.id('c1')) #>> '{audience,roles,0,name}') = 'Coaches');
 select t.check('roles: an empty list goes back to every member',
   (lv_api.lv_campaign_set_audience_roles(t.id('c1'), array[]::uuid[]) #>> '{audience,scope}') = 'all_members');
@@ -219,9 +226,9 @@ select t.check('access: invite back to link keeps guests off until switched on',
   and t.q(format($q$select access || '|' || audience from lv.campaigns where id = %L::uuid$q$, t.get('qs'))) = 'link|members'
   and t.code(lv_api.lv_campaign_set_participation(t.id('qs'), 'members_and_guests')) = 'ok');
 select t.check('access: an unknown access is lv_invalid_input', t.code(lv_api.lv_campaign_update(t.id('qs'), p_access => 'public')) = 'lv_invalid_input');
-select t.check('access: the Quick Survey list shows the description and access',
-  t.code(lv_api.lv_campaign_update(t.id('qs'), p_description => 'Saturday?')) = 'ok'
-  and (lv_api.lv_quick_survey_list() #>> '{surveys,0,description}') = 'Saturday?');
+select t.put('u4', lv_api.lv_campaign_update(t.id('qs'), p_description => 'Saturday?')::text);
+select t.check('access: the Quick Survey list shows the description',
+  t.code(t.get('u4')::jsonb) = 'ok' and (lv_api.lv_quick_survey_list() #>> '{surveys,0,description}') = 'Saturday?');
 select t.as_kpn(4);
 select t.check('access: someone else cannot change it', t.code(lv_api.lv_campaign_update(t.id('qs'), p_access => 'invite')) in ('lv_not_found', 'lv_forbidden'));
 select t.as_kpn(1);
@@ -277,7 +284,7 @@ select t.check('LC-10: misses store neither the code nor the IP',
 select t.as_kpn(4);
 select t.check('LC-10: a signed-in caller has its own allowance', t.code(lv_api.lv_guest_campaign_get(t.get('qs_code'))) = 'ok');
 select t.as_pg();
-update lv.policy set value = '11'::jsonb where key = 'joincode.global_misses_per_minute';
+update lv.policy set value = '10'::jsonb where key = 'joincode.global_misses_per_minute';
 select t.as_anon();
 select set_config('request.headers', '{"x-forwarded-for":"192.0.2.1, 10.0.0.1"}', false);
 select t.check('LC-10: the global cap stops many signed-out clients together', t.code(lv_api.lv_guest_campaign_get(t.get('qs_code'))) = 'lv_rate_limited');
@@ -309,8 +316,9 @@ select t.check('NEW-05: redeeming by token works (any case)',
   (lv_api.lv_campaign_invite_redeem(lower(t.get('tok'))) ->> 'campaign_id') = t.get('inv'));
 select t.check('NEW-05: a prefix alone is not a token', t.code(lv_api.lv_campaign_invite_redeem(left(t.get('tok'), 6))) = 'lv_invalid_code');
 select t.as_kpn(3);
+select t.put('rv', lv_api.lv_campaign_invite_revoke_by_id((t.get('inv_new')::jsonb ->> 'invite_id')::uuid)::text);
 select t.check('NEW-05: revoking by id works for the manager',
-  t.code(lv_api.lv_campaign_invite_revoke_by_id((t.get('inv_new')::jsonb ->> 'invite_id')::uuid)) = 'ok'
+  t.code(t.get('rv')::jsonb) = 'ok'
   and (lv_api.lv_campaign_invite_list(t.id('inv')) #>> '{invites,0,state}') = 'revoked');
 select t.as_kpn(2);
 select t.check('NEW-05: a revoked invite is lv_invalid_code', t.code(lv_api.lv_campaign_invite_redeem(t.get('tok'))) = 'lv_invalid_code');
