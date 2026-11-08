@@ -31,7 +31,7 @@ test("admin: a signed-in non-admin gets the ordinary not-found page, never the c
   await go("/admin");
   await p.getByRole("heading", { name: "This page isn’t here." }).waitFor();
   assert.equal(await p.getByTestId("admin-console").count(), 0);
-  assert.equal(await p.getByText("Admin console").count(), 0);
+  assert.equal(await p.getByText("Staff panel").count(), 0);
   assert.deepEqual(errors, []);
   await ctx.close();
 });
@@ -41,7 +41,8 @@ test("admin: a platform admin sees the console; waitlist emails stay hidden unti
   await go("/admin");
   await p.getByTestId("admin-console").waitFor();
   for (const name of ["Waitlist", "Reports", "Discover", "Billing", "Email"]) assert.equal(await p.getByRole("tab", { name }).count(), 1, name);
-  const table = p.getByRole("table");
+  await p.getByRole("tab", { name: "Waitlist" }).click();
+  const table = p.getByRole("tabpanel").getByRole("table");
   await table.waitFor();
   assert.equal((await table.textContent()).includes("@"), false, "no address before it is opened");
   await p.getByRole("button", { name: "Show email" }).first().click();

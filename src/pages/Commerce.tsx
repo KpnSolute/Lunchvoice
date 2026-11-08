@@ -1,5 +1,5 @@
 // Track B: commerce. Checkout buttons (enabled only when lv_billing_config says the product is on sale), the Hub
-// billing and reservation pages, the reservation purchase page (/reserve) and the platform admin console (/admin).
+// billing and reservation pages and the reservation purchase page (/reserve). The staff panel lives in Admin.tsx.
 // Display only: the backend decides every price, limit and permission; checkout amounts come from lv.products.
 import { useEffect, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
@@ -8,18 +8,14 @@ import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import { slugProblem } from "../lib/reservedSlugs";
 import { describeError } from "../lib/errors";
-import type { AdminDiscoverApplication, AdminReport, LvError, ReservationStatus } from "../lib/lvApi";
+import type { ReservationStatus } from "../lib/lvApi";
 import { PLANS } from "../config/pricing";
 import { CheckoutButton, CheckoutReturnNotice, planOf, useBillingConfig, WeeksField } from "../components/Checkout";
 import { useHubCtx } from "./Hub";
-import { NotFoundPage } from "./Marketing";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
 import { Input } from "@/components/shadcn/input";
-import { Badge } from "@/components/shadcn/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shadcn/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shadcn/table";
-import { DisabledAction, EmptyState, Eyebrow, Field, LoadingRows, Notice, PageHeader, QuotaMeter, SectionTitle, StatTile } from "@/components/shadcn/blocks";
+import { DisabledAction, Eyebrow, Field, LoadingRows, Notice, PageHeader, QuotaMeter, SectionTitle } from "@/components/shadcn/blocks";
 
 const fmtDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—");
 const familyName = (f?: string | null) => (f === "team" ? "Team" : f === "starter" ? "Starter" : "Free");
@@ -250,194 +246,6 @@ export function Reserve() {
           <div className="lv-lifecycle"><span>ACTIVE · 12 months</span><i aria-hidden="true">→</i><span>GRACE · 25 days</span><i aria-hidden="true">→</i><span>RELEASED</span></div>
           <p className="ui-muted lv-m0">Only you can create a Hub with a reserved name while it is active or in grace. Renew any time before grace ends. A full refund releases the name.</p>
         </Card>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ /admin */
-
-function AdminWaitlist() {
-  const { api } = useIdentity();
-  const list = useLv(() => api.adminWaitlist(200, 0), [api]);
-  const [opened, setOpened] = useState<Record<string, string>>({});
-  if (list.loading && !list.data) return <LoadingRows rows={4} />;
-  if (list.error) return <Notice tone="error">{describeError(list.error)}</Notice>;
-  const entries = list.data?.entries ?? [];
-  if (!entries.length) return <EmptyState title="Nobody has joined yet" />;
-  return (
-    <Table>
-      <TableHeader><TableRow><TableHead>Position</TableHead><TableHead>Status</TableHead><TableHead>Joined</TableHead><TableHead>Intended Hub</TableHead><TableHead>Contact</TableHead></TableRow></TableHeader>
-      <TableBody>
-        {entries.map((e) => (
-          <TableRow key={e.entry_id}>
-            <TableCell>{e.position}</TableCell>
-            <TableCell><Badge variant={e.status === "admitted" ? "ok" : "neutral"}>{e.status}</Badge></TableCell>
-            <TableCell>{fmtDate(e.joined_at)}</TableCell>
-            <TableCell>{e.intended_hub_name ?? "—"}</TableCell>
-            <TableCell>
-              {!e.has_contact_email ? "None" : opened[e.entry_id] ? <span className="ui-mono">{opened[e.entry_id]}</span> : (
-                <Button size="sm" variant="quiet" onClick={async () => {
-                  const r = await api.adminWaitlistContact(e.entry_id);
-                  if (r.ok) setOpened((o) => ({ ...o, [e.entry_id]: r.contact_email ?? "None" })); else toast.error(describeError(r.error));
-                }}>Show email</Button>
-              )}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
-
-function AdminReports() {
-  const { api } = useIdentity();
-  const [status, setStatus] = useState<"open" | "actioned" | "dismissed">("open");
-  const list = useLv(() => api.adminAbuseReports(status), [api, status]);
-  const [reason, setReason] = useState<Record<string, string>>({});
-  async function act(p: Promise<{ ok: boolean; error?: LvError }>, done: string) {
-    const r = await p;
-    if (r.ok) { toast.success(done); list.reload(); } else if (r.error) toast.error(describeError(r.error));
-  }
-  const rows: AdminReport[] = list.data?.reports ?? [];
-  return (
-    <div className="lv-stack-16">
-      <div className="ui-row">
-        {(["open", "actioned", "dismissed"] as const).map((s) => <Button key={s} size="sm" variant={s === status ? "ink" : "quiet"} onClick={() => setStatus(s)}>{s}</Button>)}
-      </div>
-      {list.loading && !list.data ? <LoadingRows rows={3} /> : list.error ? <Notice tone="error">{describeError(list.error)}</Notice> : !rows.length ? <EmptyState title="No reports here" /> : rows.map((r) => (
-        <Card key={r.report_id} size="sm" data-testid="admin-report">
-          <div className="ui-spread"><strong>{r.campaign_title ?? "Deleted Campaign"}</strong>{r.blocked ? <Badge variant="danger">Blocked</Badge> : <Badge variant="neutral">{r.status}</Badge>}</div>
-          <p className="ui-muted lv-m0">{r.quick_survey ? "Quick Survey" : r.hub_name ?? "Hub"} · {r.join_code ?? "no code"} · {fmtDate(r.created_at)} · {r.open_reports} open</p>
-          <p className="lv-m0">“{r.reason}”</p>
-          {r.campaign_id && (
-            <div className="ui-row">
-              {r.blocked ? (
-                <Button size="sm" variant="secondary" onClick={() => act(api.adminCampaignUnblock(r.campaign_id!), "Unblocked")}>Unblock</Button>
-              ) : (
-                <>
-                  <Input aria-label="Block reason" placeholder="Reason (shown in the audit log)" value={reason[r.report_id] ?? ""} maxLength={500}
-                    onChange={(e) => setReason((x) => ({ ...x, [r.report_id]: e.target.value }))} className="max-w-[22rem]" />
-                  <Button size="sm" variant="danger" disabled={!(reason[r.report_id] ?? "").trim()} onClick={() => act(api.adminCampaignBlock(r.campaign_id!, reason[r.report_id]!), "Campaign blocked")}>Block Campaign</Button>
-                </>
-              )}
-              {r.status === "open" && <Button size="sm" variant="quiet" onClick={() => act(api.adminReportDismiss(r.report_id), "Dismissed")}>Dismiss</Button>}
-            </div>
-          )}
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-function AdminDiscover() {
-  const { api } = useIdentity();
-  const list = useLv(() => api.adminDiscoverList("all"), [api]);
-  const [notes, setNotes] = useState<Record<string, string>>({});
-  const apps: AdminDiscoverApplication[] = list.data?.applications ?? [];
-  async function decide(id: string, approve: boolean) {
-    const r = await api.adminDiscoverDecide(id, approve, notes[id] ?? null);
-    if (r.ok) { toast.success(approve ? "Approved" : "Rejected"); list.reload(); } else toast.error(describeError(r.error));
-  }
-  if (list.loading && !list.data) return <LoadingRows rows={3} />;
-  if (list.error) return <Notice tone="error">{describeError(list.error)}</Notice>;
-  if (!apps.length) return <EmptyState title="No Discover applications" />;
-  return (
-    <div className="lv-stack-16">
-      {apps.map((a) => (
-        <Card key={a.application_id} size="sm" data-testid="admin-discover">
-          <div className="ui-spread"><strong>{a.hub_name}</strong><Badge variant={a.status === "approved" ? "ok" : a.status === "rejected" ? "danger" : "neutral"}>{a.status}</Badge></div>
-          <p className="ui-muted lv-m0">lunchvoice.com/{a.hub_slug} · {familyName(a.family)} · {a.genuine_members_now} genuine active members now ({a.genuine_members_at_apply} at apply)</p>
-          <div className="ui-row">
-            <Input aria-label="Decision note" placeholder="Note (optional)" maxLength={500} value={notes[a.application_id] ?? a.note ?? ""}
-              onChange={(e) => setNotes((x) => ({ ...x, [a.application_id]: e.target.value }))} className="max-w-[22rem]" />
-            <Button size="sm" variant="ink" disabled={a.status === "approved"} onClick={() => decide(a.application_id, true)}>Approve</Button>
-            <Button size="sm" variant="quiet" disabled={a.status === "rejected"} onClick={() => decide(a.application_id, false)}>Reject</Button>
-          </div>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-function AdminBilling() {
-  const { api } = useIdentity();
-  const list = useLv(() => api.adminBillingEvents(200), [api]);
-  if (list.loading && !list.data) return <LoadingRows rows={3} />;
-  if (list.error) return <Notice tone="error">{describeError(list.error)}</Notice>;
-  const events = list.data?.events ?? [];
-  if (!events.length) return <EmptyState title="No billing events yet">Stripe events appear here once the webhook is live. Payloads are never stored.</EmptyState>;
-  return (
-    <Table>
-      <TableHeader><TableRow><TableHead>Received</TableHead><TableHead>Type</TableHead><TableHead>Outcome</TableHead><TableHead>Reason</TableHead></TableRow></TableHeader>
-      <TableBody>
-        {events.map((e) => (
-          <TableRow key={e.id}><TableCell>{new Date(e.received_at).toLocaleString()}</TableCell><TableCell className="ui-mono">{e.type}</TableCell>
-            <TableCell><Badge variant={e.outcome === "applied" ? "ok" : e.outcome === "rejected" ? "danger" : "neutral"}>{e.outcome}</Badge></TableCell><TableCell>{e.reason ?? "—"}</TableCell></TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
-
-function AdminEmail() {
-  const { api } = useIdentity();
-  const box = useLv(() => api.adminEmailOutbox(50), [api]);
-  if (box.loading && !box.data) return <LoadingRows rows={3} />;
-  if (box.error) return <Notice tone="error">{describeError(box.error)}</Notice>;
-  const d = box.data!;
-  return (
-    <div className="lv-stack-16">
-      <div className="ui-row">{Object.entries(d.counts).map(([k, v]) => <Badge key={k} variant="outline">{k}: {v}</Badge>)}</div>
-      {!d.recent.length ? <EmptyState title="No mail yet" /> : (
-        <Table>
-          <TableHeader><TableRow><TableHead>Created</TableHead><TableHead>Template</TableHead><TableHead>Status</TableHead><TableHead>Attempts</TableHead><TableHead>Last error</TableHead></TableRow></TableHeader>
-          <TableBody>
-            {d.recent.map((m) => (
-              <TableRow key={m.id}><TableCell>{new Date(m.created_at).toLocaleString()}</TableCell><TableCell className="ui-mono">{m.template}</TableCell>
-                <TableCell>{m.status}</TableCell><TableCell>{m.attempts}</TableCell><TableCell>{m.last_error ?? "—"}</TableCell></TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-      <p className="ui-help lv-m0">Addresses and message contents are never shown here. Without a Resend key, mail stays queued.</p>
-    </div>
-  );
-}
-
-export function Admin() {
-  const { api } = useIdentity();
-  const ov = useLv(() => api.adminOverview(), [api]);
-  if (ov.loading && !ov.data) return <div className="ui-page"><LoadingRows rows={4} /></div>;
-  // Non-admins see the ordinary not-found page: the console does not announce itself.
-  if (ov.error?.code === "lv_forbidden" || ov.error?.code === "lv_unauthenticated") return <NotFoundPage />;
-  if (ov.error) return <div className="ui-page"><Notice tone="error">{describeError(ov.error)}</Notice></div>;
-  const o = ov.data!;
-  return (
-    <div className="ui-page" data-testid="admin-console">
-      <PageHeader eyebrow="Platform" title="Admin console" sub="Waitlist, abuse reports, Discover applications, billing and email. Every action is audited." />
-      <div className="lv-stack-16">
-        <div className="ui-grid-3">
-          <StatTile label="Waitlist" value={`${o.waitlist.seats_taken}/${o.waitlist.seats_total}`} note={`${o.waitlist.waitlisted} waiting`} />
-          <StatTile label="Open reports" value={o.reports_open} note={`${o.campaigns_blocked} blocked`} />
-          <StatTile label="Discover" value={o.discover_pending} note="pending" />
-          <StatTile label="Email" value={o.email.queued} note={`queued · ${o.email.failed} failed`} />
-        </div>
-        {!o.billing.provider_ready && <Notice tone="info">Billing is not open (billing.provider_ready is false). Checkout stays off everywhere.</Notice>}
-        <Tabs defaultValue="waitlist">
-          <TabsList aria-label="Admin sections">
-            <TabsTrigger value="waitlist">Waitlist</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-            <TabsTrigger value="discover">Discover</TabsTrigger>
-            <TabsTrigger value="billing">Billing</TabsTrigger>
-            <TabsTrigger value="email">Email</TabsTrigger>
-          </TabsList>
-          <TabsContent value="waitlist"><Card><AdminWaitlist /></Card></TabsContent>
-          <TabsContent value="reports"><AdminReports /></TabsContent>
-          <TabsContent value="discover"><AdminDiscover /></TabsContent>
-          <TabsContent value="billing"><Card><AdminBilling /></Card></TabsContent>
-          <TabsContent value="email"><Card><AdminEmail /></Card></TabsContent>
-        </Tabs>
       </div>
     </div>
   );

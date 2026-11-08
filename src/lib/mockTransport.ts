@@ -2,6 +2,7 @@ import { isLinkToken, questionConfigProblem, type LvTransport } from "./lvApi";
 import { slugProblem } from "./reservedSlugs";
 import { ACCENTS } from "./accent";
 import { commerceInvoke, commerceMock } from "./mockCommerce"; // track B: commerce
+import { staffMock } from "./mockStaff"; // staff panel
 
 /* ---- track C: community ---- */
 import { COMMUNITY_FNS, COMMUNITY_PUBLIC, communityAfter, communityHandle, type CommunityCtx } from "./mockCommunity";
@@ -255,6 +256,8 @@ const communityCtx = (s: State, authed: boolean): CommunityCtx => ({ s: s as unk
 
 function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolean): unknown {
   const id = (p: string) => `${p}-${++s.n}`;
+  const staff = staffMock(s, fn, a, authed, (f, x) => handle(s, f, { ...x, __base: true }, authed)); // staff panel (000023)
+  if (staff !== undefined) return staff;
   const trackB = commerceMock(s, fn, a, authed); // track B: commerce (billing config, invites by email, admin console)
   if (trackB !== undefined) return trackB;
   if (!authed && !PUBLIC.has(fn)) return err("lv_unauthenticated", "Sign in to continue");
