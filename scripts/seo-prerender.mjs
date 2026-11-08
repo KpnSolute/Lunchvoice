@@ -2,7 +2,7 @@
 //
 // The app is a client-rendered SPA, so every URL used to answer with the same empty <div id="root"> and the
 // title "LunchVoice". After `vite build` this script reads src/config/seo.json and writes:
-//   dist/index.html            the landing page, with its own head and a static content fallback
+//   dist/index.html            the landing page and static fallback; no canonical/robots, as hosts serve it for any path
 //   dist/<path>/index.html     one file per indexable page in seo.json (render.yaml rewrites to these)
 //   dist/app.html              the generic SPA shell for every other route (Hubs, account, players): noindex
 //   dist/sitemap.xml           the indexable pages only
@@ -72,6 +72,20 @@ export function renderPage(template, seo, page) {
   return html.replace(FALLBACK_MARK, fallbackHtml(seo, page));
 }
 
+/**
+ * The landing page is dist/index.html, which a host also serves for any path its rewrite rules do not map (a Render
+ * service whose dashboard rules predate render.yaml rewrites everything to /index.html). So it must be safe at any
+ * URL: no static canonical, robots or og:url, which would otherwise declare every Hub and page a copy of "/".
+ * src/ui/Seo.tsx sets the right values for the actual path once the app runs.
+ */
+export function renderRootPage(template, seo, page) {
+  let html = renderPage(template, seo, page);
+  html = replaceTag(html, /\s*<link rel="canonical" href="[^"]*" \/>/, "");
+  html = replaceTag(html, /\s*<meta name="robots" content="[^"]*" \/>/, "");
+  html = replaceTag(html, /\s*<meta property="og:url" content="[^"]*" \/>/, "");
+  return html;
+}
+
 /** The shell for every non-public route: no canonical, noindex, empty #root. */
 export function renderAppShell(template, seo) {
   let html = template;
@@ -105,7 +119,8 @@ export function prerender(distDir, seo, lastmod = new Date().toISOString().slice
   };
   write("app.html", renderAppShell(template, seo));
   for (const page of seo.pages) {
-    write(page.path === "/" ? "index.html" : join(page.path.slice(1), "index.html"), renderPage(template, seo, page));
+    if (page.path === "/") write("index.html", renderRootPage(template, seo, page));
+    else write(join(page.path.slice(1), "index.html"), renderPage(template, seo, page));
   }
   write("sitemap.xml", sitemapXml(seo, lastmod));
   write("robots.txt", robotsTxt(seo));

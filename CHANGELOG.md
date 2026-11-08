@@ -6,6 +6,14 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed (SEO: every URL declared a copy of the home page)
+
+- Production check after #48: the Render service's rewrite rules live in its dashboard and still send every path to
+  `/index.html`, so `/pricing`, other public pages and every Hub URL were served the landing HTML with a static
+  canonical to `/` and `index`. `dist/index.html` now carries no static canonical, robots or `og:url`; `src/ui/Seo.tsx`
+  sets them per path at runtime. Safe under both the dashboard rule and the `render.yaml` rules (verified in a browser
+  against both). Owner step to mirror the `render.yaml` rules in the dashboard added to `docs/frontend/SEO.md`.
+
 ### Added (search engine optimisation)
 
 - Public pages are now readable by search engines and link previews without JavaScript. `src/config/seo.json` is the

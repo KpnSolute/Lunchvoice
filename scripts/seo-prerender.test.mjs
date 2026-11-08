@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { prerender, renderAppShell, renderPage, robotsTxt, sitemapXml } from "./seo-prerender.mjs";
+import { prerender, renderAppShell, renderPage, renderRootPage, robotsTxt, sitemapXml } from "./seo-prerender.mjs";
 
 const seo = JSON.parse(readFileSync("src/config/seo.json", "utf8"));
 const routes = JSON.parse(readFileSync("src/config/routes.json", "utf8")).routes;
@@ -80,4 +80,12 @@ test("prerender writes every file", () => {
     assert.ok(existsSync(join(dir, f)), f);
   }
   assert.match(readFileSync(join(dir, "index.html"), "utf8"), /<h1>Every voice has a story/);
+});
+
+test("the root index.html is safe when a host serves it for every path", () => {
+  const html = renderRootPage(template, seo, seo.pages.find((p) => p.path === "/"));
+  assert.ok(!html.includes('rel="canonical"'), "a static canonical would mark every URL a copy of /");
+  assert.ok(!html.includes('name="robots"'));
+  assert.ok(!html.includes('property="og:url"'));
+  assert.match(html, /<h1>Every voice has a story/);
 });
