@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
+import { CountUp } from "../ui/motion";
 import { useLv } from "../lib/useLv";
 import { describeError } from "../lib/errors";
 import type { Anonymity, CampaignMode, HubInfo, HubMembership } from "../lib/lvApi";
@@ -11,8 +12,9 @@ import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
 import { Input } from "@/components/shadcn/input";
 import { Badge } from "@/components/shadcn/badge";
+import { Switch } from "@/components/shadcn/switch";
 import { RadioCard, RadioGroup } from "@/components/shadcn/radio-group";
-import { EmptyState, Eyebrow, Field, LoadingRows, Notice, PageHeader, PhaseBadge, Segmented } from "@/components/shadcn/blocks";
+import { EmptyState, Eyebrow, Field, LoadingRows, Notice, PageHeader, PhaseBadge, Segmented, ToggleRow } from "@/components/shadcn/blocks";
 import { can, useHubCtx } from "./Hub";
 import { Player } from "./Player";
 import { StudioView } from "./Studio";
@@ -105,15 +107,32 @@ export function NewCampaign() {
   const [title, setTitle] = useState("");
   const [mode, setMode] = useState<CampaignMode>("survey");
   const [anonymity, setAnonymity] = useState<Anonymity>("anonymous");
+  const [pollKind, setPollKind] = useState<"single_choice" | "yes_no">("single_choice");
+  const [ratingTemplate, setRatingTemplate] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function create() {
+    if (busy) return;
     setBusy(true);
+    setError(null);
     const r = await api.campaignCreate(hub.hub_id, title.trim(), mode, anonymity);
+    if (!r.ok) { setBusy(false); return setError(describeError(r.error)); }
+    const studio = `/${hub.slug}/campaigns/${r.campaign_id}/studio`;
+    // Fast paths: a poll opens on Questions with its first question ready to type; a rating can start from the
+    // "How was it?" template (a real question, saved now); feedback starts with a short-text question.
+    if (mode === "rating" && ratingTemplate) {
+      const q = await api.questionAdd(r.campaign_id, 1, "rating", "How was it?", {});
+      setBusy(false);
+      toast.success(q.ok ? "Draft created with “How was it?”" : "Draft created");
+      return nav(`${studio}?section=questions`);
+    }
     setBusy(false);
-    if (r.ok) { toast.success("Draft created"); nav(`/${hub.slug}/campaigns/${r.campaign_id}/studio`); }
-    else setError(describeError(r.error));
+    toast.success("Draft created");
+    if (mode === "poll") return nav(`${studio}?section=questions&new=${pollKind}`);
+    if (mode === "feedback") return nav(`${studio}?section=questions&new=text`);
+    if (mode === "rating") return nav(`${studio}?section=questions&new=rating`);
+    nav(studio);
   }
 
   return (
@@ -131,6 +150,23 @@ export function NewCampaign() {
               <RadioCard value="election" title="Election" description="Ranked options with a ballot." disabled badge={<Badge>Coming with M2</Badge>} />
             </RadioGroup>
           </fieldset>
+          {mode === "poll" && (
+            <Field label="Start with">
+              <Segmented<"single_choice" | "yes_no">
+                label="Start with"
+                value={pollKind}
+                onValueChange={setPollKind}
+                options={[{ value: "single_choice", label: "Choice question" }, { value: "yes_no", label: "Yes / No" }]}
+              />
+            </Field>
+          )}
+          {mode === "rating" && (
+            <ToggleRow
+              title="Start from “How was it?”"
+              description="One rating question from 1 to 5, ready to publish. You can change the wording."
+              control={<Switch checked={ratingTemplate} onCheckedChange={setRatingTemplate} aria-label="Start from How was it?" />}
+            />
+          )}
           <fieldset className="lv-fieldset">
             <legend className="lv-legend">Answers</legend>
             <RadioGroup value={anonymity} onValueChange={(v) => setAnonymity(v as Anonymity)} aria-label="Answers" className="ui-grid-2">
@@ -139,7 +175,7 @@ export function NewCampaign() {
             </RadioGroup>
           </fieldset>
           {error && <Notice tone="error">{error}</Notice>}
-          <div className="ui-row"><Button type="submit" variant="primary" disabled={!title.trim() || busy}>{busy ? "Creating…" : "Create draft"} <Icon name="arrow" size={16} /></Button></div>
+          <div className="ui-row"><Button type="submit" variant="primary" disabled={!title.trim() || busy}>{busy ? "Creating…" : mode === "poll" ? "Create poll" : "Create draft"} <Icon name="arrow" size={16} /></Button></div>
         </form>
       </Card>
     </div>
@@ -186,8 +222,48 @@ export function CampaignDetail() {
           ))}
         </div>
       )}
+      {d.can_manage && phase !== "draft" && <LiveResponses campaignId={id} anonymous={d.campaign.anonymity === "anonymous"} live={phase === "open"} />}
       <Player campaignId={id} embedded />
     </div>
+  );
+}
+
+/**
+ * A live-feeling response counter for managers. It polls lv_analytics_query(participant_count) every 20s while the
+ * page is visible. Privacy rules hold: a withheld count is never a number (and never zero), and anonymous Campaigns
+ * only report once closed, so they say so instead.
+ */
+function LiveResponses({ campaignId, anonymous, live }: { campaignId: string; anonymous: boolean; live: boolean }) {
+  const { api } = useIdentity();
+  const q = useLv(() => api.analytics(campaignId, "participant_count"), [api, campaignId]);
+  const [at, setAt] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { if (q.data || q.error) setAt(Date.now()); }, [q.data, q.error]);
+  const reload = useRef(q.reload);
+  reload.current = q.reload;
+  useEffect(() => {
+    if (!live) return;
+    const poll = window.setInterval(() => { if (document.visibilityState === "visible") reload.current(); }, 20_000);
+    const clock = window.setInterval(() => setNow(Date.now()), 5_000);
+    return () => { window.clearInterval(poll); window.clearInterval(clock); };
+  }, [live]);
+  const c = q.data && q.data.metric === "participant_count" ? q.data : null;
+  const ago = Math.max(0, Math.round((now - at) / 1000));
+  return (
+    <Card size="sm" className="lv-live" data-testid="live-responses">
+      <div className="ui-spread">
+        <span className="lv-live-head">{live && <span className="lv-live-dot" aria-hidden="true" />}{live ? "Live" : "Responses"}</span>
+        <span className="ui-muted lv-small">{q.loading && !c ? "Checking…" : ago < 5 ? "Updated just now" : `Updated ${ago}s ago`}</span>
+      </div>
+      {q.error ? (
+        <p className="lv-m0">{q.error.code === "lv_policy_undecided" || anonymous ? "Anonymous: counts appear when the Campaign closes, so early answers can’t be matched to people." : describeError(q.error)}</p>
+      ) : c ? (
+        <p className="lv-live-count lv-m0" aria-live="polite">
+          {c.suppressed || c.n === null ? <><strong>Fewer than 5</strong> signed-in responses so far · the exact number is withheld</> : <><strong><CountUp value={c.n} /></strong> signed-in {c.n === 1 ? "response" : "responses"}</>}
+          {c.guest_suppressed ? " · some guest responses (count withheld)" : c.guest_n ? ` · includes ${c.guest_n} unverified guest responses` : ""}
+        </p>
+      ) : null}
+    </Card>
   );
 }
 
