@@ -6,6 +6,11 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (2026-11-08, staff)
+
+- Granted platform admin (staff) to the founder's two accounts, "Kpn" and "Game World", via
+  `lv.grant_platform_admin` at the founder's request; `/admin` is now available to them.
+
 ### Fixed and changed (UX polish pass)
 
 - Production bug: Hub colour swatches rendered blank because `lv_hub_get` returns the palette as `{key,label,hex}`
