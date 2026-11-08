@@ -1,0 +1,103 @@
+{
+  "note": "Search metadata. The single source for the runtime <Seo/> component (src/ui/Seo.tsx) and the build-time prerender (scripts/seo-prerender.mjs), which writes per-page HTML, sitemap.xml and robots.txt into dist/. Only paths listed under pages are indexable; every other route is served noindex. Hubs are never indexed here: a customer's Hub is its own, and listing is the Discover feature's job.",
+  "siteUrl": "https://lunchvoice.com",
+  "siteName": "LunchVoice",
+  "titleSuffix": " · LunchVoice",
+  "defaultTitle": "LunchVoice: anonymous surveys and polls for any community",
+  "defaultDescription": "Build a survey in minutes, share it by QR code or a six-character code, and see anonymous, privacy-safe results live. Free Quick Surveys; Hubs for communities from $13/month.",
+  "image": "/og-image.png",
+  "imageAlt": "LunchVoice: every voice has a story. Hear it.",
+  "locale": "en_US",
+  "pages": [
+    {
+      "path": "/",
+      "title": "LunchVoice: anonymous surveys and polls for any community",
+      "description": "Build a survey in minutes, share it by QR code or a six-character code, and see anonymous, privacy-safe results live. Free Quick Surveys; Hubs for communities from $13/month.",
+      "h1": "Every voice has a story. Hear it.",
+      "body": "LunchVoice is a community feedback platform. Build a survey in minutes, share it with one QR code or a six-character code, and watch anonymous answers arrive while it is still happening. Every community gets its own Hub at lunchvoice.com/yourname, with members, roles, pages and Campaigns: surveys, polls, ratings, ideas and elections. Answering is always free.",
+      "changefreq": "weekly",
+      "priority": 1.0
+    },
+    {
+      "path": "/how-it-works",
+      "title": "How it works: Quick Surveys, Hubs and private results",
+      "description": "Ask with a free Quick Survey or give your community a Hub. Campaigns move from draft to scheduled to open to closed, and results show totals only, with small groups withheld.",
+      "h1": "How LunchVoice works",
+      "body": "Ask with a Quick Survey: up to 5 active surveys of up to 10 questions, shared by link, QR code, a six-character code or invite links. Or give your community a Hub with members, roles, pages and Campaigns. Results show totals only; a group too small to stay anonymous is withheld, and a withheld value is never shown as zero.",
+      "changefreq": "monthly",
+      "priority": 0.8
+    },
+    {
+      "path": "/use-cases",
+      "title": "Use cases: surveys for clubs, teams, events and work",
+      "description": "Anonymous surveys, polls, ratings, idea boards and elections for clubs, teams, events, workplaces, dining programs and neighbourhoods, where the answer matters and the respondent stays protected.",
+      "h1": "Use cases for community surveys",
+      "body": "Anything a group needs to ask, answer and settle: event feedback, team pulse checks, club elections, workplace surveys, dining and menu ratings, neighbourhood idea boards. The answer matters, and the respondent is never exposed.",
+      "changefreq": "monthly",
+      "priority": 0.8
+    },
+    {
+      "path": "/pricing",
+      "title": "Pricing: free Quick Surveys, Hubs from $13/month",
+      "description": "Answering is always free and Quick Surveys are free for anyone signed in. Starter Hub $13/month, Team Hub $29/month, Campaign Starter from $19 and Campaign Plus from $39 for time-bounded Campaigns.",
+      "h1": "Free to ask. Pay when you need a home.",
+      "body": "Free Quick Survey: $0. Campaign Starter: $19 for the first 2 weeks, then $13 per extra week. Campaign Plus: $39 for the first 2 weeks, then $19 per extra week. Starter Hub: $13 per month. Team Hub: $29 per month. Reserve your Hub URL: $25 per 12 months.",
+      "changefreq": "monthly",
+      "priority": 0.9
+    },
+    {
+      "path": "/waitlist",
+      "title": "Join the waitlist: 50 Founding Hub seats",
+      "description": "LunchVoice opens through a waitlist. The first 50 people admitted receive a Founding Hub credit. Join to claim your community's Hub address.",
+      "h1": "Join the LunchVoice waitlist",
+      "body": "LunchVoice opens through a waitlist. The first 50 admitted people receive a Founding Hub credit, so their community gets a Hub at lunchvoice.com/yourname on us.",
+      "changefreq": "weekly",
+      "priority": 0.9
+    },
+    {
+      "path": "/about",
+      "title": "About: a community feedback platform that keeps promises",
+      "description": "LunchVoice by KpnSolute builds Quick Surveys, Hubs, Campaigns and privacy-safe results for clubs, teams, events, workplaces and neighbourhoods.",
+      "h1": "About LunchVoice",
+      "body": "LunchVoice by KpnSolute exists because most feedback tools ask people to trust a policy, then publish numbers that quietly identify them. We build Quick Surveys, Hubs, Campaigns and privacy-safe results.",
+      "changefreq": "monthly",
+      "priority": 0.6
+    },
+    {
+      "path": "/discover",
+      "title": "Discover public community Hubs",
+      "description": "A directory of large public LunchVoice Hubs that chose to be found. Hubs are listed after reaching 700 genuine active members on the Team plan.",
+      "h1": "Discover community Hubs",
+      "body": "A directory of large public Hubs that chose to be found. Hubs appear only after they reach 700 genuine active members on the Team plan and are approved.",
+      "changefreq": "weekly",
+      "priority": 0.5
+    },
+    {
+      "path": "/support",
+      "title": "Support and contact",
+      "description": "Get help with LunchVoice surveys, Hubs and accounts, or report a problem with a survey.",
+      "h1": "LunchVoice support",
+      "body": "Questions about a survey, a Hub or your account? Write to support@lunchvoice.com.",
+      "changefreq": "yearly",
+      "priority": 0.4
+    },
+    {
+      "path": "/privacy",
+      "title": "Privacy",
+      "description": "What LunchVoice stores, what anonymous means, who can see stored data, how long it is kept, and how to delete your account.",
+      "h1": "Privacy at LunchVoice",
+      "body": "Anonymous means the creator cannot resolve who answered. Eligibility is checked apart from the answer, and results show totals only.",
+      "changefreq": "yearly",
+      "priority": 0.3
+    },
+    {
+      "path": "/terms",
+      "title": "Terms",
+      "description": "The plain-language terms for using LunchVoice: privacy as a product constraint, plans and cancellation, and reporting abuse.",
+      "h1": "LunchVoice terms",
+      "body": "Using LunchVoice, privacy as a product constraint, plans and cancellation, and reporting abuse.",
+      "changefreq": "yearly",
+      "priority": 0.3
+    }
+  ]
+}

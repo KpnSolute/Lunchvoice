@@ -63,6 +63,38 @@ categories and the repository's decimal `X.X.X` release policy.
 - #47 merged and deployed; 12 live routes (incl. /discover, /reserve) with zero CSP violations; sign-in reads
   "Continue with KpnSolute". Edge Functions `session` (LC-13), `billing-webhook`, `checkout`, `email-dispatch` await
   a CLI deploy by the founder (the Composio deploy tool cannot set `verify_jwt` or an import map).
+### Fixed (SEO: public pages served a static noindex)
+
+- Production check: with the Render dashboard rule changed to `/* -> /app.html` but the per-page rules missing or
+  below it, every public page was served `app.html` with a static `noindex`, which lets Google drop the page without
+  running the app. `app.html` now carries no static robots, canonical or `og:url`; `src/ui/Seo.tsx` sets `noindex` at
+  runtime for every path not in `seo.json`, and `robots.txt` still keeps private routes out of crawls. Verified in a
+  browser under the live rule set and under the `render.yaml` rules.
+
+### Fixed (SEO: every URL declared a copy of the home page)
+
+- Production check after #48: the Render service's rewrite rules live in its dashboard and still send every path to
+  `/index.html`, so `/pricing`, other public pages and every Hub URL were served the landing HTML with a static
+  canonical to `/` and `index`. `dist/index.html` now carries no static canonical, robots or `og:url`; `src/ui/Seo.tsx`
+  sets them per path at runtime. Safe under both the dashboard rule and the `render.yaml` rules (verified in a browser
+  against both). Owner step to mirror the `render.yaml` rules in the dashboard added to `docs/frontend/SEO.md`.
+
+### Added (search engine optimisation)
+
+- Public pages are now readable by search engines and link previews without JavaScript. `src/config/seo.json` is the
+  single source of page metadata; `scripts/seo-prerender.mjs` (part of `npm run build`) writes a prerendered HTML file
+  per public page (own title, description, canonical, Open Graph/Twitter tags and a static content fallback in
+  `#root`), plus `sitemap.xml`, `robots.txt` and `app.html`, the `noindex` shell for all other routes.
+- `render.yaml` rewrites the ten public pages to their prerendered files before the catch-all, which now serves
+  `app.html`. Account, sign-in, Quick Survey, respondent, invite and every Hub route stay `noindex`; Hubs are never
+  indexed (listing them is the Discover feature's job).
+- `src/ui/Seo.tsx` keeps title, description, canonical and robots in step on client-side navigation.
+- `index.html`: real title and description, canonical, full Open Graph and Twitter card tags, Organization, WebSite
+  and SoftwareApplication structured data (JSON-LD data block; the theme script and its CSP hash are unchanged), web
+  manifest. New `public/og-image.png` (1200×630), `public/site.webmanifest`, `public/app-icon-512.png`.
+- `scripts/seo-prerender.test.mjs` (in `test:pr`) checks pages against `routes.json`, title and description length,
+  `render.yaml` rewrites and the CSP hash. Owner steps (Search Console, Bing, canonical host) are in
+  `docs/frontend/SEO.md`.
 
 ### Compliance (feature-complete gate met)
 
