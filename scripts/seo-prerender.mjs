@@ -6,7 +6,7 @@
 //   dist/<path>/index.html     one file per indexable page in seo.json (render.yaml rewrites to these)
 //   dist/app.html              the generic SPA shell for every other route (Hubs, account, players): noindex
 //   dist/sitemap.xml           the indexable pages only
-//   dist/robots.txt            allows the public site, keeps private and respondent routes out of crawls
+//   dist/robots.txt            allows the public site, keeps private, admin and respondent routes out of crawls
 // The fallback inside #root is plain HTML; React replaces it on mount, so users never interact with it.
 // Run: node scripts/seo-prerender.mjs [distDir]
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -17,7 +17,7 @@ const FALLBACK_MARK = "<!--lv:seo-fallback-->";
 
 /** Routes crawlers never need: sign-in, account, the respondent players and shared invite links. Exact paths end in
  * "$" so a Hub whose slug merely starts with "me" or "join" is not caught by the prefix match. */
-export const DISALLOW = ["/auth/", "/signin$", "/me$", "/settings$", "/create$", "/join$", "/j/", "/c/", "/s/", "/surveys$", "/surveys/"];
+export const DISALLOW = ["/auth/", "/signin$", "/me$", "/settings$", "/create$", "/join$", "/j/", "/c/", "/s/", "/surveys$", "/surveys/", "/reserve$", "/admin$"];
 
 export function escapeHtml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
