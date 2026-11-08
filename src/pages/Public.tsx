@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/shadcn/dropdown-menu";
 import { Field, Notice } from "@/components/shadcn/blocks";
+import { AccountSuspendedNotice, StaffMenuItem } from "../components/StaffStatus"; // staff panel
 
 // The marketing chrome (full nav, footer, maker's mark) belongs to the public pages.
 // In-product routes keep the compact header so Hub chrome stays the focus.
@@ -70,6 +71,7 @@ function AccountMenu() {
         <DropdownMenuItem onSelect={() => nav("/me")}>My home</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => nav("/surveys")}>Quick Surveys</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => nav("/settings")}>Account settings</DropdownMenuItem>
+        <StaffMenuItem />{/* staff panel: platform admins only */}
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => { signOut(); nav("/"); }}>Sign out</DropdownMenuItem>
       </DropdownMenuContent>
@@ -152,6 +154,7 @@ export function Shell() {
       </header>
 
       <main id="main" className={marketing ? "lv-main" : "wrap"} tabIndex={-1}>
+        {session && <AccountSuspendedNotice />}{/* staff panel: account suspension */}
         <Outlet />
       </main>
 

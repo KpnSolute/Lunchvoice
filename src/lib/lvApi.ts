@@ -4,6 +4,9 @@ import { accentHex, normalizePalette, type AccentOption } from "./accent";
 /* ---- track C: community ---- */
 import { communityApi } from "./communityApi";
 /* ---- end track C ---- */
+/* ---- track D: api + discord ---- */
+import { integrationsApi } from "./integrationsApi";
+/* ---- end track D ---- */
 
 export type LvErrorCode =
   | "lv_unauthenticated"
@@ -369,6 +372,7 @@ export function createLvApi(transport: LvTransport) {
   };
   return {
     ...createCommerceApi(transport, call), // track B: commerce (block at the end of this file)
+    ...createStaffApi(call), // staff panel (block at the end of this file)
     /* ---- context, entitlements, waitlist ---- */
     myContext: () => call<MyContext>("lv_my_context"),
     planLimits: () => call<PlanLimits>("lv_plan_limits"),
@@ -570,6 +574,9 @@ export function createLvApi(transport: LvTransport) {
     /* ---- track C: community ---- */
     ...communityApi(call),
     /* ---- end track C ---- */
+    /* ---- track D: api + discord ---- */
+    ...integrationsApi(call),
+    /* ---- end track D ---- */
   };
 }
 
@@ -779,3 +786,82 @@ export interface LvError {
 }
 export type { AddonKind, AddonState, CommentRow, CommunityInfo, DiscoverHub, LeaderboardEntry, NewsPost, ShopData, ShopItem, ShopOrder } from "./communityApi";
 /* ---- end track C ---- */
+
+/* ---- staff panel (000023) ---- */
+// Staff management, suspension, the unified reports queue, lookup and the audit viewer. All lv_admin_* calls answer
+// lv_forbidden to non-staff. Shapes: docs/backend/API_CONTRACT.md, section "Staff panel (000023)".
+
+export interface HubSuspension { suspended: true; suspended_at: string; reason?: string }
+export interface AccountSuspension { suspended: true; reason: string; suspended_at: string }
+// Declaration merging: lv_hub_get and lv_my_context carry the suspension state when there is one.
+export interface HubInfo { suspension?: HubSuspension }
+export interface MyContext { suspension?: AccountSuspension | null }
+
+export interface StaffMember { account_id: string; display_name: string; granted_at: string; granted_by_name: string | null; is_me: boolean }
+export interface AdminReportItem {
+  type: "survey" | "comment";
+  id: string;
+  status: "open" | "actioned" | "dismissed";
+  reasons: string[];
+  report_count: number;
+  created_at: string;
+  hub_id: string | null;
+  hub_name: string | null;
+  hub_slug: string | null;
+  quick_survey: boolean;
+  hub_suspended: boolean;
+  campaign_id?: string | null;
+  campaign_title?: string | null;
+  join_code?: string | null;
+  blocked?: boolean;
+  comment_id?: string;
+  post_id?: string | null;
+  excerpt?: string;
+  hidden?: boolean;
+  author_suspended?: boolean;
+  author_account_id?: string;
+}
+export interface AdminHubRow {
+  hub_id: string; slug: string; name: string; created_at: string; visibility: string; membership_mode: string;
+  plan: { family: PlanFamily | null; product: string | null; state: string; ends_at?: string | null };
+  member_count: number; owner_account_id: string; owner_name: string | null;
+  suspension: { reason: string; suspended_at: string } | null; open_reports: number;
+}
+export interface AdminAccountRow {
+  account_id: string; display_name: string; created_at: string; hubs_owned: number; memberships: number; is_staff: boolean;
+  suspension: { reason: string; suspended_at: string } | null;
+}
+export interface AdminAuditEvent { id: number; occurred_at: string; actor_account_id: string | null; actor_name: string | null; action: string; target: string | null; hub_slug: string | null }
+export interface AdminOverviewV2 extends AdminOverview {
+  comment_reports_open: number;
+  hubs_suspended: number;
+  accounts_suspended: number;
+  staff: number;
+}
+
+function createStaffApi(call: Caller) {
+  return {
+    adminOverviewV2: () => call<AdminOverviewV2>("lv_admin_overview"),
+    adminStaffList: () => call<{ staff: StaffMember[] }>("lv_admin_staff_list"),
+    adminStaffAdd: (email: string) => call<{ account_id: string; already_staff: boolean; display_name?: string }>("lv_admin_staff_add", { p_email: email }),
+    adminStaffRevoke: (account: string) => call<object>("lv_admin_staff_revoke", { p_account: account }),
+    adminHubSuspend: (hub: string, reason: string) => call<{ suspended: boolean }>("lv_admin_hub_suspend", { p_hub: hub, p_reason: reason }),
+    adminHubUnsuspend: (hub: string) => call<{ suspended: boolean }>("lv_admin_hub_unsuspend", { p_hub: hub }),
+    adminAccountSuspend: (account: string, reason: string) => call<{ suspended: boolean }>("lv_admin_account_suspend", { p_account: account, p_reason: reason }),
+    adminAccountUnsuspend: (account: string) => call<{ suspended: boolean }>("lv_admin_account_unsuspend", { p_account: account }),
+    adminReports: (status: "open" | "actioned" | "dismissed" | "all" = "open", type: "survey" | "comment" | "all" = "all") =>
+      call<{ items: AdminReportItem[] }>("lv_admin_reports", { p_status: status, p_type: type }),
+    adminCommentHide: (comment: string, hidden = true) => call<{ hidden: boolean }>("lv_admin_comment_hide", { p_comment: comment, p_hidden: hidden }),
+    adminCommentReportsDismiss: (comment: string) => call<object>("lv_admin_comment_reports_dismiss", { p_comment: comment }),
+    adminHubSearch: (query: string) => call<{ hubs: AdminHubRow[] }>("lv_admin_hub_search", { p_query: query }),
+    adminAccountSearch: (email: string) => call<{ accounts: AdminAccountRow[] }>("lv_admin_account_search", { p_email: email }),
+    adminAccountEmailReveal: (account: string) => call<{ account_id: string; emails: string[] }>("lv_admin_account_email_reveal", { p_account: account }),
+    adminAudit: (scope: "staff" | "all" = "staff", action?: string | null, actor?: string | null, limit = 100) =>
+      call<{ events: AdminAuditEvent[] }>("lv_admin_audit", { p_scope: scope, p_action: action || null, p_actor: actor || null, p_limit: limit, p_before: null }),
+  };
+}
+/* ---- end staff panel ---- */
+
+/* ---- track D: api + discord ---- */
+export type { ApiKey, ApiKeyList, ApiScope, DiscordCodePreview, DiscordConnection, DiscordLink, WebhookEndpoint, WebhookEvent, WebhookList } from "./integrationsApi";
+/* ---- end track D ---- */

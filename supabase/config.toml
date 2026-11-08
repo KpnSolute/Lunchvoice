@@ -20,3 +20,19 @@ verify_jwt = false
 # constant time itself. The gateway check is off because it would also accept the public anon key.
 [functions.email-dispatch]
 verify_jwt = false
+
+# The public LunchVoice API: callers present a Hub API key (lvk_...), not a Supabase JWT. The function hashes the key
+# and lv.api_key_call (service role only) authenticates it, so the gateway check is off.
+[functions.api]
+verify_jwt = false
+
+# Discord calls the interactions endpoint without a Supabase JWT; the function verifies Discord's Ed25519 signature
+# with DISCORD_PUBLIC_KEY and fails closed while it is unset. /discord/dispatch is service role only (bearer compared
+# in constant time).
+[functions.discord]
+verify_jwt = false
+
+# Service role only: the function compares the bearer with SUPABASE_SERVICE_ROLE_KEY (or EMAIL_DISPATCH_SECRET) in
+# constant time itself. The gateway check is off because it would also accept the public anon key.
+[functions.webhook-dispatch]
+verify_jwt = false

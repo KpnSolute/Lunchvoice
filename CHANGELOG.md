@@ -6,6 +6,39 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (LunchVoice API, webhooks and Discord bot, 000024 — not yet applied to production)
+
+- `supabase/migrations/000024_v2_api_discord.sql` + rollback + `supabase/tests/24_api_discord.sql`: Team-only Hub
+  API keys (SHA-256 hashed, scoped, rate-limited, revocable, `api.manage` capability), signed webhooks
+  (`campaign.published`, `campaign.closed`, identified-only `campaign.responses_milestone`; bodies never logged),
+  Discord account links (one-time hashed codes, consent version, the Discord id is never an identity key),
+  server-to-Hub connections, per-server role rules with separate role-fact consent, and D-01 (anonymous Campaigns
+  are answered only in the LunchVoice player, enforced in the database too). Reserved routes `developers`,
+  `connect`, `webhooks`.
+- Integration fix: 000024's suspension hook now calls 000023's `lv.hub_suspended` / `lv.account_suspended` (it had
+  probed for names that do not exist, so a suspended Hub's keys would have kept working); suite 24 now suspends
+  through the real `lv.hub_suspensions` table and checks that lifting it restores the key.
+- Edge Functions `api` (`/v1`), `discord` (Ed25519 interactions, fails closed without `DISCORD_PUBLIC_KEY`) and
+  `webhook-dispatch`; `scripts/discord-register-commands.mjs`. `_shared/discord.ts` casts its WebCrypto inputs to
+  `BufferSource` so `deno check` passes. Local smoke run: unset key 503, signed PING 200 `{"type":1}`, forged
+  signature and tampered body 401.
+- UI: Hub Settings General/API/Discord tabs, Account Settings Discord card, `/connect/discord`, `/developers`.
+- Checks on the merged tree (000023 + 000024): canonical DB 1195/0 with full rollback, functions 84/84, unit
+  36/36, e2e 71/71, `test:pr` green, `deno check` clean for `api`, `discord`, `webhook-dispatch`.
+
+### Added (staff panel, 000023 — not yet applied to production)
+
+- `supabase/migrations/000023_v2_staff_panel.sql` + rollback + `supabase/tests/23_staff_panel.sql` (90 checks):
+  staff add/revoke by verified email only (recent sign-in required, no self-revoke, last admin kept, audited);
+  Hub and account suspension with a required reason, enforced by `lv.assert_not_suspended` row triggers on 17
+  content tables (deletes, leaving, reading and answering stay allowed; nothing is deleted; suspended Hubs leave
+  Discover); one reports queue for survey and comment reports (reporters never returned); Hub/account lookup (exact
+  email only, audited reveal); audit viewer without detail payloads. New error code `lv_suspended`. Every
+  `lv_admin_*` function is gated by `lv.admin_denied()` and granted to `authenticated` only.
+- `/admin` moved to `src/pages/Admin.tsx` with Overview/audit, Reports, Hubs, Accounts, Staff, Waitlist, Discover,
+  Billing and Email tabs; staff entry in the account menu; suspension notices for Hubs and accounts; mock and
+  `e2e/staff.test.mjs`. Canonical DB suite 1093/0 with rollback rehearsal, e2e 66/66, unit 29/29.
+
 ### Added (plan)
 
 - `docs/v2/API_AND_DISCORD_PLAN.md`: Team-only LunchVoice API (scoped Hub keys, `/v1`, signed webhooks, suppression

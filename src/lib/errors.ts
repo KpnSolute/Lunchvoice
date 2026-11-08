@@ -79,3 +79,9 @@ Object.assign(GATE_REASONS, {
   role_targeting_anonymous: "Choosing participants by role is only for identified Campaigns. Switch the audience back to all members, or make the Campaign identified.",
   audience_empty: "None of the chosen roles exists any more. Pick a role or switch to all members.",
 });
+
+/* ---- staff panel (000023) ---- */
+Object.assign(COPY, {
+  lv_suspended: "This is suspended, so nothing new can be created or published. You can still read, leave and delete your data.",
+});
+/* ---- end staff panel ---- */

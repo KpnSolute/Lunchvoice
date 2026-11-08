@@ -300,3 +300,70 @@ depth and failures; addresses are never shown there.
   period end.
 - A Hub created from a test purchase sends E03 (with Resend configured).
 <!-- ---- end track B: commerce ---- -->
+
+<!-- ---- track D: api + discord ---- -->
+## 12. Enabling the API and Discord bot (000024; docs/v2/API_AND_DISCORD_PLAN.md)
+
+Applies only after 000024 is applied with the founder's approval (section 1). Nothing here is needed for launch: until
+the functions are deployed and the secrets set, the API answers 503 and the Discord endpoint fails closed.
+
+### 12.1 Functions
+
+Deploy `api`, `discord` and `webhook-dispatch` (all `verify_jwt = false` in `supabase/config.toml`, each with a reason).
+They reach the database with `SUPABASE_DB_URL` and `SET LOCAL ROLE service_role`; only the service role may execute
+`lv.api_key_call`, `lv.discord_interaction`, `lv.webhook_*` and `lv.discord_claim/mark`.
+
+### 12.2 Secrets (names only; set with `supabase secrets set`, never in chat, code or this file)
+
+| Secret | Used by | Notes |
+| --- | --- | --- |
+| `SUPABASE_DB_URL` | api, discord, webhook-dispatch | Already present on hosted projects. |
+| `DISCORD_APPLICATION_ID` | registration script | From the Developer Portal, General Information. |
+| `DISCORD_PUBLIC_KEY` | discord | Ed25519 key that verifies Discord's requests. Unset = the endpoint answers 503. |
+| `DISCORD_BOT_TOKEN` | discord, registration script | Bot tab. Needed for role rules, role removal and auto-post. |
+| `LUNCHVOICE_APP_URL` | discord | Optional; defaults to `https://lunchvoice.com` (links in bot messages). |
+| `EMAIL_DISPATCH_SECRET` | webhook-dispatch, discord `/dispatch` | Optional extra bearer (the service-role key also works). |
+
+### 12.3 Discord Developer Portal
+
+1. Create an application named LunchVoice and add a Bot (Bot tab). Leave "Public Bot" on only when the founder wants
+   any server to be able to add it. No privileged intents are needed.
+2. General Information: copy the Application ID and Public Key into the secrets above. Bot tab: reset and copy the token
+   into `DISCORD_BOT_TOKEN`.
+3. Interactions Endpoint URL: `https://qprfonxvthmaoxfixigk.supabase.co/functions/v1/discord`. Discord sends a signed
+   PING when you save; the function must answer it, so deploy the function and set `DISCORD_PUBLIC_KEY` first.
+4. Register the slash command (once, and again whenever `COMMAND_DEFINITIONS` changes):
+   `DISCORD_APPLICATION_ID=… DISCORD_BOT_TOKEN=… node --import tsx scripts/discord-register-commands.mjs`
+   (add `DISCORD_GUILD_ID=…` to try it in one test server first; `--dry-run` prints the payload without network).
+5. OAuth2 URL Generator: scopes `bot` and `applications.commands`; bot permissions Send Messages and Embed Links, plus
+   Manage Roles only if servers will use role rules (the bot's role must sit above the roles it assigns).
+
+### 12.4 Schedules (pg_cron + pg_net, bearer from Vault as in 11.4)
+
+```sql
+select cron.schedule('lv-webhook-dispatch', '* * * * *', $$
+  select net.http_post(
+    url := 'https://qprfonxvthmaoxfixigk.supabase.co/functions/v1/webhook-dispatch',
+    headers := jsonb_build_object('authorization', 'Bearer ' ||
+      (select decrypted_secret from vault.decrypted_secrets where name = 'email_dispatch_secret')))
+$$);
+select cron.schedule('lv-discord-dispatch', '*/2 * * * *', $$
+  select net.http_post(
+    url := 'https://qprfonxvthmaoxfixigk.supabase.co/functions/v1/discord/dispatch',
+    headers := jsonb_build_object('authorization', 'Bearer ' ||
+      (select decrypted_secret from vault.decrypted_secrets where name = 'email_dispatch_secret')))
+$$);
+```
+
+The webhook job also sweeps time-closed Campaigns, trims delivery logs older than 12 months (F-04) and expired Discord
+codes. The Discord job removes roles after unlink or account deletion and sends auto-posts.
+
+### 12.5 Verification
+
+- `curl -s https://qprfonxvthmaoxfixigk.supabase.co/functions/v1/api/v1/hub` without a key answers 401
+  `lv_unauthenticated`; with a key from a Team Hub it answers the Hub; with a Starter Hub key it answers 402.
+- A key's results for an anonymous Campaign match the app's results page, with withheld cells withheld and no texts.
+- In a test server: `/lunchvoice link`, confirm at `/connect/discord`, `/lunchvoice verify`; `/lunchvoice post` of an
+  anonymous Campaign shows only the "Answer in LunchVoice" button.
+- Staff can turn a server off with `lv_api.lv_admin_discord_guild_disable(guild_id, true, reason)` (Admin UI pending).
+<!-- ---- end track D: api + discord ---- -->

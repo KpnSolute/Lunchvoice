@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Outlet, useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
@@ -30,6 +30,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/shadcn/dialog";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/shadcn/dropdown-menu";
 import { ConfirmAction } from "./Studio";
+/* ---- track D: api + discord ---- */
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shadcn/tabs";
+import { HubApiSettings, HubDiscordSettings } from "./Integrations";
+/* ---- end track D ---- */
 import { QrCode } from "@/components/shadcn/blocks/qr";
 import {
   CopyField,
@@ -93,6 +97,12 @@ export function HubLayout() {
 
   const { hub, membership } = q.data;
   const base = `/${hub.slug}`;
+  /* ---- staff panel: Hub suspension (000023) ---- */
+  // Members and visitors see a neutral state; the Owner keeps the workspace with the reason. Nothing is deleted.
+  if (hub.suspension?.suspended && !membership?.is_owner) {
+    return <StateScreen kind="notfound" title="This Hub is suspended." detail="It isn’t available right now. Nothing has been deleted." action={<LinkButton to="/" variant="secondary">LunchVoice home</LinkButton>} />;
+  }
+  /* ---- end staff panel ---- */
   const ctx: HubCtx = { hub, membership, reload: q.reload };
 
   // Visitors, and everyone on a participant page, get the Hub cover (L10), not the workspace chrome.
@@ -156,6 +166,12 @@ export function HubLayout() {
           {owner && <Badge variant="ink">Owner</Badge>}
         </div>
       </div>
+      {/* ---- staff panel: Hub suspension ---- */}
+      {hub.suspension?.suspended && (
+        <Notice tone="error" title="This Hub is suspended" className="lv-suspended-notice">
+          LunchVoice staff suspended it{hub.suspension.reason ? `: ${hub.suspension.reason}` : "."} Members can’t see it, its Campaigns don’t take responses and nothing new can be published. Everything is kept. Contact support to appeal.
+        </Notice>
+      )}
       {plan?.state === "expired" && (
         <Notice tone="warn" title="This Hub’s plan has ended">Premium actions are locked: new Campaigns can’t be published and roles and pages can’t change. Everything you made is kept.</Notice>
       )}
@@ -675,7 +691,31 @@ function EditRole({ role, groups, onSaved }: { role: Role; groups: { key: string
 
 /* ------------------------------------------------------------------ settings */
 
+/* ---- track D: api + discord ---- */
+// Hub Settings: General, plus API (Owner or api.manage) and Discord (hub.settings.manage) tabs. ?tab=api deep-links.
 export function HubSettings() {
+  const { hub, membership } = useHubCtx();
+  const [params, setParams] = useSearchParams();
+  const showApi = can(membership, "api.manage");
+  const showDiscord = can(membership, "hub.settings.manage");
+  if (!showApi && !showDiscord) return <HubGeneralSettings />;
+  const tab = params.get("tab") === "api" && showApi ? "api" : params.get("tab") === "discord" && showDiscord ? "discord" : "general";
+  return (
+    <Tabs value={tab} onValueChange={(v) => setParams(v === "general" ? {} : { tab: v }, { replace: true })}>
+      <TabsList aria-label="Settings sections">
+        <TabsTrigger value="general">General</TabsTrigger>
+        {showApi && <TabsTrigger value="api">API</TabsTrigger>}
+        {showDiscord && <TabsTrigger value="discord">Discord</TabsTrigger>}
+      </TabsList>
+      <TabsContent value="general"><HubGeneralSettings /></TabsContent>
+      {showApi && <TabsContent value="api"><HubApiSettings hub={hub} membership={membership} /></TabsContent>}
+      {showDiscord && <TabsContent value="discord"><HubDiscordSettings hub={hub} membership={membership} /></TabsContent>}
+    </Tabs>
+  );
+}
+/* ---- end track D ---- */
+
+function HubGeneralSettings() {
   const [savedOnce, setSavedOnce] = useState(false);
   const { hub, membership, reload } = useHubCtx();
   const { api } = useIdentity();
