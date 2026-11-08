@@ -62,13 +62,13 @@ export function ResultBars({ cells, caption }: { cells: ResultCell[]; caption: s
         </Table>
       ) : (
         <ul className="m-0 flex list-none flex-col gap-2.5 p-0" aria-label={caption}>
-          {shown.map((c) => {
+          {shown.map((c, i) => {
             const pct = total ? Math.round(((c.n ?? 0) / total) * 100) : 0
             return (
               <li key={c.key} className="grid grid-cols-[minmax(84px,1.1fr)_2fr_auto] items-center gap-3 text-[14.5px]">
                 <span className="truncate font-medium">{c.label ?? c.key}</span>
                 <span className="surface-well block h-3 overflow-hidden rounded-full">
-                  <b className="block h-full rounded-full bg-[var(--lv-accent)] transition-[width] duration-[var(--lv-dur-toggle)]" style={{ width: `${Math.max(3, ((c.n ?? 0) / top) * 100)}%` }} />
+                  <b className="lv-bar-grow block h-full rounded-full bg-[var(--lv-accent)] transition-[width] duration-[var(--lv-dur-toggle)]" style={{ width: `${Math.max(3, ((c.n ?? 0) / top) * 100)}%`, "--i": i } as React.CSSProperties} />
                 </span>
                 <span className="min-w-[64px] text-right font-[family-name:var(--lv-font-mono)] text-[13px] font-bold [font-variant-numeric:tabular-nums]">
                   {/* No share when part of the total is withheld: a percentage of the released part would mislead. */}

@@ -24,6 +24,7 @@ import "./ui/shadcn.css";
 import "./index.css";
 import "./ui/ui.css";
 import "./ui/app.css";
+import "./ui/motion.css";
 import "./styles/system.css";
 import "./styles/landing.css";
 

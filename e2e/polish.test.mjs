@@ -1,0 +1,254 @@
+// UX polish pass: owner walkthrough fixes, Hub accent palette (founder bug), poll quick-create, player motion and
+// reduced motion. Run with: npm run test:e2e
+import { after, before, test } from "node:test";
+import assert from "node:assert/strict";
+import { noHorizontalScroll, openPage, startApp } from "./harness.mjs";
+
+let app;
+before(async () => { app = await startApp(); });
+after(async () => { await app?.close(); });
+
+const HUB = "/northside-running";
+const mockState = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("lv.mock.state")));
+
+/* ------------------------------------------------------------------ Hub accent (founder bug) */
+
+test("Hub colour swatches are painted from the real palette shape and saving sends the palette key", async () => {
+  const { page, go, ctx } = await openPage(app);
+  await go(`${HUB}/settings`);
+  const swatches = page.getByTestId("accent-swatches").locator(".lv-swatch2-dot");
+  assert.equal(await swatches.count(), 10, "Ink plus the nine palette colours");
+  const bgs = await swatches.evaluateAll((els) => els.map((e) => getComputedStyle(e).backgroundColor));
+  for (const bg of bgs) assert.ok(bg !== "rgb(255, 255, 255)" && bg !== "rgba(0, 0, 0, 0)", `swatch painted (${bg})`);
+  assert.equal(new Set(bgs).size, 10, "every swatch has its own colour");
+  // labels are visible, selection is a check mark and a radio state (not colour alone)
+  await page.getByTestId("accent-swatches").getByText("Teal").waitFor();
+  const teal = page.getByTestId("swatch-teal");
+  await teal.click();
+  assert.equal(await teal.getAttribute("aria-checked"), "true");
+  await page.getByTestId("accent-state").filter({ hasText: "Unsaved changes" }).waitFor();
+  // live preview updates before saving
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-testid="appearance-preview"] .lv-ap-banner')).backgroundColor === "rgb(15, 118, 110)");
+  await page.getByTestId("accent-save").click();
+  await page.getByTestId("accent-state").filter({ hasText: "Saved" }).waitFor();
+  const hub = (await mockState(page)).hubs.find((h) => h.slug === "northside-running");
+  assert.equal(hub.accent, "teal", "lv_hub_update receives the palette key, as the SQL requires");
+  await go(HUB);
+  const strip = await page.locator(".lv-hub-banner").evaluate((e) => getComputedStyle(e).backgroundColor);
+  assert.equal(strip, "rgb(15, 118, 110)", "the Hub's own pages use the accent");
+  const header = await page.locator("header.lv-header").evaluate((e) => getComputedStyle(e).backgroundColor);
+  assert.notEqual(header, "rgb(15, 118, 110)", "LunchVoice chrome never takes the Hub accent");
+  await ctx.close();
+});
+
+test("Appearance editor and accented Hub fit at 390px", async () => {
+  const { page, go, ctx } = await openPage(app, { width: 390, height: 844 });
+  await go(`${HUB}/settings`);
+  await page.getByTestId("swatch-violet").click();
+  assert.ok(await noHorizontalScroll(page));
+  await page.getByTestId("appearance-preview").waitFor();
+  await ctx.close();
+});
+
+/* ------------------------------------------------------------------ owner walkthrough fixes */
+
+test("Members: roles are set from one clear menu, and Remove asks first", async () => {
+  const { page, go, ctx } = await openPage(app);
+  await go(`${HUB}/members`);
+  await page.getByRole("button", { name: "Roles for Priya Nair" }).click();
+  await page.getByRole("menuitemcheckbox", { name: "coach" }).click();
+  await page.getByText("Priya Nair is now coach").waitFor();
+  await page.keyboard.press("Escape");
+  const priya = page.getByRole("row", { name: /Priya Nair/ });
+  await priya.getByText("coach").first().waitFor();
+  await priya.getByRole("button", { name: "Remove" }).click();
+  await page.getByRole("alertdialog").getByText("Remove Priya Nair?").waitFor();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await priya.waitFor();
+  await ctx.close();
+});
+
+test("Invites: a revoked fresh code disappears; the invite can be emailed", async () => {
+  const { page, go, ctx } = await openPage(app);
+  await go(`${HUB}/invites`);
+  await page.getByRole("button", { name: /Create invite/ }).click();
+  const fresh = page.getByTestId("fresh-invite");
+  await fresh.waitFor();
+  await page.getByLabel("Email this invite (optional)").fill("sam@example.com");
+  await page.getByRole("button", { name: "Send" }).click();
+  await fresh.getByText("Sent to sam@example.com").waitFor();
+  await page.getByRole("button", { name: "Revoke" }).first().click();
+  await page.getByText("The code no longer works").waitFor();
+  assert.equal(await fresh.count(), 0, "a revoked code is no longer shown as usable");
+  await ctx.close();
+});
+
+test("Roles keep the name as typed; delete asks first; permissions can be edited", async () => {
+  const { page, go, ctx } = await openPage(app);
+  await go(`${HUB}/roles`);
+  await page.getByLabel("Name").fill("Event Lead");
+  await page.getByRole("checkbox").first().click();
+  await page.getByRole("button", { name: "Create role" }).click();
+  const row = page.getByRole("row", { name: /Event Lead/ });
+  await row.waitFor();
+  await row.getByRole("button", { name: "Edit" }).click();
+  await page.getByRole("dialog").getByText("Permissions for Event Lead").waitFor();
+  await page.keyboard.press("Escape");
+  await row.getByRole("button", { name: "Delete" }).click();
+  await page.getByRole("alertdialog").getByText("Delete the Event Lead role?").waitFor();
+  await ctx.close();
+});
+
+test("Discover shows requirements, not a 0 / 1 meter; settings show their save state", async () => {
+  const { page, go, ctx } = await openPage(app);
+  await go(`${HUB}/discover`);
+  await page.getByRole("list", { name: "Requirements" }).getByText("Team plan").waitFor();
+  assert.equal(await page.getByText("0 / 1").count(), 0);
+  await go(`${HUB}/settings`);
+  const state = page.getByTestId("settings-save-state");
+  await state.filter({ hasText: "No changes" }).waitFor();
+  await page.getByLabel("Name").first().fill("Northside Runners");
+  await state.filter({ hasText: "Unsaved changes" }).waitFor();
+  await page.getByRole("button", { name: "Save settings" }).click();
+  await state.filter({ hasText: "All changes saved" }).waitFor();
+  await ctx.close();
+});
+
+test("A fresh Hub gets a getting-started card and an honest member note", async () => {
+  const { page, go, ctx } = await openPage(app, { seed: null });
+  await go("/waitlist");
+  await page.getByRole("button", { name: "Join the waitlist" }).click();
+  await page.getByRole("link", { name: "Create your Hub" }).click();
+  await page.getByLabel("Hub name").fill("Harbor Book Circle");
+  await page.getByRole("button", { name: /Next/ }).click();
+  await page.getByText("Available.").waitFor();
+  await page.getByRole("button", { name: /Next/ }).click();
+  await page.getByRole("button", { name: "Create Hub" }).click();
+  await page.waitForURL("**/harbor-book-circle");
+  await page.getByTestId("getting-started").getByText("Ask your first question").waitFor();
+  await page.getByText("Just you so far").waitFor();
+  await ctx.close();
+});
+
+/* ------------------------------------------------------------------ poll quick-create */
+
+test("Poll quick-create: one single-choice question with two empty options, question field focused; Review reads as a poll", async () => {
+  const { page, go, ctx } = await openPage(app);
+  await go(`${HUB}/campaigns/new`);
+  await page.getByLabel("Title").fill("Social night");
+  await page.getByRole("radio", { name: /^✓?\s*Poll/ }).click();
+  await page.getByRole("button", { name: /Create poll/ }).click();
+  await page.waitForURL(/section=questions/);
+  assert.equal(await page.getByRole("tab", { name: /^Questions/ }).getAttribute("aria-selected"), "true");
+  await page.getByRole("combobox", { name: "Type" }).filter({ hasText: "Single choice" }).waitFor();
+  const rows = page.getByTestId("option-rows").locator("input");
+  assert.equal(await rows.count(), 2);
+  assert.deepEqual(await rows.evaluateAll((els) => els.map((e) => e.value)), ["", ""]);
+  const focused = await page.evaluate(() => document.activeElement?.id ?? "");
+  assert.match(focused, /^prompt-/, "the Question field has focus");
+  await page.keyboard.type("Which night?");
+  await rows.nth(0).fill("Tuesday");
+  await rows.nth(1).fill("Thursday");
+  await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
+  await page.getByRole("tab", { name: /^Review/ }).click();
+  const summary = page.getByTestId("poll-summary");
+  await summary.getByText("Which night?").waitFor();
+  await summary.getByText("Tuesday · Thursday").waitFor();
+  await ctx.close();
+});
+
+test("Rating quick-create starts from the “How was it?” template", async () => {
+  const { page, go, ctx } = await openPage(app);
+  await go(`${HUB}/campaigns/new`);
+  await page.getByLabel("Title").fill("Long run");
+  await page.getByRole("radio", { name: /^✓?\s*Rating/ }).click();
+  await page.getByRole("button", { name: /Create draft/ }).click();
+  await page.waitForURL(/section=questions/);
+  await page.getByTestId("question-outline").locator(":visible").getByText("How was it?").first().waitFor();
+  await ctx.close();
+});
+
+/* ------------------------------------------------------------------ respondent player */
+
+async function guestPlayer(opts = {}) {
+  const s = await openPage(app, { signedIn: false, ...opts });
+  await s.go("/waitlist"); // any public call makes the mock seed itself
+  const code = (await mockState(s.page)).campaigns.find((c) => c.campaign_id === "cmp-seed-1").join_code;
+  await s.go(`/c/${code}`);
+  return s;
+}
+
+test("Player: direction-aware question stage, gliding progress, rating word, Enter to advance, burst on thanks", async () => {
+  const { page, ctx } = await guestPlayer({ width: 390, height: 844 });
+  assert.equal(await page.locator(".lv-promises .lv-enter").count(), 3, "welcome promises enter staggered");
+  await page.getByTestId("player-start").click();
+  const stage = page.getByTestId("player-stage");
+  assert.equal(await stage.getAttribute("data-dir"), "fwd");
+  assert.equal(await stage.getAttribute("data-step"), "0");
+  await page.getByRole("radio", { name: "5 of 5" }).click();
+  await page.getByTestId("rating-word").getByText("Loved it!").waitFor();
+  await page.keyboard.press("Enter"); // focus is on the rating: Enter moves on
+  await page.waitForFunction(() => document.querySelector('[data-testid="player-stage"]')?.getAttribute("data-step") === "1");
+  assert.equal(await page.getByTestId("player-progress").getAttribute("aria-valuenow"), "2");
+  await page.getByRole("button", { name: "Back" }).click();
+  await page.waitForFunction(() => document.querySelector('[data-testid="player-stage"]')?.getAttribute("data-dir") === "back");
+  assert.equal(await page.getByTestId("player-stage").getAttribute("data-step"), "0");
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("radio", { name: "Thursday" }).click();
+  await page.getByRole("radio", { name: "Thursday", checked: true }).and(page.locator('[data-jelly="true"]')).waitFor(); // choosing jellies
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("radio", { name: "Yes" }).click();
+  await page.getByRole("button", { name: "Review" }).click();
+  await page.getByRole("button", { name: "Submit" }).click();
+  const thanks = page.getByTestId("player-thanks");
+  await thanks.waitFor();
+  assert.equal(await thanks.locator(".lv-burst i").count(), 12);
+  assert.ok((await page.evaluate(() => document.getAnimations().length)) > 0, "the thank-you animates");
+  assert.equal(await thanks.getByText(/%|responses so far|others/i).count(), 0, "a respondent never sees results");
+  assert.ok(await noHorizontalScroll(page));
+  await ctx.close();
+});
+
+test("Reduced motion: player and thank-you change state instantly (no running animations)", async () => {
+  const s = await openPage(app, { signedIn: false, width: 390, height: 844 });
+  await s.page.emulateMedia({ reducedMotion: "reduce" });
+  await s.go("/waitlist");
+  const code = (await mockState(s.page)).campaigns.find((c) => c.campaign_id === "cmp-seed-1").join_code;
+  await s.go(`/c/${code}`);
+  const page = s.page;
+  const running = () => page.evaluate(() => document.getAnimations().filter((a) => a.playState === "running").length);
+  await page.getByTestId("player-start").click();
+  assert.equal(await running(), 0, "question stage: no animation");
+  await page.getByRole("radio", { name: "4 of 5" }).click();
+  assert.equal(await running(), 0, "rating: no animation");
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("radio", { name: "Tuesday" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("radio", { name: "No" }).click();
+  await page.getByRole("button", { name: "Review" }).click();
+  await page.getByRole("button", { name: "Submit" }).click();
+  await page.getByTestId("player-thanks").waitFor();
+  assert.equal(await running(), 0, "thank-you: no animation");
+  const offset = await page.locator(".lv-check-path").evaluate((e) => getComputedStyle(e).strokeDashoffset);
+  assert.match(offset, /^0(px)?$/, "the check is fully drawn immediately");
+  await s.ctx.close();
+});
+
+test("Campaign page shows a live response counter without ever showing a withheld count as a number", async () => {
+  const { page, go, ctx } = await openPage(app);
+  await go(`${HUB}/campaigns/cmp-seed-1`);
+  const live = page.getByTestId("live-responses");
+  await live.getByText(/signed-in responses?/).waitFor();
+  assert.equal(await live.getByText(/^0 /).count(), 0);
+  await ctx.close();
+});
+
+test("Studio: the Questions panel stays mounted but is hidden on other sections", async () => {
+  const { page, go, ctx } = await openPage(app);
+  await go(`${HUB}/campaigns/cmp-seed-3/studio`);
+  await page.getByRole("tab", { name: /^Review/ }).click();
+  assert.equal(await page.getByTestId("question-workbench").isVisible(), false, "workbench hidden on Review");
+  await page.getByRole("tab", { name: /^Questions/ }).click();
+  assert.equal(await page.getByTestId("question-workbench").isVisible(), true);
+  await ctx.close();
+});
