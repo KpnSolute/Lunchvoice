@@ -7,8 +7,8 @@
 - **Not legal advice.** Items about law (privacy notices, COPPA, FERPA, state student-privacy law, payments) are
   risks for the founder to take to counsel. They are not statements of what the law requires.
 
-> **Latest (full build `9e951ec`, section 8): 0 BLOCKER and 1 HIGH open (FB-01, role targeting on anonymous
-> Campaigns allows differencing).** The feature-complete gate is not met until FB-01 is fixed.
+> **Latest (`8f2feb0`, section 8.6): 0 BLOCKER and 0 HIGH open. The feature-complete compliance gate is met.**
+> 000022 closes FB-01, which was found at `9e951ec` (section 8).
 >
 > **Earlier (targeted re-review at `5c665e1`, section 7.7): 0 BLOCKER and 0 HIGH open. The F-13 compliance
 > condition was met for the launch scope.** At `7ea5853` (sections 7.1-7.6) one new HIGH, NEW-01, was open. 000017 (`8f300b3`) closes it,
@@ -632,3 +632,34 @@ Open BLOCKER/HIGH, with the exact fix: **FB-01**. In 000022, `lv.api_campaign_se
 adds the reason `role_targeting_anonymous` when `audience_scope = 'roles'` and the Campaign is anonymous.
 `lv_campaign_update` refuses to switch a role-targeted draft to anonymous. A test reproduces 8.3 and asserts the
 refusal.
+
+### 8.6 Targeted check at `8f2feb0` (000022, FB-01/02/04/05)
+
+**Result: 0 BLOCKER and 0 HIGH open. The feature-complete compliance gate is met.**
+
+**Suite:** `bash scripts/db-test-canonical.sh` passes with 21 migrations, `checks: 1003, failed: 0`. Both races
+pass, and the full rollback is rehearsed, including `000022_v2_anonymous_role_targeting.down.sql`.
+
+**FB-01 runtime check** (fresh install of 000001–000022, Team Hub, role `GroupA`):
+
+| Path | Observed |
+| --- | --- |
+| `lv_campaign_set_audience_roles` on an anonymous draft | `lv_not_available`; `audience_scope` stays `all_members`; 0 `campaign_audience_roles` rows (the wrapper rolls back) |
+| Role-targeted identified draft switched to anonymous via `lv_campaign_update` | `lv_not_available`; anonymity stays `identified` |
+| Row forced past the trigger (trigger disabled, anonymity set, trigger re-enabled), then `lv_campaign_activate` / `lv_campaign_schedule` | both `lv_gate_blocked` with reasons `["role_targeting_anonymous"]`; status stays `draft` |
+| Identified role targeting | still activates |
+
+The §8.3 attack can no longer be set up: the first step (targeting an anonymous Campaign) is refused.
+
+| ID | Sev | Fix | Evidence | Status |
+| --- | --- | --- | --- | --- |
+| FB-01 | HIGH | `8f2feb0` | `supabase/migrations/000022_v2_anonymous_role_targeting.sql:17-31` trigger; `:49-53` gate reason; suite 22 (9 checks, including the reproduced attack); my runs above | **CLOSED** |
+| FB-02 | MEDIUM | `8f2feb0` | `src/pages/Marketing.tsx:169-172` (community activity, payments, service emails, Discover); `:215` emails kept up to 30 days; `:226-227` Stripe and Resend listed as processors | **CLOSED.** Counsel review is still F-15, and the operator name LC-08 is still pending |
+| FB-03 | LOW | – | unchanged | **ACCEPTED-for-beta** (backend: monitor `join_code_misses`) |
+| FB-04 | LOW | `8f2feb0` | `src/pages/Community.tsx:359` "…how many of this Hub’s ended Campaigns you took part in, anonymous ones included … Never your answers" | **CLOSED** |
+| FB-05 | LOW | `8f2feb0` | `supabase/functions/_shared/email/templates.ts:113-114` footer names the sender and Hub, says to ignore unexpected mail, and gives `support@lunchvoice.com` for abuse; the 30/hour cap is unchanged | **CLOSED** |
+| FB-06 | LOW | – | Differencing by admitting one member between two Hub-wide anonymous Campaigns. Unlike FB-01 it is visible (the admission is a membership event in the member list and audit), slow (each round needs a new person admitted, and removal is permanent), and limited to the newly admitted person's answer | **ACCEPTED for launch** (backend and founder). Post-launch option: freeze the eligible audience at activation, and withhold an anonymous Campaign's release while another released anonymous Campaign of the Hub differs from it by 1 to `min_cohort - 1` eligible members. Mention in the Privacy/anonymity FAQ that aggregates over groups that differ by one person can reveal that person's answer. |
+
+**Still open after 8f2feb0** (none BLOCKER or HIGH):
+- MEDIUM: LC-08 (operator name), LC-09 (accepted), LC-21 (accepted).
+- LOW, accepted: LC-32, FB-03, FB-06.
