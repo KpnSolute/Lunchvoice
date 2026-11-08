@@ -108,14 +108,17 @@ test("FB-01: role targeting is only for identified Campaigns, in both directions
   await identity.getByRole("radio", { name: /^Anonymous/ }).click();
   await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
   const roles = who.getByRole("radio", { name: /Specific roles/ });
+  // Wait for the state itself: "Draft saved" may already show before this save, so it is not a reliable signal.
+  await who.getByRole("radio", { name: /Specific roles/, disabled: true }).waitFor();
   assert.ok(await roles.isDisabled(), "Specific roles is disabled on an anonymous Campaign");
   await who.getByText("Only for identified Campaigns.", { exact: false }).waitFor();
   // Identified with roles: Anonymous cannot be chosen until the audience is all members again.
   await identity.getByRole("radio", { name: /^Identified/ }).click();
-  await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
+  await who.getByRole("radio", { name: /Specific roles/, disabled: false }).waitFor();
   await roles.click();
   await page.getByTestId("audience-roles").getByRole("checkbox", { name: "coach" }).click();
   await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
+  await identity.getByRole("radio", { name: /^Anonymous/, disabled: true }).waitFor();
   assert.ok(await identity.getByRole("radio", { name: /^Anonymous/ }).isDisabled(), "Anonymous is disabled while roles are chosen");
   assert.deepEqual(errors, []);
   await ctx.close();
