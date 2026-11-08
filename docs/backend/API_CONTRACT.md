@@ -684,3 +684,121 @@ All return `lv_forbidden` to non-admins.
 
 `reserve` is added (the `/reserve` route). `admin` was already reserved.
 <!-- ---- end track B: commerce ---- -->
+
+<!-- ---- track C: community ---- -->
+## Community and Discover (000020, track C)
+
+Decisions C-01 (leaderboard) and C-02 (Shop and Hub points) from `docs/v2/BUILD_PLAN_2026-11-21.md`, plus C-02a
+(governing agent; founder may override): all four add-on pages are in the Starter and Team families through map flags
+`community.newsroom`, `community.comments`, `community.leaderboard`, `community.shop` (booleans in `lv.plan_limits`);
+Team gets more Shop items (`shop.max_items` Starter 10, Team 50). No active plan: every community write fails closed with
+`lv_entitlement_required`; reads, opting out and deleting keep working and nothing is deleted.
+
+Every Hub-scoped function answers `lv_not_found` for a personal space (LC-06) and, for a private Hub, to a non-member.
+For a public Hub, members-only features answer `lv_forbidden` to a signed-in non-member. A feature whose page is off
+answers `lv_not_available { kind }`. Guests never post, comment, order or earn points (they have no account).
+
+### New error codes
+
+| Code | Meaning |
+|---|---|
+| `lv_insufficient_points` | Order refused: `{ balance, price }` |
+| `lv_out_of_stock` | Order refused: the item has no stock left |
+
+### Pages (replaced bodies, same signatures)
+
+- `lv_hub_pages_get(p_hub)` adds `visibility` to each Page and `addons: { news|comments|leaderboard|shop: { enabled,
+  allowed } }`. Visitors (public Hub, not a member) get Home, Campaigns, custom pages with `visibility: "public"` and the
+  news page when a public post exists; never Shop, Leaderboard, Comments or a members-only page (or its body).
+- `lv_hub_pages_update(p_hub, p_pages)`: `Page.visibility` `"members"` (default) | `"public"` (custom pages only; other
+  kinds are stored as members). One page per non-custom kind. Enabling an add-on the plan lacks:
+  `lv_entitlement_required { product, kind }`. Body is markdown-lite text (≤ 20000): the UI renders headings, lists,
+  bold and http(s)/mailto links as text nodes, never HTML.
+
+### Settings
+
+- `lv_community_get(p_hub)` (members) → `{ ok, settings: { points_enabled, discover_category }, categories: [{ key,
+  label }], addons, discover: { status: "none"|"submitted"|"approved"|"rejected" }, can: { post, moderate, shop,
+  settings }, me: { leaderboard_opt_in, points|null } }`.
+- `lv_community_update(p_hub, p_points_enabled?, p_discover_category?)` → same as get. `hub.settings.manage`. Category is
+  one of the fixed keys (`sports_fitness`, `arts_culture`, `books_learning`, `neighbourhood`, `faith`, `clubs_hobbies`,
+  `work_professional`, `health_wellbeing`, `environment`, `other`); `""` clears it.
+
+### Newsroom
+
+`NewsPost = { post_id, title, body, status: "draft"|"published", visibility: "members"|"public", pinned, published_at,
+updated_at, author_name, comment_count|null }` (`comment_count` null for visitors).
+
+- `lv_news_list(p_hub, p_include_drafts = false)` → `{ ok, posts, can_post }`. Signed out allowed (public posts of a
+  public Hub). Drafts only for `community.post`. Order: drafts, pinned, newest.
+- `lv_news_get(p_post)` → `{ ok, post, hub_id, can_post, comments_enabled }`. Signed out allowed for public posts.
+- `lv_news_save(p_hub, p_title, p_body?, p_visibility = "members", p_post?)` → `{ ok, post }` (creates a draft or edits).
+  `community.post`; public only on a public Hub; `community.posts_per_hour` (30).
+- `lv_news_publish(p_post, p_publish = true)`, `lv_news_pin(p_post, p_pinned = true)` (published only;
+  `community.max_pinned` 3 → `lv_limit_reached`), `lv_news_delete(p_post)` (also deletes its comments).
+
+### Comments
+
+`Comment = { comment_id, body, created_at, author_name, mine, hidden, reported_by_me, report_count? }` (`report_count`
+for moderators only). Comments attach to a published news post or to the Hub's Comments page (`p_post` null); never to
+Campaigns or answers.
+
+- `lv_comment_list(p_hub, p_post?)` (members) → `{ ok, comments, can_moderate, can_comment, max_length }`. Hidden
+  comments only for `community.moderate`.
+- `lv_comment_add(p_hub, p_body, p_post?)` → `{ ok, comment_id }`. 1..`community.comment_max_length` (1000; over it:
+  `lv_invalid_input { limit, used }`); `community.comments_per_minute` (5) → `lv_rate_limited`.
+- `lv_comment_delete(p_comment)` (author or `community.moderate`), `lv_comment_hide(p_comment, p_hidden = true)`
+  (`community.moderate`), `lv_comment_report(p_comment, p_reason)` → `{ ok, already_reported }` (once per member, not
+  your own, `community.reports_per_hour` 20).
+
+### Leaderboard (C-01)
+
+- `lv_leaderboard_get(p_hub)` (members, page on) → `{ ok, me: { opted_in, campaigns }, entries: [{ rank, display_name,
+  campaigns, me }] }`. Only opted-in accepted members; `campaigns` counts this Hub's Campaigns the member took part in
+  that have ended (closed, archived or past close), so the board never moves while a Campaign is live. Dense rank. No
+  answers, timings, Campaign ids or per-Campaign breakdown.
+- `lv_leaderboard_opt(p_hub, p_opt_in)` → `{ ok, opted_in }`. Default off. Opting in needs the page and an active plan;
+  opting out always works.
+
+### Shop and Hub points (C-02)
+
+- `lv_shop_get(p_hub)` (members, page on) → `{ ok, points_enabled, can_order, balance, can_manage, item_limit, items:
+  [{ item_id, name, description, price_points, stock|null, active }], my_orders: [Order], campaign_points: [{
+  campaign_id, title, status, points }]|null }` (`campaign_points` for `community.shop` only; inactive items too).
+- `lv_shop_item_save(p_hub, p_name?, p_description?, p_price_points?, p_stock?, p_active?, p_item?)` → `{ ok, item }`.
+  `community.shop`. Price 1..1,000,000 points; stock a number, NULL keeps it (no limit for a new item), -1 removes the
+  limit. Active items ≤ `shop.max_items` (`lv_limit_reached`).
+- `lv_shop_order_place(p_item)` → `{ ok, order, balance }`. Needs points on (`lv_not_available { kind: "points" }`),
+  stock (`lv_out_of_stock`) and balance (`lv_insufficient_points`); `shop.orders_per_hour` 20. Balance and stock are
+  exact under concurrency (advisory lock per member and Hub, item row lock).
+- `lv_shop_order_list(p_hub, p_status?)` → `{ ok, orders: [Order + member_name] }` (`community.shop`).
+- `lv_shop_order_update(p_order, p_status "fulfilled"|"cancelled")` → `{ ok, order }`. From `placed` only
+  (`lv_lifecycle_invalid`); the Hub fulfils, the member or the Hub cancels; cancelling refunds and restores stock.
+- `lv_campaign_points_set(p_campaign, p_points 0..1000)` → `{ ok, campaign_id, points }` (`community.shop`). Points are
+  recorded on `lv.participation.points` / `reward_state = 'recorded'` by a trigger when someone takes part while points
+  are on; changing the value never rewrites recorded points. For anonymous Campaigns the participation row has no
+  submission link, so points never link a person to answers. Points have no cash value.
+- `Order = { order_id, item_id, item_name, points, status: "placed"|"fulfilled"|"cancelled", created_at, updated_at,
+  member_name? }`. Order email: `lv.community_order_notify(order, event)` is a no-op TODO hook for track B's
+  `lv.email_enqueue`.
+
+### Discover listing
+
+- `lv_discover_list(p_query?, p_category?, p_limit = 24 (max 48), p_offset = 0)` → `{ ok, categories, hubs: [{ slug,
+  name, about (≤ 280), accent, category, membership_mode, members_rounded }] }`. Signed out allowed. Lists community
+  Hubs whose `lv.discover_applications.status = 'approved'` (set by track B's `lv_admin_discover_decide`), that are public
+  and on the Team family right now. `members_rounded` = genuine active members rounded down to the nearest 100. No Hub
+  id, owner or exact count. Search matches name, slug and About (LIKE wildcards are literal). Personal spaces and Quick
+  Surveys never appear.
+
+### Capabilities and policies
+
+Capabilities `community.post`, `community.moderate`, `community.shop` (group `community`); the Owner role holds them.
+Policies: `community.comment_max_length` 1000, `community.comments_per_minute` 5, `community.posts_per_hour` 30,
+`community.max_pinned` 3, `community.reports_per_hour` 20, `shop.orders_per_hour` 20.
+
+### Grants
+
+Authenticated: every function above. Anon: `lv_discover_list`, `lv_news_list`, `lv_news_get` only (test 14's anon
+allow-list includes them).
+<!-- ---- end track C ---- -->

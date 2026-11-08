@@ -2,6 +2,10 @@ import type { LvTransport } from "./lvApi";
 import { slugProblem } from "./reservedSlugs";
 import { commerceInvoke, commerceMock } from "./mockCommerce"; // track B: commerce
 
+/* ---- track C: community ---- */
+import { COMMUNITY_FNS, COMMUNITY_PUBLIC, communityAfter, communityHandle, type CommunityCtx } from "./mockCommunity";
+/* ---- end track C ---- */
+
 // DEV-ONLY stand-in for lv_api (excluded from production bundles; see transport.ts and scripts/check-bundle.mjs).
 // It mirrors the documented shapes and the launch rules in docs/v2/LAUNCH_PLAN.md closely enough to click through
 // the founder's journey, but it is not a policy engine: the backend is authoritative for every rule.
@@ -216,7 +220,13 @@ export function createMockTransport(displayName = "Dana", signedIn: () => boolea
   return {
     async rpc(fn, a = {}) {
       const s = load(displayName);
+      /* ---- track C: community ---- */
+      const answeredBefore = Boolean(s.campaigns.find((c) => c.campaign_id === a.p_campaign)?.mine_answered);
+      /* ---- end track C ---- */
       const r = handle(s, fn, a, signedIn());
+      /* ---- track C: community ---- */
+      communityAfter(communityCtx(s, signedIn()), fn, a, r, answeredBefore);
+      /* ---- end track C ---- */
       save();
       // a short delay so loading states are visible in development
       await new Promise((res) => setTimeout(res, 60));
@@ -236,6 +246,10 @@ export function createMockTransport(displayName = "Dana", signedIn: () => boolea
 const err = (code: string, message: string, extra: object = {}) => ({ ok: false, error: { code, message, ...extra } });
 
 const PUBLIC = new Set(["lv_plan_limits", "lv_waitlist_status", "lv_hub_get", "lv_invite_preview", "lv_guest_campaign_get", "lv_guest_submit", "lv_hub_reservation_status", "lv_capability_catalog", "lv_hub_pages_get", "lv_report_abuse"]);
+/* ---- track C: community ---- */
+for (const f of COMMUNITY_PUBLIC) PUBLIC.add(f);
+const communityCtx = (s: State, authed: boolean): CommunityCtx => ({ s: s as unknown as CommunityCtx["s"], authed, family: (hub) => activeFamily(s, hub) });
+/* ---- end track C ---- */
 
 function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolean): unknown {
   const id = (p: string) => `${p}-${++s.n}`;
@@ -254,6 +268,9 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
   });
   const qsActive = () => s.campaigns.filter((c) => isPersonal(s, c) && isActive(c)).length;
 
+  /* ---- track C: community ---- */
+  if (COMMUNITY_FNS.has(fn)) return communityHandle(communityCtx(s, authed), fn, a);
+  /* ---- end track C ---- */
   switch (fn) {
     /* ---------------- context and entitlements ---------------- */
     case "lv_my_context": {

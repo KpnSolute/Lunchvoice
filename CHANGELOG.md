@@ -6,6 +6,35 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (full build: track B commerce, email and admin; 000019)
+
+- Stripe-ready checkout end to end: `checkout` Edge Function creating server-side Checkout Sessions (subscriptions
+  for Hub plans; Campaign plans as first period + extra weeks so the subtotal equals the intent amount; automatic tax;
+  no promotion codes), Customer Portal, `lv_billing_config`, renewals and period-end cancellation in the webhook
+  (NEW-01 guarantees kept), Hub Name Reservation purchase and renewal at `/reserve`. Fails closed until the founder
+  sets `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs and `billing.provider_ready`.
+- Transactional email outbox and `email-dispatch` (Resend when `RESEND_API_KEY` is set; otherwise queued) with
+  templates E01-E08; never an answer in mail; receipts only for identified Campaigns; deleted with the account.
+- Platform admin console `/admin` (waitlist without emails, abuse reports, Campaign block, Discover decisions,
+  billing events, outbox); every admin function refuses non-admins.
+
+### Added (full build: track C community and Discover; 000020)
+
+- Custom pages with safe limited markdown and members/public visibility; Newsroom (drafts, publish, pin; public posts
+  only on public Hubs); Comments with report, hide and delete moderation and rate limits; opt-in Leaderboard counting
+  ended Campaigns only; optional Hub points and a Shop with manual fulfilment (no cash value); public `/discover`
+  directory of approved Team Hubs with rounded member counts. Builder add-ons are real (no more "Coming with M2").
+  Every community operation refuses personal spaces; guests never post, comment, order or rank.
+
+### Added (integration; 000021)
+
+- A fulfilled shop order queues one E08 email to the member's verified address (placed/cancelled send nothing).
+
+### Verification
+
+- Canonical suite through 000021: 881 checks, 0 failed, races and full rollback rehearsed. Function tests 54/54,
+  unit 23/23, e2e 30/30, `test:pr` and high-severity audit clean; 95 UI API calls match their SQL signatures.
+
 ### Operations (live verification, 2026-11-07)
 
 - Security headers (LC-04) are live on lunchvoice.com (set in the Render dashboard because the static site is not

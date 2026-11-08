@@ -47,3 +47,7 @@ export const HubBilling = pick(commerce, "HubBilling");
 export const HubReservation = pick(commerce, "HubReservation");
 export const Reserve = pick(commerce, "Reserve");
 export const Admin = pick(commerce, "Admin");
+
+/* ---- track C: community ---- */
+export const DiscoverDirectory = pick(() => import("./Community"), "DiscoverDirectory");
+/* ---- end track C ---- */
