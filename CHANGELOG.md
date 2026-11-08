@@ -6,6 +6,12 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (plan)
+
+- `docs/v2/API_AND_DISCORD_PLAN.md`: Team-only LunchVoice API (scoped Hub keys, `/v1`, signed webhooks, suppression
+  preserved) and the official Discord bot (account link, posting Campaigns, D-01: anonymous Campaigns answered only in
+  the LunchVoice player, per-server role rules such as Founding member). No customer is special-cased.
+
 ### Operations (2026-11-08, staff)
 
 - Granted platform admin (staff) to the founder's two accounts, "Kpn" and "Game World", via
