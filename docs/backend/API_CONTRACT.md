@@ -905,7 +905,7 @@ Every staff action writes an audit event. Nothing here deletes customer data.
   **verified** email (`lv.account_identities.email` with `email_verified_at`), case-insensitive, never by display
   name. No match ⇒ `lv_not_found` ("They need to sign in to LunchVoice once first"); two accounts share the verified
   email ⇒ `lv_conflict`; not an email ⇒ `lv_invalid_input`. Needs a recent sign-in (`lv_reauth_required`, LC-22).
-  Audit `staff.added` (target = account id; `platform_admin.granted` is not separately written).
+  Audit `staff.added` (target = account id), plus `platform_admin.granted` from `lv.grant_platform_admin`.
 - `lv_admin_staff_revoke(p_account)` → `{ ok }`. Yourself ⇒ `lv_conflict`; not staff ⇒ `lv_not_found`; the last
   active staff member ⇒ `lv_conflict` (counted under an advisory lock). Needs a recent sign-in. Audit `staff.revoked`
   (plus `platform_admin.revoked` from `lv.revoke_platform_admin`).
