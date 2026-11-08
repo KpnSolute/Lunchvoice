@@ -766,7 +766,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       const fam = activeFamily(s, a.p_hub as string);
       const roles = s.roles.filter((r) => r.hub === a.p_hub);
       const h = hubById(a.p_hub);
-      return { ok: true, roles: roles.map(({ hub, ...r }) => ({ ...r, is_owner: false, member_count: h?.members.filter((m) => m.roles.includes(r.role_id)).length ?? 0 })), custom_slots: LIMITS[fam].custom_roles, slots_used: roles.length };
+      return { ok: true, roles: roles.map(({ hub, ...r }) => ({ ...r, is_owner: false, member_count: h?.members.filter((m) => m.roles.includes(r.role_id)).length ?? 0 })), custom_slots: { used: roles.length, limit: LIMITS[fam].custom_roles } }; // same shape as lv_role_list
     }
     case "lv_role_create": {
       const fam = activeFamily(s, a.p_hub as string);
@@ -775,7 +775,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (used >= LIMITS[fam].custom_roles) return err("lv_limit_reached", "Custom role limit reached", { limit: LIMITS[fam].custom_roles, used });
       const r = { hub: String(a.p_hub), role_id: id("role"), key: String(a.p_name).toLowerCase().replace(/\s+/g, "-"), name: String(a.p_name), icon: String(a.p_icon), capabilities: (a.p_capabilities as string[]) ?? [] };
       s.roles.push(r);
-      return { ok: true, role_id: r.role_id };
+      return { ok: true, role: { role_id: r.role_id, key: r.key, name: r.name, icon: r.icon, is_owner: false, is_system: false, capabilities: r.capabilities, member_count: 0 } }; // same shape as lv_role_create
     }
     case "lv_role_update": {
       const r = s.roles.find((x) => x.role_id === a.p_role);

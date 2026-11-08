@@ -173,7 +173,9 @@ export function StudioView({ campaignId, backTo, crumb, resultsTo, hubId, hubNam
         <TabsContent value="details">
           <DetailsSection d={d} title={title ?? ""} setTitle={setTitle} save={save} reload={detail.reload} />
         </TabsContent>
-        <TabsContent value="questions">
+        {/* forceMount: the workbench stays mounted (hidden) on other tabs, so a new question that is not saved yet
+            (for example while its options are still invalid) is not lost by switching sections. */}
+        <TabsContent value="questions" forceMount className="data-[state=inactive]:hidden">
           <QuestionWorkbench d={d} locked={!draft} limit={null} save={save} reload={detail.reload} />
         </TabsContent>
         <TabsContent value="audience">

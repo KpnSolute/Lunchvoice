@@ -525,9 +525,11 @@ export function createLvApi(transport: LvTransport) {
     /* ---- roles ---- */
     capabilityCatalog: () =>
       call<{ groups: { key: string; label: string; capabilities: { key: string; label: string }[] }[] }>("lv_capability_catalog"),
-    roleList: (hub: string) => call<{ roles: Role[]; custom_slots: number | null; slots_used: number }>("lv_role_list", { p_hub: hub }),
+    // lv_role_list (000010/000014): custom_slots is { used, limit } (limit null = undecided, fails closed).
+    roleList: (hub: string) => call<{ roles: Role[]; custom_slots: { used: number; limit: number | null } }>("lv_role_list", { p_hub: hub }),
+    // lv_role_create returns { ok, role } (000010).
     roleCreate: (hub: string, name: string, icon: string, capabilities: string[]) =>
-      call<{ role_id: string }>("lv_role_create", { p_hub: hub, p_name: name, p_icon: icon, p_capabilities: capabilities }),
+      call<{ role: Role }>("lv_role_create", { p_hub: hub, p_name: name, p_icon: icon, p_capabilities: capabilities }),
     roleUpdate: (role: string, patch: { name?: string; icon?: string; capabilities?: string[] }) =>
       call<object>("lv_role_update", { p_role: role, p_name: patch.name ?? null, p_icon: patch.icon ?? null, p_capabilities: patch.capabilities ?? null }),
     roleDelete: (role: string) => call<object>("lv_role_delete", { p_role: role }),

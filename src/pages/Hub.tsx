@@ -471,8 +471,8 @@ export function Roles() {
   const [caps, setCaps] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const total = catalog.data ? catalog.data.groups.reduce((n, g) => n + g.capabilities.length, 0) : null;
-  const slots = roles.data?.custom_slots ?? null;
-  const used = roles.data?.slots_used ?? 0;
+  const slots = roles.data?.custom_slots.limit ?? null;
+  const used = roles.data?.custom_slots.used ?? 0;
   const full = slots !== null && used >= slots;
 
   async function create() {

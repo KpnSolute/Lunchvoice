@@ -95,6 +95,20 @@ test("Questions: exactly one Add question action; options add, remove; required 
   await ctx.close();
 });
 
+test("Questions: an unsaved new question survives switching sections", async () => {
+  const { page, ctx } = await studio();
+  await tab(page, "Questions").click();
+  const add = page.getByTestId("question-workbench").locator(":visible").getByTestId("add-question");
+  if (await add.count()) await add.first().click();
+  await page.getByRole("textbox", { name: "Question", exact: true }).fill("Which trail next month?");
+  await page.getByRole("textbox", { name: "Option 1" }).fill("Ridge"); // only one option: not valid, so not saved yet
+  await tab(page, "Details").click();
+  await tab(page, "Questions").click();
+  assert.equal(await page.getByRole("textbox", { name: "Question", exact: true }).inputValue(), "Which trail next month?");
+  assert.equal(await page.getByRole("textbox", { name: "Option 1" }).inputValue(), "Ridge");
+  await ctx.close();
+});
+
 test("Questions: changing to a type without options asks first", async () => {
   const { page, ctx } = await studio();
   await addChoiceQuestion(page);

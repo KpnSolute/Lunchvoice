@@ -6,6 +6,30 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Security and gaps (full build: track A; 000018)
+
+- LC-10: every Campaign has a 128-bit link token for links and QR codes; failed join-code lookups are rate-limited
+  per caller and globally. LC-11: guest keys from `crypto.getRandomValues`. LC-12: the database requires
+  `aud = authenticated` and `session_kind = lunchvoice` (the deployed `session` function already issues both, checked
+  in its deployed bundle). LC-13: single-use ID-token exchange and a 10-minute `iat` limit in `session`. LC-14: strict
+  return-path checks (react-router has no fixed 6.x; mitigated). LC-30: bundle check forbids key and secret
+  patterns. LC-37: the More sheet is a real modal. NEW-05: Campaign invite tokens stored hashed.
+- Gaps closed: Campaign description; server-side option validation; Quick Survey access change while draft; Team
+  role targeting (eligibility and thresholds count only role holders); `lv_hub_limits` for managers; new-question
+  save race; owner transfer is now an offer the member accepts or declines.
+
+### Fixed (integration)
+
+- Roles page read `custom_slots` as a number, but `lv_role_list` returns `{ used, limit }`: on production the slot
+  meter showed an object and "all slots used" never triggered. Types, mock and page now follow the SQL shape.
+- An unsaved new question was lost when switching Studio sections; the Questions workbench now stays mounted.
+  New e2e test confirmed to fail without the fix.
+
+### Verification (all tracks)
+
+- Canonical suite through 000021: 994 checks, 0 failed, races and full rollback. Function tests 60/60, unit 26/26,
+  e2e 44/44, `test:pr` and high-severity audit clean; every UI API call matches its SQL signature.
+
 ### Added (full build: track B commerce, email and admin; 000019)
 
 - Stripe-ready checkout end to end: `checkout` Edge Function creating server-side Checkout Sessions (subscriptions
