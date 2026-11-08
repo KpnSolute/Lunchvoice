@@ -63,6 +63,8 @@ to without further backend or UI work. Nothing in this plan charges money.
 | F-12 | Public name "LunchVoice by KpnSolute"; legal documents name the actual legal operator (placeholder until supplied; never pretend an entity exists). |
 | F-13 | **Conditional production approval:** apply the migrations and deploy once LC-01, LC-02, LC-03, LC-05, LC-06, LC-08 and the security headers are fixed, BLOCKER and HIGH findings are zero on the compliance re-run, the canonical DB suite and the frontend build pass, and the real auth smoke test passes. No further approval loop. |
 
+| F-14 | KpnWorld, LunchVoice's own Hub, is listed on Discover by founder override (2026-11-08) of the Team + 700 genuine members rule: made public, granted Team (source `grant`, no end date), approved Discover entry with its real genuine-member count; recorded in `lv.discover_decisions` and the audit log (`discover.founder_override`). The rule still applies to every other Hub. |
+
 Launch gate: no production launch while any BLOCKER or HIGH finding is open. MEDIUM findings are triaged into
 "before public beta" and "after public beta".
 

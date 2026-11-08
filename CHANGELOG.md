@@ -6,6 +6,63 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (plan)
+
+- `docs/v2/API_AND_DISCORD_PLAN.md`: Team-only LunchVoice API (scoped Hub keys, `/v1`, signed webhooks, suppression
+  preserved) and the official Discord bot (account link, posting Campaigns, D-01: anonymous Campaigns answered only in
+  the LunchVoice player, per-server role rules such as Founding member). No customer is special-cased.
+
+### Operations (2026-11-08, staff)
+
+- Granted platform admin (staff) to the founder's two accounts, "Kpn" and "Game World", via
+  `lv.grant_platform_admin` at the founder's request; `/admin` is now available to them.
+
+### Fixed and changed (UX polish pass)
+
+- Production bug: Hub colour swatches rendered blank because `lv_hub_get` returns the palette as `{key,label,hex}`
+  objects and the UI painted the objects; the stored accent is a key. `src/lib/accent.ts` resolves key to hex
+  everywhere (Hub header, cover, Builder preview, Discover cards); the mock now returns the SQL shape.
+- Hub Settings: Reddit-style "Community appearance" editor (labelled swatches with a check, live preview of banner,
+  Hub mark, Join button, tabs and a Campaign card; Save/Reset with save state). The accent applies only to the Hub's
+  own pages, never to LunchVoice chrome.
+- Owner walkthrough fixes: Questions panel no longer shows under other Studio sections; member roles in one menu with
+  remove confirmation; revoked invite codes disappear and invites can be emailed; role names keep their casing,
+  roles can be edited and deletion asks first; Discover shows a requirements checklist; Hub settings show save state;
+  a fresh Hub shows a getting-started card; Builder/Newsroom visibility labels; thank-you screen contrast.
+- Poll quick-create (one Single choice question, two empty options, Question focused, poll summary in Review);
+  Rating and Feedback starters.
+- Respondent player motion from the design tokens only: direction-aware question transitions, gliding progress,
+  jelly on choice, spring-filled rating circles with a word per value, staggered welcome, drawn check and a CSS burst
+  on thanks; all instant under reduced motion. Creator side: count-up metrics, growing result bars, copy pop, a live
+  response counter that never shows a withheld count as a number.
+- Tests: unit 29/29, e2e 59/59 (13 new). JS +5.4 kB gzip, CSS +1.8 kB.
+
+### Operations (2026-11-08)
+
+- Billing paused at the founder's request: `billing.provider_ready` back to false (open 07:52-15:41 UTC; one checkout
+  session was started, no charge was made; the open Stripe session expires on its own). The paid path was proven up
+  to Stripe: a server-created session for exactly $13.00 with automatic tax. Stripe Tax is active (head office set);
+  webhook destination enabled with the six events; secrets set; all four Edge Functions deployed from main
+  (`session` v3 with LC-13 replay protection).
+- F-14: KpnWorld listed on Discover by founder override (public, Team granted, approved entry with its real
+  genuine-member count, recorded as a founder decision and in the audit log).
+
+### Operations (production, 2026-11-08)
+
+- Stripe (live account "Lunchvoice"): products `lv_starter_hub`, `lv_team_hub`, `lv_campaign_starter`,
+  `lv_campaign_plus`, `lv_hub_reservation` with seven USD tax-exclusive prices at the canonical amounts (lookup keys
+  `lv_*`), and the default Customer Portal configuration (cancel at period end, no proration, payment methods,
+  invoices; no plan switching or promotion codes). Stripe Tax is pending the founder's head office address.
+- Applied 000018-000022 to production under the founder's approval after the gate was met (0 BLOCKER, 0 HIGH).
+  Rehearsed first on a database holding 000001-000017 plus production-shaped data (accounts, Hub, personal space,
+  Quick Surveys, a hashed invite, waitlist): all applied, link tokens backfilled, the founder's context still works.
+  Files hash-verified from `33cf4a7`; 000018 applied and verified alone before 000019-000022. Migration history set
+  to 000018-000022. Grant audit: 109 `lv_api` functions, 13 signed-out (as reviewed), nothing PUBLIC, no `lv`
+  reachability, RLS everywhere, every definer function pins `search_path`.
+- `billing.stripe_prices` holds the Stripe price IDs; `billing.provider_ready` stays false (no checkout yet).
+- #47 merged and deployed; 12 live routes (incl. /discover, /reserve) with zero CSP violations; sign-in reads
+  "Continue with KpnSolute". Edge Functions `session` (LC-13), `billing-webhook`, `checkout`, `email-dispatch` await
+  a CLI deploy by the founder (the Composio deploy tool cannot set `verify_jwt` or an import map).
 ### Fixed (SEO: public pages served a static noindex)
 
 - Production check: with the Render dashboard rule changed to `/* -> /app.html` but the per-page rules missing or

@@ -10,7 +10,9 @@ import { CHECKOUT_DISABLED_REASON, PLANS } from "../config/pricing";
 import { campaignPhase, LinkButton } from "../components/ui";
 import { Icon, type IconName } from "../components/Icon";
 import { HubMark } from "../ui/HubMark";
-import { HubCover, onAccent } from "../ui/HubCover";
+import { HubCover } from "../ui/HubCover";
+import { accentVars, onAccent } from "../lib/accent";
+import { HubAppearance } from "./HubAppearance";
 import { StateScreen } from "../ui/StateScreen";
 import { BottomTabs, type TabItem } from "../ui/BottomTabs";
 import { NotFoundPage } from "./Marketing";
@@ -26,6 +28,8 @@ import { Separator } from "@/components/shadcn/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shadcn/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/shadcn/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/shadcn/dialog";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/shadcn/dropdown-menu";
+import { ConfirmAction } from "./Studio";
 import { QrCode } from "@/components/shadcn/blocks/qr";
 import {
   CopyField,
@@ -94,11 +98,11 @@ export function HubLayout() {
   // Visitors, and everyone on a participant page, get the Hub cover (L10), not the workspace chrome.
   if (!membership || ADDON_PAGE.test(pathname)) {
     return (
-      <div className="lv-l10">
+      <div className="lv-l10 lv-hubscope" style={accentVars(hub.accent_hex ?? null)}>
         <HubCover
           name={hub.name}
           slug={hub.slug}
-          accent={hub.accent}
+          accent={hub.accent_hex}
           pills={<span className="lv-cover-pill">{hub.visibility === "public" ? "Public" : "Private"} · {hub.membership_mode.replace("_", " ")}</span>}
           action={!session ? <LinkButton to="/signin" state={{ from: base }} variant="secondary">Sign in</LinkButton> : membership ? <LinkButton to={base} variant="secondary">Open workspace</LinkButton> : undefined}
         />
@@ -132,10 +136,11 @@ export function HubLayout() {
   const plan = hub.plan;
 
   return (
-    <div className="ui-page">
+    <div className="ui-page lv-hubscope" style={accentVars(hub.accent_hex ?? null)} data-accent={hub.accent ?? undefined}>
+      {hub.accent_hex && <div className="lv-hub-banner" aria-hidden="true" />}
       <div className="lv-hubhead">
         <div className="lv-hubhead-main">
-          <span className="lv-hubmark-wrap" style={hub.accent ? { background: hub.accent, color: onAccent(hub.accent) } : undefined}><HubMark name={hub.name} size={64} /></span>
+          <span className="lv-hubmark-wrap"><HubMark name={hub.name} size={64} /></span>
           <div>
             <Eyebrow accent>Hub</Eyebrow>
             <h1>{hub.name}</h1>
@@ -224,7 +229,7 @@ export function HubOverview() {
       <div className="lv-stack">
         <div className="lv-tiles lv-tiles-3" data-testid="hub-stats">
           <StatTile tone="ink" label="Live Campaigns" value={live} note={`${rows.length} in total`} />
-          <StatTile label="Members" value={hub.member_count} note={waiting > 0 ? `${waiting} waiting on you` : "Everyone is in"} />
+          <StatTile label="Members" value={hub.member_count} note={waiting > 0 ? `${waiting} waiting on you` : hub.member_count <= 1 ? "Just you so far" : "No requests waiting"} />
           <StatTile
             tone="edge"
             label="Plan"
@@ -232,6 +237,16 @@ export function HubOverview() {
             note={hub.plan?.state === "active" ? (hub.plan.ends_at ? `Until ${fmtDate(hub.plan.ends_at)}` : hub.plan.product === "founding" ? "Founding · active" : "Active") : "Premium actions locked"}
           />
         </div>
+        {manager && campaigns.data && rows.length === 0 && (
+          <Card variant="ink" data-testid="getting-started">
+            <Eyebrow accent>Get your Hub going</Eyebrow>
+            <ol className="lv-getting-started">
+              <li><Link to={`/${hub.slug}/campaigns/new`}><b>Ask your first question</b><span>A quick poll takes a minute.</span></Link></li>
+              {can(membership, "admin.members.admit") && <li><Link to={`/${hub.slug}/invites`}><b>Invite people</b><span>Share a code or send it by email.</span></Link></li>}
+              {can(membership, "hub.settings.manage") && <li><Link to={`/${hub.slug}/settings`}><b>Make it yours</b><span>Add an about line and a Hub color.</span></Link></li>}
+            </ol>
+          </Card>
+        )}
         <Card>
           <SectionTitle action={manager ? <LinkButton to={`/${hub.slug}/campaigns/new`} variant="ink" size="sm" icon="plus">New Campaign</LinkButton> : undefined}>Campaigns</SectionTitle>
           {campaigns.loading && !campaigns.data ? (
@@ -289,6 +304,7 @@ export function HubShareCard({ hub, canInvite }: { hub: HubInfo; canInvite: bool
       </p>
       <div className="lv-share-actions">
         <Button
+          data-popped={copied || undefined}
           variant="ink"
           size="sm"
           aria-live="polite"
@@ -372,16 +388,38 @@ export function Members() {
                   <TableCell><div className="ui-row">{m.roles.length === 0 ? <span className="ui-muted">—</span> : m.roles.map((r) => <Badge key={r.key}>{r.name}</Badge>)}</div></TableCell>
                   <TableCell>
                     <div className="lv-member-actions">
-                      {can(membership, "admin.roles.manage") && !m.is_owner && (roles.data?.roles ?? []).map((r) => {
-                        const has = m.roles.some((mr) => mr.key === r.key);
-                        return (
-                          <Button key={r.role_id} size="sm" variant={has ? "ink" : "secondary"} aria-pressed={has}
-                            onClick={() => act(() => (has ? api.memberRoleUnassign(m.membership_id, r.role_id) : api.memberRoleAssign(m.membership_id, r.role_id)), has ? `Removed ${r.name}` : `Gave ${r.name}`)}>
-                            {r.name}
-                          </Button>
-                        );
-                      })}
-                      {can(membership, "admin.members.remove") && !m.is_owner && <Button size="sm" variant="quiet" onClick={() => act(() => api.memberRemove(m.membership_id), "Removed")}>Remove</Button>}
+                      {can(membership, "admin.roles.manage") && !m.is_owner && (roles.data?.roles.length ?? 0) > 0 && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="secondary" aria-label={`Roles for ${m.display_name ?? "member"}`}>Roles <Icon name="chevron" size={14} /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Roles for {m.display_name ?? "this member"}</DropdownMenuLabel>
+                            {roles.data!.roles.map((r) => {
+                              const has = m.roles.some((mr) => mr.key === r.key);
+                              return (
+                                <DropdownMenuCheckboxItem
+                                  key={r.role_id}
+                                  checked={has}
+                                  onSelect={(e) => e.preventDefault()}
+                                  onCheckedChange={() => act(() => (has ? api.memberRoleUnassign(m.membership_id, r.role_id) : api.memberRoleAssign(m.membership_id, r.role_id)), has ? `${r.name} removed from ${m.display_name ?? "member"}` : `${m.display_name ?? "Member"} is now ${r.name}`)}
+                                >
+                                  {r.name}
+                                </DropdownMenuCheckboxItem>
+                              );
+                            })}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                      {can(membership, "admin.members.remove") && !m.is_owner && (
+                        <ConfirmAction
+                          trigger={<Button size="sm" variant="quiet">Remove</Button>}
+                          title={`Remove ${m.display_name ?? "this member"}?`}
+                          body="They lose access to members-only Campaigns and pages. Answers they already gave stay in results. They can join again the way the Hub allows."
+                          action="Remove member"
+                          onConfirm={() => act(() => api.memberRemove(m.membership_id), `${m.display_name ?? "Member"} removed`)}
+                        />
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -402,16 +440,24 @@ export function Invites() {
   const { api } = useIdentity();
   const invites = useLv(() => api.inviteList(hub.hub_id), [api, hub.hub_id]);
   const [maxUses, setMaxUses] = useState("");
-  const [code, setCode] = useState<string | null>(null);
+  const [fresh, setFresh] = useState<{ id: string; code: string } | null>(null);
+  const [creating, setCreating] = useState(false);
 
   async function create() {
+    setCreating(true);
     const r = await api.inviteCreate(hub.hub_id, maxUses ? Number(maxUses) : undefined);
-    if (r.ok) { setCode(r.code); invites.reload(); toast.success("Invite created. Copy it now."); }
+    setCreating(false);
+    if (r.ok) { setFresh({ id: r.invite_id, code: r.code }); invites.reload(); toast.success("Invite created. Copy it now: it’s shown once."); }
     else toast.error(describeError(r.error));
   }
   async function revoke(id: string) {
     const r = await api.inviteRevoke(id);
-    if (r.ok) { invites.reload(); toast.success("Invite revoked"); } else toast.error(describeError(r.error));
+    if (r.ok) {
+      // A revoked code must not stay on screen looking usable.
+      if (fresh?.id === id) setFresh(null);
+      invites.reload();
+      toast.success("Invite revoked. The code no longer works.");
+    } else toast.error(describeError(r.error));
   }
 
   return (
@@ -423,13 +469,14 @@ export function Invites() {
           <Field label="Max uses" htmlFor="max-uses" help="Leave empty for no limit.">
             <Input id="max-uses" inputMode="numeric" value={maxUses} onChange={(e) => setMaxUses(e.target.value.replace(/\D/g, ""))} placeholder="No limit" aria-describedby="max-uses-help" />
           </Field>
-          <Button variant="primary" onClick={create}><Icon name="plus" size={16} />Create invite</Button>
+          <Button variant="primary" onClick={create} disabled={creating}><Icon name="plus" size={16} />{creating ? "Creating…" : "Create invite"}</Button>
         </div>
-        {code && (
-          <>
-            <CopyField label="Shown once: copy it now" value={code} />
-            <CopyField label="Invite link" value={`https://lunchvoice.com/j/${code}`} />
-          </>
+        {fresh && (
+          <div className="lv-stack-16" data-testid="fresh-invite">
+            <CopyField label="Invite code (shown once)" value={fresh.code} />
+            <CopyField label="Invite link" value={`https://lunchvoice.com/j/${fresh.code}`} />
+            <EmailInvite hubId={hub.hub_id} code={fresh.code} />
+          </div>
         )}
       </Card>
       <Card>
@@ -457,6 +504,32 @@ export function Invites() {
   );
 }
 
+/** Send the fresh invite by email (lv_invite_email_send, 000019). The address is used for this one message. */
+function EmailInvite({ hubId, code }: { hubId: string; code: string }) {
+  const { api } = useIdentity();
+  const [to, setTo] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState<string[]>([]);
+  async function send() {
+    setBusy(true);
+    const r = await api.inviteEmailSend(hubId, code, to.trim());
+    setBusy(false);
+    if (!r.ok) return void toast.error(describeError(r.error));
+    setSent((s) => [...s, to.trim()]);
+    toast.success(r.already_sent ? `Already sent to ${to.trim()}` : `Invite emailed to ${to.trim()}`);
+    setTo("");
+  }
+  return (
+    <form className="lv-invite-form" onSubmit={(e) => { e.preventDefault(); if (to.trim()) void send(); }}>
+      <Field label="Email this invite (optional)" htmlFor="invite-email" help="Used only to send this invite.">
+        <Input id="invite-email" type="email" inputMode="email" autoComplete="off" value={to} onChange={(e) => setTo(e.target.value)} placeholder="name@example.com" aria-describedby="invite-email-help" />
+      </Field>
+      <Button type="submit" variant="secondary" disabled={!to.trim() || busy}>{busy ? "Sending…" : "Send"}</Button>
+      {sent.length > 0 && <p className="ui-help lv-m0 lv-wide" role="status">Sent to {sent.join(", ")}.</p>}
+    </form>
+  );
+}
+
 /* ------------------------------------------------------------------ roles */
 
 const ROLE_ICONS: IconName[] = ["star", "home", "survey", "voice", "roster", "dashboard", "bulb", "flame", "sparkle", "lock"];
@@ -477,7 +550,7 @@ export function Roles() {
 
   async function create() {
     setBusy(true);
-    const r = await api.roleCreate(hub.hub_id, name.trim().toLowerCase(), icon, caps);
+    const r = await api.roleCreate(hub.hub_id, name.trim(), icon, caps);
     setBusy(false);
     if (r.ok) { setName(""); setCaps([]); roles.reload(); toast.success("Role created"); }
     else toast.error(describeError(r.error));
@@ -505,7 +578,18 @@ export function Roles() {
                   <TableCell><span className="lv-member-name"><Icon name={(ROLE_ICONS.includes(r.icon as IconName) ? r.icon : "star") as IconName} size={16} /><strong>{r.name}</strong></span></TableCell>
                   <TableCell className="ui-muted">{r.capabilities.length} of {total ?? "…"}</TableCell>
                   <TableCell className="ui-mono">{r.member_count}</TableCell>
-                  <TableCell className="text-right"><Button size="sm" variant="quiet" onClick={() => remove(r)}>Delete</Button></TableCell>
+                  <TableCell className="text-right">
+                    <div className="lv-member-actions">
+                      <EditRole role={r} groups={catalog.data?.groups ?? []} onSaved={roles.reload} />
+                      <ConfirmAction
+                        trigger={<Button size="sm" variant="quiet">Delete</Button>}
+                        title={`Delete the ${r.name} role?`}
+                        body={r.member_count ? `${r.member_count} ${r.member_count === 1 ? "member loses" : "members lose"} its permissions. Their membership stays.` : "Nobody holds it yet."}
+                        action="Delete role"
+                        onConfirm={() => remove(r)}
+                      />
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -547,9 +631,52 @@ export function Roles() {
   );
 }
 
+function EditRole({ role, groups, onSaved }: { role: Role; groups: { key: string; label: string; capabilities: { key: string; label: string }[] }[]; onSaved: () => void }) {
+  const { api } = useIdentity();
+  const [open, setOpen] = useState(false);
+  const [caps, setCaps] = useState<string[]>(role.capabilities);
+  const [busy, setBusy] = useState(false);
+  return (
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) setCaps(role.capabilities); }}>
+      <DialogTrigger asChild><Button size="sm" variant="secondary">Edit</Button></DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Permissions for {role.name}</DialogTitle>
+          <DialogDescription>Changes apply to everyone who holds this role.</DialogDescription>
+        </DialogHeader>
+        <div className="lv-caps">
+          {groups.map((g) => (
+            <div key={g.key} className="lv-cap-group">
+              <Eyebrow>{g.label}</Eyebrow>
+              {g.capabilities.map((c) => (
+                <label key={c.key} className="lv-check-row">
+                  <Checkbox checked={caps.includes(c.key)} onCheckedChange={() => setCaps((x) => (x.includes(c.key) ? x.filter((k) => k !== c.key) : [...x, c.key]))} />
+                  <span>{c.label}</span>
+                </label>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="ui-row">
+          <Button variant="primary" disabled={busy} onClick={async () => {
+            setBusy(true);
+            const r = await api.roleUpdate(role.role_id, { capabilities: caps });
+            setBusy(false);
+            if (!r.ok) return void toast.error(describeError(r.error));
+            toast.success(`${role.name} updated`);
+            setOpen(false);
+            onSaved();
+          }}>{busy ? "Saving…" : "Save permissions"}</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /* ------------------------------------------------------------------ settings */
 
 export function HubSettings() {
+  const [savedOnce, setSavedOnce] = useState(false);
   const { hub, membership, reload } = useHubCtx();
   const { api } = useIdentity();
   const nav = useNavigate();
@@ -557,7 +684,6 @@ export function HubSettings() {
   const [about, setAbout] = useState(hub.about ?? "");
   const [visibility, setVisibility] = useState<Visibility>(hub.visibility);
   const [mode, setMode] = useState<MembershipMode>(hub.membership_mode);
-  const [accent, setAccent] = useState<string | null>(hub.accent ?? null);
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dangerError, setDangerError] = useState<string | null>(null);
@@ -565,8 +691,7 @@ export function HubSettings() {
   const owner = membership?.is_owner;
   const members = useLv(() => (owner ? api.memberList(hub.hub_id) : Promise.resolve({ ok: true as const, members: [] })), [api, hub.hub_id, owner]);
   const heirs = members.data?.members.filter((m) => m.status === "accepted" && !m.is_owner) ?? [];
-  const palette = hub.accent_palette ?? [];
-  const dirty = name.trim() !== hub.name || about !== (hub.about ?? "") || visibility !== hub.visibility || mode !== hub.membership_mode || accent !== (hub.accent ?? null);
+  const dirty = name.trim() !== hub.name || about !== (hub.about ?? "") || visibility !== hub.visibility || mode !== hub.membership_mode;
 
   async function save() {
     setSaving(true);
@@ -575,10 +700,9 @@ export function HubSettings() {
       about: about !== (hub.about ?? "") ? about : undefined,
       visibility: visibility !== hub.visibility ? visibility : undefined,
       membership_mode: mode !== hub.membership_mode ? mode : undefined,
-      accent: accent && accent !== hub.accent ? accent : undefined,
     });
     setSaving(false);
-    if (r.ok) { toast.success("Settings saved"); reload(); } else toast.error(describeError(r.error));
+    if (r.ok) { setSavedOnce(true); toast.success("Settings saved"); reload(); } else toast.error(describeError(r.error));
   }
 
   return (
@@ -610,17 +734,16 @@ export function HubSettings() {
               </Select>
             </Field>
           </div>
-          <Field label="Hub color" help="Only colors that keep text readable are offered.">
-            <div className="lv-swatches" role="radiogroup" aria-label="Hub color">
-              {palette.map((c) => (
-                <button key={c} type="button" role="radio" aria-checked={accent === c} aria-label={c} className="lv-swatch" style={{ background: c }} onClick={() => setAccent(c)} />
-              ))}
-              {palette.length === 0 && <span className="ui-muted">No palette from the server yet.</span>}
-            </div>
-          </Field>
-          <div className="ui-row"><Button type="submit" variant="ink" disabled={!dirty || saving || !name.trim()}>{saving ? "Saving…" : "Save settings"}</Button></div>
+          <div className="ui-row">
+            <Button type="submit" variant="ink" disabled={!dirty || saving || !name.trim()}>{saving ? "Saving…" : "Save settings"}</Button>
+            <span className="lv-save" role="status" aria-live="polite" data-status={saving ? "saving" : dirty ? "dirty" : savedOnce ? "saved" : "idle"} data-testid="settings-save-state">
+              <span className="lv-save-dot" aria-hidden="true" />
+              {saving ? "Saving…" : dirty ? "Unsaved changes" : savedOnce ? "All changes saved" : "No changes"}
+            </span>
+          </div>
         </form>
       </Card>
+      {can(membership, "hub.settings.manage") && <HubAppearance hub={hub} reload={reload} />}
 
       {owner && (
         <Card>
@@ -819,7 +942,10 @@ export function HubDiscover() {
         <SectionTitle>Discover eligibility</SectionTitle>
         <p className="ui-muted lv-m0">Team Hubs can apply to be listed in Discover once they reach 700 genuine active members. Approval isn’t automatic. Quick Surveys are never listed.</p>
         <QuotaMeter label="Genuine active members" used={Math.min(hub.member_count, 700)} limit={700} hint="Guests, duplicates and bots never count." />
-        <QuotaMeter label="Plan" used={hub.plan?.family === "team" ? 1 : 0} limit={1} hint={hub.plan?.family === "team" ? "Team plan" : "Needs the Team plan"} />
+        <ul className="lv-reqs" aria-label="Requirements">
+          <li data-met={hub.plan?.family === "team" || undefined}><span aria-hidden="true">{hub.plan?.family === "team" ? "✓" : "–"}</span>Team plan <span className="ui-muted">{hub.plan?.family === "team" ? "· met" : `· this Hub is on ${familyName(hub.plan?.family)}`}</span></li>
+          <li data-met={hub.member_count >= 700 || undefined}><span aria-hidden="true">{hub.member_count >= 700 ? "✓" : "–"}</span>700 genuine active members <span className="ui-muted">· {hub.member_count >= 700 ? "met" : `${700 - hub.member_count} to go`}</span></li>
+        </ul>
         {reasons && <Notice tone="warn" title="Not eligible yet">{reasons.join(" ")}</Notice>}
         {sent ? <Notice tone="ok">Application sent. We’ll review it.</Notice> : <Button variant="primary" onClick={apply} disabled={busy}>{busy ? "Checking…" : "Apply for Discover"}</Button>}
       </Card>
@@ -959,7 +1085,7 @@ export function HubBuilder() {
       <Card variant="well">
         <Eyebrow>Preview: what members see</Eyebrow>
         <div className="lv-preview-phone">
-          <div className="lv-preview-cover" style={{ background: hub.accent ?? "#14110f", color: hub.accent ? onAccent(hub.accent) : "#fff" }}>
+          <div className="lv-preview-cover" style={{ background: hub.accent_hex ?? "#14110f", color: hub.accent_hex ? onAccent(hub.accent_hex) : "#fff" }}>
             <b>{hub.name}</b>
             <nav aria-label="Preview tabs">
               {pages.filter((p) => p.enabled).map((p) => <span key={p.key}>{p.title}</span>)}

@@ -380,7 +380,7 @@ export function CopyField({ value, label, id }: { value: string; label?: string;
       {label && <Label htmlFor={inputId}>{label}</Label>}
       <div className="flex min-w-0 items-center gap-2">
         <Input id={inputId} readOnly value={value} onFocus={(e) => e.currentTarget.select()} className="font-[family-name:var(--lv-font-mono)] text-[13px]" />
-        <Button size="md" variant="secondary" onClick={copy} aria-live="polite">
+        <Button size="md" variant="secondary" onClick={copy} aria-live="polite" data-popped={copied || undefined}>
           {copied ? <CheckIcon /> : <CopyIcon />}
           {copied ? "Copied" : "Copy"}
         </Button>

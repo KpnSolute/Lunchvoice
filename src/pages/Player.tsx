@@ -39,6 +39,8 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   const [offline, setOffline] = useState(typeof navigator !== "undefined" && navigator.onLine === false);
   const [receipt, setReceipt] = useState<{ id: string; duplicate: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
+  // Direction of the last move, so the question stage slides the right way (Back slides from the left).
+  const [dir, setDir] = useState<"fwd" | "back">("fwd");
   const draftKey = `lv-draft-${guest?.joinCode ?? campaignId}`;
 
   const d = detail.data;
@@ -66,6 +68,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   }, [answers, draftKey]);
 
   async function submit() {
+    if (busy) return;
     setBusy(true);
     setError(null);
     const payload: Answer[] = questions.map((qq) => ({ question_id: qq.question_id, value: answers[qq.question_id] ?? null }));
@@ -110,8 +113,13 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
 
   if (receipt || d.has_responded) {
     return frame(
-      <div className="lv-thanks">
-        <span className="lv-thanks-check" aria-hidden="true"><Icon name="check" size={40} /></span>
+      <div className="lv-thanks" data-testid="player-thanks">
+        <span className="lv-thanks-mark" aria-hidden="true">
+          <span className="lv-burst">{Array.from({ length: 12 }, (_, i) => <i key={i} style={{ "--a": `${i * 30}deg`, "--d": `${i % 3}` } as React.CSSProperties} />)}</span>
+          <span className="lv-thanks-check">
+            <svg viewBox="0 0 52 52" width="44" height="44"><path className="lv-check-path" d="M14 27.5 22.5 36 39 18" fill="none" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </span>
+        </span>
         <h1 className="lv-thanks-title">{receipt?.duplicate || (!receipt && d.has_responded) ? <>Already in.<br /><em>Thanks.</em></> : <>Thanks.<br /><em>You're heard.</em></>}</h1>
         <p className="lv-thanks-copy">
           {receipt?.duplicate || (!receipt && d.has_responded)
@@ -164,20 +172,20 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   if (view === "welcome") {
     return frame(
       <>
-        <div className="lv-player-hero">
+        <div className="lv-player-hero lv-enter" style={{ "--i": 0 } as React.CSSProperties}>
           <span className="lv-eyebrow-mono" style={{ color: "var(--lv-accent)" }}>{guest ? "Open to guests" : "You're invited"}</span>
           <h1 className="lv-player-title">{d.campaign.title}</h1>
           <div className="lv-player-hero-foot">
             <span className="lv-row-sub" style={{ color: "inherit", opacity: 0.8 }}>{total} {total === 1 ? "question" : "questions"} · ~{minutes} min</span>
-            <Button variant="primary" onClick={() => { setStep(0); setView("question"); }} disabled={total === 0}>
+            <Button variant="primary" onClick={() => { setDir("fwd"); setStep(0); setView("question"); }} disabled={total === 0} data-testid="player-start">
               Start <Icon name="arrow" size={16} />
             </Button>
           </div>
         </div>
         <ul className="lv-promises">
-          <li><span><Icon name="lock" size={18} /></span><div><strong>{privacyPromise.title}</strong><p>{privacyPromise.body}</p></div></li>
-          <li><span><Icon name="check" size={18} /></span><div><strong>{anyOptional ? "Some questions are optional" : "Every question needs an answer"}</strong><p>{anyOptional ? "Optional questions are marked. Answer the rest to submit." : "You can go back and change answers before you submit."}</p></div></li>
-          <li><span><Icon name="clock" size={18} /></span><div><strong>About {minutes} {minutes === 1 ? "minute" : "minutes"}</strong><p>Mostly taps.</p></div></li>
+          <li className="lv-enter" style={{ "--i": 1 } as React.CSSProperties}><span><Icon name="lock" size={18} /></span><div><strong>{privacyPromise.title}</strong><p>{privacyPromise.body}</p></div></li>
+          <li className="lv-enter" style={{ "--i": 2 } as React.CSSProperties}><span><Icon name="check" size={18} /></span><div><strong>{anyOptional ? "Some questions are optional" : "Every question needs an answer"}</strong><p>{anyOptional ? "Optional questions are marked. Answer the rest to submit." : "You can go back and change answers before you submit."}</p></div></li>
+          <li className="lv-enter" style={{ "--i": 3 } as React.CSSProperties}><span><Icon name="clock" size={18} /></span><div><strong>About {minutes} {minutes === 1 ? "minute" : "minutes"}</strong><p>Mostly taps.</p></div></li>
         </ul>
         {report}
       </>,
@@ -187,6 +195,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   if (view === "review") {
     return frame(
       <>
+        <div className="lv-q-stage" data-dir={dir} data-testid="player-stage" data-view="review">
         <h1 className="lv-q-title">Review your answers</h1>
         <ul className="lv-review">
           {questions.map((qq, i) => (
@@ -196,15 +205,16 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
                 <strong>{qq.prompt}</strong>
                 <span className={answered(i) ? "" : "lv-skipped"}>{!answered(i) && !optional(i) ? "Needs an answer" : summarize(qq, answers[qq.question_id])}</span>
               </div>
-              <Button variant="quiet" size="sm" onClick={() => { setStep(i); setView("question"); }}>Edit</Button>
+              <Button variant="quiet" size="sm" onClick={() => { setDir("back"); setStep(i); setView("question"); }}>Edit</Button>
             </li>
           ))}
         </ul>
         {offline && <p className="lv-banner" role="status">You're offline. Your answers are saved on this device; send them when you're back online.</p>}
         {missing.length > 0 && <p className="lv-banner" role="status">Answer {missing.length === 1 ? "question" : "questions"} {missing.map((i) => i + 1).join(", ")} to submit.</p>}
         {error && <p className="lv-banner lv-banner-err" role="alert">{error}</p>}
+        </div>
         <div className="lv-player-nav">
-          <button type="button" className="lv-circle-btn" aria-label="Back to questions" onClick={() => { setStep(total - 1); setView("question"); }}><Icon name="back" size={20} /></button>
+          <button type="button" className="lv-circle-btn" aria-label="Back to questions" onClick={() => { setDir("back"); setStep(total - 1); setView("question"); }}><Icon name="back" size={20} /></button>
           <button type="button" className="lv-next" onClick={submit} disabled={busy || offline || missing.length > 0}>{busy ? "Sending…" : error ? "Try again" : "Submit"}</button>
         </div>
       </>,
@@ -212,25 +222,39 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   }
 
   const last = step === total - 1;
-  const go = () => (last ? setView("review") : setStep((s) => s + 1));
+  const canGo = optional(step) || answered(step);
+  const go = () => { setDir("fwd"); if (last) setView("review"); else setStep((s) => s + 1); };
+  const back = () => { setDir("back"); setStep((s) => s - 1); };
+  const pct = Math.round(((step + (canGo ? 1 : 0.5)) / total) * 100);
   return frame(
-    <>
+    <div
+      className="lv-q-wrap"
+      onKeyDown={(e) => {
+        // Enter moves on (never from inside the text box, where Enter is a new line).
+        if (e.key === "Enter" && !(e.target instanceof HTMLTextAreaElement) && !(e.target instanceof HTMLButtonElement && e.target.classList.contains("lv-circle-btn")) && canGo) {
+          e.preventDefault();
+          go();
+        }
+      }}
+    >
       <div className="lv-player-top">
         <span className="lv-row-sub" aria-label={`Question ${step + 1} of ${total}`}>{String(step + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}</span>
         {optional(step) ? <button type="button" className="lv-skip" onClick={go}>Skip</button> : <span className="lv-row-sub">Required</span>}
       </div>
-      <div className="lv-progress" role="progressbar" aria-valuemin={1} aria-valuemax={total} aria-valuenow={step + 1} aria-label="Progress">
-        {questions.map((_, i) => <i key={i} data-state={i < step ? "done" : i === step ? "current" : "todo"} />)}
+      <div className="lv-glide" role="progressbar" aria-valuemin={1} aria-valuemax={total} aria-valuenow={step + 1} aria-valuetext={`Question ${step + 1} of ${total}`} aria-label="Progress" data-testid="player-progress">
+        <b style={{ width: `${pct}%` }} />
       </div>
-      <h1 className="lv-q-title" key={q?.question_id}>{q?.prompt}</h1>
-      <div className="lv-q-controls">
-        {q && <QuestionInput q={q} value={answers[q.question_id]} onChange={(v) => setAnswers((a) => ({ ...a, [q.question_id]: v }))} />}
+      <div className="lv-q-stage" key={`${step}-${q?.question_id}`} data-dir={dir} data-testid="player-stage" data-step={step}>
+        <h1 className="lv-q-title">{q?.prompt}</h1>
+        <div className="lv-q-controls">
+          {q && <QuestionInput q={q} value={answers[q.question_id]} onChange={(v) => setAnswers((a) => ({ ...a, [q.question_id]: v }))} />}
+        </div>
       </div>
       <div className="lv-player-nav">
-        <button type="button" className="lv-circle-btn" aria-label="Back" disabled={step === 0} onClick={() => setStep((s) => s - 1)}><Icon name="back" size={20} /></button>
-        <button type="button" className="lv-next" onClick={go} disabled={!optional(step) && !answered(step)}>{last ? "Review" : "Next"}</button>
+        <button type="button" className="lv-circle-btn" aria-label="Back" disabled={step === 0} onClick={back}><Icon name="back" size={20} /></button>
+        <button type="button" className="lv-next" onClick={go} disabled={!canGo}>{last ? "Review" : "Next"}</button>
       </div>
-    </>,
+    </div>,
   );
 }
 

@@ -1,0 +1,86 @@
+/* Respondent and creator motion. Only the system's motion tokens: spring and ease-out curves, d1/d2/d3 durations,
+   press scale(.94,.88), the 560ms select jelly, page-enter rise and count-up (JS, src/ui/motion.ts).
+   prefers-reduced-motion: every animation and transition here becomes an instant state change. */
+:root {
+  --lv-d1: 150ms;
+  --lv-d2: 260ms;
+  --lv-d3: 460ms;
+}
+
+/* page-enter rise: 8px, d2, staggered 40ms per block */
+@keyframes lv-enter-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.lv-enter { animation: lv-enter-rise var(--lv-d2) var(--lv-ease-out) both; animation-delay: calc(var(--i, 0) * 40ms); }
+
+/* question stage: slides in from the side it came from */
+@keyframes lv-stage-fwd { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+@keyframes lv-stage-back { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+.lv-q-stage { display: flex; flex-direction: column; gap: 18px; animation: lv-stage-fwd var(--lv-d2) var(--lv-ease-out) both; }
+.lv-q-stage[data-dir='back'] { animation-name: lv-stage-back; }
+.lv-q-stage .lv-q-title { animation: none; }
+.lv-q-wrap { display: flex; flex-direction: column; gap: 18px; }
+
+/* progress: one track, the fill glides on the spring */
+.lv-glide { height: 6px; border-radius: 999px; background: var(--lv-well); box-shadow: var(--lv-well-shadow); overflow: hidden; }
+.lv-glide > b { display: block; height: 100%; border-radius: inherit; background: var(--lv-accent); transition: width var(--lv-d3) var(--lv-ease-spring); }
+.lv-player-ink .lv-glide { background: rgba(255, 255, 255, 0.14); }
+
+/* rating: circles fill one after another with a spring pop; a word for the value */
+.lv-rating-wrap { display: flex; flex-direction: column; gap: 10px; }
+.lv-circle { transition: transform var(--lv-dur-press) var(--lv-ease-spring), background var(--lv-d2) var(--lv-ease-out), box-shadow var(--lv-d2) var(--lv-ease-out), color var(--lv-d1) linear; transition-delay: 0ms, calc(var(--i, 0) * 40ms), calc(var(--i, 0) * 40ms), 0ms; }
+.lv-circle[data-on='true'] { transform: scale(1.04); }
+.lv-circle[data-on='true'][data-jelly='true'] { animation: lv-jelly var(--lv-dur-jelly) var(--lv-ease-spring); }
+.lv-rating-word { margin: 0; min-height: 24px; font: 700 18px/1.3 var(--lv-font-display); letter-spacing: -0.01em; }
+.lv-rating-word > span { display: inline-block; animation: lv-word-pop var(--lv-d2) var(--lv-ease-spring) both; }
+.lv-rating-word-hint { font: 500 14px/1.3 var(--lv-font-ui) !important; color: var(--lv-subtle); animation: none !important; }
+@keyframes lv-word-pop { from { opacity: 0; transform: translateY(6px) scale(0.92); } to { opacity: 1; transform: none; } }
+
+/* hover / press feedback on every answer control */
+@media (hover: hover) {
+  .lv-circle:hover:not([data-on='true']), .lv-option:hover:not(:disabled):not([aria-checked='true']), .lv-tile-choice:hover:not([aria-checked='true']) { transform: translateY(-2px); }
+}
+.lv-option, .lv-tile-choice { transition: transform var(--lv-dur-press) var(--lv-ease-spring), background var(--lv-d2) var(--lv-ease-out), box-shadow var(--lv-d2) var(--lv-ease-out); }
+.lv-next, .lv-circle-btn { transition: transform var(--lv-dur-press) var(--lv-ease-spring), opacity var(--lv-d1) linear, background var(--lv-d2) var(--lv-ease-out); }
+.lv-next:active:not(:disabled) { transform: scale(0.94, 0.88); }
+
+/* thank-you: the check draws itself, jellies, and a small burst goes out */
+.lv-thanks-mark { position: relative; display: grid; place-items: center; width: 84px; height: 84px; }
+.lv-thanks-mark .lv-thanks-check { position: relative; z-index: 1; animation: lv-jelly var(--lv-dur-jelly) var(--lv-ease-spring) var(--lv-d3) both; }
+.lv-check-path { stroke-dasharray: 40; stroke-dashoffset: 40; animation: lv-draw var(--lv-d3) var(--lv-ease-out) var(--lv-d2) forwards; }
+@keyframes lv-draw { to { stroke-dashoffset: 0; } }
+.lv-burst { position: absolute; inset: 0; pointer-events: none; }
+.lv-burst i { position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px; border-radius: 999px; background: var(--lv-accent);
+  opacity: 0; transform: rotate(var(--a)) translateY(0) scale(0.4); animation: lv-burst 720ms var(--lv-ease-out) calc(var(--lv-d3) + var(--d) * 40ms) forwards; }
+.lv-burst i:nth-child(3n) { background: var(--lv-accent-light); width: 6px; height: 6px; }
+.lv-burst i:nth-child(4n) { background: currentColor; border-radius: 2px; }
+@keyframes lv-burst {
+  0% { opacity: 0; transform: rotate(var(--a)) translateY(0) scale(0.4); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--a)) translateY(-64px) scale(1); }
+}
+.lv-thanks > .lv-thanks-title, .lv-thanks > .lv-thanks-copy, .lv-thanks > .lv-thanks-receipt { animation: lv-enter-rise var(--lv-d2) var(--lv-ease-out) both; }
+.lv-thanks > .lv-thanks-title { animation-delay: calc(var(--lv-d3) + 80ms); }
+.lv-thanks > .lv-thanks-copy { animation-delay: calc(var(--lv-d3) + 120ms); }
+.lv-thanks > .lv-thanks-receipt { animation-delay: calc(var(--lv-d3) + 160ms); }
+
+/* creator side: bars grow in, copy feedback pops */
+@keyframes lv-bar-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.lv-bar-grow { transform-origin: left center; animation: lv-bar-grow var(--lv-d3) var(--lv-ease-out) both; animation-delay: calc(var(--i, 0) * 40ms); }
+@keyframes lv-pop { 0% { transform: scale(1); } 40% { transform: scale(1.12, 0.9); } 70% { transform: scale(0.96, 1.05); } 100% { transform: scale(1); } }
+[data-popped='true'] { animation: lv-pop var(--lv-dur-jelly) var(--lv-ease-spring); }
+.lv-live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: var(--lv-success); animation: lv-live 1.6s ease-in-out infinite; }
+@keyframes lv-live { 50% { opacity: 0.35; transform: scale(0.8); } }
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --lv-d1: 0ms; --lv-d2: 0ms; --lv-d3: 0ms; }
+  .lv-enter, .lv-q-stage, .lv-rating-word > span, .lv-thanks-mark .lv-thanks-check, .lv-check-path, .lv-burst i, .lv-thanks > *,
+  .lv-bar-grow, [data-popped='true'], [data-jelly='true'], .lv-live-dot, .lv-thanks-check {
+    animation: none !important;
+  }
+  .lv-check-path { stroke-dashoffset: 0; }
+  .lv-burst { display: none; }
+  .lv-glide > b, .lv-circle, .lv-option, .lv-tile-choice, .lv-next, .lv-circle-btn { transition: none !important; }
+}
+
+.lv-live-head { display: inline-flex; align-items: center; gap: 8px; font: 700 11.5px/1 var(--lv-font-mono); letter-spacing: 0.12em; text-transform: uppercase; }
+.lv-live-count strong { font: 800 26px/1 var(--lv-font-display); letter-spacing: -0.03em; }
+.lv-countup { font-variant-numeric: tabular-nums; }

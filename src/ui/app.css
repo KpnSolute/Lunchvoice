@@ -150,3 +150,73 @@
 .lv-quick-steps { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 20px; }
 .lv-step-n { display: inline-grid; place-items: center; width: 28px; height: 28px; margin-right: 10px; border-radius: 999px; background: var(--lv-ink-bg); color: var(--lv-on-primary); font: 700 13px/1 var(--lv-font-mono); vertical-align: middle; }
 .lv-step-h { margin: 0; }
+
+/* Discover requirements */
+.lv-reqs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 14.5px; }
+.lv-reqs li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lv-reqs li > span:first-child { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 999px; background: var(--lv-well); font: 700 12px/1 var(--lv-font-mono); }
+.lv-reqs li[data-met] > span:first-child { background: color-mix(in srgb, var(--lv-success) 20%, transparent); color: var(--lv-success-ink); }
+
+/* Fresh Hub: getting started */
+.lv-getting-started { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; counter-reset: gs; }
+@media (min-width: 720px) { .lv-getting-started { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.lv-getting-started a { display: flex; flex-direction: column; gap: 4px; min-height: 44px; height: 100%; padding: 14px 16px; border-radius: var(--lv-radius-field); color: inherit; text-decoration: none;
+  background: color-mix(in srgb, var(--lv-on-primary) 8%, transparent); transition: transform var(--lv-dur-press) var(--lv-ease-spring), background 200ms var(--lv-ease-out); }
+.lv-getting-started a::before { counter-increment: gs; content: counter(gs); font: 700 12px/1 var(--lv-font-mono); color: var(--lv-accent); }
+.lv-getting-started a:hover { background: color-mix(in srgb, var(--lv-on-primary) 14%, transparent); }
+.lv-getting-started a:active { transform: scale(0.97); }
+.lv-getting-started a:focus-visible { outline: 2px solid var(--lv-accent); outline-offset: 3px; }
+.lv-getting-started span { font-size: 13.5px; opacity: 0.8; }
+
+.lv-poll-summary { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: var(--lv-radius-field); background: var(--lv-well); box-shadow: var(--lv-well-shadow); }
+.lv-poll-summary strong { font: 700 18px/1.3 var(--lv-font-ui); overflow-wrap: anywhere; }
+
+/* ---------- Hub accent (scoped to the Hub's own pages; never LunchVoice chrome) ---------- */
+.lv-hub-banner { height: 10px; margin: 0 0 16px; border-radius: 999px; background: var(--hub-accent); }
+.lv-hubscope .lv-hubhead .lv-hubmark { background: var(--hub-accent, var(--lv-ink-bg)); color: var(--hub-on-accent, var(--lv-on-primary)); }
+.lv-hubscope [data-slot='nav-tab'][aria-current='page'] { box-shadow: inset 0 -3px 0 var(--hub-accent, var(--lv-accent)), var(--lv-raised-shadow); }
+.lv-hubscope .lv-campaign-card-inner { box-shadow: inset 4px 0 0 var(--hub-accent, transparent), var(--lv-card-shadow); }
+.lv-hubscope .lv-player { border-top-color: var(--hub-accent, var(--lv-accent)); }
+[data-theme='hc'] .lv-hub-banner { outline: 2px solid #000; }
+
+/* Community appearance editor */
+.lv-appearance { display: grid; gap: 20px; align-items: start; }
+@media (min-width: 860px) { .lv-appearance { grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); } }
+.lv-swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 10px; }
+.lv-swatch2 { display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 44px; padding: 6px 2px; border: 0; border-radius: 16px; background: transparent; color: var(--lv-text); cursor: pointer;
+  transition: transform var(--lv-dur-press) var(--lv-ease-spring), background var(--lv-d1, 150ms) linear; }
+.lv-swatch2:hover { background: var(--lv-well); }
+.lv-swatch2:active { transform: scale(0.94, 0.88); }
+.lv-swatch2:focus-visible { outline: 2px solid var(--lv-focus); outline-offset: 2px; }
+.lv-swatch2-dot { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 999px; box-shadow: var(--lv-raised-shadow); font: 700 18px/1 var(--lv-font-ui); }
+.lv-swatch2[data-state='checked'] .lv-swatch2-dot { box-shadow: 0 0 0 3px var(--lv-page), 0 0 0 6px var(--lv-text); animation: lv-jelly var(--lv-dur-jelly) var(--lv-ease-spring); }
+.lv-swatch2[data-state='checked'] .lv-swatch2-label { font-weight: 700; }
+.lv-swatch2-label { font: 500 12.5px/1.2 var(--lv-font-ui); }
+.lv-ap-preview { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.lv-ap-banner { height: 72px; border-radius: 20px 20px 0 0; background: var(--hub-accent); transition: background var(--lv-d2, 260ms) var(--lv-ease-out); }
+.lv-ap-body { margin-top: -30px; padding: 0 16px 16px; border-radius: 0 0 20px 20px; background: var(--lv-raised-bg); box-shadow: var(--lv-card-shadow); display: flex; flex-direction: column; gap: 10px; margin-bottom: 0; }
+.lv-ap-preview > .lv-ap-banner + .lv-ap-body { margin-top: -30px; }
+.lv-ap-head { display: flex; align-items: flex-end; gap: 10px; }
+.lv-ap-mark .lv-hubmark { background: var(--hub-accent); color: var(--hub-on-accent); box-shadow: 0 0 0 4px var(--lv-surface); transition: background var(--lv-d2, 260ms) var(--lv-ease-out); }
+.lv-ap-id { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.lv-ap-id strong { font: 800 18px/1.15 var(--lv-font-display); letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.lv-ap-id span { font-size: 12px; overflow-wrap: anywhere; }
+.lv-ap-join { padding: 8px 16px; border-radius: 999px; background: var(--hub-accent); color: var(--hub-on-accent); font: 600 13px/1 var(--lv-font-ui); transition: background var(--lv-d2, 260ms) var(--lv-ease-out); }
+.lv-ap-about { margin: 0; font-size: 13.5px; color: var(--lv-muted); overflow-wrap: anywhere; }
+.lv-ap-tabs { display: flex; gap: 14px; font-size: 13px; border-bottom: 1px solid var(--lv-line); }
+.lv-ap-tabs span { padding-bottom: 6px; }
+.lv-ap-tabs span[data-on] { font-weight: 600; box-shadow: inset 0 -3px 0 var(--hub-accent); }
+.lv-ap-card { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 14px; background: var(--lv-surface); box-shadow: inset 4px 0 0 var(--hub-accent), var(--lv-raised-shadow); }
+@media (prefers-reduced-motion: reduce) { .lv-ap-banner, .lv-ap-mark .lv-hubmark, .lv-ap-join, .lv-swatch2 { transition: none; } .lv-swatch2[data-state='checked'] .lv-swatch2-dot { animation: none; } }
+
+.lv-save[data-status='dirty'] { color: var(--lv-text); }
+.lv-save[data-status='dirty'] .lv-save-dot { background: var(--lv-accent); }
+/* thank-you on ink: readable secondary actions and a full-height surface */
+.lv-player-ink { min-height: 100dvh; }
+.lv-player-ink .lv-report button { color: color-mix(in srgb, var(--lv-on-primary) 80%, transparent); }
+.lv-player-ink .lv-report button:hover { color: var(--lv-on-primary); background: color-mix(in srgb, var(--lv-on-primary) 10%, transparent); }
+
+/* The Studio keeps the Questions panel mounted (an unsaved new question survives tab switches). Hide it when inactive:
+   Tailwind classes in src/pages generate nothing, so this rule must live here. */
+[data-slot='tabs-content'][data-state='inactive'] { display: none; }
+.lv-player-ink { box-sizing: border-box; }

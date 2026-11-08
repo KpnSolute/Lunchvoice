@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import { describeError, describeGate } from "../lib/errors";
-import type { Anonymity, CampaignDetailData, CampaignInvite, CampaignMode, LvResult, Question } from "../lib/lvApi";
+import type { Anonymity, CampaignDetailData, QuestionKind, CampaignInvite, CampaignMode, LvResult, Question } from "../lib/lvApi";
 import { readiness, type ReadinessIssue, type StudioSection } from "../lib/readiness";
 import { Icon } from "../components/Icon";
 import { campaignPhase, LinkButton } from "../components/ui";
@@ -30,7 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/shadcn/alert-dialog";
-import { CopyField, Field, LoadingRows, Notice, PhaseBadge, QuotaMeter, Segmented, ToggleRow } from "@/components/shadcn/blocks";
+import { CopyField, Eyebrow, Field, LoadingRows, Notice, PhaseBadge, QuotaMeter, Segmented, ToggleRow } from "@/components/shadcn/blocks";
 import { QrCode } from "@/components/shadcn/blocks/qr";
 
 /**
@@ -41,6 +41,7 @@ import { QrCode } from "@/components/shadcn/blocks/qr";
  */
 
 export { KINDS } from "./QuestionWorkbench";
+const KIND_KEYS = ["rating", "single_choice", "multi_choice", "yes_no", "text"];
 
 /* ------------------------------------------------------------------ save state */
 
@@ -126,7 +127,14 @@ export function StudioView({ campaignId, backTo, crumb, resultsTo, hubId, hubNam
   const { api } = useIdentity();
   const detail = useLv(() => api.campaignGet(campaignId), [api, campaignId]);
   const save = useSaveState();
-  const [section, setSection] = useState<StudioSection>("details");
+  // Quick-create (NewCampaign) can open the Studio on a section with a starting question type, e.g. a poll opens on
+  // Questions with a single-choice question ready to type.
+  const [params] = useSearchParams();
+  const startSection = params.get("section");
+  const startKind = params.get("new");
+  const [section, setSection] = useState<StudioSection>(
+    startSection && ["details", "questions", "audience", "schedule", "review"].includes(startSection) ? (startSection as StudioSection) : "details",
+  );
   const [title, setTitle] = useState<string | null>(null);
   const [sched, setSched] = useState<ScheduleState | null>(null);
   const d = detail.data;
@@ -176,7 +184,7 @@ export function StudioView({ campaignId, backTo, crumb, resultsTo, hubId, hubNam
         {/* forceMount: the workbench stays mounted (hidden) on other tabs, so a new question that is not saved yet
             (for example while its options are still invalid) is not lost by switching sections. */}
         <TabsContent value="questions" forceMount className="data-[state=inactive]:hidden">
-          <QuestionWorkbench d={d} locked={!draft} limit={null} save={save} reload={detail.reload} />
+          <QuestionWorkbench d={d} locked={!draft} limit={null} save={save} reload={detail.reload} initialKind={startKind && KIND_KEYS.includes(startKind) ? (startKind as QuestionKind) : undefined} />
         </TabsContent>
         <TabsContent value="audience">
           <div className="lv-sections-2">
@@ -731,6 +739,13 @@ export function ReviewSection({
     <div className="lv-sections-2">
       <Card data-testid="review-summary">
         <h2 className="lv-share-h">Summary</h2>
+        {d.campaign.mode === "poll" && d.questions[0] && (
+          <div className="lv-poll-summary" data-testid="poll-summary">
+            <Eyebrow accent>Poll</Eyebrow>
+            <strong>{d.questions[0].prompt}</strong>
+            <span className="ui-muted">{(d.questions[0].config.options ?? []).join(" · ") || kindLabel(d.questions[0].kind)}{d.questions.length > 1 ? ` · plus ${d.questions.length - 1} more` : ""}</span>
+          </div>
+        )}
         <dl className="lv-kv">
           <dt>Title</dt><dd>{title || "—"}</dd>
           <dt>Mode</dt><dd>{MODES.find((m) => m.key === d.campaign.mode)?.label ?? d.campaign.mode}</dd>

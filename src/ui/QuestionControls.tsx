@@ -29,6 +29,9 @@ function arrowIndex(e: KeyboardEvent, i: number, n: number): number | null {
 
 export const MAX_TEXT = 280;
 
+/** A playful word for each rating. Shown only to the person answering; never a result. */
+export const RATING_WORDS = ["", "Not great", "Meh", "Okay", "Good", "Loved it!"];
+
 export function QuestionInput({ q, value, onChange }: { q: Question; value: unknown; onChange: (v: unknown) => void }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const jelly = useJelly(value);
@@ -46,6 +49,7 @@ export function QuestionInput({ q, value, onChange }: { q: Question; value: unkn
   if (q.kind === "rating") {
     const v = typeof value === "number" ? value : 0;
     return (
+      <div className="lv-rating-wrap">
       <div className="lv-rating" role="radiogroup" aria-label={q.prompt}>
         {[1, 2, 3, 4, 5].map((n, i) => (
           <button
@@ -57,6 +61,7 @@ export function QuestionInput({ q, value, onChange }: { q: Question; value: unkn
             aria-label={`${n} of 5`}
             data-on={n <= v}
             data-jelly={jelly === n}
+            style={{ "--i": i } as React.CSSProperties}
             tabIndex={v === n || (v === 0 && i === 0) ? 0 : -1}
             className="lv-circle"
             onClick={() => onChange(n)}
@@ -65,6 +70,8 @@ export function QuestionInput({ q, value, onChange }: { q: Question; value: unkn
             <Icon name={n <= v ? "star-fill" : "star"} size={24} />
           </button>
         ))}
+      </div>
+      <p className="lv-rating-word" aria-live="polite" data-testid="rating-word">{v ? <span key={v}>{RATING_WORDS[v]}</span> : <span className="lv-rating-word-hint">Tap a star</span>}</p>
       </div>
     );
   }

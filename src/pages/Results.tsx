@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
+import { CountUp } from "../ui/motion";
 import { useLv } from "../lib/useLv";
 import { describeError } from "../lib/errors";
 import type { AnalyticsResult, ExportRow, LvError, Question } from "../lib/lvApi";
@@ -58,10 +59,10 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
           <p className="lv-m0">{explainResultsError(count.error)}</p>
         ) : c ? (
           <div className="ui-grid-2">
-            <Metric value={c.suppressed ? null : c.n} label="Signed-in participants" hint={c.suppressed ? WITHHELD_EXPLAINER : "Unique people. Guests never count as members."} />
+            <Metric value={c.suppressed || c.n === null ? null : <CountUp value={c.n} />} label="Signed-in participants" hint={c.suppressed ? WITHHELD_EXPLAINER : "Unique people. Guests never count as members."} />
             {(c.guest_n ?? 0) > 0 || c.guest_suppressed ? (
               <Metric
-                value={c.guest_suppressed ? null : c.guest_n}
+                value={c.guest_suppressed || c.guest_n == null ? null : <CountUp value={c.guest_n} />}
                 label="Guest responses"
                 hint={c.guest_suppressed ? "Includes some unverified guest responses; the count is withheld." : `Includes ${c.guest_n} unverified guest responses.`}
               />

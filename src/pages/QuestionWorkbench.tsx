@@ -49,6 +49,7 @@ export interface SaveTracker {
 const nextPosition = (qs: Question[]) => (qs.length ? Math.max(...qs.map((q) => q.position)) + 1 : 1);
 
 export function QuestionWorkbench({
+  initialKind,
   d,
   locked,
   limit,
@@ -60,6 +61,8 @@ export function QuestionWorkbench({
   limit: number | null;
   save: SaveTracker;
   reload: () => void;
+  /** The kind a brand-new question starts as (poll quick-create: single choice; feedback: text). */
+  initialKind?: QuestionKind;
 }) {
   const { api } = useIdentity();
   const qs = d.questions;
@@ -157,7 +160,7 @@ export function QuestionWorkbench({
           atLimit ? (
             <Notice tone="warn" title={`This survey has ${qs.length} of ${limit} questions`}>Remove a question to add another.</Notice>
           ) : (
-            <QuestionEditor key={`new-${newKey}`} q={null} n={qs.length + 1} locked={false} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} />
+            <QuestionEditor key={`new-${newKey}`} q={null} initialKind={initialKind} n={qs.length + 1} locked={false} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} />
           )
         ) : (
           <Card variant="well"><p className="lv-m0">{qs.length ? "Pick a question to see it." : "This survey has no questions."}</p></Card>
@@ -242,10 +245,10 @@ function OutlineList({
 /* ------------------------------------------------------------------ editor */
 
 type Draft = { kind: QuestionKind; prompt: string; options: string[]; optional: boolean; max: number | null };
-const fromQuestion = (q: Question | null): Draft => ({
-  kind: q?.kind ?? "single_choice",
+const fromQuestion = (q: Question | null, start: QuestionKind = "single_choice"): Draft => ({
+  kind: q?.kind ?? start,
   prompt: q?.prompt ?? "",
-  options: q ? (q.config.options ?? []) : ["", ""],
+  options: q ? (q.config.options ?? []) : isChoice(start) ? ["", ""] : [],
   optional: Boolean(q?.config.optional),
   max: typeof q?.config.max === "number" ? q.config.max : null,
 });
@@ -261,6 +264,7 @@ function toConfig(base: QuestionConfig | undefined, d: Draft): QuestionConfig {
 }
 
 function QuestionEditor({
+  initialKind,
   q,
   n,
   locked,
@@ -278,9 +282,10 @@ function QuestionEditor({
   campaignId: string;
   nextPos: number;
   onCreated: (id: string) => void;
+  initialKind?: QuestionKind;
 }) {
   const { api } = useIdentity();
-  const [draft, setDraft] = useState<Draft>(() => fromQuestion(q));
+  const [draft, setDraft] = useState<Draft>(() => fromQuestion(q, initialKind));
   const [pendingKind, setPendingKind] = useState<QuestionKind | null>(null);
   const [preview, setPreview] = useState<unknown>(undefined);
   const timer = useRef<number | null>(null);
