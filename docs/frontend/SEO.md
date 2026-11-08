@@ -10,7 +10,7 @@ public site is made discoverable.
 | --- | --- | --- |
 | Page metadata | `src/config/seo.json` | The single source: site URL, and for each indexable page its title, description, heading, summary text, sitemap frequency and priority. |
 | Prerender | `scripts/seo-prerender.mjs` (runs in `npm run build`) | Writes `dist/<page>/index.html` per page with its own `<title>`, description, canonical URL, Open Graph and Twitter tags, plus a static content fallback inside `#root` that React replaces on mount. Also writes `sitemap.xml`, `robots.txt` and `app.html`. |
-| Routing | `render.yaml` (mirror it in the Render dashboard, see below) | Rewrites each public page to its prerendered file before the catch-all; every other route gets `app.html`, the `noindex` SPA shell. `dist/index.html` has no static canonical or robots, so it is safe if a host serves it for any path. |
+| Routing | `render.yaml` (mirror it in the Render dashboard, see below) | Rewrites each public page to its prerendered file before the catch-all; every other route gets `app.html`, the SPA shell. Neither `dist/index.html` nor `app.html` carries a static canonical or robots tag, so a missing or misordered host rule never marks a public page `noindex`; the app sets both per path. |
 | Runtime head | `src/ui/Seo.tsx` | Keeps title, description, canonical and robots correct during client-side navigation. Anything not in `seo.json` is `noindex`. |
 | Structured data | `index.html` (`application/ld+json`) | Organization, WebSite and SoftwareApplication with the Free, Starter Hub and Team Hub offers. |
 | Share image | `public/og-image.png` (1200×630) | Used by Open Graph and Twitter cards. |
@@ -43,7 +43,7 @@ These need the founder's accounts and cannot be done from code:
    canonical or robots, and the app sets both once it runs, which Google renders). In Render → the static site →
    *Redirects/Rewrites*, make the rules match `render.yaml` in order: one `Rewrite` per public page
    (`/how-it-works -> /how-it-works/index.html`, and so on for each page in `seo.json`), then change the last rule to
-   `/* -> /app.html`. Check with `curl -s https://lunchvoice.com/pricing | grep "<title>"`, which should print the
+   `/* -> /app.html`. Rules apply top to bottom, so `/*` must be last. Check with `curl -s https://lunchvoice.com/pricing | grep "<title>"`, which should print the
    Pricing title.
 1. **Google Search Console** (search.google.com/search-console): add the *Domain* property `lunchvoice.com`, verify it
    with the DNS TXT record it gives you at the domain registrar, then submit `https://lunchvoice.com/sitemap.xml`

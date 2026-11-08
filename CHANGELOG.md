@@ -6,6 +6,14 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed (SEO: public pages served a static noindex)
+
+- Production check: with the Render dashboard rule changed to `/* -> /app.html` but the per-page rules missing or
+  below it, every public page was served `app.html` with a static `noindex`, which lets Google drop the page without
+  running the app. `app.html` now carries no static robots, canonical or `og:url`; `src/ui/Seo.tsx` sets `noindex` at
+  runtime for every path not in `seo.json`, and `robots.txt` still keeps private routes out of crawls. Verified in a
+  browser under the live rule set and under the `render.yaml` rules.
+
 ### Fixed (SEO: every URL declared a copy of the home page)
 
 - Production check after #48: the Render service's rewrite rules live in its dashboard and still send every path to

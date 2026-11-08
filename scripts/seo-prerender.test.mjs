@@ -55,9 +55,10 @@ test("the theme pre-paint script is untouched (its CSP hash in render.yaml stays
   assert.ok(readFileSync("render.yaml", "utf8").includes(`'sha256-${hash}'`));
 });
 
-test("the SPA shell is noindex with no canonical or fallback", () => {
+test("the SPA shell has no static robots, canonical or fallback (safe if served for a public page)", () => {
   const html = renderAppShell(template, seo);
-  assert.match(html, /<meta name="robots" content="noindex" \/>/);
+  assert.ok(!html.includes('name="robots"'), "a static noindex would drop public pages when host rules are out of order");
+  assert.ok(!html.includes('property="og:url"'));
   assert.ok(!html.includes('rel="canonical"'));
   assert.match(html, /<div id="root"><\/div>/);
 });

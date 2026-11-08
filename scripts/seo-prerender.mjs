@@ -4,7 +4,7 @@
 // title "LunchVoice". After `vite build` this script reads src/config/seo.json and writes:
 //   dist/index.html            the landing page and static fallback; no canonical/robots, as hosts serve it for any path
 //   dist/<path>/index.html     one file per indexable page in seo.json (render.yaml rewrites to these)
-//   dist/app.html              the generic SPA shell for every other route (Hubs, account, players): noindex
+//   dist/app.html              the generic SPA shell for every other route; the app sets noindex at runtime
 //   dist/sitemap.xml           the indexable pages only
 //   dist/robots.txt            allows the public site, keeps private, admin and respondent routes out of crawls
 // The fallback inside #root is plain HTML; React replaces it on mount, so users never interact with it.
@@ -86,12 +86,18 @@ export function renderRootPage(template, seo, page) {
   return html;
 }
 
-/** The shell for every non-public route: no canonical, noindex, empty #root. */
+/**
+ * The shell for every other route (Hubs, account, players). It carries no static robots, canonical or og:url: hosts
+ * have served it for public pages too when their rewrite rules were incomplete or out of order, and a static
+ * "noindex" there makes Google drop a public page without running the app. src/ui/Seo.tsx sets noindex for every
+ * path that is not in seo.json, and robots.txt keeps the private routes out of crawls.
+ */
 export function renderAppShell(template, seo) {
   let html = template;
   html = replaceTag(html, /<title>[^<]*<\/title>/, `<title>${escapeHtml(seo.siteName)}</title>`);
   html = replaceTag(html, /\s*<link rel="canonical" href="[^"]*" \/>/, "");
-  html = setMetaContent(html, "name", "robots", "noindex");
+  html = replaceTag(html, /\s*<meta name="robots" content="[^"]*" \/>/, "");
+  html = replaceTag(html, /\s*<meta property="og:url" content="[^"]*" \/>/, "");
   return html.replace(FALLBACK_MARK, "");
 }
 
