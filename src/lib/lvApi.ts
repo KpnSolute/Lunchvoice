@@ -4,6 +4,9 @@ import { accentHex, normalizePalette, type AccentOption } from "./accent";
 /* ---- track C: community ---- */
 import { communityApi } from "./communityApi";
 /* ---- end track C ---- */
+/* ---- track D: api + discord ---- */
+import { integrationsApi } from "./integrationsApi";
+/* ---- end track D ---- */
 
 export type LvErrorCode =
   | "lv_unauthenticated"
@@ -571,6 +574,9 @@ export function createLvApi(transport: LvTransport) {
     /* ---- track C: community ---- */
     ...communityApi(call),
     /* ---- end track C ---- */
+    /* ---- track D: api + discord ---- */
+    ...integrationsApi(call),
+    /* ---- end track D ---- */
   };
 }
 
@@ -855,3 +861,7 @@ function createStaffApi(call: Caller) {
   };
 }
 /* ---- end staff panel ---- */
+
+/* ---- track D: api + discord ---- */
+export type { ApiKey, ApiKeyList, ApiScope, DiscordCodePreview, DiscordConnection, DiscordLink, WebhookEndpoint, WebhookEvent, WebhookList } from "./integrationsApi";
+/* ---- end track D ---- */

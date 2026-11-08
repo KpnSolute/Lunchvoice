@@ -220,3 +220,10 @@
    Tailwind classes in src/pages generate nothing, so this rule must live here. */
 [data-slot='tabs-content'][data-state='inactive'] { display: none; }
 .lv-player-ink { box-sizing: border-box; }
+
+/* ---- track D: api + discord (pages are not scanned by Tailwind, see shadcn.css) ---- */
+.lv-pre { margin: 0; max-width: 100%; overflow-x: auto; border-radius: var(--lv-radius-field); background: var(--lv-well); padding: 12px; font: 400 13px/1.55 var(--lv-font-mono); white-space: pre; }
+.lv-break { overflow-wrap: anywhere; }
+.lv-scroll-x { max-width: 100%; overflow-x: auto; }
+.lv-minw0 { min-width: 0; }
+/* ---- end track D ---- */

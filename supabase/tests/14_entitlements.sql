@@ -98,7 +98,10 @@ select t.check('waitlist: no authorization check reads the waitlist table',
          where n.nspname = 'lv' and p.prosrc like '%waitlist_entries%'
            and p.proname not in ('api_waitlist_status', 'api_waitlist_join', 'waitlist_me',
                                  -- 000019: the platform admin console reads it for display only, never to authorize
-                                 'api_admin_overview', 'api_admin_waitlist', 'api_admin_waitlist_contact')$$) = '0');
+                                 'api_admin_overview', 'api_admin_waitlist', 'api_admin_waitlist_contact',
+                                 -- 000024: the "waitlist Founding member" Discord role fact (a consented label in a
+                                 -- Discord server, never a LunchVoice permission)
+                                 'discord_fact')$$) = '0');
 select t.check('waitlist: one seat per account (unique constraint backstop)',
   t.raises(format($q$insert into lv.waitlist_entries (account_id, status, position) values (%L::uuid, 'admitted', 99)$q$, t.get('founder')), '23505'));
 

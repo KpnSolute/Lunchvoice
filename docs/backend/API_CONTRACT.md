@@ -968,3 +968,114 @@ Every staff action writes an audit event. Nothing here deletes customer data.
 `lv_admin_overview()` (replaced, additive) adds `comment_reports_open`, `hubs_suspended`, `accounts_suspended`,
 `staff`.
 <!-- ---- end staff panel ---- -->
+
+## LunchVoice API, webhooks and Discord (000024, track D)
+
+Spec: `docs/v2/API_AND_DISCORD_PLAN.md` (founder direction 2026-11-08, privacy decision D-01). No new error codes;
+`lv_rate_limited` carries `retry_after` (seconds), `lv_forbidden` from a missing scope carries `missing: [scope]`.
+
+### Entitlement map, capability, policies, reserved routes
+
+- `lv.plan_limits` (team only): `api.enabled` true, `api.rate_per_minute` 60, `api.max_keys` 10,
+  `webhooks.max_endpoints` 5. Starter and free have no rows, so the API fails closed for them.
+- Capability `api.manage` (group `api`, "Manage API keys, webhooks and Discord"); every Owner role holds it.
+- Policies: `discord.user_commands_per_minute` 10, `discord.guild_commands_per_minute` 60, `discord.code_minutes` 10,
+  `discord.consent_version` "2026-11-08", `webhook.max_attempts` 8.
+- Reserved slugs: `developers`, `connect`, `webhooks`.
+- Suspension hook: when `lv.hub_is_suspended(uuid)` / `lv.account_is_suspended(uuid)` exist (staff panel, 000023),
+  keys, webhook deliveries, key and endpoint creation and Discord facts stop for a suspended Hub or account.
+
+### Signed-in functions (`lv_api`, `authenticated` only)
+
+API keys (Owner or `api.manage`; create needs an active Team-family plan):
+- `lv_api_keys_list(p_hub)` → `{ ok, enabled, rate_per_minute, max_keys, scopes: [{scope,label}], keys: [ApiKey] }`.
+- `lv_api_key_create(p_hub, p_name, p_scopes text[])` → `{ ok, key: ApiKey, secret, shown_once: true }`. The secret
+  `lvk_<12 hex>_<48 hex>` is returned once; the database stores its SHA-256 only. Errors: `lv_entitlement_required`
+  (`product: team_hub`), `lv_limit_reached` (`limit`, `used`), `lv_invalid_input`.
+- `lv_api_key_revoke(p_key)` → `{ ok, key }` (idempotent).
+- `ApiKey = { key_id, name, prefix, scopes, created_at, last_used_at, revoked_at, created_by_name, active }`.
+  Scopes: `campaigns:read`, `campaigns:write`, `invites:write`, `results:read`, `webhooks:manage`.
+
+Webhooks (Owner or `api.manage`; create and update need Team):
+- `lv_webhook_list(p_hub)` → `{ ok, enabled, events, max_endpoints, endpoints: [Endpoint] }`.
+- `lv_webhook_create(p_hub, p_url, p_events text[] default all)` → `{ ok, endpoint, secret, shown_once: true }`
+  (secret `lvwh_<48 hex>`; https only, no IP literal or internal host).
+- `lv_webhook_update(p_endpoint, p_events?, p_enabled?)` → `{ ok, endpoint }`; `lv_webhook_delete(p_endpoint)` → `{ ok }`.
+- `Endpoint = { endpoint_id, url, events, enabled, disabled_reason, created_at, consecutive_failures,
+  recent_deliveries: [{ event, attempt, status_code, outcome, duration_ms, at }] }` (never a body).
+
+Discord:
+- `lv_discord_code_preview(p_code)` → `{ ok, kind: "link"|"connect", discord_username, expires_at, guild_name,
+  hub?: { hub_id, name, slug }, consent_version, already_linked }`. A connect code is visible only to a manager
+  (`hub.settings.manage` or Owner) of the named Hub, otherwise `lv_not_found`. Used or expired: `lv_invalid_code`.
+- `lv_discord_link_confirm(p_code, p_consent_version, p_role_facts boolean default false)` → `{ ok, link }`. One link
+  per account and per Discord user (`lv_conflict`). The Discord user id is a linked handle, never an identity key.
+- `lv_discord_connect_confirm(p_code)` → `{ ok, connection_id, hub_id }`.
+- `lv_discord_me()` → `{ ok, link: { discord_username, linked_at, consent_version, role_facts_consent } | null }`;
+  `lv_discord_unlink()` → `{ ok, unlinked }`.
+- `lv_discord_connections(p_hub)` → `{ ok, connections: [{ connection_id, guild_name, channel_id, auto_post,
+  confirmed_at, disabled, role_rules }] }`; `lv_discord_connection_update(p_connection, p_auto_post?, p_remove
+  default false)` → `{ ok, removed }` (removing also drops that server's membership rules for the Hub).
+- Staff (`lv.is_platform_admin`): `lv_admin_discord_guilds()`, `lv_admin_discord_guild_disable(p_guild, p_disabled,
+  p_reason?)`.
+
+Account deletion (`lv_account_delete`, unchanged): the account's Discord link and API keys cascade with the account;
+a trigger queues removal of every Discord role the bot granted that person.
+
+### Service-role only (Edge Functions; never in `lv_api`)
+
+- `lv.api_key_call(p_key_hash, p_op, p_args jsonb)`: the `api` function's single entry. Order: key hash → Team plan
+  (`lv_entitlement_required`, 402) → suspension → creator still Owner or `api.manage` (`lv_forbidden`) → scope
+  (`lv_forbidden` + `missing`) → rate limit (`lv_rate_limited` + `retry_after`) → the operation, run as the key's
+  creator through the same `lv_api` function the app uses (transaction-local LunchVoice session claim with `iat` 0, so
+  nothing that needs a recent sign-in can run), confined to the key's Hub. Writes are audited (`api.call`).
+- `lv.webhook_sweep()`, `lv.webhook_claim(limit)`, `lv.webhook_mark(id, result, status_code, duration_ms, error)`.
+- `lv.discord_interaction(p_command, p_ctx)`, `lv.discord_role_plan(guild, user)`, `lv.discord_roles_applied(guild,
+  user, added[], removed[])`, `lv.discord_claim(limit)`, `lv.discord_mark(id, result, error)`.
+
+### REST `/v1` (Edge Function `api`, `verify_jwt = false`)
+
+`Authorization: Bearer lvk_…` (or `X-Api-Key`). Bodies are JSON objects; unknown fields are `lv_invalid_input`.
+Responses use the envelope above; HTTP status: 200 ok, 400 invalid, 401 key, 402 plan, 403 forbidden/scope/suspended,
+404 not found or outside the Hub, 409 state (gate, limits, lifecycle, withheld live results), 429 rate, 500.
+
+| Method and path | Operation | Scope | Maps to |
+| --- | --- | --- | --- |
+| GET `/v1/hub` | hub.get | campaigns:read | key's Hub and scopes |
+| GET `/v1/campaigns` | campaigns.list | campaigns:read | `lv_campaign_list` |
+| POST `/v1/campaigns` | campaigns.create | campaigns:write | `lv_campaign_create` (title, mode, anonymity, description) |
+| GET `/v1/campaigns/{id}` | campaigns.get | campaigns:read | `lv_campaign_get` |
+| PATCH `/v1/campaigns/{id}` | campaigns.update | campaigns:write | `lv_campaign_update` (title, description; draft) |
+| POST `/v1/campaigns/{id}/questions` | campaigns.questions.add | campaigns:write | `lv_campaign_question_add` |
+| POST `/v1/campaigns/{id}/schedule` | campaigns.schedule | campaigns:write | `lv_campaign_schedule` |
+| POST `/v1/campaigns/{id}/publish` | campaigns.publish | campaigns:write | `lv_campaign_activate` |
+| POST `/v1/campaigns/{id}/close` | campaigns.close | campaigns:write | `lv_campaign_close` |
+| POST `/v1/campaigns/{id}/invites` | campaigns.invites.create | invites:write | `lv_campaign_invite_create` |
+| POST `/v1/invites` | invites.create | invites:write | `lv_invite_create` (Hub invite) |
+| GET `/v1/campaigns/{id}/results` | results.get | results:read | `lv_analytics_overview` minus every free-text list (`texts_omitted: true`) |
+| GET/POST `/v1/webhooks`, PATCH/DELETE `/v1/webhooks/{id}` | webhooks.* | webhooks:manage | the webhook functions above |
+
+### Webhook delivery
+
+`POST` with `LunchVoice-Event`, `LunchVoice-Delivery` (outbox id) and `LunchVoice-Signature: t=<unix>,v1=<hex
+HMAC-SHA256(secret, t + "." + raw body)>`. Body `{ id (event id), type, created_at, hub_id, data: { campaign_id, title,
+mode, anonymity, status, opens_at, closes_at, join_code, released_participants?, milestone? } }`. Events:
+`campaign.published` (draft → active), `campaign.closed` (closed by a manager, or by time via the sweep; carries the
+released count or null), `campaign.responses_milestone` (identified Campaigns only, at 10/25/50/100/250/500/1000/2500/
+5000/10000 released responses). 2xx delivered; 408/409/425/429/5xx retried with backoff `30 s × 2^attempts` up to
+`webhook.max_attempts`; other statuses failed; redirects not followed. 20 failed events in a row turn the endpoint off.
+Deliveries pause (stay queued) while the Hub has no Team plan or is suspended. Payloads are emptied once delivered or
+failed; the log keeps outcome, status and duration only.
+
+### Discord bot (Edge Function `discord`, `verify_jwt = false`)
+
+Ed25519 verification of `X-Signature-Ed25519` over `X-Signature-Timestamp + body` with `DISCORD_PUBLIC_KEY` (503 when
+unset, 401 when wrong, 5-minute timestamp window). `/lunchvoice link | unlink | verify | connect hub | post campaign |
+setup rule role [hub] [remove]`. D-01: `post` returns a card whose `answer_in_discord` is true only for identified
+`poll` Campaigns with one `yes_no` or `single_choice` (≤ 5 options) question; anonymous cards carry only a link to
+`/c/{join_code}`. An `answer` button click for an anonymous Campaign is refused (`lv_not_available`) before anything is
+written; an identified answer goes through `lv_submit_response` as the linked person (duplicates answer
+`{ ok, duplicate: true }`). Role facts (`waitlist_founding`, `hub_member` of a Hub the configuring person manages,
+`team_hub` = owns a Team-family Hub) are computed only for linked people with `role_facts_consent`, in servers that
+are not disabled; the bot removes only roles it granted. `POST /discord/dispatch` (service bearer) processes queued
+role removals and auto-posts.

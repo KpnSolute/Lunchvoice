@@ -7,6 +7,9 @@ import { staffMock } from "./mockStaff"; // staff panel
 /* ---- track C: community ---- */
 import { COMMUNITY_FNS, COMMUNITY_PUBLIC, communityAfter, communityHandle, type CommunityCtx } from "./mockCommunity";
 /* ---- end track C ---- */
+/* ---- track D: api + discord ---- */
+import { INTEGRATION_FNS, integrationsHandle, type IntegrationsCtx } from "./mockIntegrations";
+/* ---- end track D ---- */
 
 // DEV-ONLY stand-in for lv_api (excluded from production bundles; see transport.ts and scripts/check-bundle.mjs).
 // It mirrors the documented shapes and the launch rules in docs/v2/LAUNCH_PLAN.md closely enough to click through
@@ -97,6 +100,10 @@ function load(name: string): State {
   try {
     const seed = localStorage.getItem(SEED);
     if (seed === "demo" || seed === "expired") seedDemo(state, seed === "expired");
+    /* ---- track D: api + discord ---- */
+    // "team": the demo with its Hub on the Team plan (the API, webhooks and Discord tabs are usable).
+    if (seed === "team") { seedDemo(state, false); for (const e of state.ents) if (e.scope === "hub") e.family = "team"; }
+    /* ---- end track D ---- */
   } catch { /* ignore */ }
   return state;
 }
@@ -265,7 +272,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
   const hubBySlug = (slug: unknown) => s.hubs.find((x) => x.kind === "community" && x.slug === String(slug).toLowerCase());
   const camp = (c: unknown) => s.campaigns.find((x) => x.campaign_id === c);
   const owns = (h: H | undefined) => Boolean(authed && h?.members.some((m) => m.account_id === "mock-account" && m.is_owner));
-  const caps = ["hub.settings.manage", "admin.members.admit", "admin.members.remove", "admin.roles.manage", "campaign.manage", "analytics.read", "analytics.export", "billing.view"];
+  const caps = ["hub.settings.manage", "admin.members.admit", "admin.members.remove", "admin.roles.manage", "campaign.manage", "analytics.read", "analytics.export", "billing.view", "api.manage"];
   const row = (c: C) => ({
     campaign_id: c.campaign_id, title: c.title, mode: c.mode, anonymity: c.anonymity, status: c.status, opens_at: c.opens_at, closes_at: c.closes_at,
     created_at: c.created_at, question_count: c.questions.length, has_responded: Boolean(c.mine_answered), join_code: c.status === "draft" ? undefined : c.join_code,
@@ -276,6 +283,9 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
   /* ---- track C: community ---- */
   if (COMMUNITY_FNS.has(fn)) return communityHandle(communityCtx(s, authed), fn, a);
   /* ---- end track C ---- */
+  /* ---- track D: api + discord ---- */
+  if (INTEGRATION_FNS.has(fn)) return integrationsHandle({ s: s as unknown as IntegrationsCtx["s"], family: (hub) => activeFamily(s, hub) }, fn, a);
+  /* ---- end track D ---- */
   switch (fn) {
     /* ---------------- context and entitlements ---------------- */
     case "lv_my_context": {

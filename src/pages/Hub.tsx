@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Outlet, useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
@@ -30,6 +30,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/shadcn/dialog";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/shadcn/dropdown-menu";
 import { ConfirmAction } from "./Studio";
+/* ---- track D: api + discord ---- */
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shadcn/tabs";
+import { HubApiSettings, HubDiscordSettings } from "./Integrations";
+/* ---- end track D ---- */
 import { QrCode } from "@/components/shadcn/blocks/qr";
 import {
   CopyField,
@@ -687,7 +691,31 @@ function EditRole({ role, groups, onSaved }: { role: Role; groups: { key: string
 
 /* ------------------------------------------------------------------ settings */
 
+/* ---- track D: api + discord ---- */
+// Hub Settings: General, plus API (Owner or api.manage) and Discord (hub.settings.manage) tabs. ?tab=api deep-links.
 export function HubSettings() {
+  const { hub, membership } = useHubCtx();
+  const [params, setParams] = useSearchParams();
+  const showApi = can(membership, "api.manage");
+  const showDiscord = can(membership, "hub.settings.manage");
+  if (!showApi && !showDiscord) return <HubGeneralSettings />;
+  const tab = params.get("tab") === "api" && showApi ? "api" : params.get("tab") === "discord" && showDiscord ? "discord" : "general";
+  return (
+    <Tabs value={tab} onValueChange={(v) => setParams(v === "general" ? {} : { tab: v }, { replace: true })}>
+      <TabsList aria-label="Settings sections">
+        <TabsTrigger value="general">General</TabsTrigger>
+        {showApi && <TabsTrigger value="api">API</TabsTrigger>}
+        {showDiscord && <TabsTrigger value="discord">Discord</TabsTrigger>}
+      </TabsList>
+      <TabsContent value="general"><HubGeneralSettings /></TabsContent>
+      {showApi && <TabsContent value="api"><HubApiSettings hub={hub} membership={membership} /></TabsContent>}
+      {showDiscord && <TabsContent value="discord"><HubDiscordSettings hub={hub} membership={membership} /></TabsContent>}
+    </Tabs>
+  );
+}
+/* ---- end track D ---- */
+
+function HubGeneralSettings() {
   const [savedOnce, setSavedOnce] = useState(false);
   const { hub, membership, reload } = useHubCtx();
   const { api } = useIdentity();
