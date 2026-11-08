@@ -539,3 +539,89 @@ deliberately. The founder should keep promotion codes off the Payment Links unle
 - LOW: LC-11 (residual), LC-30, LC-32, LC-37, NEW-05.
 - Founder inputs before the waitlist link is shared: the legal operator name, and confirmation that
   `support@lunchvoice.com` is monitored.
+
+## 8. Re-review: full build (9e951ec)
+
+- **Commit reviewed:** `9e951ec` on `claude/wizardly-meitner-wohkzr`. It adds 000018 (track A hardening), 000019
+  (commerce, email outbox, admin console), 000020 (community and Discover), 000021 (shop-order email), and the
+  `checkout` and `email-dispatch` Edge Functions. Plan: `docs/v2/BUILD_PLAN_2026-11-21.md`.
+- **Method:** runtime evidence on throwaway local containers only. Nothing touched production, real Stripe or
+  Resend.
+
+### 8.1 Verdict
+
+**Not feature-complete-gate ready: 0 BLOCKER, 1 HIGH open.**
+
+The open HIGH is FB-01. Role targeting on an **anonymous** Campaign gives a Team admin a working differencing attack
+that reveals one member's answer. I reproduced it (8.3). Everything else reviewed holds:
+- grants, RLS and definer functions;
+- the suppression engine (5×"5" + 1×"1" through overview, query and export);
+- personal spaces;
+- the admin console;
+- outbox contents;
+- the billing guarantees;
+- markdown safety.
+
+Open counts, previously open items plus the new findings below: **0 BLOCKER, 1 HIGH, 3 MEDIUM, 5 LOW.**
+
+### 8.2 Runtime evidence
+
+| Check | Result |
+| --- | --- |
+| `bash scripts/db-test-canonical.sh` | **PASS.** 20 migrations, `checks: 994, failed: 0`; slug race and waitlist race pass; full rollback rehearsed |
+| `npm run test:pr` (placeholder VITE_ env) | **PASS.** Brain in sync; names clean; routes; script tests 18/18; function tests 60/60; build; bundle markers |
+| `npm run test:unit` / `npm run test:e2e` | 26/26 / **44/44** (Vite dev with the mock transport, Playwright Chromium) |
+| Bundle scan (`dist/assets/*.js`) for `service_role`, `sb_secret_`, `sk_live_`/`sk_test_`, `whsec_`, Resend keys, `STRIPE_SECRET`, private keys, mock code | none found; `check-bundle.mjs` now forbids these markers itself (LC-30) |
+| `npm audit --audit-level=high` | exit 0 |
+| Catalog audit on a fresh install of 000001–000021 | 0 definer functions without `search_path=''`; **0 `lv` tables without RLS**; 0 table or sequence grants to API roles; **0 functions executable by PUBLIC**; `lv` usage for `service_role` only; anon executes exactly **13 of 109** `lv_api` functions (the previous 10 plus `lv_discover_list`, `lv_news_get`, `lv_news_list`); `service_role` executes exactly 11 `lv` functions (`billing_apply_event`, `checkout_session_context`, `checkout_intent_attach`, `billing_customer_set`/`_of`, `email_claim`/`_mark`/`_retention_sweep`/`_reservation_sweep`, `retention_sweep`, `session_exchange_consume`); every `lv_api` function is a definer; no views; no customer name reserved or seeded |
+| Admin console | As a member who is not an admin, all 11 `lv_admin_*` functions answer `lv_forbidden`; signed out, `lv_unauthenticated`. As an admin, `lv_admin_waitlist` holds no address (only `has_contact_email`); `lv_admin_waitlist_contact` returns it **and writes one `admin.waitlist_contact_viewed` audit row** |
+| LC-12 | A raw KpnIdentity ID token (`aud` = client id) gives `caller_identity` NULL; `aud=authenticated` without `session_kind` gives NULL; the deployed session shape (`aud=authenticated`, `session_kind=lunchvoice`, which `_shared/session.ts` issues) is accepted |
+| LC-01 regression | 5×"5" + 1×"1": overview, `lv_analytics_query(rating_summary)` and export each withhold the question (no keys, no cells, mean and n null) |
+| Outbox | After an identified and an anonymous text Campaign: templates are `hub_created`, `waitlist_joined` and **one** `participation_receipt` (identified only); 0 outbox rows contain an answer; 0 receipts for the anonymous Campaign |
+| **Role-targeting differencing (FB-01)** | See 8.3 |
+
+### 8.3 FB-01 reproduction
+
+1. A Team Hub owner creates role `GroupA` (10 members) and role `GroupAplusT` (the same 10 plus target T).
+2. Two anonymous yes/no Campaigns are targeted, one to each role, and closed. Everyone answers, and T answers "yes".
+3. The published results are A: yes 5, no 5 (participation rate withheld as `near_full_turnout`), and B: yes 6, no 5.
+4. The suppression engine is satisfied in both cases (every cell is at least 5, and no cell dominates).
+5. The difference reveals T's answer exactly. The admin needs only `admin.roles.manage` and `campaign.manage`, two
+   roles and two Campaigns. Nothing in the gate or the analytics compares audiences across Campaigns.
+
+The same attack is possible without targeting, by admitting one member between two Hub-wide Campaigns. Targeting
+makes it free, silent and repeatable: a member never notices a role being created.
+
+### 8.4 Reconciliation of previously open items
+
+| ID | Prior status | Evidence at 9e951ec | Automated tests | Live prod | Status |
+| --- | --- | --- | --- | --- | --- |
+| LC-10 | OPEN MEDIUM | `000018:115-216` 128-bit `link_token` from the CSPRNG; database rate limit on failed join-code lookups (per caller 10/min, global signed-out 300/min); misses store no code and no IP | `18_hardening.sql` "LC-10: …" (13 checks, including "after 10 misses in a minute even a valid code is lv_rate_limited", "the link token is never rate limited", "misses store neither the code nor the IP") | pending deploy | **CLOSED** (residual FB-03) |
+| LC-11 | ACCEPTED-for-beta, residual OPEN LOW | `src/pages/Player.tsx:20` guest key from `crypto.getRandomValues` (32 bytes) | e2e | – | **CLOSED** |
+| LC-12 | OPEN MEDIUM | `000018:35-82` requires `aud` = `authenticated` and `session_kind` = `lunchvoice` | "LC-12: …" (8 checks); my runtime run | pending deploy (the real sign-in smoke test must still pass) | **CLOSED** |
+| LC-13 | OPEN MEDIUM | `000018:84-113` `lv.session_exchange_consume` (single-use hash of issuer, subject and nonce/jti; service_role only); `supabase/functions/session/index.ts:4-33` | "LC-13: a replayed key is refused", "…only service_role may record exchanges", "…nothing but a hash and times is stored"; function tests | pending deploy | **CLOSED.** Note: if 000018 is missing, the function falls back to a per-instance memory cache (`session/index.ts:30-33`); apply 000018 before redeploying `session` |
+| LC-14 | OPEN MEDIUM | `src/lib/kpnIdentity.ts:75-79` rejects `//`, backslash, control characters and encoded slashes | unit tests | – | **CLOSED** (react-router still 6.30.6; see LC-32) |
+| LC-30 | OPEN LOW | `scripts/check-bundle.mjs` forbids `service_role`, `sb_secret_`, `"d":"`, `sk_live_`, `sk_test_` and `whsec_` | `test:pr` | – | **CLOSED** |
+| LC-32 | OPEN LOW | react-router 6.30.6; `npm audit` has no high findings; the open-redirect chain is broken by LC-14 | – | – | **ACCEPTED** (UI: upgrade when 7.x migration is planned) |
+| LC-37 | OPEN LOW | `src/ui/BottomTabs.tsx:4,16-36` uses the Radix Sheet (aria-modal, focus trap and return) | e2e | – | **CLOSED** |
+| NEW-05 | OPEN LOW | `000018:748-872` campaign invite tokens are stored as SHA-256 hashes with a 6-character prefix, shown once, and existing tokens were hashed in place | 18_hardening invite checks | pending deploy | **CLOSED** |
+| LC-08 | ACCEPTED-for-beta (founder inputs) | `src/pages/Marketing.tsx:16` operator is still `[Legal operator name — pending]` | – | – | **ACCEPTED-for-beta**, unchanged; see also FB-02 |
+| LC-09, LC-15, LC-17, LC-21, LC-23, LC-25, LC-28, LC-33, LC-39, LC-40 | ACCEPTED or DEFERRED | unchanged by this build | – | – | unchanged (owners as in §7.3) |
+| All other LC and NEW items | CLOSED | no regression found: the db suite and my LC-01, LC-06, LC-12 and grant runs pass | – | – | CLOSED |
+
+### 8.5 New findings (full build)
+
+| ID | Sev | Area | File:line | Finding | Required fix | Owner |
+| --- | --- | --- | --- | --- | --- | --- |
+| FB-01 | **HIGH** | Privacy / anonymity | `supabase/migrations/000018_v2_hardening.sql:242-253,286-315,375-412`; analytics `000016:169-297` | **Role targeting enables a differencing attack on anonymous Campaigns** (8.3). Two overlapping targeted audiences that differ by one member reveal that member's answer while every cell passes the cohort and dominance rules. | Simplest: refuse `audience_scope = 'roles'` on **anonymous** Campaigns, both in `lv_campaign_set_audience_roles` and as a gate reason (`role_targeting_anonymous`), in a new migration 000022. Identified Campaigns keep targeting. Alternatively: (a) freeze the eligible audience (account set) at activation; (b) withhold an anonymous role-targeted Campaign's results while another released anonymous Campaign of the same Hub has an audience whose symmetric difference with it is between 1 and `min_cohort - 1`; (c) require at least `2 × min_cohort` eligible members. Add my 8.3 scenario as a test that must end withheld (or refused). | backend |
+| FB-02 | MEDIUM | Legal surface | `src/pages/Marketing.tsx:216-220` | **The Privacy page does not cover the new data flows:** Stripe (payments, the customer record holding an account id), Resend (email), transactional email (including invite emails to people who are not users), outbox retention (30 days), community data (comments, news posts, leaderboard opt-in, points and shop orders) and the public Discover listing. | Add these processors and data items before the corresponding features or keys go live; Stripe and Resend stay fail-closed until keys are set. | UI, founder |
+| FB-03 | LOW | Availability | `000018:180-202` | The global cap (300 failed lookups per minute across all signed-out callers) lets one actor deny typed-code lookups to every signed-out visitor. Link tokens and signed-in callers are unaffected. | Accept for beta and monitor `join_code_misses`. Consider trusting only `cf-connecting-ip` and raising the global cap. | backend |
+| FB-04 | LOW | Privacy / representations | `000020:780-813`; leaderboard UI | The opt-in leaderboard changes when a Campaign ends, so other members can tell who took part in that Campaign, including an anonymous one (never what they answered). | On the opt-in control, say: "Others can see how many Campaigns you took part in, including anonymous ones." | UI |
+| FB-05 | LOW | Abuse | `000019:659-695`; `supabase/functions/_shared/email/templates.ts:102-112` | Hub invite emails carry Hub- and inviter-controlled names to any address (30 per hour per account). The text is escaped, but the feature can still be used for unsolicited mail. | Add a footer ("You received this because a Hub admin entered your address; ignore it if unexpected") and an abuse contact; keep the hourly cap. | backend |
+| FB-06 | LOW | Privacy (residual) | `000010`/`000014` membership paths | Admitting one member between two Hub-wide anonymous Campaigns allows the same differencing as FB-01, at a visible cost. | Document as a known limitation, or extend FB-01 option (b) to all anonymous Campaigns. | backend, founder |
+
+Open BLOCKER/HIGH, with the exact fix: **FB-01**. In 000022, `lv.api_campaign_set_audience_roles` returns
+`lv_not_available` ("Role targeting is for identified Campaigns") when `anonymity = 'anonymous'`. `lv.gate_evaluate`
+adds the reason `role_targeting_anonymous` when `audience_scope = 'roles'` and the Campaign is anonymous.
+`lv_campaign_update` refuses to switch a role-targeted draft to anonymous. A test reproduces 8.3 and asserts the
+refusal.
