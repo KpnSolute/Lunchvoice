@@ -6,6 +6,26 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed and changed (UX polish pass)
+
+- Production bug: Hub colour swatches rendered blank because `lv_hub_get` returns the palette as `{key,label,hex}`
+  objects and the UI painted the objects; the stored accent is a key. `src/lib/accent.ts` resolves key to hex
+  everywhere (Hub header, cover, Builder preview, Discover cards); the mock now returns the SQL shape.
+- Hub Settings: Reddit-style "Community appearance" editor (labelled swatches with a check, live preview of banner,
+  Hub mark, Join button, tabs and a Campaign card; Save/Reset with save state). The accent applies only to the Hub's
+  own pages, never to LunchVoice chrome.
+- Owner walkthrough fixes: Questions panel no longer shows under other Studio sections; member roles in one menu with
+  remove confirmation; revoked invite codes disappear and invites can be emailed; role names keep their casing,
+  roles can be edited and deletion asks first; Discover shows a requirements checklist; Hub settings show save state;
+  a fresh Hub shows a getting-started card; Builder/Newsroom visibility labels; thank-you screen contrast.
+- Poll quick-create (one Single choice question, two empty options, Question focused, poll summary in Review);
+  Rating and Feedback starters.
+- Respondent player motion from the design tokens only: direction-aware question transitions, gliding progress,
+  jelly on choice, spring-filled rating circles with a word per value, staggered welcome, drawn check and a CSS burst
+  on thanks; all instant under reduced motion. Creator side: count-up metrics, growing result bars, copy pop, a live
+  response counter that never shows a withheld count as a number.
+- Tests: unit 29/29, e2e 59/59 (13 new). JS +5.4 kB gzip, CSS +1.8 kB.
+
 ### Operations (2026-11-08)
 
 - Billing paused at the founder's request: `billing.provider_ready` back to false (open 07:52-15:41 UTC; one checkout
