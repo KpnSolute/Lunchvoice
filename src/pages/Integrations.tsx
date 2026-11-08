@@ -208,7 +208,7 @@ function WebhooksCard({ hub }: { hub: HubInfo }) {
           {d.endpoints.map((e) => (
             <RowItem
               key={e.endpoint_id}
-              title={<span className="break-all">{e.url}</span>}
+              title={<span className="lv-break">{e.url}</span>}
               sub={<>{e.events.join(", ")} · {e.recent_deliveries.length ? `last delivery: ${e.recent_deliveries[0].outcome}${e.recent_deliveries[0].status_code ? ` (${e.recent_deliveries[0].status_code})` : ""}` : "no deliveries yet"}{e.disabled_reason ? ` · ${e.disabled_reason}` : ""}</>}
               trailing={
                 <span className="ui-row">
@@ -359,7 +359,7 @@ export function ConnectDiscord() {
               : <>The server can now post this Hub’s Campaigns. Manage it in <Link to={`/${p?.hub?.slug}/settings`}>Hub settings</Link>.</>}
           </Notice>
         ) : preview.error ? (
-          <Notice tone="error">{describeError(preview.error)}</Notice>
+          <Notice tone="error">{preview.error.code === "lv_invalid_code" ? preview.error.message : describeError(preview.error)}</Notice>
         ) : p!.kind === "link" ? (
           <div className="lv-stack-16">
             {p!.already_linked && <Notice tone="warn">Your LunchVoice account is already linked to Discord. Unlink it in Account settings first.</Notice>}

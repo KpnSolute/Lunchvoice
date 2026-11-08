@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { API_SCOPE_ORDER, SCOPE_LABELS } from "../lib/integrationsApi";
 
 const configured = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/+$/, "");
-const PRE = "m-0 overflow-x-auto rounded-[var(--lv-radius-field)] bg-[var(--lv-well)] p-3 font-mono text-[13px] leading-relaxed";
+const PRE = "lv-pre";
 const BASE = `${configured || "https://<project>.supabase.co"}/functions/v1/api/v1`;
 
 const ENDPOINTS: [string, string, string, string][] = [
@@ -81,40 +81,40 @@ export function Developers() {
     <div className="ui-page lv-narrow-page" data-testid="developers">
       <PageHeader eyebrow="Developers" title="LunchVoice API" sub="Connect your own tools to a Hub: create and run Campaigns, send invites, read released results and get webhooks. Available on the Team plan." />
       <div className="lv-stack-16">
-        <Card>
+        <Card className="lv-minw0">
           <SectionTitle>Authentication</SectionTitle>
           <p className="lv-m0">The Hub Owner, or someone with the “Manage API keys, webhooks and Discord” capability, creates keys in <strong>Hub settings → API</strong>. A key belongs to one Hub and acts with the permissions of the person who created it, narrowed by its scopes. The secret is shown once; LunchVoice stores only a hash.</p>
           <pre className={PRE} aria-label="Authorization header"><code>Authorization: Bearer lvk_xxxxxxxxxxxx_xxxxxxxx…</code></pre>
-          <p className="ui-help lv-m0">Base URL: <code>{BASE}</code>. Keep keys on your server. A key stops working when it is revoked, when its creator loses the capability or leaves the Hub, and pauses while the Hub has no active Team plan.</p>
+          <p className="ui-help lv-m0">Base URL: <code className="lv-break">{BASE}</code>. Keep keys on your server. A key stops working when it is revoked, when its creator loses the capability or leaves the Hub, and pauses while the Hub has no active Team plan.</p>
         </Card>
 
-        <Card>
+        <Card className="lv-minw0">
           <SectionTitle>Scopes</SectionTitle>
-          <Table>
+          <div className="lv-scroll-x"><Table>
             <TableHeader><TableRow><TableHead>Scope</TableHead><TableHead>Allows</TableHead></TableRow></TableHeader>
             <TableBody>{API_SCOPE_ORDER.map((s) => <TableRow key={s}><TableCell><code>{s}</code></TableCell><TableCell>{SCOPE_LABELS[s]}</TableCell></TableRow>)}</TableBody>
-          </Table>
+          </Table></div>
         </Card>
 
-        <Card>
+        <Card className="lv-minw0">
           <SectionTitle>Endpoints</SectionTitle>
-          <Table>
+          <div className="lv-scroll-x"><Table>
             <TableHeader><TableRow><TableHead>Method</TableHead><TableHead>Path</TableHead><TableHead>Scope</TableHead><TableHead>What it does</TableHead></TableRow></TableHeader>
             <TableBody>
               {ENDPOINTS.map(([m, p, s, d]) => (
-                <TableRow key={m + p}><TableCell><code>{m}</code></TableCell><TableCell><code className="break-all">{p}</code></TableCell><TableCell><code>{s}</code></TableCell><TableCell>{d}</TableCell></TableRow>
+                <TableRow key={m + p}><TableCell><code>{m}</code></TableCell><TableCell><code className="lv-break">{p}</code></TableCell><TableCell><code>{s}</code></TableCell><TableCell>{d}</TableCell></TableRow>
               ))}
             </TableBody>
-          </Table>
+          </Table></div>
           <p className="ui-help lv-m0">Bodies are JSON objects; unknown fields are refused. Every answer is <code>{"{ ok: true, … }"}</code> or <code>{"{ ok: false, error: { code, message, … } }"}</code>, the same envelope the app uses.</p>
         </Card>
 
-        <Card>
+        <Card className="lv-minw0">
           <SectionTitle>Examples</SectionTitle>
           <pre className={PRE}><code>{CURL}</code></pre>
         </Card>
 
-        <Card>
+        <Card className="lv-minw0">
           <SectionTitle>Privacy of results</SectionTitle>
           <ul className="lv-stack-8 lv-m0">
             <li>Results come from the same suppression engine as the app. Anything withheld there is withheld here, and never reported as zero.</li>
@@ -123,16 +123,16 @@ export function Developers() {
           </ul>
         </Card>
 
-        <Card>
+        <Card className="lv-minw0">
           <SectionTitle>Rate limits and errors</SectionTitle>
           <p className="lv-m0">Each key may make 60 requests per minute (Team plan). Over the limit you get <code>429 lv_rate_limited</code> with <code>Retry-After</code>.</p>
-          <Table>
+          <div className="lv-scroll-x"><Table>
             <TableHeader><TableRow><TableHead>HTTP</TableHead><TableHead>Code</TableHead><TableHead>Meaning</TableHead></TableRow></TableHeader>
-            <TableBody>{ERRORS.map(([h, c, m]) => <TableRow key={c}><TableCell>{h}</TableCell><TableCell><code className="break-all">{c}</code></TableCell><TableCell>{m}</TableCell></TableRow>)}</TableBody>
-          </Table>
+            <TableBody>{ERRORS.map(([h, c, m]) => <TableRow key={c}><TableCell>{h}</TableCell><TableCell><code className="lv-break">{c}</code></TableCell><TableCell>{m}</TableCell></TableRow>)}</TableBody>
+          </Table></div>
         </Card>
 
-        <Card id="webhooks">
+        <Card id="webhooks" className="lv-minw0">
           <SectionTitle>Webhooks</SectionTitle>
           <p className="lv-m0">Add endpoints in <strong>Hub settings → API</strong> or with <code>POST /webhooks</code>. Events:</p>
           <ul className="lv-stack-8 lv-m0">
@@ -146,7 +146,7 @@ export function Developers() {
           <p className="ui-help lv-m0">Answer with any 2xx within 10 seconds. 408, 409, 425, 429 and 5xx are retried with exponential backoff (up to 8 attempts); other answers are not. Redirects are not followed. Deliveries pause while the Hub has no Team plan and resume afterwards. The delivery log keeps status codes and timings, never bodies.</p>
         </Card>
 
-        <Card>
+        <Card className="lv-minw0">
           <SectionTitle>Discord bot</SectionTitle>
           <ul className="lv-stack-8 lv-m0">
             <li><code>/lunchvoice link</code> sends you a one-time link to connect your Discord account; <code>/lunchvoice unlink</code> or Account settings removes it.</li>
