@@ -31,6 +31,10 @@ const COPY: Record<string, string> = {
   lv_reauth_required: "For your safety, sign in again, then try this once more.",
   lv_confirmation_mismatch: "The confirmation text didn't match. Type it exactly as shown.",
   lv_server_error: "Something went wrong on our side. Try again.",
+  /* ---- track C: community ---- */
+  lv_insufficient_points: "You don't have enough points for this yet.",
+  lv_out_of_stock: "This item is out of stock.",
+  /* ---- end track C ---- */
 };
 
 export const GATE_REASONS: Record<string, string> = {

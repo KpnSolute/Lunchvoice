@@ -14,6 +14,7 @@ import { HubCover, onAccent } from "../ui/HubCover";
 import { StateScreen } from "../ui/StateScreen";
 import { BottomTabs, type TabItem } from "../ui/BottomTabs";
 import { NotFoundPage } from "./Marketing";
+import { CommunityNav, CommunityPage, PageEditor } from "./Community";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
 import { Input } from "@/components/shadcn/input";
@@ -101,7 +102,7 @@ export function HubLayout() {
           pills={<span className="lv-cover-pill">{hub.visibility === "public" ? "Public" : "Private"} · {hub.membership_mode.replace("_", " ")}</span>}
           action={!session ? <LinkButton to="/signin" state={{ from: base }} variant="secondary">Sign in</LinkButton> : membership ? <LinkButton to={base} variant="secondary">Open workspace</LinkButton> : undefined}
         />
-        <div className="lv-l10-body"><Outlet context={ctx} /></div>
+        <div className="lv-l10-body"><CommunityNav slug={hub.slug} hubId={hub.hub_id} /><Outlet context={ctx} /></div>
         <p className="lv-powered">Powered by <img src="/brand/lunchvoice-mark.svg" alt="" height={16} width={16} /> <strong>LunchVoice</strong></p>
       </div>
     );
@@ -154,6 +155,7 @@ export function HubLayout() {
         <Notice tone="warn" title="This Hub’s plan has ended">Premium actions are locked: new Campaigns can’t be published and roles and pages can’t change. Everything you made is kept.</Notice>
       )}
       <div className="lv-hubtabs-wrap"><NavTabs items={tabs} label="Hub sections" /></div>
+      <CommunityNav slug={hub.slug} hubId={hub.hub_id} />
       <Outlet context={ctx} />
       <BottomTabs label="Hub sections" items={bottom} more={more} />
     </div>
@@ -820,6 +822,7 @@ export function HubDiscover() {
         {reasons && <Notice tone="warn" title="Not eligible yet">{reasons.join(" ")}</Notice>}
         {sent ? <Notice tone="ok">Application sent. We’ll review it.</Notice> : <Button variant="primary" onClick={apply} disabled={busy}>{busy ? "Checking…" : "Apply for Discover"}</Button>}
       </Card>
+      <DiscoverListing />
       <Card variant="well">
         <SectionTitle>What Discover is</SectionTitle>
         <p className="ui-muted lv-m0">A public directory of large, active communities that chose to be found. Nothing is listed automatically and no Hub is ever seeded into it.</p>
@@ -829,27 +832,50 @@ export function HubDiscover() {
   );
 }
 
-/* ------------------------------------------------------------------ participant add-on pages (M2) */
-
-const ADDONS: Record<string, { title: string; body: string }> = {
-  shop: { title: "Shop", body: "Members will spend participation points on rewards the Hub offers. Points count completed Campaigns, never the content of answers." },
-  leaderboard: { title: "Leaderboard", body: "Groups will be ranked by participation. Individual names appear only for members who opt in." },
-  news: { title: "Newsroom", body: "Hub managers will post updates here, including what changed because of your answers." },
-  post: { title: "News post", body: "A single Newsroom post will open here." },
-  comments: { title: "Comments", body: "Members will discuss the Hub here. New comments are reviewed before they appear." },
-  page: { title: "Custom page", body: "Hub managers will be able to add their own pages." },
-};
-
-export function HubAddon({ kind }: { kind: keyof typeof ADDONS }) {
+/** Track C: the Hub's Discover category and listing status (lv_community_get / lv_community_update). */
+function DiscoverListing() {
   const { hub } = useHubCtx();
-  const a = ADDONS[kind]!;
-  return <StateScreen kind="empty" title={`${a.title} is coming with M2.`} detail={a.body} action={<LinkButton to={`/${hub.slug}`} variant="secondary">Back to {hub.name}</LinkButton>} />;
+  const { api } = useIdentity();
+  const q = useLv(() => api.communityGet(hub.hub_id), [api, hub.hub_id]);
+  if (!q.data) return null;
+  const status = q.data.discover.status;
+  return (
+    <Card data-testid="discover-listing">
+      <SectionTitle>Listing</SectionTitle>
+      <p className="ui-muted lv-m0">{status === "approved" ? (hub.visibility === "public" && hub.plan?.family === "team" ? "Listed in Discover." : "Approved, but hidden while the Hub is private or not on the Team plan.") : status === "submitted" ? "Application under review." : status === "rejected" ? "Not approved this time." : "Not applied yet."}</p>
+      <Field label="Category shown in Discover" htmlFor="discover-category">
+        <Select value={q.data.settings.discover_category ?? "none"} onValueChange={async (v) => {
+          const r = await api.communityUpdate(hub.hub_id, { discoverCategory: v === "none" ? "" : v });
+          if (r.ok) { toast.success("Category saved"); q.reload(); } else toast.error(describeError(r.error));
+        }}>
+          <SelectTrigger id="discover-category"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">No category</SelectItem>
+            {q.data.categories.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </Field>
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ participant add-on pages (track C) */
+
+export function HubAddon({ kind }: { kind: "shop" | "leaderboard" | "news" | "post" | "comments" | "page" }) {
+  return <CommunityPage kind={kind} />;
 }
 
 /* ------------------------------------------------------------------ Hub Builder (owner) */
 
 const KIND_LABEL: Record<PageKind, string> = { home: "Home", campaigns: "Campaigns", custom: "Custom page", shop: "Shop", leaderboard: "Leaderboard", news: "Newsroom", comments: "Comments" };
-const ADDON_KINDS: PageKind[] = ["shop", "leaderboard", "news", "comments"];
+const ADDON_KINDS: PageKind[] = ["news", "comments", "leaderboard", "shop"];
+const ADDON_HELP: Partial<Record<PageKind, string>> = {
+  news: "Posts by people with the Newsroom role. Public posts are possible on a public Hub.",
+  comments: "Members discuss the Hub and news posts. Moderators can hide and delete.",
+  leaderboard: "Opt-in only. Counts ended Campaigns taken part in, never answers.",
+  shop: "Optional Hub points. Items have point prices; you hand orders over yourself.",
+};
+type Addons = Record<string, { enabled: boolean; allowed: boolean }>;
 
 export function HubBuilder() {
   const { hub, membership } = useHubCtx();
@@ -858,23 +884,31 @@ export function HubBuilder() {
   const [pages, setPages] = useState<HubPage[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [newTitle, setNewTitle] = useState("");
-  useEffect(() => { if (data.data) setPages(data.data.pages); }, [data.data]);
+  const [open, setOpen] = useState<string | null>(null);
+  // Every add-on page is listed; a missing one appears switched off until the Owner turns it on.
+  const withAddons = (ps: HubPage[]) => [
+    ...ps,
+    ...ADDON_KINDS.filter((k) => !ps.some((p) => p.kind === k)).map((k, i) => ({ key: k, kind: k, title: KIND_LABEL[k], body: null, position: ps.length + i, enabled: false, visibility: "members" as const })),
+  ];
+  useEffect(() => { if (data.data) setPages(withAddons(data.data.pages)); }, [data.data]);
 
   if (!membership?.is_owner) return <Notice tone="warn">Only the Hub Owner can change which pages the Hub shows.</Notice>;
   if (data.loading && !pages) return <LoadingRows rows={4} />;
   if (data.error) return <Notice tone="error">{describeError(data.error)}</Notice>;
   if (!pages) return null;
 
+  const addons = (data.data as unknown as { addons?: Addons })?.addons ?? {};
   const limit = data.data?.custom_slots.limit ?? null;
   const custom = pages.filter((p) => p.kind === "custom").length;
-  const dirty = JSON.stringify(pages) !== JSON.stringify(data.data?.pages);
+  const dirty = JSON.stringify(pages) !== JSON.stringify(withAddons(data.data?.pages ?? []));
   const move = (i: number, by: number) => setPages((ps) => { const next = [...ps!]; const [x] = next.splice(i, 1); next.splice(i + by, 0, x); return next.map((p, j) => ({ ...p, position: j })); });
+  const update = (key: string, patch: Partial<HubPage>) => setPages((ps) => ps!.map((x) => (x.key === key ? { ...x, ...patch } : x)));
 
   async function save() {
     setSaving(true);
-    const r = await api.hubPagesUpdate(hub.hub_id, pages!);
+    const r = await api.hubPagesUpdate(hub.hub_id, pages!.map((p, i) => ({ ...p, title: p.title.trim() || KIND_LABEL[p.kind], position: i })));
     setSaving(false);
-    if (r.ok) { toast.success("Pages saved"); data.reload(); } else toast.error(describeError(r.error));
+    if (r.ok) { toast.success("Pages saved"); data.reload(); window.dispatchEvent(new Event("lv:pages-changed")); } else toast.error(describeError(r.error));
   }
 
   return (
@@ -882,22 +916,27 @@ export function HubBuilder() {
       <Card>
         <SectionTitle action={<Button variant="ink" size="sm" disabled={!dirty || saving} onClick={save}>{saving ? "Saving…" : "Save pages"}</Button>}>Hub pages</SectionTitle>
         <QuotaMeter label="Custom page slots" used={custom} limit={limit} />
-        <div>
+        <div data-testid="builder-pages">
           {pages.map((p, i) => {
-            const fixed = p.kind === "home";
-            const soon = ADDON_KINDS.includes(p.kind) || p.kind === "custom";
+            const fixed = p.kind === "home" || p.kind === "campaigns";
+            const addon = ADDON_KINDS.includes(p.kind);
+            const notInPlan = addon && addons[p.kind] && !addons[p.kind].allowed;
             return (
-              <div key={p.key} className="lv-page-row">
-                <span className="lv-outline-move">
-                  <Button variant="quiet" size="icon-sm" aria-label={`Move ${p.title} up`} disabled={i === 0} onClick={() => move(i, -1)}><Icon name="chevron" size={14} className="lv-rot180" /></Button>
-                  <Button variant="quiet" size="icon-sm" aria-label={`Move ${p.title} down`} disabled={i === pages.length - 1} onClick={() => move(i, 1)}><Icon name="chevron" size={14} /></Button>
-                </span>
-                <div className="lv-page-row-main">
-                  <strong>{p.title}</strong>
-                  <span>{KIND_LABEL[p.kind]}{fixed ? " · always on" : soon ? " · Coming with M2" : ""}</span>
+              <div key={p.key}>
+                <div className="lv-page-row">
+                  <span className="lv-outline-move">
+                    <Button variant="quiet" size="icon-sm" aria-label={`Move ${p.title} up`} disabled={i === 0} onClick={() => move(i, -1)}><Icon name="chevron" size={14} className="lv-rot180" /></Button>
+                    <Button variant="quiet" size="icon-sm" aria-label={`Move ${p.title} down`} disabled={i === pages.length - 1} onClick={() => move(i, 1)}><Icon name="chevron" size={14} /></Button>
+                  </span>
+                  <div className="lv-page-row-main">
+                    <strong>{p.title}</strong>
+                    <span>{KIND_LABEL[p.kind]}{fixed ? " · always on" : notInPlan ? " · not in this plan" : addon ? ` · ${ADDON_HELP[p.kind]}` : p.visibility === "public" ? " · public" : " · members"}</span>
+                  </div>
+                  {p.kind === "custom" && <Button variant="quiet" size="sm" aria-expanded={open === p.key} onClick={() => setOpen(open === p.key ? null : p.key)}>{open === p.key ? "Done" : "Edit"}</Button>}
+                  {p.kind === "custom" && <Button variant="quiet" size="sm" onClick={() => setPages((ps) => ps!.filter((x) => x.key !== p.key))}>Remove</Button>}
+                  <Switch aria-label={`${p.title} page`} checked={p.enabled} disabled={fixed || (notInPlan && !p.enabled)} onCheckedChange={(on) => update(p.key, { enabled: on })} />
                 </div>
-                {p.kind === "custom" && <Button variant="quiet" size="sm" onClick={() => setPages((ps) => ps!.filter((x) => x.key !== p.key))}>Remove</Button>}
-                <Switch aria-label={`${p.title} page`} checked={p.enabled} disabled={fixed} onCheckedChange={(on) => setPages((ps) => ps!.map((x) => (x.key === p.key ? { ...x, enabled: on } : x)))} />
+                {p.kind === "custom" && open === p.key && <PageEditor page={p} publicHub={hub.visibility === "public"} onChange={(np) => update(p.key, np)} />}
               </div>
             );
           })}
@@ -905,10 +944,12 @@ export function HubBuilder() {
         <form className="lv-invite-form" onSubmit={(e) => {
           e.preventDefault();
           if (!newTitle.trim()) return;
-          setPages((ps) => [...ps!, { key: `custom-${Date.now().toString(36)}`, kind: "custom", title: newTitle.trim(), body: "", position: ps!.length, enabled: true }]);
+          const key = `page-${Date.now().toString(36)}`;
+          setPages((ps) => [...ps!, { key, kind: "custom", title: newTitle.trim(), body: "", position: ps!.length, enabled: true, visibility: "members" }]);
+          setOpen(key);
           setNewTitle("");
         }}>
-          <Field label="New custom page" htmlFor="new-page"><Input id="new-page" value={newTitle} maxLength={40} onChange={(e) => setNewTitle(e.target.value)} placeholder="Route maps" disabled={limit !== null && custom >= limit} /></Field>
+          <Field label="New custom page" htmlFor="new-page"><Input id="new-page" value={newTitle} maxLength={80} onChange={(e) => setNewTitle(e.target.value)} placeholder="Route maps" disabled={limit !== null && custom >= limit} /></Field>
           <Button type="submit" variant="secondary" disabled={!newTitle.trim() || (limit !== null && custom >= limit)}><Icon name="plus" size={16} />Add page</Button>
         </form>
         {limit !== null && custom >= limit && <p className="ui-help lv-m0">All {limit} custom page slots are in use.</p>}
@@ -920,12 +961,12 @@ export function HubBuilder() {
           <div className="lv-preview-cover" style={{ background: hub.accent ?? "#14110f", color: hub.accent ? onAccent(hub.accent) : "#fff" }}>
             <b>{hub.name}</b>
             <nav aria-label="Preview tabs">
-              {pages.filter((p) => p.enabled).map((p) => <span key={p.key} data-soon={p.kind !== "home" && p.kind !== "campaigns" ? "" : undefined}>{p.title}</span>)}
+              {pages.filter((p) => p.enabled).map((p) => <span key={p.key}>{p.title}</span>)}
             </nav>
           </div>
           <Card size="sm"><strong>Campaigns</strong><span className="ui-muted lv-small">Live Campaigns appear here.</span></Card>
         </div>
-        <p className="ui-help lv-m0">Pages that aren’t built yet show a “Coming with M2” screen to members.</p>
+        <p className="ui-help lv-m0">Visitors see only Home, Campaigns, public custom pages and public news. Shop, Leaderboard and Comments are for members.</p>
       </Card>
     </div>
   );

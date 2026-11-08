@@ -1,5 +1,8 @@
 // Typed client for the v2 `lv_api` functions. Shapes follow docs/backend/API_CONTRACT.md and the launch contract in
 // docs/v2/LAUNCH_PLAN.md ("API contract"). Every expected application failure arrives as {ok:false,error}.
+/* ---- track C: community ---- */
+import { communityApi } from "./communityApi";
+/* ---- end track C ---- */
 
 export type LvErrorCode =
   | "lv_unauthenticated"
@@ -28,7 +31,10 @@ export type LvErrorCode =
   | "lv_not_available"
   | "lv_confirmation_mismatch"
   | "lv_hub_gone"
-  | "lv_server_error";
+  | "lv_server_error"
+  /* ---- track C: community ---- */
+  | "lv_insufficient_points"
+  | "lv_out_of_stock";
 
 export interface LvError {
   code: LvErrorCode;
@@ -521,6 +527,10 @@ export function createLvApi(transport: LvTransport) {
 
     /* ---- abuse ---- */
     reportAbuse: (joinCode: string, reason: string) => call<object>("lv_report_abuse", { p_join_code: joinCode, p_reason: reason }),
+
+    /* ---- track C: community ---- */
+    ...communityApi(call),
+    /* ---- end track C ---- */
   };
 }
 
@@ -531,3 +541,19 @@ export function activeFamily(plan: HubPlan | undefined | null): PlanFamily | nul
   if (!plan || plan.state !== "active") return null;
   return plan.family;
 }
+
+/* ---- track C: community ---- */
+// Declaration merging: 000020 adds page visibility, the add-on plan flags and new error extras.
+export interface HubPage {
+  /** Custom pages only: "public" shows the page to visitors while the Hub is public. */
+  visibility?: "members" | "public";
+}
+export interface LvError {
+  /** lv_insufficient_points */
+  balance?: number;
+  price?: number;
+  /** lv_not_available / lv_entitlement_required for an add-on page */
+  kind?: string;
+}
+export type { AddonKind, AddonState, CommentRow, CommunityInfo, DiscoverHub, LeaderboardEntry, NewsPost, ShopData, ShopItem, ShopOrder } from "./communityApi";
+/* ---- end track C ---- */

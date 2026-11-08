@@ -41,3 +41,6 @@ export const NewSurvey = pick(surveys, "NewSurvey");
 export const SurveyStudio = pick(surveys, "SurveyStudio");
 export const SurveyResults = pick(surveys, "SurveyResults");
 export const SurveyInvite = pick(surveys, "SurveyInvite");
+/* ---- track C: community ---- */
+export const DiscoverDirectory = pick(() => import("./Community"), "DiscoverDirectory");
+/* ---- end track C ---- */
