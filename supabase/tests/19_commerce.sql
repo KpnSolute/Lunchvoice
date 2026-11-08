@@ -68,14 +68,16 @@ select t.check('service: the session context comes from the intent (product, wee
   and (t.get('ctx')::jsonb #>> '{prices,first}') = 'price_CsFirst' and (t.get('ctx')::jsonb #>> '{prices,extra_week}') = 'price_CsWeek'
   and (t.get('ctx')::jsonb ->> 'account_id') = t.get('buyer') and (t.get('ctx')::jsonb ->> 'customer_id') is null);
 select t.check('service: an unknown intent has no context', t.code(lv.checkout_session_context(gen_random_uuid())) = 'lv_not_found');
+select t.put('cset', lv.billing_customer_set(t.id('buyer'), 'cus_Buyer1')::text);
 select t.check('service: a Stripe customer is stored per account',
-  t.code(lv.billing_customer_set(t.id('buyer'), 'cus_Buyer1')) = 'ok'
+  t.code(t.get('cset')::jsonb) = 'ok'
   and (lv.checkout_session_context(t.id_of_json('co_cs')) ->> 'customer_id') = 'cus_Buyer1');
 select t.check('service: a second customer never replaces the first',
   (lv.billing_customer_set(t.id('buyer'), 'cus_Other') ->> 'customer_id') = 'cus_Buyer1');
 select t.check('service: a malformed customer id is refused', t.code(lv.billing_customer_set(t.id('buyer'), 'acct_x')) = 'lv_invalid_input');
+select t.put('att', lv.checkout_intent_attach(t.id_of_json('co_cs'), 'cs_test_abc')::text);
 select t.check('service: the Checkout Session id is attached to its open intent',
-  t.code(lv.checkout_intent_attach(t.id_of_json('co_cs'), 'cs_test_abc')) = 'ok'
+  t.code(t.get('att')::jsonb) = 'ok'
   and (lv.checkout_session_context(t.id_of_json('co_cs')) ->> 'provider_session') = 'cs_test_abc'
   and t.code(lv.checkout_intent_attach(t.id_of_json('co_cs'), 'not-a-session')) = 'lv_invalid_input');
 
@@ -372,15 +374,16 @@ select t.put('rep', lv_api.lv_admin_abuse_reports()::text);
 select t.check('admin: the abuse queue lists the report with its Campaign, never the reporter',
   (t.get('rep')::jsonb #>> '{reports,0,reason}') = 'Asks for passwords' and (t.get('rep')::jsonb #>> '{reports,0,campaign_id}') = t.get('cid')
   and (t.get('rep')::jsonb #>> '{reports,0,open_reports}') = '1' and not (t.get('rep')::jsonb -> 'reports' -> 0 ? 'reporter_account_id'));
+select t.put('blk', lv_api.lv_admin_campaign_block(t.id('cid'), 'Phishing')::text);
 select t.check('admin: blocking from the queue uses the existing moderation path',
-  t.code(lv_api.lv_admin_campaign_block(t.id('cid'), 'Phishing')) = 'ok'
+  t.code(t.get('blk')::jsonb) = 'ok'
   and (lv_api.lv_admin_abuse_reports('actioned') #>> '{reports,0,blocked}') = 'true'
   and t.code(lv_api.lv_admin_campaign_unblock(t.id('cid'))) = 'ok');
 select t.as_anon(); select lv_api.lv_report_abuse(t.get('jc'), 'Second report');
 select t.as_kpn(3);
 select t.put('rep2', (lv_api.lv_admin_abuse_reports() #>> '{reports,0,report_id}'));
-select t.check('admin: a report can be dismissed once', t.code(lv_api.lv_admin_report_dismiss(t.id('rep2'))) = 'ok'
-  and t.code(lv_api.lv_admin_report_dismiss(t.id('rep2'))) = 'lv_not_found');
+select t.check('admin: a report can be dismissed once', t.code(lv_api.lv_admin_report_dismiss(t.id('rep2'))) = 'ok');
+select t.check('admin: a dismissed report cannot be dismissed again', t.code(lv_api.lv_admin_report_dismiss(t.id('rep2'))) = 'lv_not_found');
 select t.check('admin: an unknown report status is lv_invalid_input', t.code(lv_api.lv_admin_abuse_reports('weird')) = 'lv_invalid_input');
 
 select t.check('admin: the Discover queue lists the application with live member counts',
@@ -393,7 +396,8 @@ select t.check('admin: the decision is stored on the application (read by track 
   t.q(format($q$select status from lv.discover_applications where id = %L::uuid$q$, t.get('app'))) = 'approved'
   and t.q(format($q$select decision || '|' || decided_by::text from lv.discover_decisions where application_id = %L::uuid$q$, t.get('app'))) = 'approved|' || t.get('admin'));
 select t.as_kpn(3);
-select t.check('admin: a decision can be reversed', (lv_api.lv_admin_discover_decide(t.id('app'), false) ->> 'status') = 'rejected'
+select t.put('rev', lv_api.lv_admin_discover_decide(t.id('app'), false)::text);
+select t.check('admin: a decision can be reversed', (t.get('rev')::jsonb ->> 'status') = 'rejected'
   and (lv_api.lv_admin_discover_list('rejected') #>> '{applications,0,application_id}') = t.get('app'));
 select t.as_pg();
 select t.grant_credit(t.id('admin'));
@@ -407,8 +411,7 @@ select t.check('admin: nobody decides their own Hub''s application',
 
 select t.put('bev', lv_api.lv_admin_billing_events()::text);
 select t.check('admin: the billing log shows type, outcome and reason, never references or payloads',
-  jsonb_array_length(t.get('bev')::jsonb -> 'events') >= 5 and t.get('bev') not like '%pi_%' and t.get('bev') not like '%sub_Hub1%'
-  and t.get('bev') not like '%cus_%' and not (t.get('bev')::jsonb -> 'events' -> 0 ? 'detail')
+  jsonb_array_length(t.get('bev')::jsonb -> 'events') >= 5 and t.get('bev') !~ '"(pi|sub|cus|cs)_' and t.get('bev') not like '%sub\_Hub1%' and not (t.get('bev')::jsonb -> 'events' -> 0 ? 'detail')
   and t.get('bev') like '%amount_mismatch%');
 select t.put('obx', lv_api.lv_admin_email_outbox()::text);
 select t.check('admin: the outbox view shows counts and states, never an address or a payload',
