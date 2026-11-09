@@ -6,6 +6,19 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (2026-11-09, founder-approved: "approved, apply 000025, 000026 and 000027 and ship")
+
+- **Production:** migrations 000025 (suspended accounts cannot answer or join), 000026 (reserve platform page names) and
+  000027 (edit a paused Campaign) applied to `qprfonxvthmaoxfixigk` one at a time from commit `9cff0d4`, file hashes
+  verified (000025 `5f8ce908…`, 000026 `4ef0db15…`, 000027 `19900f73…`), after a rehearsal on a seeded 000024
+  database. History versions normalized. Post-apply audit unchanged from the rehearsal: 139 `lv_api` functions, the same
+  13 callable signed out, nothing in `lv` granted to `anon`/`authenticated`, RLS on every `lv` table,
+  `lv_campaign_get` callable by signed-in users only, 8 names reserved, 2 new triggers, data unchanged (3 accounts,
+  3 Hubs, 3 Campaigns). PR #53 merged to `main` (squash `d4ae0c5`); live bundle updated, `/guidelines` and the sitemap
+  entry serve.
+- Note: the `render.yaml` rewrites for the prerendered pages are not applied by Render (settings live in the dashboard),
+  so `/terms` and `/guidelines` are served from the SPA shell; the prerendered files exist at `/<page>/index.html`.
+
 ### Added (000027, built and tested, NOT yet applied to production)
 
 - **Edit a paused survey** (founder request 2026-11-09). `supabase/migrations/000027_v2_edit_paused_campaign.sql` +
