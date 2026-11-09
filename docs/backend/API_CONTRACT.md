@@ -1079,3 +1079,17 @@ written; an identified answer goes through `lv_submit_response` as the linked pe
 `team_hub` = owns a Team-family Hub) are computed only for linked people with `role_facts_consent`, in servers that
 are not disabled; the bot removes only roles it granted. `POST /discord/dispatch` (service bearer) processes queued
 role removals and auto-posts.
+
+
+## Editing a paused Campaign (000027)
+
+`lv_campaign_update` and the question functions (`lv_campaign_question_add` / `_update` / `_remove`) now also work on a
+**paused** Campaign:
+
+- Title, description and schedule: always.
+- Mode, anonymity and questions: only while the Campaign has no answers (members or guests). Otherwise `lv_locked`
+  ("This Campaign already has answers, so its mode and anonymity can no longer change…"). Setting the same value again
+  is harmless.
+- Running, closed and archived Campaigns remain `lv_locked`. The audience and guest settings stay draft-only.
+
+`lv_campaign_get` (managers) adds `campaign.has_responses` (boolean).

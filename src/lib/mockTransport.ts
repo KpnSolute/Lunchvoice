@@ -590,7 +590,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
     case "lv_campaign_question_add": {
       const c = camp(a.p_campaign);
       if (!c) return err("lv_not_found", "Campaign not found");
-      if (c.status !== "draft") return err("lv_locked", "Questions cannot change after publishing");
+      if (c.status !== "draft" && !(c.status === "paused" && c.responses.length === 0)) return err("lv_locked", "Questions cannot change once a Campaign has answers or has been closed");
       if (!CORE_KINDS.includes(String(a.p_kind))) return err("lv_invalid_input", "That question kind isn't available");
       if (isPersonal(s, c) && c.questions.length >= LIMITS.free.quick_survey_questions)
         return err("lv_limit_reached", "Quick Surveys have up to 10 questions", { limit: LIMITS.free.quick_survey_questions, used: c.questions.length });
@@ -605,7 +605,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       const c = s.campaigns.find((x) => x.questions.some((q) => q.question_id === a.p_question));
       const q = c?.questions.find((x) => x.question_id === a.p_question);
       if (!c || !q) return err("lv_not_found", "Question not found");
-      if (c.status !== "draft") return err("lv_locked", "Questions cannot change after publishing");
+      if (c.status !== "draft" && !(c.status === "paused" && c.responses.length === 0)) return err("lv_locked", "Questions cannot change once a Campaign has answers or has been closed");
       if (a.p_prompt != null && !String(a.p_prompt).trim()) return err("lv_invalid_input", "A question needs a prompt.");
       if (a.p_kind != null && !CORE_KINDS.includes(String(a.p_kind))) return err("lv_invalid_input", "That question kind isn't available");
       if (a.p_position != null && c.questions.some((x) => x !== q && x.position === Number(a.p_position)))
@@ -620,14 +620,17 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
     case "lv_campaign_question_remove": {
       const c = s.campaigns.find((x) => x.questions.some((q) => q.question_id === a.p_question));
       if (!c) return err("lv_not_found", "Question not found");
-      if (c.status !== "draft") return err("lv_locked", "Questions cannot change after publishing");
+      if (c.status !== "draft" && !(c.status === "paused" && c.responses.length === 0)) return err("lv_locked", "Questions cannot change once a Campaign has answers or has been closed");
       c.questions = c.questions.filter((q) => q.question_id !== a.p_question);
       return { ok: true };
     }
     case "lv_campaign_update": {
       const c = camp(a.p_campaign);
       if (!c) return err("lv_not_found", "Campaign not found");
-      if (c.status !== "draft") return err("lv_locked", "Only a draft can be edited. Published versions are immutable.");
+      if (c.status !== "draft" && c.status !== "paused") return err("lv_locked", "Only a draft or a paused Campaign can be edited. Running and ended Campaigns are immutable.");
+      // 000027: a paused Campaign with answers keeps its mode and anonymity.
+      if (c.status === "paused" && c.responses.length > 0 && ((a.p_mode != null && a.p_mode !== c.mode) || (a.p_anonymity != null && a.p_anonymity !== c.anonymity)))
+        return err("lv_locked", "This Campaign already has answers, so its mode and anonymity can no longer change. You can still edit the title, description and schedule.");
       if (a.p_title != null && !String(a.p_title).trim()) return err("lv_invalid_input", "A Campaign needs a title.");
       if (a.p_mode != null && !["survey", "poll", "rating", "feedback"].includes(String(a.p_mode))) return err("lv_invalid_input", "Unknown mode.");
       if (a.p_anonymity != null && !["anonymous", "identified"].includes(String(a.p_anonymity))) return err("lv_invalid_input", "Unknown anonymity.");
@@ -995,7 +998,7 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
       const c = camp(a.p_campaign);
       if (!r.ok || !c) return r;
       const h = hubOf(c);
-      const out: Record<string, unknown> = { ...r, campaign: { ...r.campaign, description: c.description ?? null } };
+      const out: Record<string, unknown> = { ...r, campaign: { ...r.campaign, description: c.description ?? null, ...(r.can_manage ? { has_responses: c.responses.length > 0 } : {}) } };
       if (r.can_manage) {
         out.link_token = c.link_token;
         out.audience = audience(c, h?.kind === "community");

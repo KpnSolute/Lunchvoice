@@ -69,8 +69,16 @@ export function useSaveState(): SaveTracker & { status: SaveStatus; error: strin
   return { run, status, error };
 }
 
-export function SaveIndicator({ status, error }: { status: SaveStatus; error: string | null }) {
-  const text = status === "saving" ? "Saving…" : status === "saved" ? "Draft saved" : status === "error" ? "Error saving" : "All changes save automatically";
+/** What a Campaign's status allows (000027). A paused Campaign can be edited: title, description and schedule always,
+ *  mode, anonymity and questions only until the first answer (they would change what existing answers mean). */
+export function editRules(d: CampaignDetailData) {
+  const draft = d.campaign.status === "draft";
+  const paused = d.campaign.status === "paused";
+  return { draft, paused, edit: draft || paused, meaning: draft || (paused && !d.campaign.has_responses) };
+}
+
+export function SaveIndicator({ status, error, paused = false }: { status: SaveStatus; error: string | null; paused?: boolean }) {
+  const text = status === "saving" ? "Saving…" : status === "saved" ? (paused ? "Saved" : "Draft saved") : status === "error" ? "Error saving" : "All changes save automatically";
   return (
     <span className="lv-save" data-status={status} role="status" aria-live="polite" title={error ?? undefined} data-testid="save-state">
       <span className="lv-save-dot" aria-hidden="true" />
@@ -148,7 +156,7 @@ export function StudioView({ campaignId, backTo, crumb, resultsTo, hubId, hubNam
   if (detail.error && !d) return <Notice tone="error">{describeError(detail.error)}</Notice>;
   if (!d) return null;
 
-  const draft = d.campaign.status === "draft";
+  const { draft, meaning } = editRules(d);
   const bySection = (s: StudioSection) => issues.filter((i) => i.section === s).length;
 
   return (
@@ -184,7 +192,7 @@ export function StudioView({ campaignId, backTo, crumb, resultsTo, hubId, hubNam
         {/* forceMount: the workbench stays mounted (hidden) on other tabs, so a new question that is not saved yet
             (for example while its options are still invalid) is not lost by switching sections. */}
         <TabsContent value="questions" forceMount className="data-[state=inactive]:hidden">
-          <QuestionWorkbench d={d} locked={!draft} limit={null} save={save} reload={detail.reload} initialKind={startKind && KIND_KEYS.includes(startKind) ? (startKind as QuestionKind) : undefined} />
+          <QuestionWorkbench d={d} locked={!meaning} limit={null} save={save} reload={detail.reload} initialKind={startKind && KIND_KEYS.includes(startKind) ? (startKind as QuestionKind) : undefined} />
         </TabsContent>
         <TabsContent value="audience">
           <div className="lv-sections-2">
@@ -240,7 +248,7 @@ export function StudioHeader({
       <div className="lv-studio-title">
         <span className="lv-row-sub">{crumb}</span>
         <h1 data-testid="studio-title">{title || "Untitled"}</h1>
-        <div className="ui-row"><PhaseBadge phase={phase} />{d.campaign.status === "draft" && <SaveIndicator status={save.status} error={save.error} />}</div>
+        <div className="ui-row"><PhaseBadge phase={phase} />{editRules(d).edit && <SaveIndicator status={save.status} error={save.error} paused={d.campaign.status === "paused"} />}</div>
       </div>
       <div className="lv-studio-actions">
         <PreviewButton d={d} title={title} />
@@ -417,7 +425,7 @@ const MODES: { key: CampaignMode; label: string; body: string }[] = [
 
 function DetailsSection({ d, title, setTitle, save, reload }: { d: CampaignDetailData; title: string; setTitle: (t: string) => void; save: SaveTracker; reload: () => void }) {
   const { api } = useIdentity();
-  const draft = d.campaign.status === "draft";
+  const { draft, paused, edit, meaning } = editRules(d);
   const timer = useRef<number | null>(null);
   function onTitle(v: string) {
     setTitle(v);
@@ -431,16 +439,19 @@ function DetailsSection({ d, title, setTitle, save, reload }: { d: CampaignDetai
   return (
     <Card>
       <h2 className="lv-share-h">Details</h2>
-      {!draft && <Notice>Published details can’t change. Each published version stays exactly as respondents saw it.</Notice>}
-      <Field label="Title" htmlFor="studio-title-input" counter={{ value: title.length, max: 120 }} error={draft && !title.trim() ? "Add a title." : undefined}>
-        <Input id="studio-title-input" value={title} maxLength={120} disabled={!draft} onChange={(e) => onTitle(e.target.value)} aria-describedby="studio-title-input-help" />
+      {paused && <Notice>{meaning
+        ? "Paused: you can edit everything here. Changes apply when you resume. Mode, anonymity and questions lock once the first answer comes in."
+        : "Paused: you can edit the title, description and schedule. Mode, anonymity and questions are locked because people have already answered; changing them would change what those answers mean."}</Notice>}
+      {!draft && !paused && <Notice>Published details can’t change. Each published version stays exactly as respondents saw it.</Notice>}
+      <Field label="Title" htmlFor="studio-title-input" counter={{ value: title.length, max: 120 }} error={edit && !title.trim() ? "Add a title." : undefined}>
+        <Input id="studio-title-input" value={title} maxLength={120} disabled={!edit} onChange={(e) => onTitle(e.target.value)} aria-describedby="studio-title-input-help" />
       </Field>
       <DescriptionField d={d} save={save} reload={reload} />
       <fieldset className="lv-fieldset">
         <legend className="lv-legend">Mode</legend>
         <RadioGroup
           value={d.campaign.mode}
-          disabled={!draft}
+          disabled={!meaning}
           aria-label="Mode"
           className="ui-grid-2"
           onValueChange={async (v) => { const r = await save.run(api.campaignUpdate(d.campaign.campaign_id, { mode: v as CampaignMode })); if (r.ok) reload(); }}
@@ -528,7 +539,7 @@ function WhoCanParticipate({ hubName, d, save, reload }: { hubName: string; d: C
 
 export function IdentityGroup({ d, save, reload }: { d: CampaignDetailData; save: SaveTracker; reload: () => void }) {
   const { api } = useIdentity();
-  const draft = d.campaign.status === "draft";
+  const { draft, paused, meaning } = editRules(d);
   // Optimistic: show the choice at once; roll back if the server refuses.
   const [value, setValue] = useState<Anonymity>(d.campaign.anonymity);
   useEffect(() => setValue(d.campaign.anonymity), [d.campaign.anonymity]);
@@ -537,7 +548,7 @@ export function IdentityGroup({ d, save, reload }: { d: CampaignDetailData; save
       <h2 className="lv-share-h" id="identity-h">How are responses recorded?</h2>
       <RadioGroup
         value={value}
-        disabled={!draft}
+        disabled={!meaning}
         aria-labelledby="identity-h"
         className="ui-grid-2"
         onValueChange={async (v) => {
@@ -556,7 +567,7 @@ export function IdentityGroup({ d, save, reload }: { d: CampaignDetailData; save
         />
         <RadioCard value="identified" title="Identified" description="You can see who answered and what they said. People are told before they start." />
       </RadioGroup>
-      <p className="ui-help lv-m0">{draft ? "You can change this until you publish." : "Locked: respondents were promised this when they answered."}</p>
+      <p className="ui-help lv-m0">{draft ? "You can change this until you publish." : paused && meaning ? "You can change this while paused, until the first answer comes in." : "Locked: respondents were promised this when they answered."}</p>
     </Card>
   );
 }
@@ -603,7 +614,7 @@ function ScheduleSection({
   entitlement: React.ReactNode;
 }) {
   const { api } = useIdentity();
-  const draft = d.campaign.status === "draft";
+  const { edit } = editRules(d);
   const issues = readiness({ title: "x", questions: [{ kind: "rating", prompt: "x", config: {} }], start: schedule.start, end: schedule.end });
 
   // Save a valid window to the draft. The backend can only clear both ends at once, so clearing one end clears
@@ -611,7 +622,7 @@ function ScheduleSection({
   async function persist(next: ScheduleState) {
     setSchedule(next);
     const bad = readiness({ title: "x", questions: [{ kind: "rating", prompt: "x", config: {} }], start: next.start, end: next.end });
-    if (bad.length || !draft) return;
+    if (bad.length || !edit) return;
     const opens = next.start.mode === "at" ? next.start.at : null;
     const closes = next.end.mode === "at" ? next.end.at : null;
     const id = d.campaign.campaign_id;
@@ -631,33 +642,33 @@ function ScheduleSection({
     <div className="lv-sections-2">
       <Card data-testid="schedule">
         <h2 className="lv-share-h">When does it run?</h2>
-        {!draft && <Notice>Published: the window is part of the published version. Pause or close it from the top.</Notice>}
+        {!edit && <Notice>Published: the window is part of the published version. Pause it from the top to change it.</Notice>}
         <Field label="Start">
           <Segmented<"now" | "at">
             label="Start"
             value={schedule.start.mode}
-            disabled={!draft}
+            disabled={!edit}
             onValueChange={(m) => void persist({ ...schedule, start: m === "now" ? { mode: "now" } : { mode: "at", at: startAt } })}
             options={[{ value: "now", label: "Immediately" }, { value: "at", label: "Scheduled" }]}
           />
         </Field>
         {schedule.start.mode === "at" && (
           <Field label="Start time" htmlFor="sched-start" error={err("start")}>
-            <Input id="sched-start" type="datetime-local" disabled={!draft} value={toLocal(startAt)} onChange={(e) => void persist({ ...schedule, start: { mode: "at", at: fromLocal(e.target.value) } })} aria-describedby="sched-start-help" />
+            <Input id="sched-start" type="datetime-local" disabled={!edit} value={toLocal(startAt)} onChange={(e) => void persist({ ...schedule, start: { mode: "at", at: fromLocal(e.target.value) } })} aria-describedby="sched-start-help" />
           </Field>
         )}
         <Field label="End">
           <Segmented<"none" | "at">
             label="End"
             value={schedule.end.mode}
-            disabled={!draft}
+            disabled={!edit}
             onValueChange={(m) => void persist({ ...schedule, end: m === "none" ? { mode: "none" } : { mode: "at", at: endAt } })}
             options={[{ value: "none", label: "No end" }, { value: "at", label: "Scheduled" }]}
           />
         </Field>
         {schedule.end.mode === "at" && (
           <Field label="End time" htmlFor="sched-end" error={err("end") ?? err("window") ?? err("end-past")}>
-            <Input id="sched-end" type="datetime-local" disabled={!draft} value={toLocal(endAt)} onChange={(e) => void persist({ ...schedule, end: { mode: "at", at: fromLocal(e.target.value) } })} aria-describedby="sched-end-help" aria-invalid={Boolean(err("window") ?? err("end-past")) || undefined} />
+            <Input id="sched-end" type="datetime-local" disabled={!edit} value={toLocal(endAt)} onChange={(e) => void persist({ ...schedule, end: { mode: "at", at: fromLocal(e.target.value) } })} aria-describedby="sched-end-help" aria-invalid={Boolean(err("window") ?? err("end-past")) || undefined} />
           </Field>
         )}
         <p className="ui-help lv-m0">{schedule.end.mode === "none" ? "With no end, it runs until you close it." : "It stops taking answers at the end time."} A scheduled Campaign holds its slot from the moment it’s published.</p>
@@ -874,7 +885,7 @@ export function audienceLabel(d: CampaignDetailData, hubName: string): string {
 /** Description (000018): optional, up to 2000 characters, autosaved in the draft like the title. */
 export function DescriptionField({ d, save, reload }: { d: CampaignDetailData; save: SaveTracker; reload: () => void }) {
   const { api } = useIdentity();
-  const draft = d.campaign.status === "draft";
+  const { edit } = editRules(d);
   const [value, setValue] = useState(d.campaign.description ?? "");
   const timer = useRef<number | null>(null);
   const latest = useRef(value);
@@ -891,7 +902,7 @@ export function DescriptionField({ d, save, reload }: { d: CampaignDetailData; s
   }
   return (
     <Field label="Description" htmlFor="studio-description" counter={{ value: value.length, max: 2000 }} help="Optional. Respondents see it before they start.">
-      <Textarea id="studio-description" value={value} maxLength={2000} disabled={!draft} onChange={(e) => onChange(e.target.value)} aria-describedby="studio-description-help" data-testid="studio-description" />
+      <Textarea id="studio-description" value={value} maxLength={2000} disabled={!edit} onChange={(e) => onChange(e.target.value)} aria-describedby="studio-description-help" data-testid="studio-description" />
     </Field>
   );
 }

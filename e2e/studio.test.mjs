@@ -191,6 +191,52 @@ test("Review: exact checklist; Publish disabled while invalid, enabled when vali
   await ctx.close();
 });
 
+test("Paused: the title, description and schedule stay editable; mode, anonymity and questions lock at the first answer", async () => {
+  const { page, ctx } = await studio();
+  await addChoiceQuestion(page);
+  await tab(page, "Review").click();
+  await page.getByTestId("readiness").getByText("Ready to publish").waitFor();
+  await page.getByTestId("publish").click();
+  await page.getByRole("button", { name: "Pause" }).click();
+  await page.getByRole("button", { name: "Resume" }).waitFor();
+
+  // Paused with no answers yet: everything is editable.
+  await tab(page, "Details").click();
+  const title = page.locator("#studio-title-input");
+  assert.equal(await title.isDisabled(), false, "the title is editable while paused");
+  await page.getByText(/Paused: you can edit everything here/).waitFor();
+  assert.equal(await page.getByRole("radio", { name: /^Survey/ }).isDisabled(), false, "the mode is editable before any answer");
+  await title.fill("Renamed while paused");
+  await page.getByTestId("save-state").filter({ hasText: /^Saved/ }).waitFor();
+  await tab(page, "Questions").click();
+  assert.equal(await page.getByText("Published questions can’t change").count(), 0, "questions are editable before any answer");
+  await tab(page, "Audience").click();
+  assert.equal(await page.getByRole("radio", { name: /^Anonymous/ }).isDisabled(), false, "anonymity is editable before any answer");
+  await tab(page, "Schedule").click();
+  assert.equal(await page.getByTestId("schedule").getByRole("radio").first().isDisabled(), false, "the schedule is editable while paused");
+
+  // An answer arrives (injected into the dev mock's state), then the Campaign is looked at again.
+  await page.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem("lv.mock.state"));
+    const c = st.campaigns.find((x) => x.campaign_id === "cmp-seed-3");
+    c.responses.push({ receipt: "r-injected", answers: {}, at: new Date().toISOString(), guest: false });
+    localStorage.setItem("lv.mock.state", JSON.stringify(st));
+  });
+  await page.reload();
+  await page.getByRole("button", { name: "Resume" }).waitFor();
+  await tab(page, "Details").click();
+  assert.equal(await page.locator("#studio-title-input").isDisabled(), false, "the title is still editable with answers");
+  assert.equal(await page.getByRole("radio", { name: /^Survey/ }).isDisabled(), true, "the mode locks once someone has answered");
+  await page.getByText(/because people have already answered/).waitFor();
+  await tab(page, "Questions").click();
+  await page.getByText("Published questions can’t change").waitFor();
+  await tab(page, "Audience").click();
+  assert.equal(await page.getByRole("radio", { name: /^Anonymous/ }).isDisabled(), true, "anonymity locks once someone has answered");
+  await tab(page, "Schedule").click();
+  assert.equal(await page.getByTestId("schedule").getByRole("radio").first().isDisabled(), false, "the schedule is still editable with answers");
+  await ctx.close();
+});
+
 test("Preview renders the draft without submitting anything", async () => {
   const { page, ctx } = await studio();
   await addChoiceQuestion(page);

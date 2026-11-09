@@ -6,6 +6,19 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (000027, built and tested, NOT yet applied to production)
+
+- **Edit a paused survey** (founder request 2026-11-09). `supabase/migrations/000027_v2_edit_paused_campaign.sql` +
+  rollback + `supabase/tests/27_edit_paused_campaign.sql`: while a Campaign is paused its title, description and
+  schedule can always be edited; its mode, anonymity and questions can be edited only until the first answer (member or
+  guest), because changing them afterwards would change what existing answers mean or weaken the anonymity people were
+  promised. Running, closed and archived Campaigns stay immutable; nothing is deleted; the revision is not changed.
+  `lv.campaign_has_responses`, the relaxed question-freeze trigger, `lv.api_campaign_update`, and a `lv_campaign_get`
+  wrapper that adds `campaign.has_responses` for managers (the previous function moves to `lv.campaign_get_base`,
+  callable by no API role). Canonical DB suite 1222/0 with rollback rehearsal.
+- Studio: Details, the identity choice, Questions and Schedule follow `editRules` (paused = editable; locked parts say
+  why); the save indicator reads "Saved" when paused. Dev mock follows the SQL. New e2e test (fails on the old Studio).
+
 ### Fixed
 
 - Phones (Android reported) got only the number pad on the join-code boxes, so letters could not be typed: `input-otp`
