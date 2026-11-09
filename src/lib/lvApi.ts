@@ -258,6 +258,8 @@ export interface CampaignDetailData {
     question_limit?: number | null;
     /** 000018 (track A) */
     description?: string | null;
+    /** 000027 (managers only): someone has answered, so a paused Campaign's mode, anonymity and questions stay locked. */
+    has_responses?: boolean;
   };
   questions: Question[];
   has_responded: boolean;

@@ -225,7 +225,7 @@ function AccountsLookup() {
           </div>
         </Card>
       ))}
-      <p className="ui-help lv-m0">A suspended account can still sign in, read, leave and delete its data and answer Campaigns, but can't create, publish, post, comment or order. Revealing an email is recorded in the audit log.</p>
+      <p className="ui-help lv-m0">A suspended account can still sign in, read, leave Hubs and delete its data, but can't answer Campaigns, join Hubs, create, publish, post, comment or order. Revealing an email is recorded in the audit log.</p>
     </Card>
   );
 }

@@ -6,6 +6,68 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (000027, built and tested, NOT yet applied to production)
+
+- **Edit a paused survey** (founder request 2026-11-09). `supabase/migrations/000027_v2_edit_paused_campaign.sql` +
+  rollback + `supabase/tests/27_edit_paused_campaign.sql`: while a Campaign is paused its title, description and
+  schedule can always be edited; its mode, anonymity and questions can be edited only until the first answer (member or
+  guest), because changing them afterwards would change what existing answers mean or weaken the anonymity people were
+  promised. Running, closed and archived Campaigns stay immutable; nothing is deleted; the revision is not changed.
+  `lv.campaign_has_responses`, the relaxed question-freeze trigger, `lv.api_campaign_update`, and a `lv_campaign_get`
+  wrapper that adds `campaign.has_responses` for managers (the previous function moves to `lv.campaign_get_base`,
+  callable by no API role). Canonical DB suite 1222/0 with rollback rehearsal.
+- Studio: Details, the identity choice, Questions and Schedule follow `editRules` (paused = editable; locked parts say
+  why); the save indicator reads "Saved" when paused. Dev mock follows the SQL. New e2e test (fails on the old Studio).
+
+### Fixed
+
+- Phones (Android reported) got only the number pad on the join-code boxes, so letters could not be typed: `input-otp`
+  defaults to `inputMode="numeric"`. The shared `InputOTP` wrapper now sets `inputMode="text"`, capital-letter
+  autocapitalize, no autocorrect or autofill, and a Go key; the `/join` code field got the same attributes. New e2e test
+  checks the attributes and that `ab12cd` types as `AB12CD` at 390px; it fails on the old component.
+
+### Fixed
+
+- `/connect/discord`: the optional "roles" consent checkbox rendered as a stray empty box with its text underneath (a
+  wrapping `ui-row`). Both consent rows now use the one-line `lv-check-row`; a new e2e test measures that the text sits
+  beside the box at 1100px and 390px, and fails on the old markup.
+
+### Added (community guidelines, founder-approved 2026-11-08 "publish it")
+
+- `/guidelines` page (seven rules incl. respect anonymity, Hub owner duties, reporting, what we may do incl.
+  suspension, appeals by email), linked from the footer, Terms, the Create Hub step ("By creating a Hub you agree…") and
+  above every comment thread; route, SEO entry, prerender and `render.yaml` rewrite. It keeps the "legal text pending
+  review" banner until a lawyer has read it. The Builder "House rules" starter page is not built yet.
+- `supabase/migrations/000026_v2_reserve_platform_pages.sql` + rollback: reserves `guidelines`, `terms`, `privacy`,
+  `about`, `status`, `how-it-works`, `use-cases`, `whitelist` so no Hub can claim a name a platform page answers. Built,
+  not yet applied to production (needs the founder's approval, together with 000025).
+
+### Changed (000025, built and tested, NOT yet applied to production)
+
+- `supabase/migrations/000025_v2_suspended_participation.sql` + rollback: a suspended account can no longer answer
+  Campaigns or join Hubs (founder decision 2026-11-08, reversing the 000023 default). Enforced by table triggers on
+  `lv.participation` and `lv.hub_memberships` (`lv_suspended`), so the API and the Discord bot are covered. The account
+  can still sign in, read, leave Hubs, delete its Hubs and itself; nothing is deleted. Suite 23 updated and extended
+  (1197 checks, 0 failed, full rollback rehearsal). Staff notices and `/admin` copy updated. Needs the founder's
+  approval before production apply.
+- Discord bot: the Interactions Endpoint URL was accepted by Discord (founder, 2026-11-08); slash command `/lunchvoice`
+  registered via a one-time random `EMAIL_DISPATCH_SECRET` created in Supabase (value not retained).
+
+### Operations (2026-11-08, founder-approved: "merge it both you do everything")
+
+- **Production:** migrations 000023 (staff panel) and 000024 (API, webhooks, Discord) applied to `qprfonxvthmaoxfixigk`
+  one at a time from commit `81a7deb` (file hashes verified; 000023 `844b98ba…`, 000024 `d6c8b7d8…`), after a rehearsal on a
+  seeded 000022 database. Migration history versions normalized to `000023` / `000024`. Post-apply audit matched the
+  rehearsal: 139 `lv_api` functions, the same 13 callable signed out, nothing in `lv` granted to `anon`/`authenticated`,
+  RLS on every `lv` table, data unchanged (3 accounts, 3 Hubs). PR #52 merged to `main`.
+- **Edge Functions `api`, `discord`, `webhook-dispatch` deployed** (v2, `verify_jwt=false`) from single-file Deno bundles
+  with a small Node-globals shim (`Buffer`, `process`, `setImmediate`): the Management API deploy cannot take an import
+  map, and the bundled database driver needs `Buffer` (the first deploy crashed with `Buffer is not defined`). Live
+  checks: unsigned Discord request 401, `/v1` without a key 401, unknown key 401 "Invalid API key" (database reached),
+  `webhook-dispatch` without service auth 401.
+- `discord` gained a service-role-only `POST /discord/register` that bulk-registers the slash commands using the bot token
+  held in the function's secrets, so the token never leaves Supabase.
+
 ### Added (LunchVoice API, webhooks and Discord bot, 000024 — not yet applied to production)
 
 - `supabase/migrations/000024_v2_api_discord.sql` + rollback + `supabase/tests/24_api_discord.sql`: Team-only Hub

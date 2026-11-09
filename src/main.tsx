@@ -4,7 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { IdentityProvider } from "./identity/IdentityProvider";
 import { AuthCallback, RequireSignIn, Shell, SignIn } from "./pages/Public";
 import { Landing } from "./pages/Landing";
-import { About, Beta, Discover, HowItWorks, NotFoundPage, Privacy, Status, Support, Terms, UseCases } from "./pages/Marketing";
+import { About, Beta, Discover, Guidelines, HowItWorks, NotFoundPage, Privacy, Status, Support, Terms, UseCases } from "./pages/Marketing";
 import { CreateHub, Join, Me, RedeemInvite, Settings } from "./pages/Account";
 import { Pricing } from "./pages/Pricing";
 import { Waitlist } from "./pages/Waitlist";
@@ -52,6 +52,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="about" element={<About />} />
             <Route path="status" element={<Status />} />
             <Route path="terms" element={<Terms />} />
+            <Route path="guidelines" element={<Guidelines />} />
             <Route path="privacy" element={<Privacy />} />
             <Route path="support" element={<Support />} />
             <Route path="discover" element={<Discover />} />

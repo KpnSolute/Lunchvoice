@@ -14,6 +14,13 @@ function InputOTP({
       data-slot="input-otp"
       containerClassName={cn("flex items-center gap-2 has-disabled:opacity-55", containerClassName)}
       spellCheck={false}
+      // input-otp defaults to inputMode="numeric", which gives phones (Android especially) a number pad. Join codes
+      // are letters and digits, so ask for the full keyboard, in capitals, without suggestions or autofill.
+      inputMode="text"
+      autoCapitalize="characters"
+      autoCorrect="off"
+      autoComplete="off"
+      enterKeyHint="go"
       className={cn("disabled:cursor-not-allowed", className)}
       {...props}
     />

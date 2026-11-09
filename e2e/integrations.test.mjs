@@ -89,6 +89,31 @@ test("/connect/discord: sign-in first, then consent, then the link shows in Acco
   await s.ctx.close();
 });
 
+test("/connect/discord: each consent checkbox sits on the same line as its text (no stray box) at desktop and phone width", async () => {
+  for (const width of [1100, 390]) {
+    const s = await openPage(app, { width });
+    const { page } = s;
+    await s.go("/connect/discord?c=AB12CD34EF56AB12CD34");
+    await page.getByTestId("connect-discord").waitFor();
+    for (const id of ["dc-agree", "dc-roles"]) {
+      const m = await page.evaluate((id) => {
+        const box = document.getElementById(id).getBoundingClientRect();
+        const label = document.querySelector(`label[for=${id}]`);
+        const r = document.createRange();
+        r.selectNodeContents(label);
+        const rects = [...r.getClientRects()].filter((x) => x.width > 0 && x.height > 0 && x.left >= box.right - 1);
+        const first = rects.sort((p, q) => p.top - q.top)[0];
+        return { boxTop: box.top, boxBottom: box.bottom, boxRight: box.right, textLeft: first?.left ?? null, textTop: first?.top ?? null };
+      }, id);
+      assert.ok(m.textLeft !== null, `${id}: label text sits to the right of the box at ${width}px`);
+      assert.ok(m.textTop < m.boxBottom, `${id}: the text starts level with the box, not underneath it, at ${width}px`);
+    }
+    assert.equal(await noHorizontalScroll(page), true, `no horizontal scroll at ${width}px`);
+    assert.deepEqual(s.errors, []);
+    await s.ctx.close();
+  }
+});
+
 test("/connect/discord confirms a server connection, which then shows in the Discord tab", async () => {
   const s = await openPage(app);
   const { page } = s;

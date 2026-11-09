@@ -210,8 +210,12 @@ select t.put('q2', (lv_api.lv_campaign_question_add(t.id('c2'), 1, 'rating', 'Ho
 select lv_api.lv_campaign_activate(t.id('c2'));
 select t.as_kpn(5);
 select t.check('account suspend: reads still work', t.code(lv_api.lv_campaign_list(t.id('hubB'))) = 'ok' and t.code(lv_api.lv_campaign_get(t.id('c2'))) = 'ok');
-select t.check('account suspend: answering a Campaign is still allowed',
-  t.code(lv_api.lv_submit_response(t.id('c2'), format('[{"question_id":"%s","value":5}]', t.get('q2'))::jsonb)) = 'ok');
+select t.check('account suspend: answering a Campaign is refused (000025, founder decision)',
+  t.code(lv_api.lv_submit_response(t.id('c2'), format('[{"question_id":"%s","value":5}]', t.get('q2'))::jsonb)) = 'lv_suspended');
+select t.check('account suspend: joining a Hub is refused at the table (000025)',
+  t.susp(t.err_of(format($q$insert into lv.hub_memberships (hub_id, account_id, status) values (%L, %L, 'pending')$q$, t.get('hubB'), t.get('target')))));
+select t.check('account suspend: an answer row is refused at the table (000025)',
+  t.susp(t.err_of(format($q$insert into lv.participation (campaign_id, hub_id, account_id, campaign_revision) select id, hub_id, %L, 1 from lv.campaigns where id = %L$q$, t.get('target'), t.get('c2')))));
 select t.check('account suspend: leaving a Hub still works', t.code(lv_api.lv_member_leave(t.id('hub'))) = 'ok');
 select t.check('account suspend: deleting their Hub still works', t.code(lv_api.lv_hub_delete(t.id('hubB'), 'target-hub')) = 'ok');
 select t.as_kpn(2);

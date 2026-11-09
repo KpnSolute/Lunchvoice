@@ -57,6 +57,9 @@
 @media (min-width: 720px) { .lv-caps { grid-template-columns: 1fr 1fr; } }
 .lv-cap-group { display: flex; flex-direction: column; gap: 8px; }
 .lv-check-row { display: flex; align-items: center; gap: 10px; font-size: 14.5px; cursor: pointer; }
+.lv-check-row--top { align-items: flex-start; }
+.lv-check-row--top > button, .lv-check-row--top > [role="checkbox"] { flex: none; margin-top: 2px; }
+.lv-check-row > span { min-width: 0; }
 .lv-check-row code { font: 400 11px/1 var(--lv-font-mono); color: var(--lv-subtle); }
 .lv-icon-picks { display: flex; flex-wrap: wrap; gap: 6px; }
 
