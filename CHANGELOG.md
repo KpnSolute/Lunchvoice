@@ -8,6 +8,13 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Fixed
 
+- Phones (Android reported) got only the number pad on the join-code boxes, so letters could not be typed: `input-otp`
+  defaults to `inputMode="numeric"`. The shared `InputOTP` wrapper now sets `inputMode="text"`, capital-letter
+  autocapitalize, no autocorrect or autofill, and a Go key; the `/join` code field got the same attributes. New e2e test
+  checks the attributes and that `ab12cd` types as `AB12CD` at 390px; it fails on the old component.
+
+### Fixed
+
 - `/connect/discord`: the optional "roles" consent checkbox rendered as a stray empty box with its text underneath (a
   wrapping `ui-row`). Both consent rows now use the one-line `lv-check-row`; a new e2e test measures that the text sits
   beside the box at 1100px and 390px, and fails on the old markup.

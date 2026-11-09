@@ -252,3 +252,27 @@ test("Studio: the Questions panel stays mounted but is hidden on other sections"
   assert.equal(await page.getByTestId("question-workbench").isVisible(), true);
   await ctx.close();
 });
+
+/* ------------------------------------------------------------------ code inputs on phones (founder bug) */
+
+test("code inputs ask phones for the full keyboard (letters and digits), not the number pad", async () => {
+  const s = await openPage(app, { width: 390, signedIn: false });
+  const { page } = s;
+  await s.go("/");
+  const otp = page.locator('input[data-input-otp="true"]').first();
+  await otp.waitFor({ state: "attached" });
+  // The attribute that decides the on-screen keyboard. input-otp defaults to "numeric", which gave Android a number pad.
+  assert.equal(await otp.getAttribute("inputmode"), "text", "join-code boxes use the text keyboard");
+  assert.equal(await otp.getAttribute("autocapitalize"), "characters", "the keyboard opens in capitals");
+  assert.equal(await otp.getAttribute("autocomplete"), "off");
+  await otp.focus();
+  await page.keyboard.type("ab12cd");
+  assert.equal(await otp.inputValue(), "AB12CD", "letters and digits are accepted and shown in capitals");
+
+  await s.go("/join");
+  const field = page.locator("#invite-code");
+  assert.notEqual(await field.getAttribute("inputmode"), "numeric", "the /join field is not a number pad");
+  assert.equal(await field.getAttribute("autocapitalize"), "characters");
+  assert.deepEqual(s.errors, []);
+  await s.ctx.close();
+});

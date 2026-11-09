@@ -363,7 +363,7 @@ export function Join() {
       <Card>
         <form className="lv-stack-16" onSubmit={(e) => { e.preventDefault(); if (clean) nav(isSurvey ? `/c/${clean}` : `/j/${encodeURIComponent(clean)}`); }}>
           <Field label="Code" htmlFor="invite-code" help={clean ? (isSurvey ? "Opens a survey. No account needed for public surveys." : "Opens a Hub invitation.") : undefined}>
-            <Input id="invite-code" className="lv-code-input" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="482913 or ABCD-2345" autoComplete="off" autoCapitalize="characters" spellCheck={false} aria-describedby="invite-code-help" />
+            <Input id="invite-code" className="lv-code-input" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="482913 or ABCD-2345" inputMode="text" autoComplete="off" autoCapitalize="characters" autoCorrect="off" enterKeyHint="go" spellCheck={false} aria-describedby="invite-code-help" />
           </Field>
           <div className="ui-row"><Button type="submit" variant="primary" disabled={!clean}>Continue <Icon name="arrow" size={16} /></Button></div>
         </form>
