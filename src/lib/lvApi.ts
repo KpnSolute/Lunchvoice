@@ -240,6 +240,19 @@ export interface Question {
   config: QuestionConfig;
 }
 
+export type GuestNamesMode = "off" | "optional" | "required";
+
+/** One person's answer in the Responses view (identified Campaigns only, 000028). */
+export interface ResponseRow {
+  response_id: string;
+  kind: "member" | "guest";
+  /** false for guests: their name is typed by them and never verified. */
+  verified: boolean;
+  name: string | null;
+  at: string;
+  answers: { question_id: string; prompt: string; kind: string; value: unknown }[];
+}
+
 export interface CampaignDetailData {
   campaign: {
     campaign_id: string;
@@ -258,6 +271,8 @@ export interface CampaignDetailData {
     question_limit?: number | null;
     /** 000018 (track A) */
     description?: string | null;
+    /** 000028: whether guests are asked for a name (identified Campaigns only). Managers and the guest view get it. */
+    guest_names?: GuestNamesMode;
     /** 000027 (managers only): someone has answered, so a paused Campaign's mode, anonymity and questions stay locked. */
     has_responses?: boolean;
   };
@@ -517,8 +532,13 @@ export function createLvApi(transport: LvTransport) {
           join_code: r.join_code ?? joinCode,
         } as LvResult<CampaignDetailData>;
       }),
-    guestSubmit: (joinCode: string, guestKey: string, answers: Answer[]) =>
-      call<SubmitReceipt>("lv_guest_submit", { p_join_code: joinCode, p_guest_key: guestKey, p_answers: answers }),
+    // 000028: always the four-argument call; the name is null unless the creator asked for one.
+    guestSubmit: (joinCode: string, guestKey: string, answers: Answer[], guestName: string | null = null) =>
+      call<SubmitReceipt>("lv_guest_submit", { p_join_code: joinCode, p_guest_key: guestKey, p_answers: answers, p_guest_name: guestName }),
+    campaignSetGuestNames: (campaign: string, mode: GuestNamesMode) =>
+      call<{ guest_names: GuestNamesMode }>("lv_campaign_set_guest_names", { p_campaign: campaign, p_mode: mode }),
+    campaignResponses: (campaign: string, limit = 50, before: string | null = null) =>
+      call<{ responses: ResponseRow[]; total: number }>("lv_campaign_responses", { p_campaign: campaign, p_limit: limit, p_before: before }),
 
     /* ---- analytics ---- */
     analytics: (campaign: string, metric: "participant_count" | "answer_distribution", question?: string) =>

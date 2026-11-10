@@ -6,6 +6,28 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (000028, built and tested, NOT yet applied to production)
+
+- **Guest names for identified surveys** (founder request 2026-11-10, "like Kahoot") and a **Responses** view.
+  `supabase/migrations/000028_v2_guest_names.sql` + rollback + `supabase/tests/28_guest_names.sql`: a per-Campaign setting
+  (off, optional, required) for identified Campaigns with guest responses on; the guest's name is typed by them, cleaned,
+  at most 40 characters, never verified, and shown as "Guest, unverified". Privacy rules enforced in the database: no name
+  can be stored with an anonymous answer, names cannot be turned on for an anonymous Campaign, and a Campaign with names
+  on cannot be switched to anonymous; names change only in a draft or while paused before the first answer. New
+  `lv_campaign_set_guest_names`, four-argument `lv_guest_submit`, `lv_campaign_responses` (identified only, needs
+  `analytics.read`, first page audited), and `guest_names` on `lv_guest_campaign_get` / `lv_campaign_get`. The anon
+  allow-list test now expects the second `lv_guest_submit` signature. Canonical DB suite 1255/0 with rollback rehearsal.
+- UI: the Guests card in Studio and Quick Surveys offers "Ask guests for a name"; the Identity card disables Anonymous while
+  names are on and says why; the respondent player shows a name field before Start (required blocks Start); the thank-you
+  line uses it; Results gets a Responses list for identified surveys. Dev mock follows the SQL; privacy text updated.
+
+### Operations (2026-11-10)
+
+- Search Console: `https://lunchvoice.com/sitemap.xml` showed "Sitemap is HTML" (last downloaded Nov 8 07:11 UTC, before the
+  SEO deploy and the Render route fix, when the catch-all returned the app page). The sitemap now serves `application/xml`
+  with 11 URLs on every address variant (checked as Googlebot) and was resubmitted for `sc-domain:lunchvoice.com`
+  (2026-11-10 01:59 UTC, pending); the old error clears when Google next downloads it.
+
 ### Fixed
 
 - Staff panel, Waitlist tab: the "Show email" buttons were indented from the Contact column (the quiet button's own

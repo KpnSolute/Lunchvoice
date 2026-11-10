@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
-import type { Answer } from "../lib/lvApi";
+import type { Answer, GuestNamesMode } from "../lib/lvApi";
 import { Loading, campaignPhase, LinkButton } from "../components/ui";
 import { Button } from "@/components/shadcn/button";
+import { Input } from "@/components/shadcn/input";
 import { ReportSurvey } from "./ReportSurvey";
 import { Icon } from "../components/Icon";
 import { describeError } from "../lib/errors";
@@ -42,10 +43,17 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   // Direction of the last move, so the question stage slides the right way (Back slides from the left).
   const [dir, setDir] = useState<"fwd" | "back">("fwd");
   const draftKey = `lv-draft-${guest?.joinCode ?? campaignId}`;
+  // 000028: an identified survey may ask guests for a name (optional or required). Kept on this device between visits.
+  const nameKey = `lv-guest-name-${guest?.joinCode ?? campaignId}`;
+  const [guestName, setGuestName] = useState<string>(() => { try { return localStorage.getItem(nameKey) ?? ""; } catch { return ""; } });
+  useEffect(() => { try { localStorage.setItem(nameKey, guestName); } catch { /* ignore */ } }, [guestName, nameKey]);
 
   const d = detail.data;
   const questions = d?.questions ?? [];
   const q = questions[step];
+  const namesMode: GuestNamesMode = guest && d?.campaign.anonymity === "identified" ? (d.campaign.guest_names ?? "off") : "off";
+  const cleanName = guestName.replace(/\s+/g, " ").trim();
+  const nameMissing = namesMode === "required" && !cleanName;
 
   useEffect(() => {
     const on = () => setOffline(false);
@@ -72,7 +80,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
     setBusy(true);
     setError(null);
     const payload: Answer[] = questions.map((qq) => ({ question_id: qq.question_id, value: answers[qq.question_id] ?? null }));
-    const r = guest ? await api.guestSubmit(guest.joinCode, guest.guestKey, payload) : await api.submit(campaignId, payload);
+    const r = guest ? await api.guestSubmit(guest.joinCode, guest.guestKey, payload, namesMode === "off" ? null : cleanName || null) : await api.submit(campaignId, payload);
     setBusy(false);
     if (r.ok) {
       setReceipt({ id: r.receipt_id, duplicate: r.duplicate });
@@ -126,7 +134,9 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
             ? "You had already answered, so we kept your original response and didn't store a second one."
             : d.campaign.anonymity === "anonymous"
               ? "Your answers went in anonymously. The creator sees totals, never names."
-              : "Your answers were recorded. The creator can see who answered."}
+              : guest && cleanName && namesMode !== "off"
+                ? `Your answers were recorded under the name “${cleanName}”. The creator can see them.`
+                : "Your answers were recorded. The creator can see who answered."}
         </p>
         {(receipt?.id || d.receipt_id) && <p className="lv-thanks-receipt">Receipt {receipt?.id ?? d.receipt_id}</p>}
         <LinkButton to="/" variant="secondary" className="lv-thanks-done">Done</LinkButton>
@@ -164,7 +174,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   const anyOptional = questions.some((_, i) => optional(i));
   const missing = questions.map((_, i) => i).filter((i) => !optional(i) && !answered(i));
   const privacyPromise = guest
-    ? { title: "No account needed", body: anonymous ? "Guests answer without signing in. Your answers aren’t linked to you, and guests never count as members." : "Guests answer without signing in. The creator can see the answers you give, and guests never count as members." }
+    ? { title: "No account needed", body: anonymous ? "Guests answer without signing in. Your answers aren’t linked to you, and guests never count as members." : `Guests answer without signing in. The creator can see the answers you give${namesMode !== "off" ? " and the name you type" : ""}, and guests never count as members.` }
     : anonymous
       ? { title: "Anonymous", body: "Your answers are never linked to your name; you sign in only so we can count you once." }
       : { title: "Not anonymous", body: "The creator can see who answered and what they said." };
@@ -177,11 +187,20 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
           <h1 className="lv-player-title">{d.campaign.title}</h1>
           <div className="lv-player-hero-foot">
             <span className="lv-row-sub" style={{ color: "inherit", opacity: 0.8 }}>{total} {total === 1 ? "question" : "questions"} · ~{minutes} min</span>
-            <Button variant="primary" onClick={() => { setDir("fwd"); setStep(0); setView("question"); }} disabled={total === 0} data-testid="player-start">
+            <Button variant="primary" onClick={() => { setDir("fwd"); setStep(0); setView("question"); }} disabled={total === 0 || nameMissing} data-testid="player-start">
               Start <Icon name="arrow" size={16} />
             </Button>
           </div>
         </div>
+        {namesMode !== "off" && (
+          <div className="lv-guest-name lv-enter" style={{ "--i": 1 } as React.CSSProperties} data-testid="guest-name">
+            <label htmlFor="guest-name-input" className="lv-guest-name-label">
+              Your name {namesMode === "optional" && <span className="lv-row-sub">(optional)</span>}
+            </label>
+            <Input id="guest-name-input" value={guestName} maxLength={40} autoComplete="nickname" placeholder="First name or a nickname" onChange={(e) => setGuestName(e.target.value)} aria-describedby="guest-name-help" />
+            <p id="guest-name-help" className="lv-row-sub lv-m0">{namesMode === "required" ? "The creator needs a name to see who answered. " : "The creator sees this next to your answers. "}It isn’t verified.</p>
+          </div>
+        )}
         <ul className="lv-promises">
           <li className="lv-enter" style={{ "--i": 1 } as React.CSSProperties}><span><Icon name="lock" size={18} /></span><div><strong>{privacyPromise.title}</strong><p>{privacyPromise.body}</p></div></li>
           <li className="lv-enter" style={{ "--i": 2 } as React.CSSProperties}><span><Icon name="check" size={18} /></span><div><strong>{anyOptional ? "Some questions are optional" : "Every question needs an answer"}</strong><p>{anyOptional ? "Optional questions are marked. Answer the rest to submit." : "You can go back and change answers before you submit."}</p></div></li>

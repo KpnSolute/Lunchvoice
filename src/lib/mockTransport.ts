@@ -51,7 +51,7 @@ const PALETTE = ACCENTS;
 const CORE_KINDS = ["rating", "single_choice", "multi_choice", "yes_no", "text"];
 
 type Q = { question_id: string; position: number; kind: string; prompt: string; config: object };
-type Resp = { receipt: string; answers: { question_id: string; value: unknown }[]; at: string; guest: boolean };
+type Resp = { receipt: string; answers: { question_id: string; value: unknown }[]; at: string; guest: boolean; name?: string | null };
 type C = {
   campaign_id: string; hub_id: string; title: string; mode: string; anonymity: string; status: string; created_at: string;
   join_code: string; questions: Q[]; responses: Resp[]; opens_at: string | null; closes_at: string | null;
@@ -642,6 +642,8 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (a.p_mode != null) c.mode = String(a.p_mode);
       if (a.p_anonymity === "anonymous" && (c as { audience_scope?: string }).audience_scope === "roles") // 000022 (FB-01)
         return err("lv_not_available", "Choosing participants by role is only for identified Campaigns. An anonymous Campaign goes to all members, so no answer can be traced to one person.");
+      if (a.p_anonymity === "anonymous" && ((c as CA).guest_names ?? "off") !== "off") // 000028
+        return err("lv_not_available", "Guest names are only for identified Campaigns. Turn names off first, or keep the Campaign identified, so no typed name can be linked to an anonymous answer.");
       if (a.p_anonymity != null) c.anonymity = String(a.p_anonymity);
       c.opens_at = opens;
       c.closes_at = closes;
@@ -915,7 +917,7 @@ function texts(c: C, questionId: string): string[] | null {
 // handler: pre-checks and the new operations here, the unchanged behaviour in `handle`.
 // Dev helper: localStorage["lv.mock.family"] = "team" runs every community Hub on the Team family.
 
-type CA = C & { description?: string | null; audience_scope?: "all_members" | "roles"; audience_roles?: string[]; link_token?: string };
+type CA = C & { description?: string | null; audience_scope?: "all_members" | "roles"; audience_roles?: string[]; link_token?: string; guest_names?: "off" | "optional" | "required" };
 type Offer = { offer_id: string; hub_id: string; membership_id: string; created_at: string; expires_at: string; state: string };
 
 const hex = (bytes: number) => Array.from(crypto.getRandomValues(new Uint8Array(bytes)), (b) => b.toString(16).padStart(2, "0")).join("");
@@ -998,7 +1000,7 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
       const c = camp(a.p_campaign);
       if (!r.ok || !c) return r;
       const h = hubOf(c);
-      const out: Record<string, unknown> = { ...r, campaign: { ...r.campaign, description: c.description ?? null, ...(r.can_manage ? { has_responses: c.responses.length > 0 } : {}) } };
+      const out: Record<string, unknown> = { ...r, campaign: { ...r.campaign, description: c.description ?? null, ...(r.can_manage ? { has_responses: c.responses.length > 0, guest_names: c.guest_names ?? "off" } : {}) } };
       if (r.can_manage) {
         out.link_token = c.link_token;
         out.audience = audience(c, h?.kind === "community");
@@ -1059,10 +1061,57 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
     case "lv_guest_submit": {
       const viaToken = byToken(a.p_join_code);
       const code = viaToken ? viaToken.join_code : a.p_join_code;
-      const r = handle(s, fn, { ...a, p_join_code: code }, authed) as { ok: boolean; campaign?: Record<string, unknown> };
-      if (!r.ok || fn === "lv_guest_submit") return r;
-      const c = (s.campaigns as CA[]).find((x) => x.join_code === String(code).toUpperCase());
-      return { ...r, join_code: c?.join_code, campaign: { ...r.campaign, description: c?.description ?? null } };
+      const cc = (s.campaigns as CA[]).find((x) => x.join_code === String(code).toUpperCase());
+      // 000028: a guest's optional name (identified Campaigns only, creator's choice).
+      let name: string | null = null;
+      if (fn === "lv_guest_submit") {
+        const mode = cc && cc.anonymity === "identified" ? cc.guest_names ?? "off" : "off";
+        name = String(a.p_guest_name ?? "").replace(/[\u0000-\u001f\u007f]/g, "").trim() || null;
+        if (name && name.length > 40) return err("lv_invalid_input", "Keep the name to 40 characters.");
+        if (mode === "off") name = null;
+        if (mode === "required" && !name) return err("lv_invalid_input", "Add your name so the creator knows who answered.");
+      }
+      const r = handle(s, fn, { ...a, p_join_code: code }, authed) as { ok: boolean; duplicate?: boolean; campaign?: Record<string, unknown> };
+      if (fn === "lv_guest_submit") {
+        if (r.ok && !r.duplicate && cc && name) cc.responses[cc.responses.length - 1].name = name;
+        return r;
+      }
+      if (!r.ok) return r;
+      const c = cc;
+      return { ...r, join_code: c?.join_code, campaign: { ...r.campaign, description: c?.description ?? null, guest_names: c && c.anonymity === "identified" ? c.guest_names ?? "off" : "off" } };
+    }
+    case "lv_campaign_set_guest_names": {
+      const c = camp(a.p_campaign);
+      if (!c) return err("lv_not_found", "Campaign not found");
+      const g = handle(s, "lv_campaign_get", { p_campaign: a.p_campaign }, authed) as { ok: boolean; can_manage?: boolean };
+      if (!g.ok || !g.can_manage) return err("lv_forbidden", "You can't manage this Campaign.");
+      if (!["off", "optional", "required"].includes(String(a.p_mode))) return err("lv_invalid_input", "Names are off, optional or required.");
+      if (!(c.status === "draft" || (c.status === "paused" && c.responses.length === 0))) return err("lv_locked", "Guest names can change in a draft, or while paused before anyone has answered.");
+      if (a.p_mode !== "off") {
+        if (c.anonymity !== "identified") return err("lv_not_available", "Guest names are only for identified Campaigns. An anonymous Campaign never stores a name.");
+        if (c.audience !== "members_and_guests") return err("lv_not_available", "Turn on guest responses first; names are only asked of guests.");
+      }
+      c.guest_names = a.p_mode as CA["guest_names"];
+      return { ok: true, guest_names: c.guest_names };
+    }
+    case "lv_campaign_responses": {
+      const c = camp(a.p_campaign);
+      if (!c || c.status === "draft") return err("lv_not_found", "Campaign not found");
+      const g = handle(s, "lv_campaign_get", { p_campaign: a.p_campaign }, authed) as { ok: boolean; can_manage?: boolean };
+      if (!g.ok || !g.can_manage) return err("lv_forbidden", "Reading responses requires analytics.read.");
+      if (c.anonymity !== "identified") return err("lv_not_available", "Individual responses exist only for identified Campaigns. An anonymous Campaign only ever shows totals.");
+      const limit = Math.min(Math.max(Number(a.p_limit ?? 50), 1), 100);
+      const before = a.p_before ? new Date(String(a.p_before)).getTime() : Infinity;
+      const rows = [...c.responses].map((r, i) => ({ r, i })).filter(({ r }) => new Date(r.at).getTime() < before).sort((x, y) => new Date(y.r.at).getTime() - new Date(x.r.at).getTime() || y.i - x.i).slice(0, limit);
+      return {
+        ok: true,
+        total: c.responses.length,
+        responses: rows.map(({ r, i }) => ({
+          response_id: `resp-${c.campaign_id}-${i}`, kind: r.guest ? "guest" : "member", verified: !r.guest,
+          name: r.guest ? r.name ?? null : r.name ?? `Member ${i + 1}`, at: r.at,
+          answers: r.answers.map((an) => { const q = c.questions.find((x) => x.question_id === an.question_id); return { question_id: an.question_id, prompt: q?.prompt ?? "", kind: q?.kind ?? "text", value: an.value }; }),
+        })),
+      };
     }
     case "lv_campaign_invite_create": {
       const r = base() as { ok: boolean; invite?: { token: string } };

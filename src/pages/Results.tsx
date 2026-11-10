@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { CountUp } from "../ui/motion";
 import { useLv } from "../lib/useLv";
 import { describeError } from "../lib/errors";
-import type { AnalyticsResult, ExportRow, LvError, Question } from "../lib/lvApi";
+import type { AnalyticsResult, ExportRow, LvError, Question, ResponseRow } from "../lib/lvApi";
+import { summarize } from "../ui/QuestionControls";
 import { Icon } from "../components/Icon";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
@@ -71,6 +72,8 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
         ) : null}
       </Card>
 
+      {detail.data?.campaign.anonymity === "identified" && <ResponsesCard campaignId={campaignId} questions={questions} />}
+
       <div className="ui-spread">
         <SectionTitle>Questions</SectionTitle>
         {exportBlocked ? (
@@ -85,6 +88,63 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
       {questions.map((q) => <QuestionResult key={q.question_id} campaignId={campaignId} q={q} />)}
       {detail.data && questions.length === 0 && <Notice>This survey has no questions yet.</Notice>}
     </div>
+  );
+}
+
+/** Who answered and what (identified Campaigns only, 000028). Guests carry the name they typed, labelled unverified. */
+function ResponsesCard({ campaignId, questions }: { campaignId: string; questions: Question[] }) {
+  const { api } = useIdentity();
+  const [rows, setRows] = useState<ResponseRow[]>([]);
+  const [total, setTotal] = useState<number | null>(null);
+  const [busy, setBusy] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const byId = new Map(questions.map((q) => [q.question_id, q]));
+  async function load(before: string | null) {
+    setBusy(true);
+    const r = await api.campaignResponses(campaignId, 20, before);
+    setBusy(false);
+    if (!r.ok) { setError(explainResultsError(r.error)); return; }
+    setError(null);
+    setTotal(r.total);
+    setRows((prev) => (before ? [...prev, ...r.responses] : r.responses));
+  }
+  useEffect(() => { void load(null); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [api, campaignId]);
+  return (
+    <Card data-testid="responses">
+      <div className="ui-spread">
+        <h3 className="lv-q-result-title">Responses</h3>
+        {total !== null && <Badge>{total} {total === 1 ? "response" : "responses"}</Badge>}
+      </div>
+      <p className="ui-help lv-m0">This survey is identified, so you can see who answered and what they said. Guests type their own name; it is never verified.</p>
+      {error && <Notice tone="error">{error}</Notice>}
+      {!error && !busy && rows.length === 0 && <p className="ui-muted lv-m0">No responses yet.</p>}
+      <ul className="lv-resp-list">
+        {rows.map((r) => (
+          <li key={r.response_id} className="lv-resp" data-testid="response-row">
+            <div className="lv-resp-head">
+              <strong>{r.name ?? (r.kind === "guest" ? "Guest (no name given)" : "Member")}</strong>
+              <Badge variant={r.verified ? "ok" : "outline"}>{r.verified ? "Member" : "Guest, unverified"}</Badge>
+              <span className="ui-muted lv-small">{new Date(r.at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+            </div>
+            <dl className="lv-resp-answers">
+              {r.answers.map((a) => {
+                const q = byId.get(a.question_id);
+                return (
+                  <div key={a.question_id}>
+                    <dt>{a.prompt}</dt>
+                    <dd>{q ? summarize(q, a.value) : String(a.value ?? "")}</dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </li>
+        ))}
+      </ul>
+      {busy && <LoadingRows rows={1} label="Loading responses" />}
+      {!busy && total !== null && rows.length < total && (
+        <Button variant="secondary" onClick={() => void load(rows[rows.length - 1]?.at ?? null)}>Show more</Button>
+      )}
+    </Card>
   );
 }
 
