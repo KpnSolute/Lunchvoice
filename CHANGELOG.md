@@ -8,6 +8,14 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Fixed
 
+- The thank-you ("Already in. Thanks.") screen inside a Hub's campaign page looked like an excerpt of a full page: the
+  embedded player kept the ink variant's `min-height: 100dvh` (it out-ranked the embedded reset), so it was exactly
+  one screen tall, off-centre and unframed. Embedded players are now a contained, rounded card aligned with the page
+  content, left-aligned, with no Done button (which left the Hub) and no "Made with" line. An e2e test checks the height,
+  rounding and alignment at 1100px and 390px, and fails on the old CSS.
+
+### Fixed
+
 - The account menu's "Contact support" entry rendered as a default browser link (blue, underlined) because only the
   menu's buttons inherit colour. It now uses `lv-menu-link` and matches the other entries in both themes; the e2e test
   compares its computed colour, size, weight and underline with "Account settings" and fails on the old markup.

@@ -223,6 +223,20 @@
    Tailwind classes in src/pages generate nothing, so this rule must live here. */
 [data-slot='tabs-content'][data-state='inactive'] { display: none; }
 .lv-player-ink { box-sizing: border-box; }
+/* The player inside a Hub page (embedded) is a contained card, not a page: no full-screen height, no page padding. It
+   must out-rank .lv-player-ink { min-height: 100dvh } above, which is why the selectors are doubled. */
+.lv-player.lv-player-embedded { min-height: 0; max-width: none; margin: 0; padding: 0; border-top: 0; }
+.lv-player.lv-player-embedded.lv-player-ink {
+  padding: clamp(22px, 4vw, 36px); border-radius: var(--lv-radius-hero); box-shadow: var(--lv-ink-shadow);
+}
+.lv-player-embedded .lv-player-body { padding-top: 0; }
+.lv-player-embedded .lv-thanks { flex: none; justify-content: flex-start; align-items: flex-start; gap: 12px; }
+.lv-player-embedded .lv-thanks-title { font-size: clamp(30px, 6vw, 44px); }
+.lv-player.lv-player-embedded .lv-player-body { max-width: none; margin: 0; width: 100%; }
+.lv-player-embedded .lv-thanks-mark { margin-bottom: 10px; }
+.lv-player-embedded .lv-thanks > * { max-width: 100%; }
+.lv-player-embedded .lv-thanks-done { display: none; } /* "Done" leaves the product; the Hub page's own navigation stays */
+.lv-player-embedded .lv-powered { display: none; }
 
 /* ---- track D: api + discord (pages are not scanned by Tailwind, see shadcn.css) ---- */
 .lv-pre { margin: 0; max-width: 100%; overflow-x: auto; border-radius: var(--lv-radius-field); background: var(--lv-well); padding: 12px; font: 400 13px/1.55 var(--lv-font-mono); white-space: pre; }
