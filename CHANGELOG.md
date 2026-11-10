@@ -6,6 +6,15 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added
+
+- The support mailbox is now linked where people get stuck, not only in the footer: a "Contact support" entry in the
+  account menu, a "Still stuck? Write to support@lunchvoice.com" line on every error screen, and the Hub and account
+  suspension notices ("To appeal, write to …"). All mailtos come from `src/config/contact.ts` (`supportMailto(subject)`
+  prefilled with where the person was); still the single public address. `lunchvoice.com` mail is handled by Microsoft
+  365 (MX `lunchvoice-com.mail.protection.outlook.com`); the founder still has to confirm the `support@` mailbox is
+  monitored. e2e: the menu link and the appeal link.
+
 ### Operations (2026-11-09, founder-approved: "approved, apply 000025, 000026 and 000027 and ship")
 
 - **Production:** migrations 000025 (suspended accounts cannot answer or join), 000026 (reserve platform page names) and

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "../components/Icon";
+import { SUPPORT_EMAIL, supportMailto } from "../config/contact";
 
 export type StateKind = "notfound" | "error" | "closed" | "scheduled" | "ineligible" | "offline" | "empty" | "loading";
 
@@ -23,6 +24,11 @@ export function StateScreen({ kind, title, detail, action }: { kind: StateKind; 
       <h1 className="lv-state-title">{title ?? c.title}</h1>
       <p className="lv-state-body">{detail ?? c.body}</p>
       {action && <div className="lv-state-action">{action}</div>}
+      {kind === "error" && (
+        <p className="lv-state-help ui-muted lv-small" data-testid="state-contact">
+          Still stuck? Write to <a href={supportMailto("Something went wrong on LunchVoice")}>{SUPPORT_EMAIL}</a>
+        </p>
+      )}
     </div>
   );
 }

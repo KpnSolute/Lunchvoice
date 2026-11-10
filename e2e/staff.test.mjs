@@ -25,6 +25,9 @@ test("staff: non-staff get the not-found page and no staff entry in the account 
   await p.getByRole("button", { name: /Account menu/ }).click();
   await p.getByRole("menuitem", { name: "Account settings" }).waitFor();
   assert.equal(await p.getByTestId("staff-menu-item").count(), 0);
+  // Everyone signed in can reach support from the account menu (the single public contact channel).
+  const contact = p.getByTestId("menu-contact-support");
+  assert.match(await contact.getAttribute("href"), /^mailto:support@lunchvoice\.com\?subject=/, "the menu links the support mailbox");
   await p.keyboard.press("Escape");
   await go("/admin");
   await p.getByRole("heading", { name: "This page isn’t here." }).waitFor();
@@ -97,6 +100,7 @@ test("staff: suspending a Hub shows the Owner the reason and the publishing lock
   await p.getByText("This Hub is suspended", { exact: true }).waitFor();
   await p.getByText(/Impersonation report/).waitFor();
   await p.getByText(/nothing new can be published/).waitFor();
+  assert.match(await p.getByRole("link", { name: "support@lunchvoice.com" }).first().getAttribute("href"), /^mailto:support@lunchvoice\.com/, "the appeal notice links the support mailbox");
   await go("/admin");
   await tab(p, "Hubs").click();
   await hubs.getByRole("textbox", { name: "Hub slug or name" }).fill("northside");
