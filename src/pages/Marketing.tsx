@@ -42,7 +42,7 @@ const LOOP: { icon: IconName; title: string; body: string }[] = [
 const FAQ: [string, string][] = [
   ["What makes an answer anonymous?", "Eligibility is checked apart from the answer. On an anonymous survey the creator sees totals and can’t link an answer to a person."],
   ["Who can see results?", "The creator of a Quick Survey, and on a Hub only people with the results permission. Membership alone doesn’t grant it."],
-  ["What about guests?", "A link survey can accept guests who answer without an account. Guests never become members, never count toward thresholds, and are labelled as unverified in results."],
+  ["What about guests?", "A link survey can accept guests who answer without an account. Guests never become members, never count toward thresholds, and are labelled as unverified in results. On an identified survey the creator may ask guests for a name; it is typed by the guest, never verified, and never asked on an anonymous survey."],
   ["Can totals ever reveal one person?", "We withhold small groups, merge hidden answers into one Withheld bucket, hide averages that could give a group away, and keep anonymous Campaigns open to all members rather than to chosen roles. One limit remains: if an anonymous Campaign runs again after exactly one new member joins, comparing the two sets of totals can hint at that person\u2019s answer. We\u2019re adding protection for that; until then, creators can see who joined in the member list."],
   ["Is every question required?", "Unless the creator marks a question optional, it needs an answer. The survey tells you before you start."],
 ];
@@ -193,7 +193,7 @@ const STORED: [string, string][] = [
   ["Your sign-in", "The verified KpnIdentity issuer and subject (your KpnSolute account, signed in with Google). This is your identity; your email is never used as one."],
   ["Profile", "Your display name, and the email address cached from your sign-in."],
   ["Waitlist contact email", "Optional. Only if you give it and agree; used for launch and account updates; deleted when you delete your account."],
-  ["Answers", "What you answer on surveys and Campaigns. On anonymous surveys the creator sees totals only and can’t link an answer to you."],
+  ["Answers", "What you answer on surveys and Campaigns. On anonymous surveys the creator sees totals only and can’t link an answer to you. On identified surveys the creator sees who answered; a guest’s name, if the survey asks for one, is what the guest typed."],
   ["Hubs and memberships", "Hubs you create or join, your roles in them, and invitations."],
   ["Community activity", "In Hubs that switch them on: posts and comments you write, reports you file, whether you opted in to the leaderboard, Hub points and shop orders. The leaderboard shows only members who opt in, and only how many of the Hub’s ended Campaigns (anonymous ones included) they took part in, never what they answered."],
   ["Payments", "If you buy a plan, Stripe handles your card and billing details. We keep your Stripe customer reference and which plan you bought, never your card number."],
@@ -226,7 +226,7 @@ export function Privacy() {
         <h2>Children</h2>
         <p>LunchVoice is not directed at children under 13, and we don’t knowingly collect their personal information. Schools and organisations use it through adult administrators.</p>
         <h2>Guests</h2>
-        <p>Guests answer link surveys without an account. They never become members, never count toward member totals or thresholds, and can’t see private Hub content. Results label guest responses as unverified.</p>
+        <p>Guests answer link surveys without an account. They never become members, never count toward member totals or thresholds, and can’t see private Hub content. Results label guest responses as unverified. On an identified survey the creator can choose to ask guests for a name (optional or required). A guest types it themselves, it is not verified, and the creator sees it next to that guest’s answers. An anonymous survey never asks for or stores a name.</p>
         <h2>On this device</h2>
       </div>
       <Card>

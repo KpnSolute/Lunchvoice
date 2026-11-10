@@ -329,6 +329,65 @@ test("Quick Survey: pause it, edit it, resume it; the questions lock once someon
   await ctx.close();
 });
 
+test("Guest names: an identified survey can ask guests for a name; the creator sees it, labelled unverified; anonymous never can", async () => {
+  const { page, go, ctx } = await openPage(app, { width: 1280 });
+  await go("/surveys/new");
+  await page.getByLabel("Title").fill("Trivia night");
+  await page.getByRole("radio", { name: /^Identified/ }).click();
+  await page.getByRole("button", { name: /Create draft/ }).click();
+  await page.getByTestId("quick-editor").waitFor();
+  await page.getByRole("textbox", { name: "Question", exact: true }).fill("Favourite team?");
+  await page.getByRole("textbox", { name: "Option 1" }).fill("Reds");
+  await page.getByRole("textbox", { name: "Option 2" }).fill("Blues");
+  await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
+
+  // The creator turns names on. Anonymous is then switched off, so a typed name can never meet an anonymous answer.
+  const names = page.getByTestId("guest-names");
+  await names.waitFor();
+  await names.getByRole("radio", { name: /^Required/ }).click();
+  await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
+  await page.getByText(/Not while guests give a name/).waitFor(); // the screen reloaded with the setting
+  assert.equal(await page.getByRole("radio", { name: /^Anonymous/ }).isDisabled(), true, "anonymous is off while guests give a name");
+
+  await page.getByTestId("publish").click();
+  const code = (await page.getByTestId("share").getByText(/^[A-Z0-9]{6}$/).first().innerText()).trim();
+
+  // A guest opens the code: the name is required before they can start.
+  await go(`/c/${code}`);
+  await page.getByTestId("guest-name").waitFor();
+  assert.equal(await page.getByTestId("player-start").isDisabled(), true, "Start waits for a required name");
+  await page.getByLabel(/Your name/).fill("  Sam  Lee ");
+  assert.equal(await page.getByTestId("player-start").isDisabled(), false);
+  await page.getByTestId("player-start").click();
+  await page.getByRole("radio", { name: /Reds/ }).click();
+  await page.getByRole("button", { name: "Review" }).click();
+  await page.getByRole("button", { name: "Submit" }).click();
+  await page.getByTestId("player-thanks").getByText(/under the name “Sam Lee”/).waitFor();
+
+  // The creator sees the guest by name, labelled unverified, with the answer.
+  await go("/surveys");
+  await page.getByText("Trivia night").first().click();
+  await page.getByRole("link", { name: /Results/ }).first().click();
+  const row = page.getByTestId("response-row").first();
+  await row.waitFor();
+  await row.getByText("Sam Lee").waitFor();
+  await row.getByText("Guest, unverified").waitFor();
+  await row.getByText("Reds").waitFor();
+  assert.deepEqual([], []);
+  await ctx.close();
+});
+
+test("Guest names: an anonymous survey offers no name and its results show totals only", async () => {
+  const { page, go, ctx } = await openPage(app, { width: 1280 });
+  await go("/surveys/new");
+  await page.getByLabel("Title").fill("Secret poll");
+  await page.getByRole("button", { name: /Create draft/ }).click();
+  await page.getByTestId("quick-editor").waitFor();
+  await page.getByTestId("guest-names").getByText(/Names are only for identified surveys/).waitFor();
+  assert.equal(await page.getByTestId("guest-names").getByRole("radio").count(), 0, "no name choices on an anonymous survey");
+  await ctx.close();
+});
+
 test("Quick Survey stays the simple flow: Title, Questions, Who can respond, Publish", async () => {
   const { page, go, ctx } = await openPage(app, { width: 1280 });
   await go("/surveys/new");

@@ -1093,3 +1093,20 @@ role removals and auto-posts.
 - Running, closed and archived Campaigns remain `lv_locked`. The audience and guest settings stay draft-only.
 
 `lv_campaign_get` (managers) adds `campaign.has_responses` (boolean).
+
+
+## Guest names and Responses (000028)
+
+- `lv_campaign_set_guest_names(p_campaign, p_mode)`: `off` (default), `optional` or `required`. Identified Campaigns only,
+  and only while guest responses are on; allowed in a draft, or while paused before the first answer (otherwise
+  `lv_locked`). On an anonymous Campaign it is `lv_not_available`. The database also refuses a name on an anonymous
+  Campaign and refuses switching a Campaign with names on to anonymous (`lv_not_available`).
+- `lv_guest_submit(p_join_code, p_guest_key, p_answers, p_guest_name)`: a new four-argument signature (callable signed out);
+  the three-argument call stays and means "no name". A name is cleaned (control characters removed, spaces collapsed),
+  at most 40 characters, ignored when names are off, `lv_invalid_input` when required and missing. Guests' names are
+  typed by them and never verified.
+- `lv_guest_campaign_get` adds `campaign.guest_names`; `lv_campaign_get` adds it for managers.
+- `lv_campaign_responses(p_campaign, p_limit default 50, p_before default null)`: who answered and what, newest first, for
+  identified Campaigns only and people with `analytics.read` (`lv_not_available` for anonymous ones). Rows:
+  `{response_id, kind: member|guest, verified, name, at, answers[{question_id, prompt, kind, value}]}`; guests are
+  `verified: false`. Opening the first page is audited as `campaign.responses_viewed`.

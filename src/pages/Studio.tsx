@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import { describeError, describeGate } from "../lib/errors";
-import type { Anonymity, CampaignDetailData, QuestionKind, CampaignInvite, CampaignMode, LvResult, Question } from "../lib/lvApi";
+import type { Anonymity, CampaignDetailData, GuestNamesMode, QuestionKind, CampaignInvite, CampaignMode, LvResult, Question } from "../lib/lvApi";
 import { readiness, type ReadinessIssue, type StudioSection } from "../lib/readiness";
 import { Icon } from "../components/Icon";
 import { campaignPhase, LinkButton } from "../components/ui";
@@ -541,6 +541,7 @@ export function IdentityGroup({ d, save, reload }: { d: CampaignDetailData; save
   const { api } = useIdentity();
   const { draft, paused, meaning } = editRules(d);
   // Optimistic: show the choice at once; roll back if the server refuses.
+  const namesOn = (d.campaign.guest_names ?? "off") !== "off";
   const [value, setValue] = useState<Anonymity>(d.campaign.anonymity);
   useEffect(() => setValue(d.campaign.anonymity), [d.campaign.anonymity]);
   return (
@@ -560,8 +561,10 @@ export function IdentityGroup({ d, save, reload }: { d: CampaignDetailData; save
         <RadioCard
           value="anonymous"
           title="Anonymous"
-          disabled={d.audience?.scope === "roles" && value !== "anonymous"}
-          description={d.audience?.scope === "roles"
+          disabled={(d.audience?.scope === "roles" || namesOn) && value !== "anonymous"}
+          description={namesOn
+            ? "Not while guests give a name: turn guest names off first, so no answer can be traced to a typed name."
+            : d.audience?.scope === "roles"
             ? "Not with specific roles: switch Who can participate back to all members first, so no answer can be traced to one person."
             : "You see totals only. Nobody, including you, can link an answer to a person. Small groups are withheld."}
         />
@@ -574,7 +577,9 @@ export function IdentityGroup({ d, save, reload }: { d: CampaignDetailData; save
 
 export function GuestsGroup({ d, save, reload }: { d: CampaignDetailData; save: SaveTracker; reload: () => void }) {
   const { api } = useIdentity();
-  const draft = d.campaign.status === "draft";
+  const { draft, meaning } = editRules(d);
+  const names: GuestNamesMode = d.campaign.guest_names ?? "off";
+  const identified = d.campaign.anonymity === "identified";
   const invite = d.campaign.access === "invite";
   const on = d.campaign.audience === "members_and_guests";
   return (
@@ -593,7 +598,30 @@ export function GuestsGroup({ d, save, reload }: { d: CampaignDetailData; save: 
       />
       {invite && <p className="ui-help lv-m0">This survey is invite only, so everyone signs in. Guests can’t respond.</p>}
       {!invite && on && <p className="ui-help lv-m0">Guests answer through the link, QR or join code. Results label their answers as unverified.</p>}
-      {!draft && <p className="ui-help lv-m0">Locked after publishing: it’s part of the published version.</p>}
+      {on && !invite && (
+        <div className="lv-stack-8" data-testid="guest-names">
+          <h3 className="lv-qw-h" id="guest-names-h">Ask guests for a name</h3>
+          {identified ? (
+            <>
+              <RadioGroup
+                value={names}
+                disabled={!meaning}
+                aria-labelledby="guest-names-h"
+                className="ui-grid-2"
+                onValueChange={async (v) => { const r = await save.run(api.campaignSetGuestNames(d.campaign.campaign_id, v as GuestNamesMode)); if (r.ok) reload(); }}
+              >
+                <RadioCard value="off" title="No name" description="Guests answer without giving one." />
+                <RadioCard value="optional" title="Optional" description="Guests may type a name, like a nickname." />
+                <RadioCard value="required" title="Required" description="Guests must type a name to answer." />
+              </RadioGroup>
+              <p className="ui-help lv-m0">Guests type their own name and it is never verified, so Responses labels it “Guest, unverified”.</p>
+            </>
+          ) : (
+            <p className="ui-help lv-m0">Names are only for identified surveys. An anonymous survey never stores who answered.</p>
+          )}
+        </div>
+      )}
+      {!draft && !(on && !invite) && <p className="ui-help lv-m0">Locked after publishing: it’s part of the published version.</p>}
     </Card>
   );
 }
