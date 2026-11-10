@@ -33,7 +33,7 @@ manager through the same onboarding as every other customer.
 | Starter Hub | $13 / month | 3 roles, 3 custom pages, 15 active Campaigns, 2 active surveys, >50% participation threshold |
 | Team Hub | $29 / month | 6 roles, expanded pages, enhanced modes, advanced targeting and analytics, 5 active surveys, ≥20% threshold, Discover eligibility at 700 active members |
 | Campaign Starter | $19 for the first 2 weeks, $13 per extra week | Starter features during the paid window |
-| Campaign Plus | no numeric price yet | Team features during the paid window. **Do not show a price; checkout stays disabled** |
+| Campaign Plus | $39 for the first 2 weeks, $19 per extra week | Team features during the paid window (founder, 2026-11-07) |
 | Hub Name Reservation ("Reserve your Hub URL") | $25 / 12 months, $25 renewal | 25-day grace, then released; grants no paid features |
 
 ## Privacy language
@@ -44,7 +44,9 @@ their own state, never as zero. Guests never become members.
 
 ## Brand personality
 
-Ink, amber and bone. Confident display type on public surfaces, restrained UI type in the
+Ink, amber and bone. The design system is `DESIGN.md`; positioning, vocabulary and voice are in
+`docs/strategy/01_PRODUCT_CORE.md` and `docs/strategy/03_BRAND_AND_MARKETING.md` (proposals until the founder adopts them).
+ Confident display type on public surfaces, restrained UI type in the
 app. No emoji as UI; custom line icons carry meaning. Playful is fine, juvenile is not.
 
 ## Anti-references

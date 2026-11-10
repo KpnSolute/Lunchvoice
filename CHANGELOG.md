@@ -6,6 +6,37 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (documentation only, 2026-11-10: chief engineer review and launch strategy; proposals, no code or production change)
+
+- `docs/strategy/00_CHIEF_ENGINEER_REVIEW.md`: audit of what is built at `5d29758` with ranked findings and the order
+  of work. Launch-critical: the guest rate limit is global per survey (10 a minute for everyone combined, behind one
+  advisory lock and two counts, `000028:69-92`); sessions last one hour with no renewal; no job schedules the email,
+  webhook and Discord outboxes or the retention sweep; no observability; public copy advertises elections, idea boards
+  and live results that do not exist; the first results screen is a locked box below 5 answers; the surface (72 tables,
+  about 140 operations) is far ahead of use (3 accounts in production).
+- `docs/strategy/01_PRODUCT_CORE.md`: core purpose, audiences, the growth loop, principles, three horizons, a single
+  user vocabulary (survey, Hub, code, plan) and pricing presentation. Prices and entitlements unchanged.
+- `docs/strategy/02_BACKEND_ARCHITECTURE.md`: ten modules with one-way dependencies over the existing `lv` / `lv_api`
+  split, kernel services (limits, flags, outbox, jobs, events, rate limits), a redesigned answering path, analytics
+  rollups on a trigger, privacy-safe counters, session renewal, and the recipe for adding a feature.
+- `docs/strategy/03_BRAND_AND_MARKETING.md`: positioning, the name and origin story, brand rules, voice, landing copy,
+  Reddit and Discord launch posts, launch kit.
+- `docs/strategy/04_ROADMAP_AND_GROWTH.md`: launch list to 2026-12-01, the path to 200,000 monthly people (about 2,500
+  active creators), the numbers to run by, cost model and scale triggers. Forecasts are labelled as forecasts.
+- `docs/user/USER_GUIDE.md`: first documentation for users (answering, accounts, Quick Surveys, Hubs, plans, privacy).
+
+### Changed (documentation)
+
+- `DESIGN.md` rewritten from the code as design system 3.0. The previous file specified Fraunces, Space Grotesk and
+  light-only OKLCH tokens and said the component library was not started; the product uses Bricolage Grotesque, Geist,
+  hex tokens in three themes and the shadcn layer. Each rule is marked as true today or as the target; it adds a type
+  scale, radius, breakpoint and layer scales, one owner per component, five signature patterns, content rules and a
+  proposed `check:design` gate. No stylesheet or component was changed.
+- `PRODUCT.md`: the Campaign Plus row said "no numeric price yet"; it now carries the canonical $39 / $19 (F-10).
+- Decisions these documents ask of the founder: the Labs switch for Shop, Points, Leaderboard, Reservation purchase and
+  API keys; showing three plan cards; guest burst limits by plan; annual plans and referral credit; redrawing the
+  wordmark, which still reads "Smart feedback. Better cafeterias."
+
 ### Changed
 
 - The single public contact address is now **admin@lunchvoice.com** (the founder confirmed this is the mailbox that exists;
