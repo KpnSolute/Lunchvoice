@@ -288,12 +288,20 @@ function StaffManager() {
 function AdminWaitlist() {
   const { api } = useIdentity();
   const list = useLv(() => api.adminWaitlist(200, 0), [api]);
+  const ov = useLv(() => api.adminOverviewV2(), [api]);
   const [opened, setOpened] = useState<Record<string, string>>({});
   if (list.loading && !list.data) return <LoadingRows rows={4} />;
   if (list.error) return <Notice tone="error">{describeError(list.error)}</Notice>;
   const entries = list.data?.entries ?? [];
   if (!entries.length) return <EmptyState title="Nobody has joined yet" />;
+  const w = ov.data?.waitlist;
   return (
+    <div className="lv-stack-16">
+      {w && (
+        <p className="ui-muted lv-m0" data-testid="waitlist-summary">
+          <strong>{w.seats_taken} of {w.seats_total}</strong> Founding seats taken · {Math.max(0, w.seats_total - w.seats_taken)} open · {w.waitlisted} waiting · {w.with_contact} left a contact email
+        </p>
+      )}
     <Table>
       <TableHeader><TableRow><TableHead>Position</TableHead><TableHead>Status</TableHead><TableHead>Joined</TableHead><TableHead>Intended Hub</TableHead><TableHead>Contact</TableHead></TableRow></TableHeader>
       <TableBody>
@@ -304,17 +312,20 @@ function AdminWaitlist() {
             <TableCell>{fmtDate(e.joined_at)}</TableCell>
             <TableCell>{e.intended_hub_name ?? "—"}</TableCell>
             <TableCell>
-              {!e.has_contact_email ? "None" : opened[e.entry_id] ? <span className="ui-mono">{opened[e.entry_id]}</span> : (
-                <Button size="sm" variant="quiet" onClick={async () => {
-                  const r = await api.adminWaitlistContact(e.entry_id);
-                  if (r.ok) setOpened((o) => ({ ...o, [e.entry_id]: r.contact_email ?? "None" })); else toast.error(describeError(r.error));
-                }}>Show email</Button>
-              )}
+              <div className="lv-wl-contact">
+                {!e.has_contact_email ? <span className="ui-muted">None</span> : opened[e.entry_id] ? <span className="ui-mono">{opened[e.entry_id]}</span> : (
+                  <Button size="sm" variant="quiet" onClick={async () => {
+                    const r = await api.adminWaitlistContact(e.entry_id);
+                    if (r.ok) setOpened((o) => ({ ...o, [e.entry_id]: r.contact_email ?? "None" })); else toast.error(describeError(r.error));
+                  }}>Show email</Button>
+                )}
+              </div>
             </TableCell>
           </TableRow>
         ))}
       </TableBody>
     </Table>
+    </div>
   );
 }
 
