@@ -27,7 +27,7 @@ test("staff: non-staff get the not-found page and no staff entry in the account 
   assert.equal(await p.getByTestId("staff-menu-item").count(), 0);
   // Everyone signed in can reach support from the account menu (the single public contact channel).
   const contact = p.getByTestId("menu-contact-support");
-  assert.match(await contact.getAttribute("href"), /^mailto:support@lunchvoice\.com\?subject=/, "the menu links the support mailbox");
+  assert.match(await contact.getAttribute("href"), /^mailto:admin@lunchvoice\.com\?subject=/, "the menu links the support mailbox");
   // It must look like the other menu entries, not like a browser link (founder screenshot: blue and underlined).
   const look = (loc) => loc.evaluate((el) => { const c = getComputedStyle(el); return { color: c.color, deco: c.textDecorationLine, size: c.fontSize, weight: c.fontWeight }; });
   const mine = await look(contact);
@@ -106,7 +106,7 @@ test("staff: suspending a Hub shows the Owner the reason and the publishing lock
   await p.getByText("This Hub is suspended", { exact: true }).waitFor();
   await p.getByText(/Impersonation report/).waitFor();
   await p.getByText(/nothing new can be published/).waitFor();
-  assert.match(await p.getByRole("link", { name: "support@lunchvoice.com" }).first().getAttribute("href"), /^mailto:support@lunchvoice\.com/, "the appeal notice links the support mailbox");
+  assert.match(await p.getByRole("link", { name: "admin@lunchvoice.com" }).first().getAttribute("href"), /^mailto:admin@lunchvoice\.com/, "the appeal notice links the support mailbox");
   await go("/admin");
   await tab(p, "Hubs").click();
   await hubs.getByRole("textbox", { name: "Hub slug or name" }).fill("northside");

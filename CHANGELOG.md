@@ -6,6 +6,15 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed
+
+- The single public contact address is now **admin@lunchvoice.com** (the founder confirmed this is the mailbox that exists;
+  `support@` was never confirmed). `src/config/contact.ts` is the one source for every mailto (footer, Support, Terms,
+  Privacy, Guidelines, account menu, error screens, suspension notices); also updated in the SEO text, the Organization
+  JSON-LD in `index.html`, the invitation-email footer template, tests and the compliance review. The deployed
+  `email-dispatch` function still carries the old footer text until it is next redeployed (it sends nothing yet: no
+  `RESEND_API_KEY`). Older changelog entries keep the old address as history.
+
 ### Operations (2026-11-10, founder-approved: "approved, apply 000028 and ship")
 
 - **Production:** migration 000028 (guest names and Responses) applied to `qprfonxvthmaoxfixigk` from commit `3e2b6f6`

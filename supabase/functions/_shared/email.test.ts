@@ -127,6 +127,6 @@ test("dispatch: only the service role key (or the dispatch secret) may run it", 
 test("FB-05: an invite email says who sent it and how to report abuse", () => {
   const r = renderEmail("hub_invite", SAMPLES.hub_invite!)!;
   assert.match(r.text, /Dana of Harbor Book Circle sent this through LunchVoice/);
-  assert.match(r.text, /report abuse, write to support@lunchvoice\.com/);
-  assert.match(r.html, /support@lunchvoice\.com/);
+  assert.match(r.text, /report abuse, write to admin@lunchvoice\.com/);
+  assert.match(r.html, /admin@lunchvoice\.com/);
 });

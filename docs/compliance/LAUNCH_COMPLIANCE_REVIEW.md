@@ -417,7 +417,7 @@ In every row the production-verification column is **pending deploy**. Fix commi
 | LC-05 | HIGH | a928b77, c1fa323, 14dd3c0 | `000014:1680-1704` (revoke from PUBLIC, per-function anon allow-list); `000015:589-601`; `000016:851-875` | `14_entitlements.sql` "grants: no lv_api function is executable by PUBLIC", "grants: anon executes exactly the signed-out allow-list", "grants: as anon, every lv_api function outside the allow-list is denied"; catalog A5b and A7 | pending deploy (runbook §2) | **CLOSED** |
 | LC-06 | HIGH | a928b77, c1fa323 | `000014:107-121` (kind, slug CHECKs, personal space always private and invite-only); `000014:332-365` `premium_guard`/`require_community`; `000014:1484-1530` wrappers; `000015:559-579`; `000014:403-413` eligibility without membership | `14_entitlements.sql` "personal: Hub-scoped operations answer lv_not_found …", "personal (LC-06): …", "link: answering never creates a membership in the personal space"; `15_hub_management.sql` "personal: update, pages, transfer and delete answer lv_not_found"; my 32-call isolation run | pending deploy | **CLOSED** |
 | LC-07 | HIGH | 6aadded | `docs/backend/PRODUCTION_RESET_RUNBOOK.md:1-130`: rewritten for the real state (000001–000013 applied); apply 000014–000016; post-apply grant audit; policy check; secrets by name; "never configure KpnIdentity as third-party auth"; Auth sign-ups disabled; `lv_api` exposed last | n/a (procedure) | pending deploy | **CLOSED** |
-| LC-08 | HIGH | 62c24e6 | `Marketing.tsx:141-245`: Terms, Privacy and Support carry what is stored, anonymity, guests, a per-key storage table, retention, deletion, processors and a contact; `LegalPending` "Legal text pending review" (`:27-29`); `Waitlist.tsx:115-127` notice and consent at collection | none (copy) | pending deploy | **ACCEPTED-for-beta.** Founder inputs outstanding: legal operator name (`Marketing.tsx:15` is a placeholder, as plan F-12 requires) and confirmation that `support@lunchvoice.com` (`src/config/contact.ts:3`) is a monitored mailbox. Both must be in place before the waitlist URL is shared. Remaining content gaps: NEW-03, NEW-04 |
+| LC-08 | HIGH | 62c24e6 | `Marketing.tsx:141-245`: Terms, Privacy and Support carry what is stored, anonymity, guests, a per-key storage table, retention, deletion, processors and a contact; `LegalPending` "Legal text pending review" (`:27-29`); `Waitlist.tsx:115-127` notice and consent at collection | none (copy) | pending deploy | **ACCEPTED-for-beta.** Founder inputs outstanding: legal operator name (`Marketing.tsx:15` is a placeholder, as plan F-12 requires) and confirmation that `admin@lunchvoice.com` (`src/config/contact.ts:3`) is a monitored mailbox. Both must be in place before the waitlist URL is shared. Remaining content gaps: NEW-03, NEW-04 |
 | LC-09 | MEDIUM | a928b77 | `000014:1654-1666` participation coarsened to the UTC day (submissions were already coarsened) | db suite (privacy files) | pending deploy | **ACCEPTED-for-beta.** Physical insertion order is still a linkage path for database operators; disclosure tracked in NEW-04 (backend / founder) |
 | LC-10 | MEDIUM | a928b77 | `000014:1636-1652` join codes from `lv.random_bytes` | "join codes come from the CSPRNG" | pending deploy | **OPEN (MEDIUM, before public beta).** There is still no separate high-entropy link token and no rate limit on `lv_guest_campaign_get` (backend) |
 | LC-11 | MEDIUM | 14dd3c0, 62c24e6 | plan F-02 accepts guests at 10/min; results labelled (`000016:338-341` `includes_guests`; `Results.tsx:62-66`) | "survey gate: a guest answer leaves the threshold unmet" | pending deploy | **ACCEPTED-for-beta** (plan F-02). Residual: the guest key still comes from `Math.random` (`Player.tsx:19`), OPEN LOW (UI) |
@@ -497,7 +497,7 @@ No BLOCKER is open. **Update:** 000017 implemented this fix at `5c665e1`, and it
 - The `billing-webhook` POST answers 503 (secret unset).
 - Real Google → KpnIdentity → LunchVoice sign-in works (plan F-13 smoke test). A fresh session can delete a test
   account; a session older than 10 minutes gets `lv_reauth_required`.
-- The legal operator name is filled in (`src/pages/Marketing.tsx:15`), and `support@lunchvoice.com` receives mail.
+- The legal operator name is filled in (`src/pages/Marketing.tsx:15`), and `admin@lunchvoice.com` receives mail.
 - The retention sweep is scheduled (runbook:174-176), or a date is recorded for scheduling it.
 
 ### 7.7 Targeted re-review at `5c665e1` (000017 `8f300b3`, UI `798b45f`)
@@ -541,7 +541,7 @@ deliberately. The founder should keep promotion codes off the Payment Links unle
 - MEDIUM: LC-10, LC-12, LC-13, LC-14.
 - LOW: LC-11 (residual), LC-30, LC-32, LC-37, NEW-05.
 - Founder inputs before the waitlist link is shared: the legal operator name, and confirmation that
-  `support@lunchvoice.com` is monitored.
+  `admin@lunchvoice.com` is monitored.
 
 ## 8. Re-review: full build (9e951ec)
 
@@ -657,7 +657,7 @@ The §8.3 attack can no longer be set up: the first step (targeting an anonymous
 | FB-02 | MEDIUM | `8f2feb0` | `src/pages/Marketing.tsx:169-172` (community activity, payments, service emails, Discover); `:215` emails kept up to 30 days; `:226-227` Stripe and Resend listed as processors | **CLOSED.** Counsel review is still F-15, and the operator name LC-08 is still pending |
 | FB-03 | LOW | – | unchanged | **ACCEPTED-for-beta** (backend: monitor `join_code_misses`) |
 | FB-04 | LOW | `8f2feb0` | `src/pages/Community.tsx:359` "…how many of this Hub’s ended Campaigns you took part in, anonymous ones included … Never your answers" | **CLOSED** |
-| FB-05 | LOW | `8f2feb0` | `supabase/functions/_shared/email/templates.ts:113-114` footer names the sender and Hub, says to ignore unexpected mail, and gives `support@lunchvoice.com` for abuse; the 30/hour cap is unchanged | **CLOSED** |
+| FB-05 | LOW | `8f2feb0` | `supabase/functions/_shared/email/templates.ts:113-114` footer names the sender and Hub, says to ignore unexpected mail, and gives `admin@lunchvoice.com` for abuse; the 30/hour cap is unchanged | **CLOSED** |
 | FB-06 | LOW | – | Differencing by admitting one member between two Hub-wide anonymous Campaigns. Unlike FB-01 it is visible (the admission is a membership event in the member list and audit), slow (each round needs a new person admitted, and removal is permanent), and limited to the newly admitted person's answer | **ACCEPTED for launch** (backend and founder). Post-launch option: freeze the eligible audience at activation, and withhold an anonymous Campaign's release while another released anonymous Campaign of the Hub differs from it by 1 to `min_cohort - 1` eligible members. Mention in the Privacy/anonymity FAQ that aggregates over groups that differ by one person can reveal that person's answer. |
 
 **Still open after 8f2feb0** (none BLOCKER or HIGH):
