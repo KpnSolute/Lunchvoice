@@ -9,7 +9,7 @@
 // Never logs tokens, codes, user ids or message bodies.
 import postgres from "postgres";
 import { dispatchAuthorized } from "../_shared/email/dispatch.ts";
-import { applyRolePlan, buildCard, COMMAND_DEFINITIONS, DISCORD_API, ephemeral, parseInteraction, replyFor, verifyDiscordRequest, type Card, type RolePlan } from "../_shared/discord.ts";
+import { applyRolePlan, BOT_PROFILE, buildCard, COMMAND_DEFINITIONS, DISCORD_API, pngDataUri, ephemeral, parseInteraction, replyFor, verifyDiscordRequest, type Card, type RolePlan } from "../_shared/discord.ts";
 
 const MAX_BODY_BYTES = 64 * 1024;
 let sql: ReturnType<typeof postgres> | null = null;
@@ -97,6 +97,34 @@ Deno.serve(async (req) => {
     return reply(res.ok ? 200 : 502, res.ok
       ? { ok: true, registered: Array.isArray(out) ? out.map((c: { name?: unknown }) => String(c.name)) : [] }
       : { ok: false, error: { code: "lv_unavailable", message: `Discord refused the registration (HTTP ${res.status}).` } });
+  }
+
+  // Service-role only: set the bot's public profile (avatar, banner, description, links) with the bot token held in this
+  // function's secrets. The images come from our own site. Reports each step's HTTP status and never echoes a secret.
+  if (new URL(req.url).pathname.endsWith("/profile")) {
+    if (!dispatchAuthorized(req.headers.get("authorization"), env)) return reply(401, { ok: false, error: { code: "lv_unauthenticated", message: "Service role only." } });
+    if (!token) return reply(503, { ok: false, error: { code: "lv_not_configured", message: "DISCORD_BOT_TOKEN is missing." } });
+    const origin = "https://lunchvoice.com";
+    const image = async (path: string) => {
+      const r = await fetch(`${origin}${path}`).catch(() => null);
+      return r?.ok ? pngDataUri(new Uint8Array(await r.arrayBuffer())) : null;
+    };
+    const [icon, banner] = await Promise.all([image(BOT_PROFILE.iconPath), image(BOT_PROFILE.bannerPath)]);
+    const patch = async (path: string, body: Record<string, unknown>) => {
+      const r = await fetch(`${DISCORD_API}${path}`, { method: "PATCH", headers: { authorization: `Bot ${token}`, "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
+      return r ? r.status : 0;
+    };
+    const steps: Record<string, number | string> = {};
+    steps.images = icon && banner ? "fetched" : `missing:${icon ? "" : "icon "}${banner ? "" : "banner"}`.trim();
+    steps.application = await patch("/applications/@me", {
+      description: BOT_PROFILE.description,
+      terms_of_service_url: `${origin}${BOT_PROFILE.termsUrl}`,
+      privacy_policy_url: `${origin}${BOT_PROFILE.privacyUrl}`,
+      ...(icon ? { icon } : {}),
+    });
+    if (icon) steps.bot_avatar = await patch("/users/@me", { avatar: icon });
+    if (banner) steps.bot_banner = await patch("/users/@me", { banner });
+    return reply(200, { ok: true, steps });
   }
 
   const publicKey = env("DISCORD_PUBLIC_KEY");

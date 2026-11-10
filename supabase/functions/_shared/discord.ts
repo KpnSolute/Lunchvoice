@@ -7,6 +7,23 @@
 // an answer click for an anonymous Campaign is refused server-side.
 
 export const DISCORD_API = "https://discord.com/api/v10";
+
+/** The bot's public profile (service-only /discord/profile). The images are fetched from our own site, never a caller's URL. */
+export const BOT_PROFILE = {
+  description:
+    "LunchVoice: anonymous surveys and polls for any community. Link your account with /lunchvoice link, post a survey with /lunchvoice post, and give members roles from LunchVoice facts with /lunchvoice setup. Anonymous means anonymous: totals only, never who answered. lunchvoice.com",
+  termsUrl: "/terms",
+  privacyUrl: "/privacy",
+  iconPath: "/brand/discord-icon.png",
+  bannerPath: "/brand/discord-banner.png",
+} as const;
+
+/** A PNG's bytes as a Discord data URI (the form its image fields take). */
+export function pngDataUri(bytes: Uint8Array): string {
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return `data:image/png;base64,${btoa(bin)}`;
+}
 export const EPHEMERAL = 1 << 6;
 export const ADMINISTRATOR = 1n << 3n;
 export const MANAGE_GUILD = 1n << 5n;

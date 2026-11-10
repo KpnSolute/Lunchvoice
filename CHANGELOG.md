@@ -6,6 +6,17 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (2026-11-10, founder-approved: "approved, apply 000028 and ship")
+
+- **Production:** migration 000028 (guest names and Responses) applied to `qprfonxvthmaoxfixigk` from commit `3e2b6f6`
+  (file hash `aa6d7cac…` verified) after a rehearsal on a seeded 000027 database; history version normalized. Post-apply
+  audit: 142 `lv_api` functions, the same signed-out list plus the second `lv_guest_submit` signature, nothing in `lv`
+  granted to `anon`/`authenticated`, RLS on every `lv` table, 2 new triggers, no Campaign has names on, data unchanged.
+- **Discord bot profile:** `discord` gained a service-only `POST /discord/profile` that sets the bot's avatar, banner,
+  description, and terms and privacy links using the token held in its own secrets (images are served from
+  `public/brand/discord-icon.png` and `discord-banner.png`; the function fetches only our own site). Helpers and tests in
+  `_shared/discord.ts`.
+
 ### Added (000028, built and tested, NOT yet applied to production)
 
 - **Guest names for identified surveys** (founder request 2026-11-10, "like Kahoot") and a **Responses** view.

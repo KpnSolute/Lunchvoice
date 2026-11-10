@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { generateKeyPairSync, sign } from "node:crypto";
 import { test } from "node:test";
-import { applyRolePlan, buildCard, COMMAND_DEFINITIONS, isServerAdmin, parseInteraction, replyFor, verifyDiscordRequest, type Card } from "./discord.ts";
+import { applyRolePlan, BOT_PROFILE, buildCard, COMMAND_DEFINITIONS, pngDataUri, isServerAdmin, parseInteraction, replyFor, verifyDiscordRequest, type Card } from "./discord.ts";
 
 // A throwaway Ed25519 key pair generated for this test run; never a real Discord key.
 const { publicKey, privateKey } = generateKeyPairSync("ed25519");
@@ -106,4 +106,17 @@ test("role plans are applied through Discord REST with the bot token", async () 
 
 test("the command definitions cover the six subcommands", () => {
   assert.deepEqual(COMMAND_DEFINITIONS[0].options.map((o) => o.name), ["link", "unlink", "verify", "connect", "post", "setup"]);
+});
+
+test("pngDataUri encodes bytes (including large inputs) as a base64 PNG data URI", () => {
+  assert.equal(pngDataUri(new Uint8Array([0x89, 0x50, 0x4e, 0x47])), "data:image/png;base64,iVBORw==");
+  const big = new Uint8Array(100_000).fill(7);
+  const uri = pngDataUri(big);
+  assert.ok(uri.startsWith("data:image/png;base64,"));
+  assert.equal(Buffer.from(uri.split(",")[1], "base64").length, 100_000);
+});
+
+test("the bot profile stays within Discord's limits and points only at our own paths", () => {
+  assert.ok(BOT_PROFILE.description.length <= 400);
+  for (const p of [BOT_PROFILE.termsUrl, BOT_PROFILE.privacyUrl, BOT_PROFILE.iconPath, BOT_PROFILE.bannerPath]) assert.ok(p.startsWith("/") && !p.startsWith("//"));
 });
