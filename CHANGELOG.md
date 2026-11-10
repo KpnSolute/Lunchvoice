@@ -6,6 +6,12 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed
+
+- The account menu's "Contact support" entry rendered as a default browser link (blue, underlined) because only the
+  menu's buttons inherit colour. It now uses `lv-menu-link` and matches the other entries in both themes; the e2e test
+  compares its computed colour, size, weight and underline with "Account settings" and fails on the old markup.
+
 ### Operations (2026-11-10, founder-approved: "complete the rewrites")
 
 - **Render routes fixed** on the `Lunchvoice` static site (`srv-d92o4cmrnols73fkioa0`) via a newly connected Render

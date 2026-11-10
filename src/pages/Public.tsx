@@ -72,7 +72,7 @@ function AccountMenu() {
         <DropdownMenuItem onSelect={() => nav("/surveys")}>Quick Surveys</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => nav("/settings")}>Account settings</DropdownMenuItem>
         <StaffMenuItem />{/* staff panel: platform admins only */}
-        <DropdownMenuItem asChild><a href={supportMailto("LunchVoice support")} data-testid="menu-contact-support">Contact support</a></DropdownMenuItem>
+        <DropdownMenuItem asChild className="lv-menu-link"><a href={supportMailto("LunchVoice support")} data-testid="menu-contact-support">Contact support</a></DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => { signOut(); nav("/"); }}>Sign out</DropdownMenuItem>
       </DropdownMenuContent>
