@@ -8,6 +8,14 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Fixed
 
+- Staff panel, Waitlist tab: the "Show email" buttons were indented from the Contact column (the quiet button's own
+  padding), "None" sat flush, and the rows had different heights. The Contact cell now has a fixed row height and the
+  button no longer shifts the text; "None" is muted. Added a one-line summary above the table ("4 of 50 Founding seats
+  taken · 46 open · 2 waiting · 3 left a contact email"). e2e measures the alignment and row heights; it fails on the old
+  layout.
+
+### Fixed
+
 - Quick Surveys could not be edited while paused: their own editor (`SurveyStudio`) hard-coded "draft only" and never
   got the paused-edit rules added to the Hub Studio with 000027. It now uses the same `editRules`: while a Quick Survey is
   paused its title and description can be edited, and its questions too until the first answer; a notice says what is

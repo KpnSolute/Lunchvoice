@@ -163,3 +163,32 @@ test("staff: one reports queue with survey and comment reports; hide, dismiss an
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+test("staff: the Waitlist tab summarises seats and its Contact column lines up with equal-height rows", async () => {
+  const { page: p, go, ctx, errors } = await page({}, STAFF);
+  await go("/admin");
+  await p.getByTestId("admin-console").waitFor();
+  await tab(p, "Waitlist").click();
+  await p.getByTestId("waitlist-summary").waitFor();
+  assert.match(await p.getByTestId("waitlist-summary").innerText(), /4 of 50 Founding seats taken · 46 open · 2 waiting/);
+  const rows = p.locator("tbody tr");
+  await rows.first().waitFor();
+  const m = await p.evaluate(() => {
+    const textLeft = (cell) => {
+      const r = document.createRange(); r.selectNodeContents(cell);
+      const rect = [...r.getClientRects()].filter((x) => x.width > 0)[0];
+      return rect ? rect.left : null;
+    };
+    const head = [...document.querySelectorAll("thead th")].find((th) => th.textContent.trim() === "Contact");
+    return {
+      headLeft: textLeft(head),
+      cells: [...document.querySelectorAll("tbody tr")].map((tr) => ({ h: tr.getBoundingClientRect().height, left: textLeft(tr.lastElementChild) })),
+    };
+  });
+  const heights = m.cells.map((c) => Math.round(c.h));
+  assert.ok(Math.max(...heights) - Math.min(...heights) <= 1, `every row is the same height (${heights.join(", ")})`);
+  for (const c of m.cells) assert.ok(c.left !== null && Math.abs(c.left - m.headLeft) <= 2, `contact text starts under its header (${c.left} vs ${m.headLeft})`);
+  assert.equal(await noHorizontalScroll(p), true);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
