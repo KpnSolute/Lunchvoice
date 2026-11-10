@@ -4,7 +4,7 @@ import { useIdentity } from "../identity/IdentityProvider";
 import { MadeBy } from "../components/MakerMark";
 import { Icon } from "../components/Icon";
 import { BottomTabs } from "../ui/BottomTabs";
-import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../config/contact";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO, supportMailto } from "../config/contact";
 import { safeReturnTo } from "../lib/kpnIdentity";
 import { Button } from "@/components/shadcn/button";
 import { Input } from "@/components/shadcn/input";
@@ -72,6 +72,7 @@ function AccountMenu() {
         <DropdownMenuItem onSelect={() => nav("/surveys")}>Quick Surveys</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => nav("/settings")}>Account settings</DropdownMenuItem>
         <StaffMenuItem />{/* staff panel: platform admins only */}
+        <DropdownMenuItem asChild><a href={supportMailto("LunchVoice support")} data-testid="menu-contact-support">Contact support</a></DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => { signOut(); nav("/"); }}>Sign out</DropdownMenuItem>
       </DropdownMenuContent>

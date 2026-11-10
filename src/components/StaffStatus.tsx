@@ -6,6 +6,7 @@ import { useLv } from "../lib/useLv";
 import { Badge } from "@/components/shadcn/badge";
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/shadcn/dropdown-menu";
 import { Notice } from "@/components/shadcn/blocks";
+import { SUPPORT_EMAIL, supportMailto } from "../config/contact";
 
 /** Rendered inside the open account menu, so the context is read only when the menu opens. */
 export function StaffMenuItem() {
@@ -31,7 +32,7 @@ export function AccountSuspendedNotice() {
   if (!s?.suspended) return null;
   return (
     <Notice tone="error" title="Your account is suspended" className="lv-suspended-notice">
-      LunchVoice staff suspended it: {s.reason} You can still sign in, read, leave Hubs and delete your data, but you can’t answer Campaigns, join Hubs, create or publish anything, post, comment or order. Contact support to appeal.
+      LunchVoice staff suspended it: {s.reason} You can still sign in, read, leave Hubs and delete your data, but you can’t answer Campaigns, join Hubs, create or publish anything, post, comment or order. To appeal, write to <a href={supportMailto("Appeal: account suspension")}>{SUPPORT_EMAIL}</a>.
     </Notice>
   );
 }

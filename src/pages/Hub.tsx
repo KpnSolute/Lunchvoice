@@ -7,6 +7,7 @@ import { RESERVED_SLUGS, slugProblem } from "../lib/reservedSlugs";
 import type { HubInfo, HubMembership, HubPage, MembershipMode, PageKind, Role, Visibility } from "../lib/lvApi";
 import { describeError, describeGate } from "../lib/errors";
 import { CHECKOUT_DISABLED_REASON, PLANS } from "../config/pricing";
+import { SUPPORT_EMAIL, supportMailto } from "../config/contact";
 import { campaignPhase, LinkButton } from "../components/ui";
 import { Icon, type IconName } from "../components/Icon";
 import { HubMark } from "../ui/HubMark";
@@ -169,7 +170,7 @@ export function HubLayout() {
       {/* ---- staff panel: Hub suspension ---- */}
       {hub.suspension?.suspended && (
         <Notice tone="error" title="This Hub is suspended" className="lv-suspended-notice">
-          LunchVoice staff suspended it{hub.suspension.reason ? `: ${hub.suspension.reason}` : "."} Members can’t see it, its Campaigns don’t take responses and nothing new can be published. Everything is kept. Contact support to appeal.
+          LunchVoice staff suspended it{hub.suspension.reason ? `: ${hub.suspension.reason}` : "."} Members can’t see it, its Campaigns don’t take responses and nothing new can be published. Everything is kept. To appeal, write to <a href={supportMailto("Appeal: Hub suspension")}>{SUPPORT_EMAIL}</a>.
         </Notice>
       )}
       {plan?.state === "expired" && (
