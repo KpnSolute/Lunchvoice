@@ -283,6 +283,52 @@ test("390px: Studio renders without horizontal scroll and the outline becomes a 
   await ctx.close();
 });
 
+test("Quick Survey: pause it, edit it, resume it; the questions lock once someone has answered", async () => {
+  const { page, go, ctx } = await openPage(app, { width: 1280 });
+  await go("/surveys/new");
+  await page.getByLabel("Title").fill("Pizza night");
+  await page.getByRole("button", { name: /Create draft/ }).click();
+  await page.getByTestId("quick-editor").waitFor();
+  await page.getByRole("textbox", { name: "Question", exact: true }).fill("Which topping?");
+  await page.getByRole("textbox", { name: "Option 1" }).fill("Ham");
+  await page.getByRole("textbox", { name: "Option 2" }).fill("Turkey");
+  await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
+  await page.getByTestId("publish").click();
+  await page.getByTestId("share").getByText("Join code").waitFor();
+
+  // Running: locked, but it can be paused.
+  assert.equal(await page.locator("#qs-title-edit").isDisabled(), true, "a running survey cannot be edited");
+  await page.getByRole("button", { name: "Pause" }).click();
+  await page.getByRole("button", { name: "Resume" }).waitFor();
+
+  // Paused with no answers: edit the title and a question.
+  assert.equal(await page.locator("#qs-title-edit").isDisabled(), false, "the title can be edited while paused");
+  await page.getByText(/Paused: nobody can answer while you edit/).waitFor();
+  await page.locator("#qs-title-edit").fill("Pizza night (updated)");
+  await page.getByTestId("save-state").filter({ hasText: /^Saved/ }).waitFor();
+  const prompt = page.getByRole("textbox", { name: "Question", exact: true });
+  assert.equal(await prompt.isDisabled(), false, "questions can be edited before any answer");
+  await prompt.fill("Which topping do you want?");
+  await page.getByTestId("save-state").filter({ hasText: /^Saved/ }).waitFor();
+
+  // Resume, an answer arrives (dev mock state), pause again: the questions are locked, the title is not.
+  await page.getByRole("button", { name: "Resume" }).click();
+  await page.getByRole("button", { name: "Pause" }).waitFor();
+  await page.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem("lv.mock.state"));
+    const c = st.campaigns[st.campaigns.length - 1]; // the survey just created
+    c.responses.push({ receipt: "r-injected", answers: {}, at: new Date().toISOString(), guest: false });
+    localStorage.setItem("lv.mock.state", JSON.stringify(st));
+  });
+  await page.reload();
+  await page.getByRole("button", { name: "Pause" }).click();
+  await page.getByRole("button", { name: "Resume" }).waitFor();
+  assert.equal(await page.locator("#qs-title-edit").isDisabled(), false, "the title is still editable with answers");
+  await page.getByText(/because people have already answered/).waitFor();
+  await page.getByText("Published questions can’t change").waitFor();
+  await ctx.close();
+});
+
 test("Quick Survey stays the simple flow: Title, Questions, Who can respond, Publish", async () => {
   const { page, go, ctx } = await openPage(app, { width: 1280 });
   await go("/surveys/new");

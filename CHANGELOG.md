@@ -8,6 +8,14 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Fixed
 
+- Quick Surveys could not be edited while paused: their own editor (`SurveyStudio`) hard-coded "draft only" and never
+  got the paused-edit rules added to the Hub Studio with 000027. It now uses the same `editRules`: while a Quick Survey is
+  paused its title and description can be edited, and its questions too until the first answer; a notice says what is
+  locked and why. Pause, Resume, Close and Archive were already in the header. e2e walks create, publish, pause, edit,
+  resume, answer, pause again; it fails on the old editor.
+
+### Fixed
+
 - The thank-you ("Already in. Thanks.") screen inside a Hub's campaign page looked like an excerpt of a full page: the
   embedded player kept the ink variant's `min-height: 100dvh` (it out-ranked the embedded reset), so it was exactly
   one screen tall, off-centre and unframed. Embedded players are now a contained, rounded card aligned with the page

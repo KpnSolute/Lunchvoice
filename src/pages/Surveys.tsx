@@ -25,6 +25,7 @@ import {
   ReadinessList,
   ShareCard,
   StudioHeader,
+  editRules,
   useReadiness,
   useSaveState,
   type ScheduleState,
@@ -193,7 +194,7 @@ export function SurveyStudio() {
   if (detail.loading && !d) return <div className="ui-page"><LoadingRows rows={4} label="Loading your survey" /></div>;
   if (detail.error && !d) return <div className="ui-page"><Notice tone="error">{describeError(detail.error)}</Notice></div>;
   if (!d) return null;
-  const draft = d.campaign.status === "draft";
+  const { draft, paused, edit, meaning } = editRules(d);
 
   function onTitle(v: string) {
     setTitle(v);
@@ -210,8 +211,11 @@ export function SurveyStudio() {
         <li>
           <Card>
             <h2 className="lv-share-h"><span className="lv-step-n">1</span>Title</h2>
-            <Field label="Title" htmlFor="qs-title-edit" counter={{ value: (title ?? "").length, max: 120 }} error={draft && !(title ?? "").trim() ? "Add a title." : undefined}>
-              <Input id="qs-title-edit" value={title ?? ""} maxLength={120} disabled={!draft} onChange={(e) => onTitle(e.target.value)} aria-describedby="qs-title-edit-help" />
+            {paused && <Notice>{meaning
+              ? "Paused: nobody can answer while you edit. Change anything here, then press Resume. The questions lock once the first answer comes in."
+              : "Paused: you can edit the title and description. The questions are locked because people have already answered; changing them would change what those answers mean."}</Notice>}
+            <Field label="Title" htmlFor="qs-title-edit" counter={{ value: (title ?? "").length, max: 120 }} error={edit && !(title ?? "").trim() ? "Add a title." : undefined}>
+              <Input id="qs-title-edit" value={title ?? ""} maxLength={120} disabled={!edit} onChange={(e) => onTitle(e.target.value)} aria-describedby="qs-title-edit-help" />
             </Field>
             <DescriptionField d={d} save={save} reload={detail.reload} />
           </Card>
@@ -219,7 +223,7 @@ export function SurveyStudio() {
         <li>
           <Card>
             <h2 className="lv-share-h"><span className="lv-step-n">2</span>Questions</h2>
-            <QuestionWorkbench d={d} locked={!draft} limit={questionLimit} save={save} reload={detail.reload} />
+            <QuestionWorkbench d={d} locked={!meaning} limit={questionLimit} save={save} reload={detail.reload} />
           </Card>
         </li>
         <li>
