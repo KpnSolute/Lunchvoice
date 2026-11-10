@@ -276,3 +276,34 @@ test("code inputs ask phones for the full keyboard (letters and digits), not the
   assert.deepEqual(s.errors, []);
   await s.ctx.close();
 });
+
+/* ------------------------------------------------------------------ embedded player (founder bug) */
+
+test("the thank-you screen inside a Hub page is a contained card, not a full-screen excerpt", async () => {
+  for (const [width, height] of [[1100, 900], [390, 844]]) {
+    const s = await openPage(app, { width, height });
+    const { page } = s;
+    await s.go(HUB);
+    await page.evaluate(() => {
+      const st = JSON.parse(localStorage.getItem("lv.mock.state"));
+      for (const c of st.campaigns) if (c.campaign_id === "cmp-seed-1") c.mine_answered = true;
+      localStorage.setItem("lv.mock.state", JSON.stringify(st));
+    });
+    await s.go(`${HUB}/campaigns/cmp-seed-1`);
+    await page.getByTestId("player-thanks").waitFor();
+    const m = await page.getByTestId("player-thanks").evaluate((el) => {
+      const card = el.closest(".lv-player");
+      const r = card.getBoundingClientRect();
+      const cs = getComputedStyle(card);
+      const sibling = document.querySelector(".lv-detail-title")?.getBoundingClientRect();
+      return { height: r.height, radius: parseFloat(cs.borderTopLeftRadius), left: r.left, right: r.right, titleLeft: sibling?.left ?? null, vh: innerHeight };
+    });
+    assert.ok(m.height < m.vh * 0.6, `the card is not screen-tall at ${width}px (${m.height} of ${m.vh})`);
+    assert.ok(m.radius >= 16, "it is a rounded card, not a bare slab");
+    assert.ok(Math.abs(m.left - m.titleLeft) <= 2, `its left edge lines up with the page content at ${width}px`);
+    assert.equal(await page.getByTestId("player-thanks").getByRole("link", { name: "Done" }).isVisible(), false, "no Done button that would leave the Hub");
+    assert.equal(await noHorizontalScroll(page), true);
+    assert.deepEqual(s.errors, []);
+    await s.ctx.close();
+  }
+});

@@ -28,6 +28,12 @@ test("staff: non-staff get the not-found page and no staff entry in the account 
   // Everyone signed in can reach support from the account menu (the single public contact channel).
   const contact = p.getByTestId("menu-contact-support");
   assert.match(await contact.getAttribute("href"), /^mailto:support@lunchvoice\.com\?subject=/, "the menu links the support mailbox");
+  // It must look like the other menu entries, not like a browser link (founder screenshot: blue and underlined).
+  const look = (loc) => loc.evaluate((el) => { const c = getComputedStyle(el); return { color: c.color, deco: c.textDecorationLine, size: c.fontSize, weight: c.fontWeight }; });
+  const mine = await look(contact);
+  const neighbour = await look(p.getByRole("menuitem", { name: "Account settings" }));
+  assert.equal(mine.deco, "none", "no underline");
+  assert.deepEqual(mine, neighbour, "same colour, size and weight as the other menu entries");
   await p.keyboard.press("Escape");
   await go("/admin");
   await p.getByRole("heading", { name: "This page isn’t here." }).waitFor();

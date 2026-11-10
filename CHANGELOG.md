@@ -6,6 +6,32 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed
+
+- The thank-you ("Already in. Thanks.") screen inside a Hub's campaign page looked like an excerpt of a full page: the
+  embedded player kept the ink variant's `min-height: 100dvh` (it out-ranked the embedded reset), so it was exactly
+  one screen tall, off-centre and unframed. Embedded players are now a contained, rounded card aligned with the page
+  content, left-aligned, with no Done button (which left the Hub) and no "Made with" line. An e2e test checks the height,
+  rounding and alignment at 1100px and 390px, and fails on the old CSS.
+
+### Fixed
+
+- The account menu's "Contact support" entry rendered as a default browser link (blue, underlined) because only the
+  menu's buttons inherit colour. It now uses `lv-menu-link` and matches the other entries in both themes; the e2e test
+  compares its computed colour, size, weight and underline with "Account settings" and fails on the old markup.
+
+### Operations (2026-11-10, founder-approved: "complete the rewrites")
+
+- **Render routes fixed** on the `Lunchvoice` static site (`srv-d92o4cmrnols73fkioa0`) via a newly connected Render
+  toolkit. The live list had the catch-all `/* -> /app.html` at the top priority (so it shadowed every page), the page
+  rules as redirects to `/<page>/index.html`, and no `/guidelines`. Replaced with the `render.yaml` list: rewrites
+  for `/`, `/how-it-works`, `/use-cases`, `/pricing`, `/waitlist`, `/about`, `/discover`, `/support`, `/privacy`,
+  `/terms`, `/guidelines`, then the catch-all last. Previous list kept as a rollback baseline (10 rules, ids
+  `rdr-dbo29vrm…`). Live check: every public page serves its prerendered HTML with its own title and canonical URL;
+  `/signin`, `/join`, `/settings`, a Hub slug and `/c/<code>` still reach the app shell. (Render's edge keeps a response
+  for up to 5 minutes, so a page opened just before the change can show the old title until it expires.)
+- Supersedes the earlier note that the `render.yaml` rewrites were not applied: the dashboard list now matches the file.
+
 ### Added
 
 - The support mailbox is now linked where people get stuck, not only in the footer: a "Contact support" entry in the
