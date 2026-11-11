@@ -23,6 +23,18 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Changed
 
+- **Invitations, as the recipient sees them** (`/j/:code`). A signed-out recipient used to get an error ("Sign in with
+  KpnIdentity first") and a "Try another code" button, because the preview needs a signed-in person. They now get an
+  explanation (sign in, see which Hub, join), the invite code, and one "Continue with KpnSolute" button that returns to the
+  invitation. A signed-in recipient gets a real invitation card: the Hub's colour band, name, address and description
+  (from the Hub's own public face when it shows one), public or private and member count, a plain list of what joining
+  means (including that owners can see your display name), "Join {Hub}" and "Not now". An unusable code now says it
+  may have expired, been used up or withdrawn, and how to get a new one. No backend change. e2e covers all three states.
+- Fixed: the Yes/No question drew a three-line menu icon for "No". It now draws a cross (new `close` icon); an e2e test
+  checks the check mark and the cross in the Studio preview and fails on the old icon.
+
+### Changed
+
 - The single public contact address is now **admin@lunchvoice.com** (the founder confirmed this is the mailbox that exists;
   `support@` was never confirmed). `src/config/contact.ts` is the one source for every mailto (footer, Support, Terms,
   Privacy, Guidelines, account menu, error screens, suspension notices); also updated in the SEO text, the Organization
