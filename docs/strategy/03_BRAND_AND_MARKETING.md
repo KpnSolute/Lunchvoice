@@ -87,7 +87,7 @@ withheld state, the thing no competitor shows; (3) Hubs: a home for your communi
 survey to your server; (5) use cases; (6) pricing strip, three cards; (7) Founding members band: "The first 50
 communities get a Hub free"; (8) the origin story in two lines.
 
-Copy to remove or correct now (review P-2): "idea boards and elections" in `src/config/seo.json` and the JSON-LD in
+Corrected on 2026-11-11 (review P-2): "idea boards and elections" in `src/config/seo.json` and the JSON-LD in
 `index.html`; "watch anonymous answers arrive" and "answers land by the minute" until results refresh on their own.
 
 ## 7. Launch plan for channels
@@ -116,7 +116,7 @@ say you built it; give the useful thing in the post itself; answer every comment
 > I kept seeing the same thing in groups I'm part of: someone runs an "anonymous" poll, three people answer, and
 > everyone can work out who said what.
 >
-> So LunchVoice withholds results until at least 5 people have answered, merges tiny groups into one "withheld"
+> So LunchVoice keeps an anonymous survey sealed until it closes, shows nothing if fewer than 5 people answered, merges tiny groups into one "withheld"
 > bucket, and never shows free-text answers with a time or an order. The person who made the survey can't get
 > around it. I can't either without touching the database.
 >
@@ -131,7 +131,7 @@ say you built it; give the useful thing in the post itself; answer every comment
 > **Mods: how do you find out what your server actually thinks?**
 >
 > Reaction polls show who voted, so people vote the way the loudest person did. I built a bot that posts a survey
-> to a channel; members answer in the browser in a few seconds, no account, and mods only ever see totals. Under 5
+> to a channel; members answer in the browser in a few seconds, no account, and mods only ever see totals, after the survey closes. Under 5
 > answers, nothing is shown at all.
 >
 > Free for the basics. Looking for 20 servers to try it and tell me what's missing. Happy to set it up with you.
@@ -140,7 +140,7 @@ say you built it; give the useful thing in the post itself; answer every comment
 
 > **A way to get honest feedback from a room in under a minute**
 >
-> Put a QR code on the last slide. People scan, tap through 3 questions, done. You see the totals on your screen.
+> Put a QR code on the last slide. People scan, tap through 3 questions, done. Close it and the totals are on your screen.
 > No names, no accounts, no app. Free for small surveys. I made it; feedback welcome.
 
 ### 7.3 Discord
@@ -175,7 +175,7 @@ not here yet"), then a question to the audience.
 **Short posts**
 
 1. Most "anonymous" polls aren't. Three people answer and everyone knows who said what. LunchVoice shows nothing
-   until five have answered. lunchvoice.com
+   until the survey closes, and nothing at all under five answers. lunchvoice.com
 2. A QR code, three questions, ten seconds. That is the whole feedback form.
 3. We withhold results more often than any survey tool you've used. That's the feature.
 4. Your Discord poll shows who voted. Ask yourself what that does to the answers.
@@ -190,7 +190,7 @@ not here yet"), then a question to the audience.
 > and I get to learn where it's confusing. Could we try it with [group] this week?
 
 **Screenshots to prepare (six):** the question screen on a phone; the privacy promise; results with a withheld
-bucket; "2 of 5 answers" locked state; a Hub page in a Hub color; the Discord post with the Answer button.
+bucket; the sealed state of an open anonymous survey; a Hub page in a Hub color; the Discord post with the Answer button.
 
 ## 9. What we do not do
 

@@ -105,6 +105,7 @@ test("dispatch: with a key, each message goes to Resend with an idempotency key 
   assert.equal(seen[0]!.headers.authorization, "Bearer re_test_not_real");
   assert.equal(seen[0]!.body.from, "LunchVoice <hello@mail.example.invalid>");
   assert.deepEqual(seen[0]!.body.to, ["owner@example.invalid"]);
+  assert.equal(seen[0]!.body.reply_to, "admin@lunchvoice.com", "replies reach the founder's inbox unless EMAIL_REPLY_TO says otherwise");
   assert.ok(typeof seen[0]!.body.text === "string" && typeof seen[0]!.body.html === "string");
 });
 

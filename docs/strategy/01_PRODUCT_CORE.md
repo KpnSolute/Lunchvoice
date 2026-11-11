@@ -109,7 +109,8 @@ optional: see results when they open, make your own.
 
 **Creator** (from Reddit): landing → "Make a survey free" → sign in (Google or Discord) → a survey with one example
 question already in it → edit, add → Publish → a share sheet with the link, the code and a QR, plus "post to
-Discord" → results page showing "0 of 5 answers" with the share controls → at 5, charts appear → "Share the result"
+Discord" → a named survey shows answers as they come in; an anonymous one shows "Sealed until this survey closes"
+with the share controls → close it, and with 5 or more answers the charts appear → "Share the result"
 and "Post what you'll do about it".
 
 Success is measured by four numbers (roadmap §5): creators who publish within 10 minutes of signing in, surveys that

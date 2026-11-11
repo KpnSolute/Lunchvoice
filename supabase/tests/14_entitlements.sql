@@ -42,9 +42,9 @@ select t.check('products: Campaign Starter extends at 1300 per extra week after 
   (select (e->>'first_period_weeks') = '2' and (e->>'extra_week_cents') = '1300'
      from jsonb_array_elements(lv_api.lv_plan_limits()->'products') e where e->>'product' = 'campaign_starter'));
 select t.as_pg();
-select t.check('policy: launch policies are set (min cohort 5, guest rate 10, 50 seats)',
+select t.check('policy: launch policies are set (min cohort 5, guest safety ceiling 600 since 000029, 50 seats)',
   t.q($$select string_agg(value::text, ',' order by key) from lv.policy
-         where key in ('campaign.min_cohort', 'participation.guest_rate_per_minute', 'waitlist.seats')$$) = '5,10,50');
+         where key in ('campaign.min_cohort', 'participation.guest_rate_per_minute', 'waitlist.seats')$$) = '5,600,50');
 select t.check('policy: the retired limit policies are gone', t.q($$select count(*)::text from lv.policy
          where key in ('campaign.max_active_per_hub', 'roles.max_custom_per_hub')$$) = '0');
 

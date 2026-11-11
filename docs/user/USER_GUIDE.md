@@ -24,7 +24,8 @@ will be asked to sign in first.
 It depends on the survey, and the first screen always tells you which kind it is before you answer.
 
 - **Anonymous:** the person who made the survey sees totals only. They cannot find out who answered, and LunchVoice
-  does not show them when each answer arrived. If fewer than 5 people have answered, results are withheld entirely.
+  does not show them when each answer arrived. Nothing is shown while the survey is open, and if fewer than 5
+  people answered, results stay withheld.
   If only a few people chose an option, that option is folded into a "withheld" group so nobody can be picked out.
   Written answers are shown as a shuffled list with no names and no times, and only once 5 or more exist.
 - **Named:** the creator sees your answers with your name. If you are answering as a guest, the survey may ask you
@@ -43,8 +44,8 @@ so you can finish later.
 - **Closed:** it has ended and takes no more answers.
 - **Scheduled:** it has not opened yet. The page shows when it opens.
 - **Unavailable:** it is for members of a Hub, or it has been paused or removed.
-- **"Too many responses right now":** the survey is receiving answers faster than its limit. Wait a minute and
-  press Submit again; your answers are still on the page.
+- **"Too many responses":** a safety limit was reached, which should be rare. Wait a minute and press Submit
+  again; your answers are still on the page.
 
 ### I think a survey is abusive or a scam
 
@@ -116,8 +117,10 @@ link in a chat, or read the code aloud: people type it at `lunchvoice.com/join`.
 
 Open the survey and choose **Results**.
 
-- For an **anonymous** survey you see nothing until 5 people have answered. This is deliberate: with two or three
-  answers it is often obvious who said what. Share the survey with more people to unlock it.
+- An **anonymous** survey is sealed while it is open: no results and no counts. This is deliberate. If you could
+  watch results change as each person answered, you could work out who said what. Results appear when the survey
+  closes, and only if at least 5 people answered.
+- A **named** survey shows results as answers come in and refreshes on its own.
 - **Withheld** means a number is hidden because showing it could single someone out. It is never the same as zero.
   When any part of a question is withheld, its average is withheld too.
 - Results state how many answers came from guests, because guests are not verified.

@@ -235,7 +235,7 @@ One owner per job. "Import from" is the only allowed source in a page.
 | `ThemeControl` | `src/ui/ThemeControl.tsx` | Light / dark / high contrast / system |
 | `Checkout` | `src/components/Checkout.tsx` | Plan purchase surface with the disabled reason |
 | `ShareSheet` **[target]** | – | Link, code, QR, "Post to Discord" in one component, used after publish and on locked results |
-| `ResultsLocked` **[target]** | – | §9 |
+| `ResultsSealed` **[target]** | – | §9 |
 | `PrivacyPromise` **[target: extract from Player]** | – | §9 |
 | `PlanGate` **[target]** | – | §9 |
 
@@ -264,9 +264,12 @@ These five patterns are what make a screen recognisably LunchVoice. Reproduce th
 | Guest, anonymous | "No account needed" | "Your answers are not linked to you." |
 | Guest, named with a typed name | "No account needed" | "The creator sees your answers and the name you type." |
 
-**ResultsLocked.** Where results would be, when fewer than the minimum cohort have answered: a progress ring or bar
-"2 of 5 answers", the sentence "Results unlock at 5 so nobody can be singled out.", and the `ShareSheet` directly
-beneath. Never an empty chart.
+**ResultsSealed.** An anonymous survey releases nothing while it is open, so that two readings can never be compared
+to find one person's answer. Where results would be: a lock icon, "Sealed until this survey closes", the sentence
+"Early answers can't be matched to people this way.", the closing time or a Close now button, and the `ShareSheet`
+directly beneath. After closing with fewer than 5 answers: "Fewer than 5 people answered, so results stay withheld."
+Never an empty chart, never a zero. An open **named** survey shows its results with a "Live" badge and refreshes every
+20 seconds.
 
 **Withheld.** In a chart: one bar or segment labelled "Withheld", hatched in `--lv-withheld`, last in order, with no
 number. Beside the chart: "Some answers are withheld because the group is too small to stay anonymous." In a table:
@@ -287,7 +290,7 @@ animated.
 
 | Do | Do not |
 | --- | --- |
-| "Results unlock at 5 answers." | "Insufficient data to display analytics." |
+| "Sealed until this survey closes." | "Insufficient data to display analytics." |
 | "This survey has closed." | "Error: campaign not accepting submissions." |
 | "Publish" / "Share" / "Close survey" | "Submit" / "OK" / "Confirm" for everything |
 | "You're on the Hub plan until 12 December." | "Entitlement state: active" |
@@ -367,5 +370,5 @@ icon and primitive layers. It starts with a baseline file of today's violations 
 consolidation can happen page by page.
 
 **Migration order.** 1) add the missing tokens (§3.2, §4, §6); 2) ship `check:design` with a baseline; 3) extract
-`PrivacyPromise`, `ResultsLocked`, `ShareSheet`, `PlanGate`; 4) retire duplicate components (§8.2) as each page is
+`PrivacyPromise`, `ResultsSealed`, `ShareSheet`, `PlanGate`; 4) retire duplicate components (§8.2) as each page is
 touched; 5) merge stylesheets into the structure in §12; 6) remove the legacy aliases in `index.css` when unused.

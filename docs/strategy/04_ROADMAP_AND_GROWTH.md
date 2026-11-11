@@ -52,15 +52,15 @@ Feature freeze is 2026-11-21. Only the launch list from the review goes in befor
 
 | # | Work | Review ref | Size | Why it cannot wait |
 | --- | --- | --- | --- | --- |
-| 1 | Guest limits per guest plus a high safety ceiling; counters (F-15) | B-1 | 1 migration | A shared link fails its own audience |
+| 1 | Guest limits per caller plus a high safety ceiling (F-15). **Built: migration 000029, awaiting production approval** | B-1 | 1 migration | A shared link fails its own audience |
 | 2 | Session renewal; keep Studio edits across re-sign-in | B-2 | `session` function + provider | Creators lose work hourly |
-| 3 | Landing: lead with "Make a survey free"; remove elections, idea boards, "live" | P-2, P-5 | copy | Honesty and first click |
-| 4 | Locked-results state with share controls | P-3 | 1 component | First-run dead end |
+| 3 | Landing: lead with "Make a survey free"; remove elections, idea boards, "live". **Copy corrected; hero button order still to do** | P-2, P-5 | copy | Honesty and first click |
+| 4 | Sealed-results state for open anonymous surveys, with share controls | P-3 | 1 component | First-run dead end |
 | 5 | Thank-you invitation on the guest screen | P-4 | 1 component + beacon | The growth loop |
 | 6 | Scheduled jobs: three dispatchers, retention; set the Resend key and sender (F-21) | B-3 | 1 migration + 2 secrets | Email and a privacy promise depend on it |
 | 7 | Counters, client error reporter, uptime checks, staff tiles | B-4 | 1 migration + 1 function | Launching blind |
-| 8 | Pricing page: three cards, passes line, reservation card under the plans (F-16) | P-7 | UI | Clear first read of the prices |
-| 9 | Results auto-refresh every 15 s while a survey is open | P-2 | small | Makes "live" true |
+| 8 | Pricing page: three cards, reservation card under the plans, passes (F-16). **Built** | P-7 | UI | Clear first read of the prices |
+| 9 | Results refresh every 20 s for open named surveys; anonymous stay sealed. **Built** | P-2 | small | Makes "live" true where it is safe |
 | 10 | Stop using the cafeteria lockup; About page origin story | D-7 | copy | First impression |
 
 Founder actions that no agent can take: add the Resend API key as the `RESEND_API_KEY` function secret (the domain is already verified; F-21), decide on Stripe before or after launch (the product

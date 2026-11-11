@@ -17,6 +17,7 @@ This is document 0 of a set:
 | 2 | [`02_BACKEND_ARCHITECTURE.md`](02_BACKEND_ARCHITECTURE.md) | A modular backend that can be extended without rewrites |
 | 3 | [`03_BRAND_AND_MARKETING.md`](03_BRAND_AND_MARKETING.md) | Brand, voice, launch copy for Reddit, Discord and word of mouth |
 | 4 | [`04_ROADMAP_AND_GROWTH.md`](04_ROADMAP_AND_GROWTH.md) | December launch plan, the path to 200K users, cost and revenue |
+| 5 | [`05_STAFF_AND_REPORTING.md`](05_STAFF_AND_REPORTING.md) | The staff panel and abuse reports: gaps and the refinement plan |
 | – | [`../../DESIGN.md`](../../DESIGN.md) | The unified design system, reproducible by any developer or model |
 | – | [`../user/USER_GUIDE.md`](../user/USER_GUIDE.md) | Documentation for the people who use the product |
 
@@ -24,6 +25,10 @@ This is document 0 of a set:
 > (anyone may answer an open survey that allows guests); P-7 three plan cards agreed; annual Hub plans at two months
 > free and a one-month referral credit agreed; the name stays; **P-1's Labs switch is withdrawn**; email domain is
 > verified at Resend. Rows below are updated where a decision changed them.
+
+> **Built 2026-11-11 (not yet in production):** B-1 as migration 000029, P-2 copy and live refresh for named
+> surveys, P-7 pricing page, reply-to on service email. Document 5, `05_STAFF_AND_REPORTING.md`, reviews the staff
+> panel and the reporting system.
 
 ## 1. Verdict
 
@@ -45,8 +50,9 @@ Three things will hurt on launch day if nothing changes, in this order:
    combined* (finding B-1). Thirty people in a room, or one Reddit post, and most of them see "Too many responses
    right now".
 2. **Creators are signed out every hour** with no renewal (B-2), in the middle of building a survey.
-3. **The first results screen is empty.** Anonymous results are withheld below 5 answers, and the landing page
-   promises "answers land by the minute" (P-3). A new creator's first experience is a locked box.
+3. **The first results screen is empty.** Anonymous results are sealed until the survey closes (and then need 5
+   answers), while the landing page promised "answers land by the minute" (P-3). A new creator's first experience is
+   a locked box.
 
 Everything else in this review is about making the next six months cheaper: one design system instead of three, one
 place where a backend module lives instead of five migrations, fewer words for users to learn, and a product that
@@ -96,8 +102,8 @@ number it depends on is reached.
 | ID | Sev | Finding | Evidence | Recommendation |
 | --- | --- | --- | --- | --- |
 | P-1 | **W** | **Surface far ahead of validation.** Shop, points, leaderboard, newsroom, comments, REST API, webhooks, Discord role rules and URL reservations are all built before a stranger has used the core. | routes in `src/main.tsx`; 72 tables | **Withdrawn as a launch item (F-20).** I proposed a Labs switch; on checking the Builder, the control exists: a new Hub has only Home and Campaigns, the Owner adds Shop, Leaderboard, News and Comments as pages, and points are off by default (`000015:246`, `000020`). What remains is discipline: no new community features until the loop numbers in the roadmap are healthy. |
-| P-2 | **L** | **The site promises things the product does not do.** The SEO text and structured data advertise "idea boards and elections"; the database accepts four modes and five question kinds, none of them an election or idea board. The landing page says "watch answers arrive" and "answers land by the minute"; the results page has no refresh. | `src/config/seo.json:33-35`, `000003:14,36`, `src/lib/useLv.ts` | Remove elections and idea boards from all public copy until they exist (an election needs one-person-one-vote and audit rules that a survey does not). Add a 15-second refresh on an open survey's results so "live" is true. |
-| P-3 | **L** | **The first-run result is a locked box.** An anonymous survey shows nothing until 5 people answer. That rule is right. The experience around it is not: the creator shared a link, two friends answered, and the page reads as broken. | F-01, `lv.safe_cells` | Turn the wait into the next action: "2 of 5 answers. Results unlock at 5 so nobody can be singled out." with the share controls directly under it. Show the response count the moment it is safe to (it already carries no per-option information). Make this state a designed component (design system §9, `ResultsLocked`). |
+| P-2 | **L** | **The site promised things the product does not do.** The SEO text and structured data advertised "idea boards and elections"; the database accepts four modes and five question kinds. The landing page said "watch anonymous answers arrive" and "answers land by the minute". **Correction to my first draft:** I wrote that results lacked a refresh. The real rule is stricter and deliberate: an anonymous survey releases nothing, not even a count, until it has finished, so nobody can compare two readings and work out one person's answer (`000016:203`). "Live" was therefore false for anonymous surveys by design. | `src/config/seo.json`, `000003:14,36`, `000016:203` | **Done 2026-11-11.** Copy corrected on the landing page, SEO text and structured data. Results of an open **named** survey now refresh every 20 seconds; anonymous results stay sealed until close. |
+| P-3 | **L** | **The creator of an anonymous survey sees nothing while it is open.** Not the results, and not how many people have answered. The rule protects respondents and should stay. The experience around it needs design: the creator shared a link and the page gives no sign that anything is happening. **Correction:** my first draft said results unlock at 5 answers; they unlock when the survey closes, and then need 5. | F-01, `000016:203`, `src/pages/Campaigns.tsx:259` | Design the sealed state as a component (`ResultsSealed`, design system §9): "Sealed until this survey closes, so early answers can't be matched to people", the closing time, a Close now button, and the share controls. **Founder decision:** whether an open anonymous survey may show a coarse response count (for example "10+ answers", in steps of 5 and only from 5). It makes the wait bearable; it also tells the creator roughly when people answered. |
 | P-4 | **L** | **The respondent's last screen is the growth engine and it is nearly silent.** Every person who answers sees the thank-you screen. Today it thanks them. It should also offer the one thing that grows the product. | `src/pages/Player.tsx`, thank-you branch | One calm line and one button on the guest thank-you screen: "Made with LunchVoice. Ask your own group something. Free." linking to `/surveys/new` with a referral tag. Never on embedded Hub players, never before submit. Detail in roadmap §4. |
 | P-5 | **L** | **The front door is the waitlist, not the product.** The landing hero leads with "50 Founding seats. A Hub on us." A tester from Reddit wants to try something now. Quick Surveys are free and open to any signed-in person, and they sit second. | `src/pages/Landing.tsx` | Lead with "Make a survey free" → `/surveys/new`. Move the Founding offer to a band lower on the page. The waitlist stays what F-03 says it is: a launch tool. |
 | P-6 | **S** | **Too many words.** A new user meets Hub, Campaign, Quick Survey, survey-mode Campaign, personal space, Founding seat, Hub credit, entitlement, family, reservation, Discover, join code (`/c/`), invite code (`/j/`), invite link (`/s/`). Three kinds of code look alike and do different things. | routes, `API_CONTRACT.md` | Adopt the vocabulary in product core §6: users see **survey**, **Hub**, **code**, **plan**. "Campaign" stays as the internal noun and the label inside paid Hubs. "Entitlement", "family", "credit" and "personal space" never appear in the interface. |

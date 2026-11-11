@@ -6,6 +6,53 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (2026-11-11, founder-approved: "confirmed", sender hello@, questions to admin@)
+
+- **Email credentials set on production functions** (`qprfonxvthmaoxfixigk`) through the connected Resend and Supabase
+  toolkits: a send-only Resend key restricted to the verified `lunchvoice.com` domain ("LunchVoice production", key id
+  `67d05bf2…`) stored as the function secret `RESEND_API_KEY`, and `EMAIL_FROM` = `LunchVoice <hello@lunchvoice.com>`.
+  The key's value was echoed once in that agent session's tool output; it is send-only and domain-restricted, and the
+  founder can rotate it in Resend at any time. Nothing sends yet: no job calls `email-dispatch`, and the deployed
+  function is the old build (the reply-to change below ships with the next function deploy).
+- Observed, not changed: `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` have been set since 2026-11-08; about ten
+  function secrets from v1 are still present and unused by v2. Deleting them needs the founder's word.
+
+### Added (000029, built and tested, NOT yet applied to production)
+
+- **Guests are never turned away by a shared limit (F-15).** `supabase/migrations/000029_v2_participation_guest_limits.sql`
+  + rollback + `supabase/tests/29_guest_limits.sql`. The single per-Campaign limit (10 guest answers a minute for
+  everyone combined, behind one advisory lock and two full counts) is replaced by a per-caller limit
+  (`participation.guest_per_caller_per_minute`, 60, keyed on a hash of Campaign and caller in the existing rate-window
+  table, so nothing links a caller to an answer) and a safety ceiling (`participation.guest_rate_per_minute`, now 600).
+  The advisory lock and the total count run only for a Campaign with a host-set guest cap; the guest key is claimed
+  first, so a double tap returns the first receipt. Test 14's policy assertion follows the new value. Canonical DB suite
+  1273/0 with rollback rehearsal (was 1255). `API_CONTRACT.md` updated.
+
+### Changed
+
+- **Pricing page (F-16):** three plan cards (Quick Survey, Starter Hub, Team Hub), then "Reserve your Hub URL" directly
+  under them (it sat at the bottom, where the founder did not find it), then the two-week passes under "Only need it for
+  one event?", then the comparison table. All four checkout actions are unchanged.
+- **Public copy only claims what exists (review P-2, F-19):** "idea boards and elections" removed from the SEO text and
+  structured data; the landing page no longer says anonymous answers arrive live or "Know before the line clears".
+  Anonymous results are sealed until a survey closes by design (`000016`), so the copy now says so.
+- **Results refresh for open named surveys:** the results page re-reads every 20 seconds while a named survey is open
+  and the tab is visible (stops after 30 minutes), with a "Live" badge. Anonymous surveys are never polled.
+- **Service email:** default sender `LunchVoice <hello@lunchvoice.com>` and a `reply_to` of `admin@lunchvoice.com`
+  (`EMAIL_REPLY_TO` overrides), so replies to verification, plan and invite mail reach the founder.
+- e2e `refinement.test.mjs` covers the pricing order and 390px fit, the banned public phrases, and the live badge
+  (present for an open named survey, absent for anonymous and closed ones). e2e 83/0.
+
+### Changed (documentation)
+
+- Corrected an error in the 2026-11-10 review: anonymous results are released when a survey **closes** (then need 5
+  answers), not at 5 answers while open. Review P-2 and P-3, `DESIGN.md` (pattern renamed `ResultsSealed`), the user
+  guide, the launch posts and the roadmap now say so. Open founder decision: whether an open anonymous survey may show
+  a coarse response count.
+- New `docs/strategy/05_STAFF_AND_REPORTING.md`: review of the staff panel and abuse reports with ten gaps (no staff
+  notification, a platform-wide report limit one person can exhaust, lost categories, ungrouped survey reports, no
+  automatic pause, unreportable Hubs and guest names, nothing told to creators) and a five-step plan.
+
 ### Changed (documentation only, 2026-11-11: founder decisions on the review; nothing built or applied)
 
 - `docs/v2/LAUNCH_PLAN.md` records F-15 to F-21: guests are never refused by a shared per-survey limit (per-guest limit

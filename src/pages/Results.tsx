@@ -7,6 +7,7 @@ import { describeError } from "../lib/errors";
 import type { AnalyticsResult, ExportRow, LvError, Question, ResponseRow } from "../lib/lvApi";
 import { summarize } from "../ui/QuestionControls";
 import { Icon } from "../components/Icon";
+import { campaignPhase } from "../components/ui";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
 import { Badge } from "@/components/shadcn/badge";
@@ -23,6 +24,27 @@ export function explainResultsError(e: Pick<LvError, "code" | "message">): strin
   return describeError(e);
 }
 
+/**
+ * A counter that advances every 20 seconds while `on`, the tab is visible and 30 minutes have not passed, so an open
+ * NAMED survey's results follow the answers. Anonymous surveys never use it: their results are released only after the
+ * survey has finished (the database refuses earlier reads), so repeated reads could never be compared.
+ */
+export const LIVE_REFRESH_MS = 20_000;
+const LIVE_MAX_MS = 30 * 60_000;
+function useLiveTick(on: boolean): number {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (!on) return;
+    const started = Date.now();
+    const id = window.setInterval(() => {
+      if (Date.now() - started > LIVE_MAX_MS) return window.clearInterval(id);
+      if (document.visibilityState === "visible") setTick((t) => t + 1);
+    }, LIVE_REFRESH_MS);
+    return () => window.clearInterval(id);
+  }, [on]);
+  return tick;
+}
+
 function label(q: Question, key: string) {
   if (q.kind === "yes_no") return key === "true" ? "Yes" : key === "false" ? "No" : key;
   if (q.kind === "rating") return `${key} ★`;
@@ -33,7 +55,10 @@ function label(q: Question, key: string) {
 export function ResultsView({ campaignId, exportBlocked }: { campaignId: string; exportBlocked: string | null }) {
   const { api } = useIdentity();
   const detail = useLv(() => api.campaignGet(campaignId), [api, campaignId]);
-  const count = useLv(() => api.analytics(campaignId, "participant_count"), [api, campaignId]);
+  const camp = detail.data?.campaign;
+  const live = Boolean(camp && camp.anonymity === "identified" && campaignPhase(camp) === "open");
+  const tick = useLiveTick(live);
+  const count = useLv(() => api.analytics(campaignId, "participant_count"), [api, campaignId, tick]);
   const [exporting, setExporting] = useState(false);
   const c = count.data as Extract<AnalyticsResult, { metric: "participant_count" }> | null;
   const questions = detail.data?.questions ?? [];
@@ -52,7 +77,10 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
       <Card variant="ink" aria-live="polite">
         <div className="ui-spread">
           <Eyebrow accent>Participation</Eyebrow>
-          {detail.data && <Badge variant="accent">{detail.data.campaign.anonymity}</Badge>}
+          <span className="ui-row">
+            {live && <Badge variant="ok" data-testid="results-live">Live · updates every 20 seconds</Badge>}
+            {detail.data && <Badge variant="accent">{detail.data.campaign.anonymity}</Badge>}
+          </span>
         </div>
         {count.loading && !c ? (
           <LoadingRows rows={1} label="Counting" />
@@ -72,7 +100,7 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
         ) : null}
       </Card>
 
-      {detail.data?.campaign.anonymity === "identified" && <ResponsesCard campaignId={campaignId} questions={questions} />}
+      {detail.data?.campaign.anonymity === "identified" && <ResponsesCard campaignId={campaignId} questions={questions} tick={tick} />}
 
       <div className="ui-spread">
         <SectionTitle>Questions</SectionTitle>
@@ -85,14 +113,14 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
 
       {detail.loading && !detail.data && <LoadingRows rows={3} />}
       {detail.error && <Notice tone="error">{describeError(detail.error)}</Notice>}
-      {questions.map((q) => <QuestionResult key={q.question_id} campaignId={campaignId} q={q} />)}
+      {questions.map((q) => <QuestionResult key={q.question_id} campaignId={campaignId} q={q} tick={tick} />)}
       {detail.data && questions.length === 0 && <Notice>This survey has no questions yet.</Notice>}
     </div>
   );
 }
 
 /** Who answered and what (identified Campaigns only, 000028). Guests carry the name they typed, labelled unverified. */
-function ResponsesCard({ campaignId, questions }: { campaignId: string; questions: Question[] }) {
+function ResponsesCard({ campaignId, questions, tick }: { campaignId: string; questions: Question[]; tick: number }) {
   const { api } = useIdentity();
   const [rows, setRows] = useState<ResponseRow[]>([]);
   const [total, setTotal] = useState<number | null>(null);
@@ -100,7 +128,7 @@ function ResponsesCard({ campaignId, questions }: { campaignId: string; question
   const [error, setError] = useState<string | null>(null);
   const byId = new Map(questions.map((q) => [q.question_id, q]));
   async function load(before: string | null) {
-    setBusy(true);
+    if (before || rows.length === 0) setBusy(true);
     const r = await api.campaignResponses(campaignId, 20, before);
     setBusy(false);
     if (!r.ok) { setError(explainResultsError(r.error)); return; }
@@ -109,6 +137,8 @@ function ResponsesCard({ campaignId, questions }: { campaignId: string; question
     setRows((prev) => (before ? [...prev, ...r.responses] : r.responses));
   }
   useEffect(() => { void load(null); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [api, campaignId]);
+  // Live refresh replaces the first page only; once someone has paged further, their place is kept.
+  useEffect(() => { if (tick > 0 && rows.length <= 20) void load(null); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [tick]);
   return (
     <Card data-testid="responses">
       <div className="ui-spread">
@@ -148,9 +178,9 @@ function ResponsesCard({ campaignId, questions }: { campaignId: string; question
   );
 }
 
-function QuestionResult({ campaignId, q }: { campaignId: string; q: Question }) {
+function QuestionResult({ campaignId, q, tick }: { campaignId: string; q: Question; tick: number }) {
   const { api } = useIdentity();
-  const r = useLv(() => api.analytics(campaignId, "answer_distribution", q.question_id), [api, campaignId, q.question_id]);
+  const r = useLv(() => api.analytics(campaignId, "answer_distribution", q.question_id), [api, campaignId, q.question_id, tick]);
   const d = r.data as Extract<AnalyticsResult, { metric: "answer_distribution" }> | null;
   return (
     <Card>

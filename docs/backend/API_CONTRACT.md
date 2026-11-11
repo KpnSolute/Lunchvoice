@@ -264,7 +264,9 @@ Members answer through `lv_submit_response` as before. Guests answer by the Camp
 - `lv_guest_submit(p_join_code, p_guest_key, p_answers)`: signed out. `p_guest_key` is a random secret of 32 to 200
   characters that the browser generates once per Campaign and keeps; only its hash is stored. Success:
   `{ ok, receipt_id, duplicate }` (the same key again returns the first receipt). Errors: `lv_not_found`, `lv_closed`,
-  `lv_invalid_input`, `lv_limit_reached` (guest total reached), `lv_rate_limited` (too many guest responses this minute),
+  `lv_invalid_input`, `lv_limit_reached` (the host's guest total reached), `lv_rate_limited` (000029, F-15: either this
+  caller passed `participation.guest_per_caller_per_minute`, message "…from this connection…", or the Campaign passed
+  its safety ceiling `participation.guest_rate_per_minute`; a guest is never refused merely because others are answering),
   `lv_policy_undecided` with `missing: ["participation.guest_rate_per_minute"]` (no rate set yet; fails closed).
 
 Guests never become members, never count toward member totals or survey thresholds, and leave no stored link between
@@ -531,7 +533,8 @@ capability in the catalogue.
 
 ### Policies set at launch
 
-`campaign.min_cohort` 5 (L-04), `participation.guest_rate_per_minute` 10 (L-05, L-11), `waitlist.seats` 50,
+`campaign.min_cohort` 5 (L-04), `participation.guest_rate_per_minute` 600 (safety ceiling per Campaign, F-15, 000029; was 10),
+`participation.guest_per_caller_per_minute` 60 (F-15), `waitlist.seats` 50,
 `waitlist.consent_version` "2026-11-07", `quick.create_per_hour` 20, `abuse.reports_per_minute` 20,
 `security.reauth_seconds` 600, `hub.deleted_slug_cooldown_days` 30, `reservation.grace_days` 25,
 `discover.active_window_days` 90, `retention.logs_days` 365 and `retention.guest_hash_days` 7 (L-13),
