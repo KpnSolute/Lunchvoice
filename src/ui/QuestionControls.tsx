@@ -95,7 +95,7 @@ export function QuestionInput({ q, value, onChange }: { q: Question; value: unkn
             onClick={() => onChange(o.val)}
             onKeyDown={roving(i, 2, (to) => onChange(to === 0))}
           >
-            <Icon name={o.val ? "check" : "menu"} size={22} />
+            <Icon name={o.val ? "check" : "close"} size={22} />
             {o.label}
           </button>
         ))}

@@ -237,6 +237,24 @@ test("Paused: the title, description and schedule stay editable; mode, anonymity
   await ctx.close();
 });
 
+test("Yes/No question: Yes shows a check and No shows a cross (not the menu icon)", async () => {
+  const { page, ctx } = await studio();
+  await tab(page, "Questions").click();
+  const add = page.getByTestId("question-workbench").locator(":visible").getByTestId("add-question");
+  if (await add.count()) await add.first().click();
+  await page.getByRole("combobox", { name: "Type" }).click();
+  await page.getByRole("option", { name: "Yes / No" }).click();
+  await page.getByRole("textbox", { name: "Question", exact: true }).fill("Do you like books");
+  const preview = page.getByLabel("Respondent preview");
+  const yes = preview.getByRole("radio", { name: "Yes" });
+  const no = preview.getByRole("radio", { name: "No" });
+  await yes.waitFor();
+  const d = (loc) => loc.locator("svg path").first().getAttribute("d");
+  assert.equal(await d(yes), "M4 12.5 9 17.5 20 6.5", "Yes is a check mark");
+  assert.equal(await d(no), "M6 6l12 12M18 6 6 18", "No is a cross");
+  await ctx.close();
+});
+
 test("Preview renders the draft without submitting anything", async () => {
   const { page, ctx } = await studio();
   await addChoiceQuestion(page);

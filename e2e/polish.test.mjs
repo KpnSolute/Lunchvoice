@@ -307,3 +307,61 @@ test("the thank-you screen inside a Hub page is a contained card, not a full-scr
     await s.ctx.close();
   }
 });
+
+/* ------------------------------------------------------------------ invitations, as the recipient sees them */
+
+async function seedInvite(page, code = "ABCD-2345") {
+  await page.evaluate((c) => {
+    const st = JSON.parse(localStorage.getItem("lv.mock.state"));
+    const h = st.hubs.find((x) => x.slug === "northside-running");
+    h.members = h.members.filter((m) => m.account_id !== "mock-account"); // the recipient is not a member yet
+    h.about = "Weekly runs, relaxed pace, all abilities.";
+    st.invites.push({ code: c, hub: h.hub_id, invite_id: "inv-test", uses: 0, max_uses: null, revoked: false, created_at: new Date().toISOString() });
+    localStorage.setItem("lv.mock.state", JSON.stringify(st));
+  }, code);
+}
+
+test("Invitation, signed out: an explanation and one sign-in button, never an error", async () => {
+  const s = await openPage(app, { width: 390, signedIn: false });
+  const { page } = s;
+  await s.go("/j/ABCD-2345");
+  await page.getByTestId("invite-signed-out").waitFor();
+  await page.getByRole("heading", { name: "You’ve been invited to a Hub" }).waitFor();
+  await page.getByText("Invite code ABCD-2345").waitFor();
+  assert.equal(await page.getByRole("alert").count(), 0, "no error banner for a signed-out recipient");
+  assert.equal(await page.getByText(/Try another code/).count(), 0);
+  const cta = page.getByRole("link", { name: /Continue with KpnSolute/ });
+  assert.equal(await cta.getAttribute("href"), "/signin");
+  assert.equal(await noHorizontalScroll(page), true);
+  assert.deepEqual(s.errors, []);
+  await s.ctx.close();
+});
+
+test("Invitation, signed in: the Hub's name, colour and description, what joining means, then Join", async () => {
+  const s = await openPage(app, { width: 1100 });
+  const { page } = s;
+  await s.go("/me");
+  await seedInvite(page);
+  await s.go("/j/ABCD-2345");
+  await page.getByTestId("invite").waitFor();
+  await page.getByRole("heading", { name: "Northside Running Club" }).waitFor();
+  await page.getByText("Weekly runs, relaxed pace, all abilities.").waitFor();
+  await page.getByText("Its owners can see your display name in the member list.").waitFor();
+  assert.ok(await page.locator(".lv-invite-band").count(), "the Hub's colour band is shown");
+  await page.getByTestId("invite-join").click();
+  await page.waitForURL(/\/northside-running$/);
+  assert.deepEqual(s.errors, []);
+  await s.ctx.close();
+});
+
+test("Invitation with a bad code: says it can't be used and how to get a new one", async () => {
+  const s = await openPage(app, { width: 390 });
+  const { page } = s;
+  await s.go("/j/ZZZZ-9999");
+  await page.getByTestId("invite-invalid").waitFor();
+  await page.getByRole("heading", { name: "This invitation can’t be used" }).waitFor();
+  await page.getByText(/Ask whoever invited you to send a new one/).waitFor();
+  assert.equal(await page.getByRole("link", { name: "Enter a different code" }).getAttribute("href"), "/join");
+  assert.equal(await noHorizontalScroll(page), true);
+  await s.ctx.close();
+});
