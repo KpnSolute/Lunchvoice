@@ -149,7 +149,7 @@ export function Terms() {
       <LegalPending />
       <div className="lv-mk-prose">
         <h2>Using LunchVoice</h2>
-        <p>Answering is free. Quick Surveys are free for signed-in accounts. Hubs and Campaign plans are paid once billing opens; until then nothing is charged. You’re responsible for what you ask and for having a lawful reason to ask it. LunchVoice isn’t aimed at children.</p>
+        <p>Answering is free. Quick Surveys are free for signed-in accounts. Hubs and Campaign plans are paid once billing opens; until then nothing is charged. You’re responsible for what you ask and for having a lawful reason to ask it. You must be 13 or older to use LunchVoice.</p>
         <h2>Privacy is a product constraint</h2>
         <p>The platform refuses to publish results that could identify a respondent. Asking us to reveal who gave an anonymous answer isn’t a supported request.</p>
         <h2>Plans and cancellation</h2>
@@ -225,7 +225,7 @@ export function Privacy() {
         <p>Our hosting and database providers keep standard request logs, such as IP address and browser, for security and operations.</p>
         <p>Data is stored in the United States (database in US West, sign-in in US East).</p>
         <h2>Children</h2>
-        <p>LunchVoice is not directed at children under 13, and we don’t knowingly collect their personal information. Schools and organisations use it through adult administrators.</p>
+        <p>LunchVoice is for people 13 and older. It is not directed at children under 13, and we don’t knowingly collect their personal information. Schools, including high schools, can use LunchVoice; students can take part without an account.</p>
         <h2>Guests</h2>
         <p>Guests answer link surveys without an account. They never become members, never count toward member totals or thresholds, and can’t see private Hub content. Results label guest responses as unverified. On an identified survey the creator can choose to ask guests for a name (optional or required). A guest types it themselves, it is not verified, and the creator sees it next to that guest’s answers. An anonymous survey never asks for or stores a name.</p>
         <h2>On this device</h2>

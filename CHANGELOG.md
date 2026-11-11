@@ -8,7 +8,9 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Changed (schools, founder direction 2026-11-11)
 
-- `docs/v2/LAUNCH_PLAN.md` F-11: LunchVoice works for schools, including high schools (homecoming, class and
+- **Minimum age 13** (founder, 2026-11-11): Terms and Privacy on `src/pages/Marketing.tsx` now say LunchVoice is for people 13
+  and older and that schools, including high schools, can use it with students taking part without an account.
+- `docs/v2/LAUNCH_PLAN.md` F-11: anyone 13 and older; LunchVoice works for schools, including high schools (homecoming, class and
   student-government elections). Replaces "no marketing to minors at launch". School use is to be built so students take
   part without accounts or personal data; counsel review of COPPA, FERPA and state student-privacy law is still
   recommended before school agreements. Documentation only.
