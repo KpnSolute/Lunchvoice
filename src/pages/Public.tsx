@@ -257,7 +257,7 @@ export function SignIn() {
 export function RequireSignIn({ children }: { children: ReactNode }) {
   const { session } = useIdentity();
   const location = useLocation();
-  if (!session) return <Navigate to="/signin" state={{ from: location.pathname }} replace />;
+  if (!session) return <Navigate to="/signin" state={{ from: location.pathname + location.search }} replace />;
   return <>{children}</>;
 }
 

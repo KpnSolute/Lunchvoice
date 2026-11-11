@@ -6,6 +6,21 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (try-it path: Quick Survey templates and go-to-market plan)
+
+- Quick Surveys can start from six templates (Event feedback, Team pulse check, Pick a time or option, Suggestion box,
+  Service feedback, Meeting or workshop feedback) on `/surveys/new`. Picking one fills the title (unless the creator
+  typed their own) and creates the draft with its questions already added in order; everything stays editable until
+  publish. Blank is still the default. `/surveys/new?template=<id>` preselects a template, so each one is a shareable
+  marketing link; an unknown id falls back to Blank. Source: `src/config/surveyTemplates.ts` (generic, no customer
+  named); `src/lib/surveyTemplates.test.ts` checks limits and the server's question rules; `e2e/templates.test.mjs`
+  covers the flow.
+- `RequireSignIn` now keeps the query string through sign-in (`from: pathname + search`), so a shared template link
+  survives the redirect. `safeReturnTo` already validated queries.
+- `docs/frontend/GO_TO_MARKET.md`: audience, the path to trying the product, template links, channel plan, honest
+  offers, messaging rules tied to F-11, measurement options and the respondent growth loop, both left as founder
+  decisions.
+
 ### Changed
 
 - The single public contact address is now **admin@lunchvoice.com** (the founder confirmed this is the mailbox that exists;
