@@ -1,0 +1,186 @@
+{
+  "note": "One entry per /use-cases/<slug> page. The single source for the page (src/pages/UseCasePage.tsx), its search metadata (src/ui/Seo.tsx, scripts/seo-prerender.mjs: title, description, sitemap) and the 'Use this template' button (templateId in src/config/surveyTemplates.ts). Never rename a published slug; add a new one. Copy rules: generic (no customer named), adult audiences, say 'anonymous' only where the creator really cannot resolve who answered, and do not present a poll as an official election.",
+  "useCases": [
+    {
+      "slug": "anonymous-employee-survey",
+      "templateId": "employee-survey",
+      "icon": "bulb",
+      "name": "Anonymous employee survey",
+      "line": "Honest feedback from your team, with no names attached.",
+      "title": "Anonymous employee survey: free template",
+      "description": "Run an anonymous employee survey in minutes. Start from a free template, share by link, and see totals while small groups stay protected.",
+      "h1": "An anonymous employee survey people will actually answer",
+      "lede": "People only tell you the truth when they are sure nobody can trace it back to them. Start from a ready-made employee survey, share it with a link or QR code, and read totals that never name anyone.",
+      "why": [
+        "On an anonymous survey you see totals only. Nobody, including you, can link an answer to a person.",
+        "A group too small to stay anonymous is withheld, and a withheld result is never shown as zero.",
+        "Comments appear as a plain list, not linked to anyone, once enough people have answered."
+      ],
+      "setup": "Recommended: anonymous answers, link or invite-only access, closed after a set date.",
+      "related": ["weekly-team-pulse-survey", "community-suggestion-box", "meeting-and-workshop-feedback"]
+    },
+    {
+      "slug": "event-feedback-form",
+      "templateId": "event-feedback",
+      "icon": "sparkle",
+      "name": "Event feedback form",
+      "line": "A QR code on the table, results before you pack up.",
+      "title": "Event feedback form: free survey template",
+      "description": "Collect event feedback while it is fresh. Start from a free template, put a QR code on the tables, and see results before you pack up.",
+      "h1": "An event feedback form guests finish in a minute",
+      "lede": "Ask while the event is still happening. Print the QR code, put it on the tables, and watch answers arrive on your phone. Four short questions, edited however you like.",
+      "why": [
+        "Guests answer on their own phone with no app and no account, if you allow guests.",
+        "Results update live, so you can fix something before the event ends.",
+        "Close the survey when you are done and keep the totals."
+      ],
+      "setup": "Recommended: anonymous answers, anyone with the link, guests allowed.",
+      "related": ["meeting-and-workshop-feedback", "customer-feedback-questionnaire", "member-questionnaire"]
+    },
+    {
+      "slug": "club-and-committee-votes",
+      "templateId": "committee-vote",
+      "icon": "star",
+      "name": "Club and committee votes",
+      "line": "A one-person-one-vote ballot for a decision or a chair.",
+      "title": "Club and committee votes: online ballot template",
+      "description": "Run a simple club or committee vote online. Invite-only ballot, one vote per signed-in account, totals only. A free template to start from.",
+      "h1": "A simple, fair ballot for your club or committee",
+      "lede": "Choose a chair, approve a budget or settle a motion without a show of hands. Invite the members, each signed-in account votes once, and you see the totals.",
+      "why": [
+        "Invite-only means only the people you invite can vote.",
+        "Each signed-in account counts once; a second attempt keeps the first answer.",
+        "Answers are anonymous by default, so people can vote their conscience."
+      ],
+      "setup": "Recommended: invite-only, anonymous answers. The template sets this for you.",
+      "caveat": "A LunchVoice poll is a straightforward vote, not a certified election. If your bylaws require a specific procedure, such as ranked choice, proxy votes or an independent returning officer, check them before treating the result as binding. A dedicated Election mode is planned.",
+      "related": ["group-scheduling-poll", "member-questionnaire", "community-suggestion-box"]
+    },
+    {
+      "slug": "weekly-team-pulse-survey",
+      "templateId": "team-pulse",
+      "icon": "roster",
+      "name": "Weekly team pulse survey",
+      "line": "A quick, honest read on how the week is going.",
+      "title": "Weekly team pulse survey: free template",
+      "description": "A four-question team pulse survey you can send every week. Free template, anonymous by default, results as simple totals.",
+      "h1": "A team pulse survey that takes thirty seconds",
+      "lede": "Four questions, once a week, the same every time, so you can see how things change. Start from the template and send the link to your team.",
+      "why": [
+        "Short enough that people answer every week.",
+        "Anonymous by default, so the answers are honest.",
+        "Totals only, with small groups withheld rather than shown as zero."
+      ],
+      "setup": "Recommended: anonymous answers, invite-only for a known team.",
+      "related": ["anonymous-employee-survey", "meeting-and-workshop-feedback", "community-suggestion-box"]
+    },
+    {
+      "slug": "customer-feedback-questionnaire",
+      "templateId": "service-feedback",
+      "icon": "survey",
+      "name": "Customer feedback questionnaire",
+      "line": "For a shop, class, clinic or any service people use.",
+      "title": "Customer feedback questionnaire: free template",
+      "description": "Ask customers how you did. A free feedback questionnaire template with a rating, quick choices and an optional comment, shared by QR code.",
+      "h1": "A customer feedback questionnaire people complete",
+      "lede": "A rating, two quick choices and an optional comment. Put the QR code on the counter or the receipt and see what people think while they are still there.",
+      "why": [
+        "One tap per question, built for phones.",
+        "No account needed for guests, if you allow them. Guest answers are labelled unverified in results.",
+        "Edit any question, add your own, or start from blank."
+      ],
+      "setup": "Recommended: anonymous answers, anyone with the link, guests allowed.",
+      "related": ["menu-and-dining-feedback", "event-feedback-form", "community-suggestion-box"]
+    },
+    {
+      "slug": "meeting-and-workshop-feedback",
+      "templateId": "meeting-feedback",
+      "icon": "clock",
+      "name": "Meeting and workshop feedback",
+      "line": "Find out if the session was worth everyone's time.",
+      "title": "Meeting and workshop feedback form: free template",
+      "description": "Find out if your meeting or workshop was worth it. A free four-question feedback form: usefulness, pace, next steps and one improvement.",
+      "h1": "Feedback after a meeting or workshop, in four questions",
+      "lede": "Was it useful, was the pace right, do people know what happens next? Send the link at the end of the session and have the answers before everyone has left the room.",
+      "why": [
+        "Short enough to finish before people leave.",
+        "Anonymous answers make the pace and usefulness ratings candid.",
+        "Run the same form each time and compare."
+      ],
+      "setup": "Recommended: anonymous answers, anyone with the link.",
+      "related": ["weekly-team-pulse-survey", "event-feedback-form", "anonymous-employee-survey"]
+    },
+    {
+      "slug": "group-scheduling-poll",
+      "templateId": "group-decision",
+      "icon": "join",
+      "name": "Group scheduling poll",
+      "line": "Let the group choose a time or an option, then see the totals.",
+      "title": "Group scheduling poll: pick a time online",
+      "description": "Settle a date or an option without a long group chat. A free poll template: share a link, everyone picks, you see the totals.",
+      "h1": "Settle a time or an option without the endless group chat",
+      "lede": "Put the choices in a poll, share the link, and see which one wins. Change the options to dates, venues or anything else the group is deciding.",
+      "why": [
+        "Everyone answers once on their own phone.",
+        "You see the totals as they come in.",
+        "No account needed for guests, if you allow them."
+      ],
+      "setup": "Recommended: anyone with the link for a casual poll; invite-only if the result matters.",
+      "related": ["club-and-committee-votes", "member-questionnaire", "community-suggestion-box"]
+    },
+    {
+      "slug": "community-suggestion-box",
+      "templateId": "suggestion-box",
+      "icon": "bulb",
+      "name": "Community suggestion box",
+      "line": "An open, anonymous place for ideas.",
+      "title": "Online suggestion box: free anonymous template",
+      "description": "An anonymous online suggestion box for clubs, teams and neighbourhoods. Free template: collect ideas, see what people want, act on it.",
+      "h1": "An anonymous suggestion box for your community",
+      "lede": "People have good ideas and are often too shy to share them. Give them a place to say it without putting their name on it, then do something about it.",
+      "why": [
+        "Anonymous by default, so quiet voices get heard.",
+        "A quick choice of topic makes the ideas easier to sort.",
+        "Ideas arrive as a plain list, never linked to a name."
+      ],
+      "setup": "Recommended: anonymous answers, anyone with the link, left open for weeks.",
+      "related": ["anonymous-employee-survey", "member-questionnaire", "group-scheduling-poll"]
+    },
+    {
+      "slug": "menu-and-dining-feedback",
+      "templateId": "menu-feedback",
+      "icon": "fork",
+      "name": "Menu and dining feedback",
+      "line": "For canteens, cafés and catered events. One use case of many.",
+      "title": "Menu and dining feedback survey: free template",
+      "description": "Ask diners what they think. A free menu feedback survey for canteens, cafés and catered events: rating, what to serve more, portion size.",
+      "h1": "Menu and dining feedback from the people you feed",
+      "lede": "Dining is a natural fit for LunchVoice. Rate the meal, say what to serve more of, flag the portion size. The same tool also runs votes, questionnaires and everything else on this page.",
+      "why": [
+        "A QR code on the table or the tray collects answers while the meal is fresh.",
+        "Ratings and choices make it easy to see what to change next.",
+        "Run it weekly and watch the trend."
+      ],
+      "setup": "Recommended: anonymous answers, anyone with the link, guests allowed.",
+      "related": ["customer-feedback-questionnaire", "event-feedback-form", "community-suggestion-box"]
+    },
+    {
+      "slug": "member-questionnaire",
+      "templateId": "member-questionnaire",
+      "icon": "dashboard",
+      "name": "Member questionnaire",
+      "line": "Learn what your members want before you plan.",
+      "title": "Member questionnaire template for clubs and groups",
+      "description": "Find out what your members want before you plan. A free questionnaire template for clubs, societies and volunteer groups.",
+      "h1": "A member questionnaire for your club, society or group",
+      "lede": "Which activities, how often, what time, and who will help. Five questions that turn a guess about what members want into an answer you can plan around.",
+      "why": [
+        "Choice questions give you totals you can act on.",
+        "An optional comment catches what you did not think to ask.",
+        "Share it with a link, a QR code or invite links."
+      ],
+      "setup": "Recommended: identified answers if you want to follow up, anonymous if you want candour.",
+      "related": ["club-and-committee-votes", "group-scheduling-poll", "community-suggestion-box"]
+    }
+  ]
+}
