@@ -6,6 +6,32 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (ten more Quick Survey templates, and Hub Campaign templates for each plan)
+
+- Quick Survey templates grow from 10 to 20 and gain categories (Customers, Teams and work, Events, Community,
+  Decisions) with a filter on `/surveys/new`: Would you recommend us?, Support satisfaction, Product or app feedback,
+  Training evaluation, New starter check-in, Event RSVP, Speaker or session feedback, Volunteer interest, Neighbourhood
+  priorities, Priority vote. RSVP and Volunteer interest default to Identified (you need to know who replied); a choice
+  question can cap picks (`config.max`, "Pick up to 3").
+- Hub Campaign templates, grouped by what each plan is for (`src/config/campaignTemplates.ts`), on
+  `/:hub/campaigns/new`. Starter Hub (6): polls, ratings and a feedback box, which do not use one of the 2 active
+  surveys, plus one monthly survey that says it does. Team Hub (5): four role-targeted templates (Role pulse,
+  Volunteer shift feedback, New member check-in, Ask the leads) and a Quarterly community survey. Time-bounded (5):
+  Event week feedback, Launch week poll, Season review, Call for ideas, and a Campaign Plus role check-in; the end date is
+  set on the draft and can be changed under Schedule.
+- Picking one fills the title, creates the draft with its description and questions, and opens the next decision:
+  Audience for a role-targeted template (roles belong to each Hub), otherwise Review. A summary shows the mode, answers,
+  who can answer, when it runs and the questions before anything is created.
+- Honest by construction: role targeting needs identified answers (FB-01), so every targeted template is identified and
+  says so; Team templates are shown but disabled, with the reason, on a Hub without the Team family. That is display
+  only (`templateOffered`): the backend still decides and refuses with `lv_entitlement_required`. A shared link
+  `?template=<id>` preselects an offered template and falls back to Blank for one the plan does not offer.
+- `/pricing` gets "Templates for every plan", built from the same data so the counts stay true.
+- `src/components/TemplateQuestions.tsx` is shared by the use-case pages and the picker.
+- Tests: `src/lib/campaignTemplates.test.ts` (one question for a poll, rating or feedback; targeted means Team and
+  identified; windows say when they close; offering is display-only) and `e2e/campaigntemplates.test.mjs` (Starter,
+  locked Team templates, a Team Hub landing on Audience, a time-bounded end date, deep links, phone width, pricing).
+
 ### Fixed (people left signed in on a dead session saw "Something went wrong on our side")
 
 - Reported: after a while of inactivity, My home showed "Something went wrong on our side. Try again." while the header

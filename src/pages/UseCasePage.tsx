@@ -4,41 +4,13 @@ import { LinkButton } from "../components/ui";
 import { Card } from "@/components/shadcn/card";
 import { Eyebrow, Notice } from "@/components/shadcn/blocks";
 import { templateHref, useCaseBySlug, type UseCase } from "../config/useCases";
-import { templateById, type TemplateQuestion } from "../config/surveyTemplates";
+import { templateById } from "../config/surveyTemplates";
+import { TemplateQuestions } from "../components/TemplateQuestions";
 import { Head, NotFoundPage } from "./Marketing";
 
 // One page per use case (/use-cases/:slug). Content lives in src/config/useCases.json, which also feeds the search
 // metadata and the sitemap, and its sample questions come straight from the template the button opens, so the page
 // can never promise questions the template does not have.
-
-const KIND_LABEL: Record<TemplateQuestion["kind"], string> = {
-  rating: "Rating, 1 to 5",
-  single_choice: "Choose one",
-  multi_choice: "Choose any",
-  yes_no: "Yes or no",
-  text: "Short answer",
-};
-
-function Questions({ questions }: { questions: TemplateQuestion[] }) {
-  return (
-    <ol className="lv-uc-q" data-testid="uc-questions">
-      {questions.map((q, i) => (
-        <li key={q.prompt}>
-          <span className="lv-uc-n" aria-hidden="true">{i + 1}</span>
-          <div>
-            <p className="lv-uc-prompt">{q.prompt}</p>
-            <span className="lv-uc-kind">{KIND_LABEL[q.kind]}{q.optional ? " · optional" : ""}</span>
-            {q.options && (
-              <ul className="lv-uc-opts" aria-label="Options">
-                {q.options.map((o) => <li key={o}>{o}</li>)}
-              </ul>
-            )}
-          </div>
-        </li>
-      ))}
-    </ol>
-  );
-}
 
 export function UseCasePage() {
   const { slug } = useParams();
@@ -59,7 +31,7 @@ export function UseCasePage() {
       <div className="lv-uc-layout">
         <Card>
           <Eyebrow accent>What you will ask</Eyebrow>
-          <Questions questions={tpl.questions} />
+          <TemplateQuestions questions={tpl.questions} testId="uc-questions" />
         </Card>
         <div className="lv-stack-16">
           <Card>

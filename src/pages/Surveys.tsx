@@ -9,14 +9,14 @@ import type { SaveTracker } from "./QuestionWorkbench";
 import { Icon } from "../components/Icon";
 import { campaignPhase, LinkButton } from "../components/ui";
 import { StateScreen } from "../ui/StateScreen";
-import { SURVEY_TEMPLATES, templateById, templateConfig } from "../config/surveyTemplates";
+import { SURVEY_TEMPLATES, TEMPLATE_CATEGORIES, templateById, templateConfig, type TemplateCategory } from "../config/surveyTemplates";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
 import { Input } from "@/components/shadcn/input";
 import { Switch } from "@/components/shadcn/switch";
 import { Badge } from "@/components/shadcn/badge";
 import { RadioCard, RadioGroup } from "@/components/shadcn/radio-group";
-import { EmptyState, Field, LoadingRows, Notice, PageHeader, PhaseBadge, QuotaMeter, RowItem, RowList, ToggleRow } from "@/components/shadcn/blocks";
+import { EmptyState, Field, LoadingRows, Notice, PageHeader, PhaseBadge, QuotaMeter, RowItem, RowList, Segmented, ToggleRow } from "@/components/shadcn/blocks";
 import {
   DescriptionField,
   GuestsGroup,
@@ -118,6 +118,7 @@ export function NewSurvey() {
   const fromLink = templateById(params.get("template"));
   const [tplId, setTplId] = useState<string>(fromLink?.id ?? "blank");
   const tpl = templateById(tplId);
+  const [cat, setCat] = useState<"All" | TemplateCategory>(fromLink?.category ?? "All");
   const [title, setTitle] = useState(fromLink?.title ?? "");
   const [access, setAccess] = useState<SurveyAccess>(fromLink?.defaults?.access ?? "link");
   const [anonymity, setAnonymity] = useState<Anonymity>(fromLink?.defaults?.anonymity ?? "anonymous");
@@ -164,9 +165,16 @@ export function NewSurvey() {
         <form className="lv-stack-24" onSubmit={(e) => { e.preventDefault(); if (title.trim()) void create(); }}>
           <fieldset className="lv-fieldset" data-testid="template-picker">
             <legend className="lv-legend">Start from</legend>
+            <Segmented<"All" | TemplateCategory>
+              label="Template category"
+              value={cat}
+              onValueChange={setCat}
+              options={[{ value: "All", label: "All" }, ...TEMPLATE_CATEGORIES.map((c) => ({ value: c, label: c }))]}
+            />
             <RadioGroup value={tplId} onValueChange={pickTemplate} aria-label="Start from" className="ui-grid-2">
               <RadioCard value="blank" title="Blank" description="Write your own questions." />
-              {SURVEY_TEMPLATES.map((t) => (
+              {/* The chosen template stays visible when the filter changes, so the selection never disappears. */}
+              {SURVEY_TEMPLATES.filter((t) => cat === "All" || t.category === cat || t.id === tplId).map((t) => (
                 <RadioCard key={t.id} value={t.id} title={t.name} description={`${t.blurb} ${t.questions.length} questions.`} />
               ))}
             </RadioGroup>

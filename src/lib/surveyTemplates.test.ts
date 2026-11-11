@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SURVEY_TEMPLATES, templateById, templateConfig } from "../config/surveyTemplates.ts";
+import { SURVEY_TEMPLATES, TEMPLATE_CATEGORIES, templateById, templateConfig } from "../config/surveyTemplates.ts";
 import { questionConfigProblem } from "./lvApi.ts";
 
 const QUICK_SURVEY_QUESTION_LIMIT = 10; // docs/v2/LAUNCH_PLAN.md: Free Quick Survey = 10 questions
@@ -31,10 +31,21 @@ test("prompts are unique within a template", () => {
 
 // "No customer named" is enforced for all of src/ (templates included) by scripts/check-customer-names.mjs.
 
-test("only a ballot template changes who can answer, and it makes that invite-only", () => {
-  const withDefaults = SURVEY_TEMPLATES.filter((t) => t.defaults);
-  assert.deepEqual(withDefaults.map((t) => t.id), ["committee-vote"]);
+test("only a ballot changes who can answer; identified defaults are limited to templates that need to know who replied", () => {
   assert.deepEqual(templateById("committee-vote")?.defaults, { access: "invite", anonymity: "anonymous" });
+  const withAccess = SURVEY_TEMPLATES.filter((t) => t.defaults?.access).map((t) => t.id);
+  assert.deepEqual(withAccess, ["committee-vote"]);
+  const identified = SURVEY_TEMPLATES.filter((t) => t.defaults?.anonymity === "identified").map((t) => t.id).sort();
+  assert.deepEqual(identified, ["event-rsvp", "volunteer-interest"]);
+});
+
+test("every template has a known category and every category is used", () => {
+  for (const t of SURVEY_TEMPLATES) assert.ok(TEMPLATE_CATEGORIES.includes(t.category), `${t.id}: ${t.category}`);
+  for (const c of TEMPLATE_CATEGORIES) assert.ok(SURVEY_TEMPLATES.some((t) => t.category === c), `no template in ${c}`);
+});
+
+test("there are twenty free templates", () => {
+  assert.equal(SURVEY_TEMPLATES.length, 20);
 });
 
 test("lookup and config shape", () => {

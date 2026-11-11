@@ -59,6 +59,22 @@ hub now say "The name has lunch in it. The product doesn't." and lead with votes
 one card of ten. Do not describe Election mode as available: it is disabled until M2. What exists today is a
 one-person-one-vote ballot (invite-only, anonymous), and the page says so.
 
+### Templates by plan (the "what is each plan for" story)
+
+Each plan has its own templates so a visitor can see what they are paying for. Show these on the pricing page, in demos
+and in outreach to Hub owners. Content lives in `src/config/campaignTemplates.ts` (Hub Campaigns) and
+`src/config/surveyTemplates.ts` (Quick Surveys, 20).
+
+| Plan | What the templates demonstrate | Templates |
+| --- | --- | --- |
+| Free Quick Survey | Fast, no Hub: feedback, votes, questionnaires, RSVPs | 20, in five categories |
+| Starter Hub | Keeping a community answering: members only, 15 active Campaigns, polls and ratings that do not use the 2 survey slots, export | Weekly poll, Yes or no decision, Idea shortlist, Rate the last event, Feedback box, Monthly member survey |
+| Team Hub | The right people and more depth: role targeting (identified answers), 5 surveys, advanced analytics | Role pulse, Volunteer shift feedback, New member check-in, Ask the leads, Quarterly community survey |
+| Campaign Starter / Plus | A fixed window that closes by itself; Plus adds Team features for the window | Event week feedback, Launch week poll, Season review, Call for ideas, Two-week role check-in |
+
+Hub owners can deep-link a template: `https://lunchvoice.com/<hub>/campaigns/new?template=<id>` (for example
+`role-pulse`). It preselects the template if the Hub's plan offers it.
+
 Template ids are permanent once a link is published; add new ids rather than renaming (`src/config/surveyTemplates.ts`).
 Add `&utm_source=<channel>` to any link to tell channels apart in whatever analytics is chosen (see Measurement).
 
