@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { CountUp } from "../ui/motion";
@@ -19,9 +19,6 @@ import { can, useHubCtx } from "./Hub";
 import { Player } from "./Player";
 import { StudioView } from "./Studio";
 import { ResultsView } from "./Results";
-import { CampaignTemplatePicker, CampaignTemplateSummary } from "./CampaignTemplatePicker";
-import { campaignTemplateById, groupOf, templateOffered } from "../config/campaignTemplates";
-import { templateConfig } from "../config/surveyTemplates";
 
 /** Why export is off for this Hub, or null when the API should be asked. Display only; the backend decides. */
 export function exportBlockedReason(hub: HubInfo, membership: HubMembership | null): string | null {
@@ -107,13 +104,7 @@ export function NewCampaign() {
   const { hub } = useHubCtx();
   const { api } = useIdentity();
   const nav = useNavigate();
-  // /:hub/campaigns/new?template=<id> preselects a template (only if this Hub's plan offers it).
-  const [params] = useSearchParams();
-  const linked = campaignTemplateById(params.get("template"));
-  const startTpl = linked && templateOffered(linked, hub.plan) ? linked : null;
-  const [tplId, setTplId] = useState<string>(startTpl?.id ?? "blank");
-  const tpl = campaignTemplateById(tplId);
-  const [title, setTitle] = useState(startTpl?.title ?? "");
+  const [title, setTitle] = useState("");
   const [mode, setMode] = useState<CampaignMode>("survey");
   const [anonymity, setAnonymity] = useState<Anonymity>("anonymous");
   const [pollKind, setPollKind] = useState<"single_choice" | "yes_no">("single_choice");
@@ -121,42 +112,8 @@ export function NewCampaign() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Choosing a template fills the title unless the creator already typed their own.
-  function pickTemplate(id: string) {
-    const next = campaignTemplateById(id);
-    if (!title.trim() || title === tpl?.title) setTitle(next?.title ?? "");
-    setTplId(id);
-  }
-
-  // A template creates the draft with its description and questions, sets the end date for a time-bounded one, and
-  // lands on the step that needs a decision next (Audience for a role-targeted template, otherwise Review).
-  async function createFromTemplate(t: NonNullable<typeof tpl>) {
-    setBusy(true);
-    setError(null);
-    const r = await api.campaignCreateDescribed(hub.hub_id, title.trim(), t.mode, t.anonymity, t.description);
-    if (!r.ok) { setBusy(false); return setError(describeError(r.error)); }
-    const id = r.campaign_id;
-    let failed = false;
-    for (const [i, q] of t.questions.entries()) {
-      const added = await api.questionAdd(id, i + 1, q.kind, q.prompt, templateConfig(q));
-      if (!added.ok) { failed = true; break; }
-    }
-    let closes: Date | null = null;
-    if (t.windowDays && !failed) {
-      const at = new Date(Date.now() + t.windowDays * 86_400_000);
-      const u = await api.campaignUpdate(id, { closesAt: at.toISOString() });
-      if (u.ok) closes = at; else failed = true;
-    }
-    setBusy(false);
-    if (failed) toast.warning("Draft created, but part of the template could not be added. Check the questions and the schedule.");
-    else if (closes) toast.success(`Draft created from “${t.name}”. It closes on ${closes.toLocaleDateString(undefined, { day: "numeric", month: "short" })}; change it under Schedule.`);
-    else toast.success(`Draft created from “${t.name}”. Edit anything before you publish.`);
-    nav(`/${hub.slug}/campaigns/${id}/studio?section=${t.targetsRoles ? "audience" : "review"}`);
-  }
-
   async function create() {
     if (busy) return;
-    if (tpl) return createFromTemplate(tpl);
     setBusy(true);
     setError(null);
     const r = await api.campaignCreate(hub.hub_id, title.trim(), mode, anonymity);
@@ -183,19 +140,17 @@ export function NewCampaign() {
       <PageHeader eyebrow="New Campaign" title="Start a Campaign" sub="It starts as a draft. Nothing is visible to members until you publish it." />
       <Card>
         <form className="lv-stack-24" onSubmit={(e) => { e.preventDefault(); if (title.trim()) void create(); }}>
-          <CampaignTemplatePicker value={tplId} onChange={pickTemplate} plan={hub.plan} hubSlug={hub.slug} initialGroup={startTpl ? groupOf(startTpl) : "starter"} />
           <Field label="Title" htmlFor="c-title" counter={{ value: title.length, max: 120 }}>
             <Input id="c-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Which night works for the social?" maxLength={120} autoFocus />
           </Field>
-          {tpl && <CampaignTemplateSummary t={tpl} />}
-          {!tpl && <fieldset className="lv-fieldset">
+          <fieldset className="lv-fieldset">
             <legend className="lv-legend">Mode</legend>
             <RadioGroup value={mode} onValueChange={(v) => setMode(v as CampaignMode)} aria-label="Mode" className="ui-grid-2">
               {MODES.map((m) => <RadioCard key={m.key} value={m.key} title={m.label} description={m.body} />)}
               <RadioCard value="election" title="Election" description="Ranked options with a ballot." disabled badge={<Badge>Coming with M2</Badge>} />
             </RadioGroup>
-          </fieldset>}
-          {!tpl && mode === "poll" && (
+          </fieldset>
+          {mode === "poll" && (
             <Field label="Start with">
               <Segmented<"single_choice" | "yes_no">
                 label="Start with"
@@ -205,22 +160,22 @@ export function NewCampaign() {
               />
             </Field>
           )}
-          {!tpl && mode === "rating" && (
+          {mode === "rating" && (
             <ToggleRow
               title="Start from “How was it?”"
               description="One rating question from 1 to 5, ready to publish. You can change the wording."
               control={<Switch checked={ratingTemplate} onCheckedChange={setRatingTemplate} aria-label="Start from How was it?" />}
             />
           )}
-          {!tpl && <fieldset className="lv-fieldset">
+          <fieldset className="lv-fieldset">
             <legend className="lv-legend">Answers</legend>
             <RadioGroup value={anonymity} onValueChange={(v) => setAnonymity(v as Anonymity)} aria-label="Answers" className="ui-grid-2">
               <RadioCard value="anonymous" title="Anonymous" description="Answers can’t be traced to a person." />
               <RadioCard value="identified" title="Identified" description="Managers can see who answered." />
             </RadioGroup>
-          </fieldset>}
+          </fieldset>
           {error && <Notice tone="error">{error}</Notice>}
-          <div className="ui-row"><Button type="submit" variant="primary" disabled={!title.trim() || busy}>{busy ? "Creating…" : !tpl && mode === "poll" ? "Create poll" : "Create draft"} <Icon name="arrow" size={16} /></Button></div>
+          <div className="ui-row"><Button type="submit" variant="primary" disabled={!title.trim() || busy}>{busy ? "Creating…" : mode === "poll" ? "Create poll" : "Create draft"} <Icon name="arrow" size={16} /></Button></div>
         </form>
       </Card>
     </div>

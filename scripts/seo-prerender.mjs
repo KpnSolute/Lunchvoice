@@ -19,29 +19,6 @@ const FALLBACK_MARK = "<!--lv:seo-fallback-->";
  * "$" so a Hub whose slug merely starts with "me" or "join" is not caught by the prefix match. */
 export const DISALLOW = ["/auth/", "/signin$", "/me$", "/settings$", "/create$", "/join$", "/j/", "/c/", "/s/", "/surveys$", "/surveys/", "/reserve$", "/admin$"];
 
-/**
- * Indexable pages = the hand-written ones in seo.json plus one page per use case in useCases.json (which is also the
- * source of the /use-cases/<slug> page itself). Everything downstream reads seo.pages, so this is the one merge point.
- */
-export function useCasePage(u, template) {
-  const questions = (template?.questions ?? []).map((q) => q.prompt).join(" ");
-  return {
-    path: `/use-cases/${u.slug}`,
-    title: u.title,
-    description: u.description,
-    h1: u.h1,
-    body: `${u.lede}${questions ? ` Sample questions: ${questions}` : ""}`,
-    changefreq: "monthly",
-    priority: 0.7,
-  };
-}
-
-export function loadSeo(root = ".") {
-  const seo = JSON.parse(readFileSync(join(root, "src/config/seo.json"), "utf8"));
-  const { useCases } = JSON.parse(readFileSync(join(root, "src/config/useCases.json"), "utf8"));
-  return { ...seo, pages: [...seo.pages, ...useCases.map((u) => useCasePage(u, null))], useCases };
-}
-
 export function escapeHtml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
@@ -158,7 +135,7 @@ export function prerender(distDir, seo, lastmod = new Date().toISOString().slice
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const dist = process.argv[2] ?? "dist";
-  const seo = loadSeo();
+  const seo = JSON.parse(readFileSync("src/config/seo.json", "utf8"));
   const written = prerender(dist, seo);
   console.log(JSON.stringify({ ok: true, files: written.length, pages: seo.pages.length }));
 }

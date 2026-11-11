@@ -8,7 +8,8 @@ import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import { describeError } from "../lib/errors";
 import type { BillingConfig, LvError, PurchasableProduct } from "../lib/lvApi";
-import { CHECKOUT_DISABLED_REASON, PLANS } from "../config/pricing";
+import { PLANS } from "../config/pricing";
+import { useBillingReason } from "../lib/billingNotice";
 import { Button } from "@/components/shadcn/button";
 import { Input } from "@/components/shadcn/input";
 import { DisabledAction, Field, Notice } from "@/components/shadcn/blocks";
@@ -47,6 +48,7 @@ export function CheckoutButton({
 }) {
   const { api, session } = useIdentity();
   const [busy, setBusy] = useState(false);
+  const disabledReason = useBillingReason();
   if (!session) {
     return (
       <Button asChild variant={variant} block={block} data-testid={`checkout-${product}`}>
@@ -55,7 +57,7 @@ export function CheckoutButton({
     );
   }
   if (!config?.products[product]) {
-    return <div data-testid={`checkout-${product}`} data-state="disabled"><DisabledAction block={block} variant={variant} reason={CHECKOUT_DISABLED_REASON}>{label}</DisabledAction></div>;
+    return <div data-testid={`checkout-${product}`} data-state="disabled"><DisabledAction block={block} variant={variant} reason={disabledReason}>{label}</DisabledAction></div>;
   }
   async function go() {
     setBusy(true);

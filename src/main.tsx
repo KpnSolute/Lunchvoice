@@ -5,7 +5,6 @@ import { IdentityProvider } from "./identity/IdentityProvider";
 import { AuthCallback, RequireSignIn, Shell, SignIn } from "./pages/Public";
 import { Landing } from "./pages/Landing";
 import { About, Beta, Discover, Guidelines, HowItWorks, NotFoundPage, Privacy, Status, Support, Terms, UseCases } from "./pages/Marketing";
-import { UseCasePage } from "./pages/UseCasePage";
 import { CreateHub, Join, Me, RedeemInvite, Settings } from "./pages/Account";
 import { Pricing } from "./pages/Pricing";
 import { Waitlist } from "./pages/Waitlist";
@@ -48,7 +47,6 @@ createRoot(document.getElementById("root")!).render(
             <Route index element={<Landing />} />
             <Route path="how-it-works" element={<HowItWorks />} />
             <Route path="use-cases" element={<UseCases />} />
-            <Route path="use-cases/:slug" element={<UseCasePage />} />
             <Route path="pricing" element={<Pricing />} />
             <Route path="beta" element={<Beta />} />
             <Route path="about" element={<About />} />

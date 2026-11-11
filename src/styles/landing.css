@@ -303,21 +303,3 @@ main:focus { outline: none; }
 .lv-wl-small { margin: 0; font-size: 14px; opacity: 0.85; }
 .ui-muted-inv { font: 600 18px/1.2 var(--lv-font-ui); letter-spacing: 0; opacity: 0.75; }
 .lv-inline-link { color: inherit; text-decoration: underline; text-underline-offset: 3px; font-weight: 600; }
-
-/* ---------- use-case pages ---------- */
-.lv-uc-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
-@media (max-width: 820px) { .lv-uc-layout { grid-template-columns: minmax(0, 1fr); } }
-.lv-uc-q { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 18px; }
-.lv-uc-q li { display: flex; gap: 12px; align-items: flex-start; }
-.lv-uc-n { flex: none; width: 28px; height: 28px; border-radius: 999px; display: grid; place-items: center; background: var(--lv-well); box-shadow: var(--lv-well-shadow); font: 700 12px/1 var(--lv-font-mono); }
-.lv-uc-prompt { margin: 0 0 4px; font: 600 16px/1.4 var(--lv-font-ui); }
-.lv-uc-kind { font: 700 11px/1 var(--lv-font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--lv-subtle); }
-.lv-uc-opts { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.lv-uc-opts li { padding: 4px 10px; border-radius: 999px; background: var(--lv-well); font-size: 13px; line-height: 1.4; }
-.lv-l-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
-.lv-l-chips a { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; background: var(--lv-raised-bg); box-shadow: var(--lv-card-shadow); border: var(--lv-control-border); color: var(--lv-text); font: 600 14px/1.2 var(--lv-font-ui); text-decoration: none; }
-.lv-l-chips a:hover { background: var(--lv-well); }
-.lv-l-chips a:focus-visible { outline: 2px solid var(--lv-accent-deep); outline-offset: 2px; }
-.lv-mk-card-title a { color: var(--lv-text); text-decoration: none; }
-.lv-mk-card-title a:hover { text-decoration: underline; text-underline-offset: 3px; }
-.lv-mk-card-title a:focus-visible { outline: 2px solid var(--lv-accent-deep); outline-offset: 3px; border-radius: 4px; }

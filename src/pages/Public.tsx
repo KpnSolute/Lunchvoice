@@ -6,7 +6,6 @@ import { Icon } from "../components/Icon";
 import { BottomTabs } from "../ui/BottomTabs";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO, supportMailto } from "../config/contact";
 import { safeReturnTo } from "../lib/kpnIdentity";
-import { SESSION_ENDED_FLAG } from "../lib/authFailure";
 import { Button } from "@/components/shadcn/button";
 import { Input } from "@/components/shadcn/input";
 import { Card } from "@/components/shadcn/card";
@@ -108,7 +107,7 @@ function MarketingMenu() {
 export function Shell() {
   const { session } = useIdentity();
   const { pathname } = useLocation();
-  const marketing = MARKETING_ROUTES.has(pathname) || pathname.startsWith("/use-cases/");
+  const marketing = MARKETING_ROUTES.has(pathname);
   const account = Boolean(session) && isAccountRoute(pathname);
   const bare = pathname.startsWith("/c/") || pathname.startsWith("/s/");
   const ink = pathname === "/";
@@ -207,10 +206,6 @@ export function SignIn() {
   const [name, setName] = useState("Dana Reyes");
   const location = useLocation();
   const nav = useNavigate();
-  // Shown when the person lands here because their session ran out (see IdentityProvider). Read in render, cleared in an
-  // effect, so React StrictMode's double render still shows it.
-  const [ended] = useState(() => { try { return sessionStorage.getItem(SESSION_ENDED_FLAG) === "1"; } catch { return false; } });
-  useEffect(() => { try { sessionStorage.removeItem(SESSION_ENDED_FLAG); } catch { /* nothing to clear */ } }, []);
   // LC-14: history state is caller-controlled; only safe same-site paths are followed.
   const from = safeReturnTo((location.state as { from?: string } | null)?.from);
   if (session) return <Navigate to={from} replace />;
@@ -219,11 +214,6 @@ export function SignIn() {
       <Card className="lv-signin">
         <img src="/brand/lunchvoice-mark.svg" alt="" height={44} width={44} />
         <h1 className="lv-signin-title">Sign in to LunchVoice</h1>
-        {ended && (
-          <Notice tone="info" title="You were signed out">
-            Sessions last up to an hour, so yours ended. Sign in again to carry on where you were. Anything you had saved is still there.
-          </Notice>
-        )}
         <p className="ui-muted lv-signin-sub">One KpnSolute account for every Hub. We keep your verified sign-in, never your email as your identity.</p>
         {issuerConfigured ? (
           <Button
@@ -267,7 +257,7 @@ export function SignIn() {
 export function RequireSignIn({ children }: { children: ReactNode }) {
   const { session } = useIdentity();
   const location = useLocation();
-  if (!session) return <Navigate to="/signin" state={{ from: location.pathname + location.search }} replace />;
+  if (!session) return <Navigate to="/signin" state={{ from: location.pathname }} replace />;
   return <>{children}</>;
 }
 

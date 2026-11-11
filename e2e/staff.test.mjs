@@ -273,3 +273,85 @@ test("reports: signed out, the Support page asks for sign-in to report a Hub and
   assert.deepEqual(s.errors, []);
   await s.ctx.close();
 });
+
+/* ------------------------------------------------------------------ billing controls (000035) */
+
+test("billing: staff schedule a launch date, every Hub's counter shows it, then open billing and purchases unlock for everyone", async () => {
+  const { page: p, go, ctx, errors } = await page({}, STAFF);
+  await go("/admin");
+  await p.getByTestId("admin-console").waitFor();
+  await tab(p, "Billing").click();
+  const consoleEl = p.getByTestId("billing-console");
+  await consoleEl.waitFor();
+  await p.getByTestId("billing-state").getByText(/Off: nothing can be bought/).waitFor();
+  await consoleEl.getByText("Not set").first().waitFor();
+  await p.getByTestId("billing-checklist").getByText(/Stripe prices set for every product/).waitFor();
+
+  // A customer's Hub shows the generic wording before any date exists.
+  await go("/northside-running/billing");
+  await p.getByText(/30 days after billing opens/).first().waitFor();
+
+  // Staff schedule a date 10 days out: every Hub now shows a real end date and "Billing opens {date}".
+  await go("/admin");
+  await tab(p, "Billing").click();
+  const when = new Date(Date.now() + 10 * 86_400_000);
+  const local = new Date(when.getTime() - when.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+  await p.locator("#billing-date").fill(local);
+  await p.getByTestId("billing-schedule").click();
+  await p.getByText("Launch date set").waitFor();
+  const ends = new Date(when.getTime() + 30 * 86_400_000).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  await go("/northside-running/billing");
+  await p.getByText(ends).first().waitFor();
+  assert.equal(await p.getByText(/30 days after billing opens/).count(), 0, "the placeholder is replaced by a date");
+  await go("/pricing");
+  await p.getByTestId("billing-reason").getByText(/Billing opens/).waitFor();
+
+  // Open billing: a typed confirmation, then purchases are on for everyone.
+  await go("/admin");
+  await tab(p, "Billing").click();
+  await p.getByTestId("billing-open").click();
+  const dlg = p.getByTestId("billing-confirm");
+  await dlg.waitFor();
+  assert.equal(await p.getByTestId("billing-confirm-go").isDisabled(), true, "the button waits for the typed phrase");
+  await dlg.getByLabel(/Type OPEN BILLING/).fill("open billing");
+  assert.equal(await p.getByTestId("billing-confirm-go").isDisabled(), true, "the phrase must match exactly");
+  await dlg.getByLabel(/Type OPEN BILLING/).fill("OPEN BILLING");
+  await p.getByTestId("billing-confirm-go").click();
+  await p.getByText("Billing is open").waitFor();
+  await p.getByTestId("billing-state").getByText(/On: people can buy plans/).waitFor();
+  await p.getByTestId("billing-controls-on").waitFor();
+  await go("/pricing");
+  await p.getByText("Checkout is open").waitFor();
+
+  // Pausing stops new purchases again.
+  await go("/admin");
+  await tab(p, "Billing").click();
+  await p.getByTestId("billing-pause").click();
+  await p.getByTestId("billing-confirm").getByLabel(/Type PAUSE BILLING/).fill("PAUSE BILLING");
+  await p.getByTestId("billing-confirm-go").click();
+  await p.getByText("Purchases paused").waitFor();
+  await p.getByTestId("billing-state").getByText(/Off: nothing can be bought/).waitFor();
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test("billing: opening is blocked while any Stripe price is missing, and a past date is refused", async () => {
+  const { page: p, go, ctx } = await page({}, { ...STAFF, "lv.mock.stripe_prices": "missing" });
+  await go("/admin");
+  await tab(p, "Billing").click();
+  await p.getByTestId("billing-controls-off").waitFor();
+  assert.equal(await p.getByTestId("billing-open").isDisabled(), true, "Open billing waits for every Stripe price");
+  await p.getByText(/missing starter_hub, team_hub/).waitFor();
+  await p.locator("#billing-date").fill("2020-01-01T10:00");
+  await p.getByTestId("billing-schedule").click();
+  await p.getByText(/Pick a launch date in the future/).waitFor();
+  await ctx.close();
+});
+
+test("billing: ordinary people never see the billing controls", async () => {
+  const { page: p, go, ctx } = await page({}, {});
+  await go("/admin");
+  await p.getByRole("heading", { name: "This page isn’t here." }).waitFor();
+  assert.equal(await p.getByTestId("billing-console").count(), 0);
+  await ctx.close();
+});

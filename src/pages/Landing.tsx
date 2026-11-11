@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Icon, type IconName } from "../components/Icon";
-import { USE_CASES } from "../config/useCases";
+import { Icon } from "../components/Icon";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import { PLANS } from "../config/pricing";
@@ -124,19 +123,6 @@ export function Landing() {
           </div>
         </div>
       </div>
-
-      {/* ---------------- more than lunch ---------------- */}
-      <section id="uses" className="lv-l-section" aria-labelledby="uses-h">
-        <div className="lv-l-head">
-          <span className="lv-l-eyebrow lv-l-eyebrow-muted">Use cases</span>
-          <h2 id="uses-h" className="lv-l-h2">The name has lunch in it. The product doesn’t.</h2>
-        </div>
-        <ul className="lv-l-chips" data-testid="landing-use-cases">
-          {USE_CASES.map((u) => (
-            <li key={u.slug}><Link to={`/use-cases/${u.slug}`}><Icon name={u.icon as IconName} size={16} />{u.name}</Link></li>
-          ))}
-        </ul>
-      </section>
 
       {/* ---------------- how it works ---------------- */}
       <section id="how" className="lv-l-section" aria-labelledby="how-h">

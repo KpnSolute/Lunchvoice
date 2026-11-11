@@ -82,6 +82,8 @@ export interface HubPlan {
 export type LimitMap = Record<string, number | null>;
 
 export interface PlanLimits {
+  /** 000035: public billing state: on or off, the launch date and when Founding access ends. */
+  billing?: { open: boolean; launch_at: string | null; founding_ends_at: string | null };
   families: Record<PlanFamily, LimitMap>;
   products: { product: Product; family: PlanFamily; price_cents?: number | null; interval: string; purchasable: boolean }[];
 }
@@ -752,6 +754,18 @@ export interface AdminDiscoverApplication {
   decided_at: string | null;
   note: string | null;
 }
+export interface AdminBillingStatus {
+  open: boolean;
+  launch_at: string | null;
+  founding_ends_at: string | null;
+  launch_passed_billing_off: boolean;
+  price_gaps: string[];
+  founding_hubs: number;
+  paying_hubs: number;
+  events_7d: number;
+  applied_7d: number;
+  rejected_7d: number;
+}
 export interface AdminBillingEvent { id: number; type: string; outcome: "applied" | "ignored" | "rejected"; reason: string | null; received_at: string }
 export interface AdminOutbox {
   counts: Record<string, number>;
@@ -794,6 +808,9 @@ function createCommerceApi(transport: LvTransport, call: Caller) {
       call<{ applications: AdminDiscoverApplication[] }>("lv_admin_discover_list", { p_status: status }),
     adminDiscoverDecide: (application: string, approve: boolean, note?: string | null) =>
       call<{ status: "approved" | "rejected" }>("lv_admin_discover_decide", { p_application: application, p_approve: approve, p_note: note ?? null }),
+    adminBillingStatus: () => call<AdminBillingStatus>("lv_admin_billing_status"),
+    adminBillingSet: (action: "schedule" | "clear" | "open" | "pause", launchAt: string | null = null, confirm: string | null = null) =>
+      call<Omit<AdminBillingStatus, "price_gaps" | "founding_hubs" | "paying_hubs" | "events_7d" | "applied_7d" | "rejected_7d">>("lv_admin_billing_set", { p_action: action, p_launch_at: launchAt, p_confirm: confirm }),
     adminBillingEvents: (limit = 100) => call<{ events: AdminBillingEvent[] }>("lv_admin_billing_events", { p_limit: limit }),
     adminEmailOutbox: (limit = 50) => call<AdminOutbox>("lv_admin_email_outbox", { p_limit: limit }),
   };

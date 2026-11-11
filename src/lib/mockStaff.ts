@@ -9,7 +9,7 @@ const STORE = "lv.mock.staff";
 const ME = "mock-account";
 type Base = (fn: string, a: Record<string, unknown>) => unknown;
 interface HubLike { hub_id: string; slug: string | null; name: string; kind: string; visibility: string; membership_mode: string; members: { account_id: string; display_name: string; is_owner: boolean; status: string }[] }
-interface StateLike { hubs: HubLike[]; reports: { join_code: string; reason: string }[]; discover_applied: string[]; me: { display_name: string } }
+interface StateLike { billing_launched_at: string | null; hubs: HubLike[]; reports: { join_code: string; reason: string }[]; discover_applied: string[]; me: { display_name: string } }
 
 // A synthetic directory of other accounts with verified emails (mock only).
 const DIRECTORY = [
@@ -56,6 +56,8 @@ function save() { try { localStorage.setItem(STORE, JSON.stringify(st)); } catch
 const admin = () => { try { return localStorage.getItem("lv.mock.admin") === "1"; } catch { return false; } };
 const err = (code: string, message: string) => ({ ok: false, error: { code, message } });
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Dev switch: localStorage["lv.mock.stripe_prices"] = "missing" simulates unset Stripe prices (the backend reads lv.policy).
+const flagGaps = (): string[] => { try { return localStorage.getItem("lv.mock.stripe_prices") === "missing" ? ["starter_hub", "team_hub", "hub_reservation", "campaign_starter", "campaign_plus"] : []; } catch { return []; } };
 
 // Writes the backend refuses for a suspended Hub (lv.suspension_guard triggers).
 const HUB_WRITES = new Set(["lv_campaign_create", "lv_invite_create", "lv_hub_update", "lv_role_create", "lv_news_save", "lv_hub_pages_update",
@@ -94,7 +96,7 @@ export function staffMock(s: StateLike, fn: string, a: Record<string, unknown>, 
   const mine = ["lv_admin_staff_list", "lv_admin_staff_add", "lv_admin_staff_revoke", "lv_admin_hub_suspend", "lv_admin_hub_unsuspend",
     "lv_admin_account_suspend", "lv_admin_account_unsuspend", "lv_admin_reports", "lv_admin_comment_hide", "lv_admin_comment_reports_dismiss",
     "lv_admin_hub_search", "lv_admin_account_search", "lv_admin_account_email_reveal", "lv_admin_audit", "lv_admin_report_dismiss", "lv_admin_campaign_block",
-    "lv_admin_user_report_decide"];
+    "lv_admin_user_report_decide", "lv_admin_billing_status", "lv_admin_billing_set"];
 
   // 000029: reporting a person or a Hub, and the reporter's own list. Any signed-in person; never staff-only.
   if (fn === "lv_report_hub" || fn === "lv_report_account" || fn === "lv_my_reports") {
@@ -205,6 +207,45 @@ export function staffMock(s: StateLike, fn: string, a: Record<string, unknown>, 
             : { ...common, comment_id: r.id, post_id: null, excerpt: r.title, hidden: Boolean(r.hidden), author_suspended: false, author_account_id: "acc-3" };
         });
         return { ok: true, items };
+      }
+      case "lv_admin_billing_status":
+      case "lv_admin_billing_set": {
+        const open = () => { try { return localStorage.getItem("lv.mock.billing") === "ready"; } catch { return false; } };
+        const setOpen = (on: boolean) => { try { if (on) localStorage.setItem("lv.mock.billing", "ready"); else localStorage.removeItem("lv.mock.billing"); } catch { /* ignore */ } };
+        const status = () => {
+          const launch = s.billing_launched_at;
+          return { open: open(), launch_at: launch, founding_ends_at: launch ? new Date(new Date(launch).getTime() + 30 * 86_400_000).toISOString() : null,
+            launch_passed_billing_off: !open() && Boolean(launch) && new Date(launch!).getTime() <= Date.now() };
+        };
+        const extra = { price_gaps: flagGaps(), founding_hubs: 1, paying_hubs: 0, events_7d: 0, applied_7d: 0, rejected_7d: 0 };
+        if (fn === "lv_admin_billing_status") return { ok: true, ...status(), ...extra };
+        const action = String(a.p_action);
+        if (!["schedule", "clear", "open", "pause"].includes(action)) return err("lv_invalid_input", "Choose schedule, clear, open or pause.");
+        if (action === "schedule") {
+          if (open()) return err("lv_conflict", "Billing is already on, so the launch date can't move.");
+          const at = a.p_launch_at ? new Date(String(a.p_launch_at)).getTime() : NaN;
+          if (!(at > Date.now())) return err("lv_invalid_input", "Pick a launch date in the future. To start billing now, use Open billing.");
+          if (at > Date.now() + 400 * 86_400_000) return err("lv_invalid_input", "That date is more than a year away.");
+          s.billing_launched_at = new Date(at).toISOString();
+          audit("billing.scheduled", null);
+        } else if (action === "clear") {
+          if (open()) return err("lv_conflict", "Billing is on. Pause it first; the launch date stays once billing has started.");
+          s.billing_launched_at = null;
+          audit("billing.schedule_cleared", null);
+        } else if (action === "open") {
+          if (a.p_confirm !== "OPEN BILLING") return err("lv_invalid_input", "Type OPEN BILLING to confirm.");
+          const gaps = flagGaps();
+          if (gaps.length) return err("lv_not_available", `Stripe prices are not set for: ${gaps.join(", ")}. Billing can't open until every product has one.`);
+          if (!open()) {
+            setOpen(true);
+            if (!s.billing_launched_at || new Date(s.billing_launched_at).getTime() > Date.now()) s.billing_launched_at = now();
+            audit("billing.opened", null);
+          }
+        } else {
+          if (a.p_confirm !== "PAUSE BILLING") return err("lv_invalid_input", "Type PAUSE BILLING to confirm.");
+          if (open()) { setOpen(false); audit("billing.paused", null); }
+        }
+        return { ok: true, ...status() };
       }
       case "lv_admin_user_report_decide": {
         const r = d.reports.find((x) => x.id === a.p_report && (x.type === "person" || x.type === "hub"));

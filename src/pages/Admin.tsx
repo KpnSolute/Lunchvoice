@@ -9,6 +9,7 @@ import { useLv } from "../lib/useLv";
 import { describeError } from "../lib/errors";
 import type { AdminAccountRow, AdminDiscoverApplication, AdminHubRow, AdminReportItem, LvError } from "../lib/lvApi";
 import { NotFoundPage } from "./Marketing";
+import { Icon } from "../components/Icon";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
 import { Input } from "@/components/shadcn/input";
@@ -16,6 +17,7 @@ import { Badge } from "@/components/shadcn/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shadcn/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shadcn/table";
 import { EmptyState, Field, LoadingRows, Notice, PageHeader, SectionTitle, Segmented, StatTile } from "@/components/shadcn/blocks";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/shadcn/dialog";
 
 const fmtDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—");
 const familyName = (f?: string | null) => (f === "team" ? "Team" : f === "starter" ? "Starter" : "Free");
@@ -372,23 +374,132 @@ function AdminDiscover() {
   );
 }
 
+/** Typed confirmation for the two actions that change what every customer can do. */
+function TypedConfirm({ open, onOpenChange, title, description, phrase, action, onConfirm }: {
+  open: boolean; onOpenChange: (o: boolean) => void; title: string; description: React.ReactNode; phrase: string; action: string; onConfirm: () => Promise<void>;
+}) {
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) setTyped(""); onOpenChange(o); }}>
+      <DialogContent data-testid="billing-confirm">
+        <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription asChild><div>{description}</div></DialogDescription></DialogHeader>
+        <Field label={`Type ${phrase} to confirm`} htmlFor="billing-typed">
+          <Input id="billing-typed" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" spellCheck={false} />
+        </Field>
+        <div className="ui-row">
+          <Button variant="primary" disabled={typed !== phrase || busy} onClick={async () => { setBusy(true); await onConfirm(); setBusy(false); setTyped(""); onOpenChange(false); }} data-testid="billing-confirm-go">{busy ? "Working…" : action}</Button>
+          <Button variant="quiet" onClick={() => onOpenChange(false)}>Cancel</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function BillingConsole() {
+  const { api } = useIdentity();
+  const st = useLv(() => api.adminBillingStatus(), [api]);
+  const [date, setDate] = useState("");
+  const [dialog, setDialog] = useState<"open" | "pause" | null>(null);
+  const d = st.data;
+  if (st.loading && !d) return <LoadingRows rows={3} />;
+  if (st.error || !d) return <Notice tone="error">{describeError(st.error as LvError)}</Notice>;
+  const gaps = d.price_gaps;
+  async function run(action: "schedule" | "clear" | "open" | "pause", launchAt: string | null, confirm: string | null, done: string) {
+    const r = await api.adminBillingSet(action, launchAt, confirm);
+    if (r.ok) { toast.success(done); st.reload(); } else toast.error(describeError(r.error));
+  }
+  return (
+    <div className="lv-stack-16" data-testid="billing-console">
+      <div className="ui-spread">
+        <div className="ui-row">
+          <h3 className="lv-qw-h">Billing</h3>
+          <Badge variant={d.open ? "ok" : "neutral"} data-testid="billing-state">{d.open ? "On: people can buy plans" : "Off: nothing can be bought"}</Badge>
+        </div>
+      </div>
+
+      <div className="ui-grid-2">
+        <StatTile label="Launch date" value={d.launch_at ? fmtDate(d.launch_at) : "Not set"} note={d.launch_at ? (d.open ? "Billing started" : new Date(d.launch_at).getTime() > Date.now() ? "Scheduled" : "Date passed") : "Founding Hubs see “30 days after billing opens”"} />
+        <StatTile label="Founding access ends" value={d.founding_ends_at ? fmtDate(d.founding_ends_at) : "No date yet"} note={`${d.founding_hubs} Founding Hub${d.founding_hubs === 1 ? "" : "s"} · ${d.paying_hubs} paying`} />
+      </div>
+
+      {d.launch_passed_billing_off && (
+        <Notice tone="warn" title="The launch date has passed and billing is still off">
+          The Founding countdown is running, so those Hubs will lose Starter features on {fmtDate(d.founding_ends_at)}, and nobody can buy a plan yet. Open billing before then.
+        </Notice>
+      )}
+
+      <Card variant="well" data-testid="billing-checklist">
+        <strong>Before billing opens</strong>
+        <ul className="lv-price-list">
+          <li><Icon name={gaps.length === 0 ? "check" : "close"} size={15} />Stripe prices set for every product{gaps.length ? `: missing ${gaps.join(", ")}` : ""}</li>
+          <li><Icon name={d.applied_7d > 0 ? "check" : "close"} size={15} />Stripe webhook has delivered events ({d.events_7d} in 7 days, {d.applied_7d} applied, {d.rejected_7d} rejected)</li>
+        </ul>
+        <p className="ui-help lv-m0">The webhook line fills in after the first real payment. A $13 test purchase and refund is the way to prove it end to end.</p>
+      </Card>
+
+      {!d.open ? (
+        <Card data-testid="billing-controls-off">
+          <h3 className="lv-qw-h">Launch</h3>
+          <p className="lv-m0">Setting a date announces it: every Founding Hub shows “Ends {d.launch_at ? fmtDate(d.founding_ends_at) : "30 days after the date"}” and nothing is lost early. Opening billing turns purchases on for everyone and starts the countdown now.</p>
+          <div className="ui-row">
+            <Field label="Launch date and time" htmlFor="billing-date">
+              <Input id="billing-date" type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
+            </Field>
+            <Button variant="secondary" disabled={!date} onClick={() => void run("schedule", new Date(date).toISOString(), null, "Launch date set")} data-testid="billing-schedule">Set launch date</Button>
+            {d.launch_at && <Button variant="quiet" onClick={() => void run("clear", null, null, "Launch date cleared")}>Clear date</Button>}
+          </div>
+          <div className="ui-row">
+            <Button variant="primary" disabled={gaps.length > 0} onClick={() => setDialog("open")} data-testid="billing-open">Open billing now</Button>
+            {gaps.length > 0 && <span className="ui-muted lv-small">Set every Stripe price first.</span>}
+          </div>
+        </Card>
+      ) : (
+        <Card data-testid="billing-controls-on">
+          <h3 className="lv-qw-h">Billing is on</h3>
+          <p className="lv-m0">Everyone can buy Hub plans, Campaign plans and address reservations. Pausing stops new purchases only: access people already paid for and the Founding countdown are not touched.</p>
+          <div className="ui-row"><Button variant="danger" onClick={() => setDialog("pause")} data-testid="billing-pause">Pause new purchases</Button></div>
+        </Card>
+      )}
+
+      <TypedConfirm
+        open={dialog === "open"} onOpenChange={(o) => !o && setDialog(null)} phrase="OPEN BILLING" action="Open billing"
+        title="Open billing for everyone?"
+        description={<><p>This is visible to every customer immediately.</p><ul className="lv-report-steps"><li>People can buy Hub plans, Campaign plans and address reservations.</li><li>The launch date becomes {d.launch_at && new Date(d.launch_at).getTime() <= Date.now() ? fmtDate(d.launch_at) : "today"}, so every Founding Hub’s 30 days starts counting and ends on {fmtDate(new Date((d.launch_at && new Date(d.launch_at).getTime() <= Date.now() ? new Date(d.launch_at).getTime() : Date.now()) + 30 * 86_400_000).toISOString())}.</li><li>Real money moves through Stripe. Taxes are calculated by Stripe.</li></ul></>}
+        onConfirm={() => run("open", null, "OPEN BILLING", "Billing is open")}
+      />
+      <TypedConfirm
+        open={dialog === "pause"} onOpenChange={(o) => !o && setDialog(null)} phrase="PAUSE BILLING" action="Pause purchases"
+        title="Pause new purchases?"
+        description={<p>Nobody can start a new purchase until you open billing again. Existing plans, renewals already in Stripe and the Founding countdown are not changed.</p>}
+        onConfirm={() => run("pause", null, "PAUSE BILLING", "Purchases paused")}
+      />
+    </div>
+  );
+}
+
 function AdminBilling() {
   const { api } = useIdentity();
   const list = useLv(() => api.adminBillingEvents(200), [api]);
-  if (list.loading && !list.data) return <LoadingRows rows={3} />;
-  if (list.error) return <Notice tone="error">{describeError(list.error)}</Notice>;
   const events = list.data?.events ?? [];
-  if (!events.length) return <EmptyState title="No billing events yet">Stripe events appear here once the webhook is live. Payloads are never stored.</EmptyState>;
   return (
-    <Table>
-      <TableHeader><TableRow><TableHead>Received</TableHead><TableHead>Type</TableHead><TableHead>Outcome</TableHead><TableHead>Reason</TableHead></TableRow></TableHeader>
-      <TableBody>
-        {events.map((e) => (
-          <TableRow key={e.id}><TableCell>{new Date(e.received_at).toLocaleString()}</TableCell><TableCell className="ui-mono">{e.type}</TableCell>
-            <TableCell><Badge variant={e.outcome === "applied" ? "ok" : e.outcome === "rejected" ? "danger" : "neutral"}>{e.outcome}</Badge></TableCell><TableCell>{e.reason ?? "—"}</TableCell></TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <div className="lv-stack-16">
+      <BillingConsole />
+      <SectionTitle>Stripe events</SectionTitle>
+      {list.loading && !list.data ? <LoadingRows rows={3} /> : list.error ? <Notice tone="error">{describeError(list.error)}</Notice> : !events.length ? (
+        <EmptyState title="No billing events yet">Stripe events appear here once the webhook is live. Payloads are never stored.</EmptyState>
+      ) : (
+        <Table>
+          <TableHeader><TableRow><TableHead>Received</TableHead><TableHead>Type</TableHead><TableHead>Outcome</TableHead><TableHead>Reason</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {events.map((e) => (
+              <TableRow key={e.id}><TableCell>{new Date(e.received_at).toLocaleString()}</TableCell><TableCell className="ui-mono">{e.type}</TableCell>
+                <TableCell><Badge variant={e.outcome === "applied" ? "ok" : e.outcome === "rejected" ? "danger" : "neutral"}>{e.outcome}</Badge></TableCell><TableCell>{e.reason ?? "—"}</TableCell></TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </div>
   );
 }
 

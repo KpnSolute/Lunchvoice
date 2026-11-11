@@ -1,8 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { toast } from "sonner";
+import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import type { LvApi } from "../lib/lvApi";
 import { createApi, usingMock } from "../lib/transport";
-import { SESSION_ENDED_FLAG } from "../lib/authFailure";
 import { completeSignIn as finishRedirect, readConfig, startSignIn } from "../lib/kpnIdentity";
 
 // The identity key is (issuer, subject) and it is derived server-side from a
@@ -50,46 +48,19 @@ function load(): Session | null {
 
 export function IdentityProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(load);
-
-  const persist = useCallback((s: Session | null) => {
-    setSession(s);
-    try {
-      if (s) localStorage.setItem(STORE, JSON.stringify(s));
-      else localStorage.removeItem(STORE);
-    } catch {
-      /* storage unavailable: session lasts for this page only */
-    }
-  }, []);
-
-  // The session ended on its own (its hour ran out, or the server refused the token). Sign the person out locally,
-  // say so, and leave a flag for the sign-in page. Idempotent: several calls can fail at once.
-  const endSession = useCallback(() => {
-    persist(null);
-    try { sessionStorage.setItem(SESSION_ENDED_FLAG, "1"); } catch { /* the toast still tells them */ }
-    toast.warning("Your session ended, so you've been signed out. Sign in again to carry on.", { id: "session-ended", duration: 12_000 });
-  }, [persist]);
-
-  // Sessions last up to an hour. A tab left open past that used to keep showing the person as signed in while every
-  // call failed. End the session at its expiry, and re-check when the tab wakes (background timers are throttled).
-  useEffect(() => {
-    const expiresAt = session?.expiresAt;
-    if (!expiresAt) return;
-    const check = () => { if (Date.now() >= expiresAt) endSession(); };
-    const timer = window.setTimeout(check, Math.min(Math.max(expiresAt - Date.now(), 0), 2_000_000_000));
-    const onVisible = () => { if (document.visibilityState === "visible") check(); };
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", check);
-    return () => {
-      window.clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", check);
-    };
-  }, [session, endSession]);
-
   const value = useMemo<Identity>(() => {
+    const persist = (s: Session | null) => {
+      setSession(s);
+      try {
+        if (s) localStorage.setItem(STORE, JSON.stringify(s));
+        else localStorage.removeItem(STORE);
+      } catch {
+        /* storage unavailable: session lasts for this page only */
+      }
+    };
     return {
       session,
-      api: createApi(() => session?.token ?? null, session?.name, endSession),
+      api: createApi(() => session?.token ?? null, session?.name),
       issuerConfigured: Boolean(issuer && kpnConfig),
       canSimulate: import.meta.env.DEV && usingMock,
       signInSimulated: import.meta.env.DEV
@@ -107,7 +78,7 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
       },
       signOut: () => persist(null),
     };
-  }, [session, persist, endSession]);
+  }, [session]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

@@ -1,14 +1,13 @@
 import { Link } from "react-router-dom";
 import { Icon } from "../components/Icon";
 import { LinkButton } from "../components/ui";
-import { CAPABILITY_COLUMNS, CAPABILITY_ROWS, CHECKOUT_DISABLED_REASON, PLANS, PRICING_NOTES } from "../config/pricing";
+import { CAPABILITY_COLUMNS, CAPABILITY_ROWS, PLANS, PRICING_NOTES } from "../config/pricing";
+import { useBillingReason } from "../lib/billingNotice";
 import { Card } from "@/components/shadcn/card";
 import { Badge } from "@/components/shadcn/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shadcn/table";
 import { Eyebrow, Notice } from "@/components/shadcn/blocks";
 import { PricingAction, useBillingConfig } from "../components/Checkout"; // track B: commerce
-import { CAMPAIGN_TEMPLATES, GROUP_BLURB, GROUP_LABEL, groupOf, type CampaignTemplateGroup } from "../config/campaignTemplates";
-import { SURVEY_TEMPLATES } from "../config/surveyTemplates";
 
 // /pricing: the founder's capability table from src/config/pricing.ts. Display only; the backend's entitlement map
 // decides what a plan allows. Checkout buttons are enabled only when lv_billing_config says a product is on sale;
@@ -24,6 +23,7 @@ function CellValue({ v }: { v: string | boolean | null }) {
 export function Pricing() {
   const { config } = useBillingConfig();
   const open = Boolean(config?.checkout_available);
+  const reason = useBillingReason();
   return (
     <div className="lv-mk">
       <div className="lv-mk-head">
@@ -51,34 +51,6 @@ export function Pricing() {
           </Card>
         ))}
       </div>
-
-      <section aria-labelledby="tpl-h" className="lv-stack-16" data-testid="plan-templates">
-        <h2 id="tpl-h" className="lv-mk-card-title">Templates for every plan</h2>
-        <p className="lv-mk-card-body">Each plan comes with ready-made templates built around what that plan is for. Pick one, edit anything, publish when you are ready.</p>
-        <div className="lv-mk-grid">
-          <Card>
-            <strong>Free Quick Survey</strong>
-            <p className="lv-mk-card-body">{SURVEY_TEMPLATES.length} templates for feedback, votes, questionnaires, RSVPs and more. Free with any account.</p>
-            <ul className="lv-price-list">
-              {SURVEY_TEMPLATES.slice(0, 5).map((t) => <li key={t.id}><Icon name="check" size={15} />{t.name}</li>)}
-            </ul>
-            <LinkButton to="/use-cases" variant="secondary" block>See the use cases</LinkButton>
-          </Card>
-          {(["starter", "team", "window"] as CampaignTemplateGroup[]).map((g) => {
-            const list = CAMPAIGN_TEMPLATES.filter((t) => groupOf(t) === g);
-            return (
-              <Card key={g}>
-                <strong>{GROUP_LABEL[g]}</strong>
-                <p className="lv-mk-card-body">{GROUP_BLURB[g]}</p>
-                <ul className="lv-price-list">
-                  {list.slice(0, 5).map((t) => <li key={t.id}><Icon name="check" size={15} />{t.name}</li>)}
-                  {list.length > 5 && <li className="ui-muted">and {list.length - 5} more</li>}
-                </ul>
-              </Card>
-            );
-          })}
-        </div>
-      </section>
 
       <section aria-labelledby="cap-h" className="lv-stack-16">
         <h2 id="cap-h" className="lv-mk-card-title">Compare everything</h2>
@@ -124,7 +96,7 @@ export function Pricing() {
         <Card variant="well">
           <strong>Good to know</strong>
           <ul className="lv-price-list">{PRICING_NOTES.map((n) => <li key={n}><Icon name="check" size={15} />{n}</li>)}</ul>
-          {!open && <p className="ui-help lv-m0">{CHECKOUT_DISABLED_REASON}</p>}
+          {!open && <p className="ui-help lv-m0" data-testid="billing-reason">{reason}</p>}
         </Card>
       </div>
     </div>

@@ -306,6 +306,8 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
     case "lv_plan_limits":
       return {
         ok: true,
+        // 000035: whether billing is on and the launch date, so every Hub's countdown can show a real date.
+        billing: { open: (() => { try { return localStorage.getItem("lv.mock.billing") === "ready"; } catch { return false; } })(), launch_at: s.billing_launched_at, founding_ends_at: foundingEnds(s) },
         families: { free: limitsOut("free"), starter: limitsOut("starter"), team: limitsOut("team") },
         products: [
           { product: "starter_hub", family: "starter", price_cents: 1300, interval: "month", purchasable: false },
