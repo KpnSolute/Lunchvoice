@@ -59,7 +59,7 @@ to without further backend or UI work. Nothing in this plan charges money.
 | F-08 | Hub subscriptions cancel anytime, access to the end of the paid period, no automatic proration. Campaign plans: full refund before the window activates; after activation only for duplicate charges, technical failure or where legally required. |
 | F-09 | Taxes by Stripe Tax; shown separately; no tax engine of our own. |
 | F-10 | Campaign Plus: $39 first 2 weeks + $19 per additional week, Team family. |
-| F-11 | No marketing to minors at launch; schools only as adult administrators' use case; minors-data workflows wait for counsel. |
+| F-11 | **Updated 2026-11-11 (founder): LunchVoice works for schools, including high schools** (homecoming, class and student-government elections, school-wide feedback). Replaces the earlier "no marketing to minors" rule. Build school use so students can take part without accounts or personal data (ballot codes, anonymous by default). Counsel review of COPPA (under 13), FERPA and state student-privacy law is still recommended before signing school agreements; the privacy notice's under-13 line stays until then. |
 | F-12 | Public name "LunchVoice by KpnSolute"; legal documents name the actual legal operator (placeholder until supplied; never pretend an entity exists). |
 | F-13 | **Conditional production approval:** apply the migrations and deploy once LC-01, LC-02, LC-03, LC-05, LC-06, LC-08 and the security headers are fixed, BLOCKER and HIGH findings are zero on the compliance re-run, the canonical DB suite and the frontend build pass, and the real auth smoke test passes. No further approval loop. |
 
