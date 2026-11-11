@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Outlet, useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
@@ -45,7 +45,6 @@ import {
   Field,
   LoadingRows,
   Metric,
-  NavTabs,
   Notice,
   PhaseBadge,
   QuotaMeter,
@@ -178,11 +177,44 @@ export function HubLayout() {
       {plan?.state === "expired" && (
         <Notice tone="warn" title="This Hub’s plan has ended">Premium actions are locked: new Campaigns can’t be published and roles and pages can’t change. Everything you made is kept.</Notice>
       )}
-      <div className="lv-hubtabs-wrap"><NavTabs items={tabs} label="Hub sections" /></div>
-      <CommunityNav slug={hub.slug} hubId={hub.hub_id} />
-      <Outlet context={ctx} />
+      {/* Editors (the Campaign Studio) take the full width: no rail, so the question outline and preview have room. */}
+      <div className={/\/studio$/.test(pathname) ? "lv-hubshell lv-hubshell-editor" : "lv-hubshell"}>
+        {!/\/studio$/.test(pathname) && <HubRail items={tabs} icons={ICONS} />}
+        <div className="lv-hubmain">
+          <CommunityNav slug={hub.slug} hubId={hub.hub_id} />
+          <Outlet context={ctx} />
+        </div>
+      </div>
       <BottomTabs label="Hub sections" items={bottom} more={more} />
     </div>
+  );
+}
+
+/** The Hub's sections as a rail, grouped like a channel list (Hub Console). Phones keep the bottom bar. */
+const RAIL_GROUPS: { heading: string; labels: string[] }[] = [
+  { heading: "Hub", labels: ["Overview", "Campaigns", "Analytics"] },
+  { heading: "People", labels: ["Members", "Invites", "Roles"] },
+  { heading: "Manage", labels: ["Settings", "Builder", "Billing", "Reservation", "Discover"] },
+];
+function HubRail({ items, icons }: { items: { to: string; label: string; end?: boolean }[]; icons: Record<string, IconName> }) {
+  return (
+    <nav className="lv-hubrail" aria-label="Hub sections">
+      {RAIL_GROUPS.map((g) => {
+        const links = items.filter((i) => g.labels.includes(i.label));
+        if (!links.length) return null;
+        return (
+          <div className="lv-rail-group" key={g.heading}>
+            <p className="lv-rail-heading">{g.heading}</p>
+            {links.map((i) => (
+              <NavLink key={i.to} to={i.to} end={i.end} className="lv-rail-link" data-slot="nav-tab">
+                <Icon name={icons[i.label] ?? "dashboard"} size={18} />
+                {i.label}
+              </NavLink>
+            ))}
+          </div>
+        );
+      })}
+    </nav>
   );
 }
 

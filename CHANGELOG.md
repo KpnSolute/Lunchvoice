@@ -6,6 +6,17 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (Hub Console, founder direction 2026-11-11)
+
+- **Hub pages get a calmer, flatter look** (`docs/v2/PRODUCT_DIRECTION_2026-11-11.md` section 6), scoped to `.lv-hubscope` so
+  LunchVoice's own pages keep the tactile look. Done by overriding surface tokens, so every card, button and well follows:
+  the sections are now a **grouped rail on the left** (Hub, People, Manage) with the current page marked by the Hub's colour;
+  cards have hairline borders instead of raised shadows; buttons are rectangular with no glow; the Hub's own accent (indigo
+  when a Hub has not chosen one) is the single strong colour, replacing the orange tab underline and orange selected states;
+  LunchVoice's pill slider (filters) is kept. Phones keep the bottom bar. Editors (the Campaign Studio) go full width with no
+  rail so the question outline and preview have room. e2e checks the rail, the rectangular glow-free buttons, the pill slider
+  and the full-width editor.
+
 ### Added (000029 reporting, built and tested, NOT yet applied to production)
 
 - **Discord-style reporting** (founder direction 2026-11-11, `docs/v2/PRODUCT_DIRECTION_2026-11-11.md`). A person or a Hub can
