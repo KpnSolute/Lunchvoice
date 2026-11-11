@@ -83,7 +83,7 @@ function AuditLog() {
 function ReportsQueue() {
   const { api } = useIdentity();
   const [status, setStatus] = useState<"open" | "actioned" | "dismissed" | "all">("open");
-  const [type, setType] = useState<"all" | "survey" | "comment">("all");
+  const [type, setType] = useState<"all" | "survey" | "comment" | "person" | "hub">("all");
   const list = useLv(() => api.adminReports(status, type), [api, status, type]);
   const items: AdminReportItem[] = list.data?.items ?? [];
   const reload = list.reload;
@@ -93,18 +93,20 @@ function ReportsQueue() {
         <Segmented<typeof status> value={status} onValueChange={setStatus} label="Report status"
           options={[{ value: "open", label: "Open" }, { value: "actioned", label: "Actioned" }, { value: "dismissed", label: "Dismissed" }, { value: "all", label: "All" }]} />
         <Segmented<typeof type> value={type} onValueChange={setType} label="Report type"
-          options={[{ value: "all", label: "All types" }, { value: "survey", label: "Surveys" }, { value: "comment", label: "Comments" }]} />
+          options={[{ value: "all", label: "All types" }, { value: "person", label: "People" }, { value: "hub", label: "Hubs" }, { value: "survey", label: "Surveys" }, { value: "comment", label: "Comments" }]} />
       </div>
       {list.loading && !list.data ? <LoadingRows rows={3} /> : list.error ? <Notice tone="error">{describeError(list.error)}</Notice> : !items.length ? <EmptyState title="No reports here" /> : items.map((r) => (
         <Card key={`${r.type}-${r.id}`} size="sm" data-testid="admin-report-item" data-type={r.type}>
           <div className="ui-spread">
-            <strong>{r.type === "survey" ? r.campaign_title ?? "Deleted Campaign" : "Comment"}</strong>
+            <strong>{r.type === "survey" ? r.campaign_title ?? "Deleted Campaign" : r.type === "person" ? r.target_name ?? "A person" : r.type === "hub" ? r.hub_name ?? r.hub_slug ?? "A Hub" : "Comment"}</strong>
             <span className="ui-row">
-              <Badge variant="outline">{r.type === "survey" ? "Survey" : "Comment"}</Badge>
+              <Badge variant="outline">{r.type === "survey" ? "Survey" : r.type === "person" ? "Person" : r.type === "hub" ? "Hub" : "Comment"}</Badge>
               <Badge variant={r.status === "open" ? "neutral" : r.status === "actioned" ? "ok" : "outline"}>{r.status}</Badge>
               {r.blocked && <Badge variant="danger">Blocked</Badge>}
               {r.hidden && <Badge variant="danger">Hidden</Badge>}
               {r.hub_suspended && <Badge variant="danger">Hub suspended</Badge>}
+              {r.target_suspended && <Badge variant="danger">Account suspended</Badge>}
+              {r.type === "person" && (r.target_open_reports ?? 0) > 1 && <Badge variant="danger" data-testid="repeat-reports">{r.target_open_reports} open reports on this account</Badge>}
             </span>
           </div>
           <p className="ui-muted lv-m0">
@@ -113,6 +115,8 @@ function ReportsQueue() {
             {" "}· {r.report_count} report{r.report_count === 1 ? "" : "s"} · {fmtDate(r.created_at)}
           </p>
           {r.type === "comment" && r.excerpt && <blockquote className="lv-m0 ui-muted">“{r.excerpt}”</blockquote>}
+          {(r.type === "person" || r.type === "hub") && r.details && <blockquote className="lv-m0 ui-muted" data-testid="report-details">“{r.details}”</blockquote>}
+          {r.staff_note && <p className="ui-help lv-m0">Staff note: {r.staff_note}</p>}
           <ul className="lv-m0">{r.reasons.map((x, i) => <li key={i}>{x}</li>)}</ul>
           <div className="ui-row">
             {r.type === "survey" && r.campaign_id && (r.blocked
@@ -121,7 +125,16 @@ function ReportsQueue() {
             {r.type === "comment" && r.comment_id && (r.hidden
               ? <Button size="sm" variant="secondary" onClick={() => act(api.adminCommentHide(r.comment_id!, false), "Comment shown", reload)}>Show comment</Button>
               : <Button size="sm" variant="danger" onClick={() => act(api.adminCommentHide(r.comment_id!, true), "Comment hidden", reload)}>Hide comment</Button>)}
-            {r.status === "open" && (
+            {r.status === "open" && (r.type === "person" || r.type === "hub") && (
+              <>
+                <ReasonAction label="Mark actioned" variant="secondary" placeholder="What you did (kept with the report)" onSubmit={(note) => act(api.adminUserReportDecide(r.id, "actioned", note), "Marked actioned", reload)} />
+                <Button size="sm" variant="quiet" onClick={() => act(api.adminUserReportDecide(r.id, "dismissed"), "Dismissed", reload)}>Dismiss</Button>
+              </>
+            )}
+            {r.type === "person" && r.target_account_id && !r.target_suspended && (
+              <ReasonAction label="Suspend account" placeholder="Reason the person will see" onSubmit={(why) => act(api.adminAccountSuspend(r.target_account_id!, why), "Account suspended", reload)} />
+            )}
+            {r.status === "open" && (r.type === "survey" || r.type === "comment") && (
               <Button size="sm" variant="quiet" onClick={() => act(r.type === "survey" ? api.adminReportDismiss(r.id) : api.adminCommentReportsDismiss(r.id), "Dismissed", reload)}>Dismiss</Button>
             )}
             {r.hub_id && !r.quick_survey && !r.hub_suspended && (
@@ -204,7 +217,7 @@ function AccountsLookup() {
         <Card key={a.account_id} size="sm" variant="well" data-testid="admin-account-row">
           <div className="ui-spread">
             <strong>{a.display_name}</strong>
-            <span className="ui-row">{a.is_staff && <Badge variant="ink">Staff</Badge>}{a.suspension ? <Badge variant="danger">Suspended</Badge> : <Badge variant="ok">Active</Badge>}</span>
+            <span className="ui-row">{a.is_staff && <Badge variant="ink">Staff</Badge>}{(a.open_reports ?? 0) > 0 && <Badge variant="danger" data-testid="account-reports">{a.open_reports} open report{a.open_reports === 1 ? "" : "s"}</Badge>}{a.suspension ? <Badge variant="danger">Suspended</Badge> : <Badge variant="ok">Active</Badge>}</span>
           </div>
           <p className="ui-muted lv-m0">Joined {fmtDate(a.created_at)} · owns {a.hubs_owned} Hub{a.hubs_owned === 1 ? "" : "s"} · member of {a.memberships}</p>
           <div className="ui-row">

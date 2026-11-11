@@ -6,6 +6,7 @@ import { LinkButton } from "../components/ui";
 import { MadeBy } from "../components/MakerMark";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../config/contact";
 import { DELETE_COPY } from "./Account";
+import { ReportCenter } from "./ReportCenter";
 import { Card } from "@/components/shadcn/card";
 import { Badge } from "@/components/shadcn/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/shadcn/accordion";
@@ -261,7 +262,8 @@ export function Privacy() {
 export function Support() {
   return (
     <div className="lv-mk">
-      <Head eyebrow="Support" title="Get help" sub="Write to us. A person reads every message." />
+      <Head eyebrow="Support" title="Get help or report something" sub="A person reads every message and every report." />
+      <ReportCenter />
       <div className="lv-mk-grid">
         <Card>
           <span className="lv-mk-icon"><Icon name="join" size={22} /></span>
@@ -271,8 +273,8 @@ export function Support() {
         </Card>
         <Card>
           <span className="lv-mk-icon"><Icon name="lock" size={22} /></span>
-          <h2 className="lv-mk-card-title">Something wrong with a survey?</h2>
-          <p className="lv-mk-card-body">Use “Report this survey” on the survey itself. Reports go to LunchVoice, not to the creator.</p>
+          <h2 className="lv-mk-card-title">Rules</h2>
+          <p className="lv-mk-card-body">What we expect of everyone is in the <Link to="/guidelines">Community Guidelines</Link>. To appeal an action on your account or Hub, write to us above.</p>
         </Card>
       </div>
       <div className="ui-row"><LinkButton to="/privacy" variant="secondary">Privacy summary</LinkButton><LinkButton to="/" variant="quiet">Back to LunchVoice</LinkButton></div>

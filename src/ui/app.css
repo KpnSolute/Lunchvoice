@@ -177,9 +177,54 @@
 /* ---------- Hub accent (scoped to the Hub's own pages; never LunchVoice chrome) ---------- */
 .lv-hub-banner { height: 10px; margin: 0 0 16px; border-radius: 999px; background: var(--hub-accent); }
 .lv-hubscope .lv-hubhead .lv-hubmark { background: var(--hub-accent, var(--lv-ink-bg)); color: var(--hub-on-accent, var(--lv-on-primary)); }
-.lv-hubscope [data-slot='nav-tab'][aria-current='page'] { box-shadow: inset 0 -3px 0 var(--hub-accent, var(--lv-accent)), var(--lv-raised-shadow); }
 .lv-hubscope .lv-campaign-card-inner { box-shadow: inset 4px 0 0 var(--hub-accent, transparent), var(--lv-card-shadow); }
 .lv-hubscope .lv-player { border-top-color: var(--hub-accent, var(--lv-accent)); }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Hub Console (founder direction 2026-11-11, docs/v2/PRODUCT_DIRECTION_2026-11-11.md section 6).
+   Hub pages get a calmer, flatter skin: a section rail, hairline-bordered cards, rectangular buttons, and the Hub's own
+   accent as the one strong colour. It is scoped to .lv-hubscope, so LunchVoice's own pages keep the tactile look. Done
+   by overriding the surface tokens, so every card, button and well inside a Hub follows without touching components.
+   --------------------------------------------------------------------------------------------------------------- */
+.lv-hubscope {
+  --hub-accent: #4338ca; --hub-on-accent: #ffffff; /* overridden inline by the Hub's chosen accent (accentVars) */
+  --lv-accent: var(--hub-accent); --lv-accent-deep: color-mix(in srgb, var(--hub-accent) 70%, var(--lv-text)); --lv-accent-light: color-mix(in srgb, var(--hub-accent) 60%, white);
+  --lv-raised-bg: var(--lv-surface); --lv-raised-shadow: 0 0 0 1px var(--lv-line);
+  --lv-card-shadow: 0 0 0 1px var(--lv-line); --lv-well-shadow: inset 0 0 0 1px var(--lv-line);
+  --lv-ink-bg: var(--lv-surface2); --lv-ink-shadow: 0 0 0 1px var(--lv-line); --lv-on-primary: var(--lv-text);
+  --lv-pressed-bg: var(--hub-accent); --lv-pressed-shadow: none;
+  --lv-accent-cta-bg: var(--hub-accent); --lv-cta-shadow: none; --lv-on-accent: var(--hub-on-accent);
+  --lv-radius-field: 10px; --lv-radius-card: 14px; --lv-radius-hero: 16px;
+  max-width: 1180px;
+}
+.lv-hubscope [data-slot='button'], .lv-hubscope [data-slot='nav-tab'] { border-radius: 10px; transform: none; }
+.lv-hubscope [data-slot='button'][data-size='sm'] { height: 34px; }
+.lv-hubscope [data-slot='button'][data-variant='primary']:hover:not(:disabled) { filter: brightness(1.08); transform: none; }
+.lv-hubscope [data-slot='button']:not([data-variant='primary']):hover:not(:disabled) { background: var(--lv-surface2); transform: none; }
+.lv-hubscope [data-slot='card'] { border-radius: 14px; }
+.lv-hubscope [data-slot='badge'] { border-radius: 8px; }
+.lv-hubscope .lv-hubhead { margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--lv-line); }
+.lv-hubscope .lv-hubhead .lv-hubmark { border-radius: 16px; box-shadow: none; }
+.lv-hubscope .lv-hub-banner { height: 6px; border-radius: 3px; }
+.lv-hubscope .lv-campaign-card-inner { box-shadow: 0 0 0 1px var(--lv-line); }
+
+.lv-hubshell { display: grid; grid-template-columns: 224px minmax(0, 1fr); gap: 28px; align-items: start; }
+.lv-hubmain { min-width: 0; }
+.lv-hubshell-editor { display: block; }
+.lv-hubrail { position: sticky; top: 88px; display: flex; flex-direction: column; gap: 18px; padding-top: 2px; }
+.lv-rail-group { display: flex; flex-direction: column; gap: 2px; }
+.lv-rail-heading { margin: 0 0 4px 12px; font: 700 11px/1 var(--lv-font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--lv-subtle); }
+.lv-rail-link {
+  position: relative; display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 12px; border-radius: 8px;
+  font: 500 14.5px/1 var(--lv-font-ui); color: var(--lv-muted); text-decoration: none; white-space: nowrap;
+}
+.lv-rail-link svg { flex: none; opacity: 0.85; }
+.lv-rail-link:hover { background: var(--lv-surface2); color: var(--lv-text); }
+.lv-rail-link[aria-current='page'] { background: color-mix(in srgb, var(--hub-accent) 16%, transparent); color: var(--lv-text); font-weight: 600; }
+.lv-rail-link[aria-current='page']::before { content: ""; position: absolute; left: -2px; top: 9px; bottom: 9px; width: 3px; border-radius: 2px; background: var(--hub-accent); }
+.lv-rail-link:focus-visible { outline: 2px solid var(--hub-accent); outline-offset: 2px; }
+@media (max-width: 900px) { .lv-hubshell { grid-template-columns: 188px minmax(0, 1fr); gap: 18px; } }
+@media (max-width: 720px) { .lv-hubshell { display: block; } .lv-hubrail { display: none; } }
 [data-theme='hc'] .lv-hub-banner { outline: 2px solid #000; }
 
 /* Community appearance editor */
