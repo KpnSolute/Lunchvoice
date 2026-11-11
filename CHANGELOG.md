@@ -6,6 +6,23 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (000029 reporting, built and tested, NOT yet applied to production)
+
+- **Discord-style reporting** (founder direction 2026-11-11, `docs/v2/PRODUCT_DIRECTION_2026-11-11.md`). A person or a Hub can
+  be reported and the report attaches to that account's record and lands in the staff Reports queue.
+  `supabase/migrations/000029_v2_reports.sql` + rollback + `supabase/tests/29_reports.sql` (database suite 1279/0 with
+  rollback rehearsal): table `lv.user_reports` (nine reasons, details up to 1000, one open report per reporter per target,
+  10 a day per reporter), `lv_report_account` (by membership or by one of their comments; reporter and target must share the
+  Hub; self-reports refused), `lv_report_hub` (by address), `lv_my_reports`, the staff queue now carries people and Hubs,
+  `lv_admin_user_report_decide` (actioned or dismissed with a note), and an open-report count on the Accounts tab. The audit
+  never records the reporter and the queue never returns one.
+- UI: a shared Report dialog; Report on member rows, on comments ("Report {name}") and a Hub options menu ("Report this
+  Hub"); the Support page now leads with "Report something" (a person, a Hub by address, a survey by code) plus "Your
+  reports" with their status; staff Reports tab shows people and Hubs with details, repeat-report badges, "Mark actioned"
+  with a note and "Suspend account"; dev mock follows the SQL; e2e covers the flows.
+- `docs/v2/PRODUCT_DIRECTION_2026-11-11.md`: SurveyMonkey comparison, the social layer, Hub and profile customization
+  tiers, reporting design, the "Hub Console" look, and the build order.
+
 ### Changed
 
 - **Invitations, as the recipient sees them** (`/j/:code`). A signed-out recipient used to get an error ("Sign in with
