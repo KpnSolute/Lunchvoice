@@ -7,10 +7,12 @@ import { Textarea } from "@/components/shadcn/textarea";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/shadcn/dialog";
 import { Field, Notice, Segmented } from "@/components/shadcn/blocks";
 
+// The values are the database categories (000030), so staff can sort and filter by them.
 const REASONS = [
   { value: "harmful", label: "Harmful or abusive" },
   { value: "scam", label: "Scam or phishing" },
-  { value: "personal", label: "Asks for private information" },
+  { value: "private_info", label: "Asks for private information" },
+  { value: "spam", label: "Spam" },
   { value: "other", label: "Something else" },
 ] as const;
 
@@ -27,7 +29,7 @@ export function ReportSurvey({ joinCode }: { joinCode: string }) {
     setBusy(true);
     setError(null);
     const label = REASONS.find((r) => r.value === kind)!.label;
-    const r = await api.reportAbuse(joinCode, detail.trim() ? `${label}: ${detail.trim()}` : label);
+    const r = await api.reportAbuse(joinCode, detail.trim() || label, kind);
     setBusy(false);
     if (!r.ok) return setError(describeError(r.error));
     setOpen(false);

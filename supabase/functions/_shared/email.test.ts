@@ -13,6 +13,7 @@ const SAMPLES: Record<string, Record<string, unknown>> = {
   reservation_grace: { slug: "harbor-book-circle", expires_at: "2027-11-08T00:00:00Z", grace_ends_at: "2027-12-03T00:00:00Z", grace_days: 25 },
   participation_receipt: { campaign_title: "Spring check-in", hub_name: "Harbor Book Circle", receipt_id: RECEIPT },
   shop_order: { hub_name: "Harbor Book Circle", item: "Tote bag", slug: "harbor-book-circle", pickup: "Front desk, Fridays" },
+  staff_report: { kind: "survey", title: "Win a prize", hub_name: "Harbor Book Circle", category: "scam", reporters: 3 },
 };
 
 test("email: every template (E01-E08) renders a subject, a text part and an HTML part", () => {
@@ -105,6 +106,7 @@ test("dispatch: with a key, each message goes to Resend with an idempotency key 
   assert.equal(seen[0]!.headers.authorization, "Bearer re_test_not_real");
   assert.equal(seen[0]!.body.from, "LunchVoice <hello@mail.example.invalid>");
   assert.deepEqual(seen[0]!.body.to, ["owner@example.invalid"]);
+  assert.equal(seen[0]!.body.reply_to, "admin@lunchvoice.com", "replies reach the founder's inbox unless EMAIL_REPLY_TO says otherwise");
   assert.ok(typeof seen[0]!.body.text === "string" && typeof seen[0]!.body.html === "string");
 });
 
@@ -129,4 +131,17 @@ test("FB-05: an invite email says who sent it and how to report abuse", () => {
   assert.match(r.text, /Dana of Harbor Book Circle sent this through LunchVoice/);
   assert.match(r.text, /report abuse, write to admin@lunchvoice\.com/);
   assert.match(r.html, /admin@lunchvoice\.com/);
+});
+
+test("staff_report: says what was reported, the category and the count, and never who or their words", () => {
+  const r = renderEmail("staff_report", { ...SAMPLES.staff_report, reason: "they asked for my bank login", reporter: "dana@example.invalid" })!;
+  assert.equal(r.subject, "3 reports: Win a prize");
+  assert.match(r.text, /3 people have reported the survey "Win a prize" in Harbor Book Circle/);
+  assert.match(r.text, /Scam or phishing/);
+  assert.match(r.text, /\/admin/);
+  assert.doesNotMatch(r.text + r.html, /bank login|dana@example/);
+  const one = renderEmail("staff_report", { kind: "comment", reporters: 1, category: "nonsense" })!;
+  assert.equal(one.subject, "New report: a comment");
+  assert.match(one.text, /1 person has reported a comment\./);
+  assert.match(one.text, /Something else/);
 });

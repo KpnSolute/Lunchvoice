@@ -262,7 +262,8 @@ select t.as_pg();
 select t.check('reports: a hidden comment is kept (never deleted)', t.q(format($q$select (hidden_at is not null)::text from lv.comments where id = %L::uuid$q$, t.get('cm1'))) = 'true');
 select t.as_kpn(2);
 select t.put('srep', (lv_api.lv_admin_reports('open', 'survey') #>> '{items,0,id}'));
-select t.put('sdis', lv_api.lv_admin_report_dismiss(t.id('srep'))::text);
+-- 000030: the queue groups survey reports per survey, so the item id is the survey and one call dismisses its reports.
+select t.put('sdis', lv_api.lv_admin_campaign_reports_dismiss(t.id('srep'))::text);
 select t.check('reports: a survey report is dismissed through the same queue', t.code(t.get('sdis')::jsonb) = 'ok'
   and jsonb_array_length(lv_api.lv_admin_reports('open') -> 'items') = 0);
 

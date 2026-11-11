@@ -264,7 +264,9 @@ Members answer through `lv_submit_response` as before. Guests answer by the Camp
 - `lv_guest_submit(p_join_code, p_guest_key, p_answers)`: signed out. `p_guest_key` is a random secret of 32 to 200
   characters that the browser generates once per Campaign and keeps; only its hash is stored. Success:
   `{ ok, receipt_id, duplicate }` (the same key again returns the first receipt). Errors: `lv_not_found`, `lv_closed`,
-  `lv_invalid_input`, `lv_limit_reached` (guest total reached), `lv_rate_limited` (too many guest responses this minute),
+  `lv_invalid_input`, `lv_limit_reached` (the host's guest total reached), `lv_rate_limited` (000029, F-15: either this
+  caller passed `participation.guest_per_caller_per_minute`, message "…from this connection…", or the Campaign passed
+  its safety ceiling `participation.guest_rate_per_minute`; a guest is never refused merely because others are answering),
   `lv_policy_undecided` with `missing: ["participation.guest_rate_per_minute"]` (no rate set yet; fails closed).
 
 Guests never become members, never count toward member totals or survey thresholds, and leave no stored link between
@@ -531,7 +533,8 @@ capability in the catalogue.
 
 ### Policies set at launch
 
-`campaign.min_cohort` 5 (L-04), `participation.guest_rate_per_minute` 10 (L-05, L-11), `waitlist.seats` 50,
+`campaign.min_cohort` 5 (L-04), `participation.guest_rate_per_minute` 600 (safety ceiling per Campaign, F-15, 000029; was 10),
+`participation.guest_per_caller_per_minute` 60 (F-15), `waitlist.seats` 50,
 `waitlist.consent_version` "2026-11-07", `quick.create_per_hour` 20, `abuse.reports_per_minute` 20,
 `security.reauth_seconds` 600, `hub.deleted_slug_cooldown_days` 30, `reservation.grace_days` 25,
 `discover.active_window_days` 90, `retention.logs_days` 365 and `retention.guest_hash_days` 7 (L-13),
@@ -1110,3 +1113,40 @@ role removals and auto-posts.
   identified Campaigns only and people with `analytics.read` (`lv_not_available` for anonymous ones). Rows:
   `{response_id, kind: member|guest, verified, name, at, answers[{question_id, prompt, kind, value}]}`; guests are
   `verified: false`. Opening the first page is audited as `campaign.responses_viewed`.
+
+## Reporting, step 1 (000030) and scheduled jobs (000031)
+
+Built 2026-11-11. Not applied to production until the founder approves.
+
+### Reporting
+
+- `lv_report_abuse(p_join_code, p_reason, p_category)`: signed out allowed. `p_category` is one of `harmful`, `scam`,
+  `private_info`, `spam`, `other`. Success is always `{ ok, received: true }`, identical for known and unknown codes.
+  One caller holds at most one open report per survey; a repeat is received and stores nothing. Errors:
+  `lv_invalid_input` (empty or over 1000 characters, unknown category), `lv_rate_limited` (this caller passed
+  `abuse.reports_per_caller_per_minute`, or the platform safeguard `abuse.reports_per_minute`). The two-argument call
+  still works and files under `other`.
+- `lv_admin_reports(p_status, p_type)` (staff): unchanged arguments. Response adds `median_decision_hours` (7 days,
+  null when nothing was decided). A **survey item is now one survey with all its reports**: `id` is the Campaign id,
+  `report_count`, `distinct_count` (distinct people), `categories` (`{ category: count }`), `reasons` (newest three),
+  `first_at`, `created_at` (latest), `decided_at`. Items sort with `scam` and `private_info` first, then by
+  `distinct_count`, then newest. Reporters and caller hashes are never returned.
+- `lv_admin_campaign_reports_dismiss(p_campaign)` (staff) → `{ ok, status: "dismissed", reports }`; `lv_not_found`
+  when the survey has no open report. `lv_admin_report_dismiss(p_report)` remains for a single report.
+- Every decision stamps `decided_at` and `decided_by` on the report, whichever function makes it.
+- Email `staff_report` is queued to policy `abuse.notify_email` at the first open report on a survey or comment and
+  again at 3 and 10 distinct reporters. Payload: kind, title, Hub name, category, count. Never the reporter or text.
+
+### Scheduled jobs
+
+- `lv_admin_jobs()` (staff) → `{ ok, scheduler: { pg_cron, pg_net, base_url_set }, jobs: [{ name, kind, schedule,
+  enabled, scheduled, note, last_run_at, last_ok_at, last_error, runs, pending, oldest_minutes }] }`. Never a secret,
+  URL or address.
+- Not in `lv_api` (service role only): `lv.job_tick(name)`, the one function pg_cron calls, and `lv.jobs_install()`,
+  which registers the enabled jobs and returns `{ scheduled: [...], missing: [...] }`.
+- Jobs: `email-dispatch`, `webhook-dispatch` (every minute), `discord-dispatch` (every 2 minutes), `retention`
+  (03:17 daily), `counter-trim` (every 10 minutes). An http job calls its function only when its outbox has due rows,
+  its last run failed, or its idle interval has passed.
+- Policies: `jobs.functions_base_url` (null until set in production), `jobs.vault_secret_name`
+  (`email_dispatch_secret`), `abuse.reports_per_caller_per_minute` 5, `abuse.reports_per_minute` 300 (was 20),
+  `abuse.notify_email` `admin@lunchvoice.com`.

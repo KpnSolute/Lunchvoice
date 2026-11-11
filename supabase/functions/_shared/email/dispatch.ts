@@ -4,7 +4,10 @@
 import { renderEmail } from "./templates.ts";
 
 export const RESEND_ENDPOINT = "https://api.resend.com/emails";
-export const DEFAULT_FROM = "LunchVoice <no-reply@lunchvoice.com>";
+// Service mail (verification, plan and credit notices, invites) comes from hello@; a person who replies reaches the
+// founder's inbox at admin@ (founder, 2026-11-11). EMAIL_FROM and EMAIL_REPLY_TO override both.
+export const DEFAULT_FROM = "LunchVoice <hello@lunchvoice.com>";
+export const DEFAULT_REPLY_TO = "admin@lunchvoice.com";
 
 export interface OutboxMessage {
   id: string;
@@ -40,12 +43,12 @@ export interface DispatchResult {
 export type SendOutcome = { result: "sent"; providerId: string | null } | { result: "retry" | "failed"; error: string };
 
 /** One message through the Resend API. 429 and 5xx are transient; other 4xx are permanent. */
-export async function sendViaResend(fetcher: typeof fetch, apiKey: string, from: string, m: OutboxMessage, rendered: { subject: string; text: string; html: string }): Promise<SendOutcome> {
+export async function sendViaResend(fetcher: typeof fetch, apiKey: string, from: string, m: OutboxMessage, rendered: { subject: string; text: string; html: string }, replyTo?: string): Promise<SendOutcome> {
   try {
     const res = await fetcher(RESEND_ENDPOINT, {
       method: "POST",
       headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json", "idempotency-key": `lv-outbox-${m.id}` },
-      body: JSON.stringify({ from, to: [m.to], subject: rendered.subject, text: rendered.text, html: rendered.html }),
+      body: JSON.stringify({ from, to: [m.to], subject: rendered.subject, text: rendered.text, html: rendered.html, ...(replyTo ? { reply_to: replyTo } : {}) }),
     });
     if (res.ok) {
       const body = (await res.json().catch(() => ({}))) as { id?: unknown };
@@ -67,6 +70,7 @@ export async function dispatchOnce(deps: DispatchDeps, limit = 25): Promise<Disp
     return { ok: true, provider: "none", claimed: 0, sent: 0, retried: 0, failed: 0, queued };
   }
   const from = deps.env("EMAIL_FROM") || DEFAULT_FROM;
+  const replyTo = deps.env("EMAIL_REPLY_TO") || DEFAULT_REPLY_TO;
   const origin = deps.env("LV_APP_ORIGIN") || "https://lunchvoice.com";
   const batch = await deps.db.claim(limit);
   let sent = 0, retried = 0, failed = 0;
@@ -77,7 +81,7 @@ export async function dispatchOnce(deps: DispatchDeps, limit = 25): Promise<Disp
       failed++;
       continue;
     }
-    const out = await sendViaResend(deps.fetch, key, from, m, rendered);
+    const out = await sendViaResend(deps.fetch, key, from, m, rendered, replyTo);
     if (out.result === "sent") { await deps.db.mark(m.id, "sent", null, out.providerId); sent++; }
     else if (out.result === "retry") { await deps.db.mark(m.id, "retry", out.error); retried++; }
     else { await deps.db.mark(m.id, "failed", out.error); failed++; }

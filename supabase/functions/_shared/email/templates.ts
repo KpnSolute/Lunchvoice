@@ -11,11 +11,12 @@ export type TemplateId =
   | "reservation_expiring" // E05 (reminder)
   | "reservation_grace" // E06
   | "participation_receipt" // E07 (identified Campaigns only)
-  | "shop_order"; // E08
+  | "shop_order" // E08
+  | "staff_report"; // staff only: something was reported (000030)
 
 export const TEMPLATE_IDS: readonly TemplateId[] = [
   "waitlist_joined", "hub_created", "hub_invite", "reservation_confirmed", "reservation_expiring", "reservation_grace",
-  "participation_receipt", "shop_order",
+  "participation_receipt", "shop_order", "staff_report",
 ];
 
 export interface Rendered {
@@ -177,6 +178,24 @@ export function renderEmail(template: string, payload: Payload, appOrigin = "htt
         body: [pickup ? `Pickup details from ${hub}: ${pickup}` : `${hub} will tell you how to pick it up.`],
         action: slug ? { label: "Open the Hub", url: `${origin}/${slug}` } : undefined,
         footer: `Sent because you placed an order in ${hub}'s shop. Points have no cash value.`,
+      });
+    }
+    case "staff_report": {
+      // To staff only. What was reported, the category and how many people; never who reported or what they wrote.
+      const kind = payload.kind === "comment" ? "comment" : "survey";
+      const n = typeof payload.reporters === "number" && payload.reporters > 0 ? Math.floor(payload.reporters) : 1;
+      const title = clean(payload.title, 120);
+      const CATEGORY: Record<string, string> = { harmful: "Harmful or abusive", scam: "Scam or phishing", private_info: "Asks for private information", spam: "Spam", other: "Something else" };
+      const category = CATEGORY[clean(payload.category, 20)] ?? CATEGORY.other!;
+      const what = kind === "survey" ? (title ? `the survey "${title}"` : "a survey") : "a comment";
+      const people = n === 1 ? "1 person has" : `${n} people have`;
+      return layout({
+        subject: n === 1 ? `New report: ${kind === "survey" && title ? title : `a ${kind}`}` : `${n} reports: ${kind === "survey" && title ? title : `a ${kind}`}`,
+        heading: n === 1 ? "Something was reported" : `${n} people reported the same thing`,
+        body: [`${people} reported ${what}${hub ? ` in ${hub}` : ""}.`, `Latest reason given: ${category}.`,
+               "Open the staff panel to read the reports and decide. Nothing has been changed automatically."],
+        action: { label: "Open the reports queue", url: `${origin}/admin` },
+        footer: "Sent to LunchVoice staff. Reporters are never named.",
       });
     }
     default:

@@ -6,6 +6,170 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (2026-11-11, founder-approved: "approved apply 000030 and 000031 and do the setup remove them")
+
+- **Production migrations:** 000030 (reporting, step 1) and 000031 (scheduled jobs) applied to `qprfonxvthmaoxfixigk`
+  from commit `ceff42a`, fetched from GitHub with file hashes verified (`737fbb13…`, `f479cb9c…`), after a rehearsal on a
+  seeded 000029 database that held an existing report. Post-apply audit: the eight new or changed function bodies hash
+  identically to the rehearsal, 145 `lv_api` functions (142 + `lv_report_abuse` with a category,
+  `lv_admin_campaign_reports_dismiss`, `lv_admin_jobs`), the signed-out list gains only the second `lv_report_abuse`,
+  nothing in `lv` is executable by or granted to `anon`/`authenticated`, RLS on every `lv` table, data unchanged
+  (4 accounts, 6 Hubs, 7 Campaigns, 10 submissions). 000032 (the install fix below) applied from `029952a`, hash
+  `a0df3ca0…`. History versions normalized to `000030`, `000031`, `000032`.
+- **Scheduler set up (runbook section 13):** `pg_cron` and `pg_net` enabled; a new random dispatch bearer set as the
+  `EMAIL_DISPATCH_SECRET` function secret and as the Vault secret `email_dispatch_secret` (generated and stored without
+  being displayed); `jobs.functions_base_url` set; `lv.jobs_install()` scheduled all five jobs
+  (`lv-email-dispatch`, `lv-webhook-dispatch`, `lv-discord-dispatch`, `lv-retention`, `lv-counter-trim`).
+- **`email-dispatch` deployed** (version 10) as a single bundled file built from `ceff42a`; the bundle built in the
+  deploy sandbox hashed identically to the local build (`b2b21ac8…`). The deploy API reset `verify_jwt` to true; it was
+  set back to false at once and the function's own check confirmed (401 `lv_unauthenticated` without the bearer).
+  `webhook-dispatch` and `discord` were not redeployed: their code has not changed.
+- **Verified live:** the first dispatch sent the two queued emails through Resend (`hub_created`, `hub_invite`:
+  claimed 2, sent 2); the webhook and Discord dispatchers answer 200 with the new bearer; pg_cron reports every run
+  succeeded; `lv.jobs` shows no error. `retention` first runs at 03:17 UTC. Not exercised: a real abuse report (it
+  would create a production record and email the founder).
+- **Removed, on the founder's instruction:** twelve v1 function secrets that no v2 function reads (the old database
+  URL and keys, the menu key, the earlier mail provider's endpoint and key, the old sender name and address, the old
+  origins list, the auth email hook secret, and the two earlier KpnSolute events settings). Nineteen remain, all read
+  by v2 or reserved by Supabase.
+
+### Fixed (000032)
+
+- `lv.jobs_install()` reported pg_cron as missing even when it was enabled, so no job was ever put on a timer: it
+  tested for the scheduler with `to_regproc` and an argument list, which always answers NULL. Found on production while
+  doing the approved setup (the jobs worked when ticked by hand). It now checks for the `cron.job` table.
+  `supabase/migrations/000032_v2_kernel_jobs_install_fix.sql` + rollback + `supabase/tests/32_kernel_jobs_install.sql`,
+  which creates a stand-in scheduler so the scheduling path is exercised; it fails on the 000031 body. Canonical DB
+  suite 1328/0 with rollback rehearsal.
+
+### Operations (2026-11-11, founder-approved: "approved apply 000029")
+
+- **Production:** migration 000029 (guests are never refused by a shared limit, F-15) applied to `qprfonxvthmaoxfixigk`
+  from commit `d12761d` through the connected Supabase toolkit, after a rehearsal on a seeded 000028 database (the old
+  function refused the 11th guest in a minute; after the migration 12 of 12 were accepted; rows and receipts unchanged).
+  Pre-apply backup: `2224177223` (2026-11-10 10:41 UTC). Post-apply audit: the live function body's hash equals the
+  repository's (`151a2f93…`), policies 600 and 60, the rate-window scope includes `guest_caller`, `anon` reaches only
+  the `lv_api` wrapper, 142 `lv_api` functions, nothing in `lv` granted to `anon`/`authenticated`, RLS on every `lv`
+  table, data unchanged (4 accounts, 6 Hubs, 7 Campaigns, 10 submissions). History version normalized to `000029`.
+  Not run by GitHub CI (the branch has no pull request); the same checks were run locally (canonical DB suite, PR checks,
+  e2e).
+- Observed: `pg_cron` and `pg_net` are available but not enabled, and 2 emails are queued. Enabling the schedule is
+  runbook section 13 and needs approval.
+
+### Added (000030 and 000031, built and tested, NOT yet applied to production)
+
+- **Reporting, step 1** (`docs/strategy/05_STAFF_AND_REPORTING.md`). `supabase/migrations/000030_v2_staff_reports.sql` +
+  rollback + `supabase/tests/30_staff_reports.sql`: a real `category` on survey reports (the form already collected
+  it); a per-caller limit of 5 a minute with the platform-wide number raised from 20 to 300, so one caller can no longer
+  silence reporting; one open report per caller per survey; the staff queue groups a survey's reports into one item
+  (count, distinct people, categories, newest three texts) with phishing and private-information first;
+  `lv_admin_campaign_reports_dismiss`; `decided_at`/`decided_by` on every decision and a 7-day median time to decision;
+  an email to `abuse.notify_email` (`admin@lunchvoice.com`) at the first report and at 3 and 10 distinct reporters, which
+  never carries the reporter or their words. Tests 14 and 23 follow the new shape.
+- **Scheduled jobs.** `supabase/migrations/000031_v2_kernel_jobs.sql` + rollback + `supabase/tests/31_kernel_jobs.sql`:
+  a registry of five jobs (email, webhook and Discord dispatch, retention, counter trim) and one entry point,
+  `lv.job_tick(name)`, for pg_cron. Dispatch jobs call their Edge Function through pg_net with the bearer read from
+  Vault at run time, and only when something is waiting, the last run failed or the idle interval passed. What a job
+  does is fixed by its name in code, never by text in a table. `lv.jobs_install()` registers them and reports what is
+  missing; `lv_admin_jobs()` shows staff each job's last success, error and queue depth.
+- Canonical DB suite 1321/0 with rollback rehearsal (was 1273). `API_CONTRACT.md` and runbook section 13 updated.
+- Staff panel: the Reports tab shows category badges, counts and a category filter, and dismisses a survey's reports in
+  one action; the Overview has a Scheduled jobs card that flags a failing, unscheduled or lagging job. The report form
+  sends its category and gains "Spam". New email template `staff_report` with tests. Dev mock follows the SQL.
+  e2e 86/0.
+
+### Operations (2026-11-11, founder-approved: "confirmed", sender hello@, questions to admin@)
+
+- **Email credentials set on production functions** (`qprfonxvthmaoxfixigk`) through the connected Resend and Supabase
+  toolkits: a send-only Resend key restricted to the verified `lunchvoice.com` domain ("LunchVoice production", key id
+  `67d05bf2…`) stored as the function secret `RESEND_API_KEY`, and `EMAIL_FROM` = `LunchVoice <hello@lunchvoice.com>`.
+  The key's value was echoed once in that agent session's tool output; it is send-only and domain-restricted, and the
+  founder can rotate it in Resend at any time. Nothing sends yet: no job calls `email-dispatch`, and the deployed
+  function is the old build (the reply-to change below ships with the next function deploy).
+- Observed, not changed: `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` have been set since 2026-11-08; about ten
+  function secrets from v1 are still present and unused by v2. Deleting them needs the founder's word.
+
+### Added (000029, built and tested, NOT yet applied to production)
+
+- **Guests are never turned away by a shared limit (F-15).** `supabase/migrations/000029_v2_participation_guest_limits.sql`
+  + rollback + `supabase/tests/29_guest_limits.sql`. The single per-Campaign limit (10 guest answers a minute for
+  everyone combined, behind one advisory lock and two full counts) is replaced by a per-caller limit
+  (`participation.guest_per_caller_per_minute`, 60, keyed on a hash of Campaign and caller in the existing rate-window
+  table, so nothing links a caller to an answer) and a safety ceiling (`participation.guest_rate_per_minute`, now 600).
+  The advisory lock and the total count run only for a Campaign with a host-set guest cap; the guest key is claimed
+  first, so a double tap returns the first receipt. Test 14's policy assertion follows the new value. Canonical DB suite
+  1273/0 with rollback rehearsal (was 1255). `API_CONTRACT.md` updated.
+
+### Changed
+
+- **Pricing page (F-16):** three plan cards (Quick Survey, Starter Hub, Team Hub), then "Reserve your Hub URL" directly
+  under them (it sat at the bottom, where the founder did not find it), then the two-week passes under "Only need it for
+  one event?", then the comparison table. All four checkout actions are unchanged.
+- **Public copy only claims what exists (review P-2, F-19):** "idea boards and elections" removed from the SEO text and
+  structured data; the landing page no longer says anonymous answers arrive live or "Know before the line clears".
+  Anonymous results are sealed until a survey closes by design (`000016`), so the copy now says so.
+- **Results refresh for open named surveys:** the results page re-reads every 20 seconds while a named survey is open
+  and the tab is visible (stops after 30 minutes), with a "Live" badge. Anonymous surveys are never polled.
+- **Service email:** default sender `LunchVoice <hello@lunchvoice.com>` and a `reply_to` of `admin@lunchvoice.com`
+  (`EMAIL_REPLY_TO` overrides), so replies to verification, plan and invite mail reach the founder.
+- e2e `refinement.test.mjs` covers the pricing order and 390px fit, the banned public phrases, and the live badge
+  (present for an open named survey, absent for anonymous and closed ones). e2e 83/0.
+
+### Changed (documentation)
+
+- Corrected an error in the 2026-11-10 review: anonymous results are released when a survey **closes** (then need 5
+  answers), not at 5 answers while open. Review P-2 and P-3, `DESIGN.md` (pattern renamed `ResultsSealed`), the user
+  guide, the launch posts and the roadmap now say so. Open founder decision: whether an open anonymous survey may show
+  a coarse response count.
+- New `docs/strategy/05_STAFF_AND_REPORTING.md`: review of the staff panel and abuse reports with ten gaps (no staff
+  notification, a platform-wide report limit one person can exhaust, lost categories, ungrouped survey reports, no
+  automatic pause, unreportable Hubs and guest names, nothing told to creators) and a five-step plan.
+
+### Changed (documentation only, 2026-11-11: founder decisions on the review; nothing built or applied)
+
+- `docs/v2/LAUNCH_PLAN.md` records F-15 to F-21: guests are never refused by a shared per-survey limit (per-guest limit
+  plus a high safety ceiling); `/pricing` shows three cards with a passes line and the URL reservation card moved up;
+  annual Hub plans at two months free (Starter $130, Team $290 a year, with billing); referral credit of one free month
+  for the inviter and the new Hub on its first payment (after billing); the name stays LunchVoice; no Labs switch; the
+  `lunchvoice.com` domain is verified at Resend, with `RESEND_API_KEY` / `EMAIL_FROM` secrets and the dispatcher
+  schedule still to do.
+- `AGENTS.md` and `CLAUDE.md` (identical): annual Hub plans and the referral credit added to Canonical Pricing so no
+  agent treats them as invented prices. `PRODUCT.md` lists the yearly plans.
+- `docs/strategy/00`-`04` updated to the decisions. Review finding P-1 corrected: the Labs switch was unnecessary,
+  because a new Hub has only Home and Campaigns and the Owner already adds Shop, Leaderboard, News and Comments in the
+  Builder, with points off by default.
+
+### Added (documentation only, 2026-11-10: chief engineer review and launch strategy; proposals, no code or production change)
+
+- `docs/strategy/00_CHIEF_ENGINEER_REVIEW.md`: audit of what is built at `5d29758` with ranked findings and the order
+  of work. Launch-critical: the guest rate limit is global per survey (10 a minute for everyone combined, behind one
+  advisory lock and two counts, `000028:69-92`); sessions last one hour with no renewal; no job schedules the email,
+  webhook and Discord outboxes or the retention sweep; no observability; public copy advertises elections, idea boards
+  and live results that do not exist; the first results screen is a locked box below 5 answers; the surface (72 tables,
+  about 140 operations) is far ahead of use (3 accounts in production).
+- `docs/strategy/01_PRODUCT_CORE.md`: core purpose, audiences, the growth loop, principles, three horizons, a single
+  user vocabulary (survey, Hub, code, plan) and pricing presentation. Prices and entitlements unchanged.
+- `docs/strategy/02_BACKEND_ARCHITECTURE.md`: ten modules with one-way dependencies over the existing `lv` / `lv_api`
+  split, kernel services (limits, flags, outbox, jobs, events, rate limits), a redesigned answering path, analytics
+  rollups on a trigger, privacy-safe counters, session renewal, and the recipe for adding a feature.
+- `docs/strategy/03_BRAND_AND_MARKETING.md`: positioning, the name and origin story, brand rules, voice, landing copy,
+  Reddit and Discord launch posts, launch kit.
+- `docs/strategy/04_ROADMAP_AND_GROWTH.md`: launch list to 2026-12-01, the path to 200,000 monthly people (about 2,500
+  active creators), the numbers to run by, cost model and scale triggers. Forecasts are labelled as forecasts.
+- `docs/user/USER_GUIDE.md`: first documentation for users (answering, accounts, Quick Surveys, Hubs, plans, privacy).
+
+### Changed (documentation)
+
+- `DESIGN.md` rewritten from the code as design system 3.0. The previous file specified Fraunces, Space Grotesk and
+  light-only OKLCH tokens and said the component library was not started; the product uses Bricolage Grotesque, Geist,
+  hex tokens in three themes and the shadcn layer. Each rule is marked as true today or as the target; it adds a type
+  scale, radius, breakpoint and layer scales, one owner per component, five signature patterns, content rules and a
+  proposed `check:design` gate. No stylesheet or component was changed.
+- `PRODUCT.md`: the Campaign Plus row said "no numeric price yet"; it now carries the canonical $39 / $19 (F-10).
+- Decisions these documents ask of the founder: the Labs switch for Shop, Points, Leaderboard, Reservation purchase and
+  API keys; showing three plan cards; guest burst limits by plan; annual plans and referral credit; redrawing the
+  wordmark, which still reads "Smart feedback. Better cafeterias."
+
 ### Changed
 
 - The single public contact address is now **admin@lunchvoice.com** (the founder confirmed this is the mailbox that exists;

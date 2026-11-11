@@ -103,8 +103,8 @@ export function Landing() {
             <span className="lv-l-eyebrow"><i aria-hidden="true" />LunchVoice 2.0<span>· surveys for any community</span></span>
             <h1 className="lv-l-h1">Every voice has a story. <em>Hear it.</em></h1>
             <p className="lv-l-lede">
-              Build a survey in minutes, share it with one QR code or a six-character code, and watch anonymous answers
-              arrive while it’s still happening. Every community gets its own Hub at <b>lunchvoice.com/yourname</b>.
+              Build a survey in minutes, share it with one QR code or a six-character code, and get answers people
+              would never put their name on. Every community gets its own Hub at <b>lunchvoice.com/yourname</b>.
             </p>
             <Rotator />
           </div>
@@ -144,7 +144,7 @@ export function Landing() {
           <li className="lv-l-step lv-l-step-ink">
             <div><span className="lv-l-step-n">03</span><span className="lv-l-step-icon"><Icon name="voice" size={20} /></span></div>
             <b>Hear</b>
-            <p>See answers arrive, post a “you said, we did” update, and close the loop.</p>
+            <p>Read the results, post a “you said, we did” update, and close the loop.</p>
           </li>
         </ol>
       </section>
@@ -153,9 +153,9 @@ export function Landing() {
       <section className="lv-l-band lv-l-band-ink" aria-labelledby="live-h">
         <div className="lv-l-split">
           <div className="lv-l-split-copy">
-            <span className="lv-l-eyebrow lv-l-eyebrow-accent">Live results</span>
-            <h2 id="live-h" className="lv-l-h2">Know before the line clears.</h2>
-            <p>Answers land by the minute. Question summaries and charts are built in, and you only ever see totals, never names. A group too small to stay anonymous is withheld, never shown as zero.</p>
+            <span className="lv-l-eyebrow lv-l-eyebrow-accent">Private results</span>
+            <h2 id="live-h" className="lv-l-h2">Honest answers, safely.</h2>
+            <p>Named surveys update as answers come in. Anonymous surveys show their results when they close, as totals only, never names. Question summaries and charts are built in. A group too small to stay anonymous is withheld, never shown as zero.</p>
           </div>
           <div className="lv-l-live" aria-label="Sample results">
             <div className="lv-l-live-top">

@@ -42,9 +42,9 @@ select t.check('products: Campaign Starter extends at 1300 per extra week after 
   (select (e->>'first_period_weeks') = '2' and (e->>'extra_week_cents') = '1300'
      from jsonb_array_elements(lv_api.lv_plan_limits()->'products') e where e->>'product' = 'campaign_starter'));
 select t.as_pg();
-select t.check('policy: launch policies are set (min cohort 5, guest rate 10, 50 seats)',
+select t.check('policy: launch policies are set (min cohort 5, guest safety ceiling 600 since 000029, 50 seats)',
   t.q($$select string_agg(value::text, ',' order by key) from lv.policy
-         where key in ('campaign.min_cohort', 'participation.guest_rate_per_minute', 'waitlist.seats')$$) = '5,10,50');
+         where key in ('campaign.min_cohort', 'participation.guest_rate_per_minute', 'waitlist.seats')$$) = '5,600,50');
 select t.check('policy: the retired limit policies are gone', t.q($$select count(*)::text from lv.policy
          where key in ('campaign.max_active_per_hub', 'roles.max_custom_per_hub')$$) = '0');
 
@@ -405,7 +405,8 @@ select t.check('grants: anon executes exactly the signed-out allow-list',
          where n.nspname = 'lv_api' and has_function_privilege('anon', p.oid, 'execute')$$)
   -- 000020 (track C) adds lv_discover_list, lv_news_get and lv_news_list (public Discover and public news).
   -- 000028 adds a second lv_guest_submit signature (with the guest's optional name), hence the repeated name.
-  = 'lv_capability_catalog,lv_discover_list,lv_guest_campaign_get,lv_guest_submit,lv_guest_submit,lv_hub_get,lv_hub_pages_get,lv_hub_reservation_status,lv_my_context,lv_news_get,lv_news_list,lv_plan_limits,lv_report_abuse,lv_waitlist_status');
+  -- 000030 adds a second lv_report_abuse signature (with the category), hence that repeated name.
+  = 'lv_capability_catalog,lv_discover_list,lv_guest_campaign_get,lv_guest_submit,lv_guest_submit,lv_hub_get,lv_hub_pages_get,lv_hub_reservation_status,lv_my_context,lv_news_get,lv_news_list,lv_plan_limits,lv_report_abuse,lv_report_abuse,lv_waitlist_status');
 select t.check('grants: no lv table or sequence is reachable by anon or authenticated',
   t.q($$select count(*)::text from pg_class c join pg_namespace n on n.oid = c.relnamespace
          where n.nspname = 'lv' and c.relkind in ('r', 'S', 'v')
