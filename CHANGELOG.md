@@ -6,6 +6,15 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed (000032)
+
+- `lv.jobs_install()` reported pg_cron as missing even when it was enabled, so no job was ever put on a timer: it
+  tested for the scheduler with `to_regproc` and an argument list, which always answers NULL. Found on production while
+  doing the approved setup (the jobs worked when ticked by hand). It now checks for the `cron.job` table.
+  `supabase/migrations/000032_v2_kernel_jobs_install_fix.sql` + rollback + `supabase/tests/32_kernel_jobs_install.sql`,
+  which creates a stand-in scheduler so the scheduling path is exercised; it fails on the 000031 body. Canonical DB
+  suite 1328/0 with rollback rehearsal.
+
 ### Operations (2026-11-11, founder-approved: "approved apply 000029")
 
 - **Production:** migration 000029 (guests are never refused by a shared limit, F-15) applied to `qprfonxvthmaoxfixigk`
