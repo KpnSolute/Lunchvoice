@@ -31,6 +31,12 @@ test("prompts are unique within a template", () => {
 
 // "No customer named" is enforced for all of src/ (templates included) by scripts/check-customer-names.mjs.
 
+test("only a ballot template changes who can answer, and it makes that invite-only", () => {
+  const withDefaults = SURVEY_TEMPLATES.filter((t) => t.defaults);
+  assert.deepEqual(withDefaults.map((t) => t.id), ["committee-vote"]);
+  assert.deepEqual(templateById("committee-vote")?.defaults, { access: "invite", anonymity: "anonymous" });
+});
+
 test("lookup and config shape", () => {
   assert.equal(templateById("team-pulse")?.name, "Team pulse check");
   assert.equal(templateById("nope"), null);

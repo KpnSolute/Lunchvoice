@@ -107,7 +107,7 @@ function MarketingMenu() {
 export function Shell() {
   const { session } = useIdentity();
   const { pathname } = useLocation();
-  const marketing = MARKETING_ROUTES.has(pathname);
+  const marketing = MARKETING_ROUTES.has(pathname) || pathname.startsWith("/use-cases/");
   const account = Boolean(session) && isAccountRoute(pathname);
   const bare = pathname.startsWith("/c/") || pathname.startsWith("/s/");
   const ink = pathname === "/";

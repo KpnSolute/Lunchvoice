@@ -3,15 +3,15 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { prerender, renderAppShell, renderPage, renderRootPage, robotsTxt, sitemapXml } from "./seo-prerender.mjs";
+import { loadSeo, prerender, renderAppShell, renderPage, renderRootPage, robotsTxt, sitemapXml } from "./seo-prerender.mjs";
 
-const seo = JSON.parse(readFileSync("src/config/seo.json", "utf8"));
+const seo = loadSeo(); // hand-written pages plus one per use case
 const routes = JSON.parse(readFileSync("src/config/routes.json", "utf8")).routes;
 const template = readFileSync("index.html", "utf8");
 
 test("every indexable page is a real public route", () => {
   for (const p of seo.pages) {
-    const r = routes.find((x) => x.path === p.path);
+    const r = routes.find((x) => x.path === p.path || (p.path.startsWith("/use-cases/") && x.path === "/use-cases/:slug"));
     assert.ok(r, `${p.path} is not in routes.json`);
     assert.equal(r.access, "public", `${p.path} must be public to be indexed`);
   }

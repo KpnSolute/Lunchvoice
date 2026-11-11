@@ -6,6 +6,27 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (use-case pages, four more templates, "more than lunch" positioning)
+
+- Ten public use-case pages at `/use-cases/<slug>` (anonymous employee survey, event feedback form, club and committee
+  votes, weekly team pulse survey, customer feedback questionnaire, meeting and workshop feedback, group scheduling
+  poll, community suggestion box, menu and dining feedback, member questionnaire). Each shows the template's real
+  sample questions, why it works, recommended settings, related pages and a "Use this template" button that opens
+  `/surveys/new?template=<id>`. One source, `src/config/useCases.json`, feeds the page, its title, description,
+  canonical, prerendered HTML and sitemap entry (21 sitemap URLs). Unknown slugs show the 404 page.
+- Four new Quick Survey templates: Anonymous employee survey, Club or committee vote, Member questionnaire, Menu and
+  dining feedback (ten in total). The vote template sets Invite only and Anonymous when picked (a ballot should reach
+  only the people invited; each signed-in account counts once); other templates leave those settings alone.
+- The Use cases hub is rebuilt from the same data and now leads with "The name has lunch in it. The product doesn't."
+  The home page gets a use-case band linking to every page. Dining is one use case of ten.
+- Honest about elections: the vote page states a LunchVoice poll is a straightforward vote, not a certified election,
+  and that a dedicated Election mode is planned (Campaign Election mode is still disabled until M2).
+- `render.yaml` gains ten rewrites (one per use-case page, above the catch-all). The Render dashboard needs the same
+  ten rules; the file is not synced from the repo. `routes.json` lists `/use-cases/:slug`.
+- Card-title links on marketing pages use ink instead of the amber accent for contrast.
+- Tests: `scripts/seo-prerender.test.mjs` now covers every use-case page; `e2e/usecases.test.mjs` covers the hub, a
+  page's real questions and canonical, the sign-in round trip, the vote defaults and caveat, a 404 and phone width.
+
 ### Added (try-it path: Quick Survey templates and go-to-market plan)
 
 - Quick Surveys can start from six templates (Event feedback, Team pulse check, Pick a time or option, Suggestion box,

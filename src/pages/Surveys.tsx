@@ -119,8 +119,8 @@ export function NewSurvey() {
   const [tplId, setTplId] = useState<string>(fromLink?.id ?? "blank");
   const tpl = templateById(tplId);
   const [title, setTitle] = useState(fromLink?.title ?? "");
-  const [access, setAccess] = useState<SurveyAccess>("link");
-  const [anonymity, setAnonymity] = useState<Anonymity>("anonymous");
+  const [access, setAccess] = useState<SurveyAccess>(fromLink?.defaults?.access ?? "link");
+  const [anonymity, setAnonymity] = useState<Anonymity>(fromLink?.defaults?.anonymity ?? "anonymous");
   const [guests, setGuests] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +129,8 @@ export function NewSurvey() {
   function pickTemplate(id: string) {
     const next = templateById(id);
     if (!title.trim() || title === tpl?.title) setTitle(next?.title ?? "");
+    if (next?.defaults?.access) setAccess(next.defaults.access);
+    if (next?.defaults?.anonymity) setAnonymity(next.defaults.anonymity);
     setTplId(id);
   }
 

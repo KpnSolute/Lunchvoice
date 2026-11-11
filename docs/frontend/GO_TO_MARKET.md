@@ -35,6 +35,30 @@ These open the template after sign-in (the sign-in redirect keeps the query):
 | Shops, canteens, classes | `https://lunchvoice.com/surveys/new?template=service-feedback` |
 | Workshops, meetings | `https://lunchvoice.com/surveys/new?template=meeting-feedback` |
 
+### Use-case pages (live with the templates)
+
+Each page is a search landing page (own title, description, sitemap entry) with the real sample questions and a
+"Use this template" button. Share the page for people who need convincing, the template link for people who are ready.
+Content for all of them lives in `src/config/useCases.json`; add a new entry (and a template) to add a page.
+
+| Use case | Page | Template link |
+| --- | --- | --- |
+| Anonymous employee survey | `https://lunchvoice.com/use-cases/anonymous-employee-survey` | `https://lunchvoice.com/surveys/new?template=employee-survey` |
+| Event feedback form | `https://lunchvoice.com/use-cases/event-feedback-form` | `https://lunchvoice.com/surveys/new?template=event-feedback` |
+| Club and committee votes | `https://lunchvoice.com/use-cases/club-and-committee-votes` | `https://lunchvoice.com/surveys/new?template=committee-vote` |
+| Weekly team pulse survey | `https://lunchvoice.com/use-cases/weekly-team-pulse-survey` | `https://lunchvoice.com/surveys/new?template=team-pulse` |
+| Customer feedback questionnaire | `https://lunchvoice.com/use-cases/customer-feedback-questionnaire` | `https://lunchvoice.com/surveys/new?template=service-feedback` |
+| Meeting and workshop feedback | `https://lunchvoice.com/use-cases/meeting-and-workshop-feedback` | `https://lunchvoice.com/surveys/new?template=meeting-feedback` |
+| Group scheduling poll | `https://lunchvoice.com/use-cases/group-scheduling-poll` | `https://lunchvoice.com/surveys/new?template=group-decision` |
+| Community suggestion box | `https://lunchvoice.com/use-cases/community-suggestion-box` | `https://lunchvoice.com/surveys/new?template=suggestion-box` |
+| Menu and dining feedback | `https://lunchvoice.com/use-cases/menu-and-dining-feedback` | `https://lunchvoice.com/surveys/new?template=menu-feedback` |
+| Member questionnaire | `https://lunchvoice.com/use-cases/member-questionnaire` | `https://lunchvoice.com/surveys/new?template=member-questionnaire` |
+
+Positioning these fix: people assume LunchVoice is only for food because of the name. The home page and the Use cases
+hub now say "The name has lunch in it. The product doesn't." and lead with votes, questionnaires and feedback; dining is
+one card of ten. Do not describe Election mode as available: it is disabled until M2. What exists today is a
+one-person-one-vote ballot (invite-only, anonymous), and the page says so.
+
 Template ids are permanent once a link is published; add new ids rather than renaming (`src/config/surveyTemplates.ts`).
 Add `&utm_source=<channel>` to any link to tell channels apart in whatever analytics is chosen (see Measurement).
 
@@ -57,9 +81,8 @@ Add `&utm_source=<channel>` to any link to tell channels apart in whatever analy
   their first survey with them. Their results are your first case studies (with permission, in their words).
 
 **Month 2 onward: content that compounds**
-- One page per use case (`/use-cases/anonymous-employee-survey`, `/use-cases/event-feedback-form`, ...), each with
-  real copy, the sample questions, and a "Use this template" button. Each is an `seo.json` entry plus a Render
-  rewrite. This is the highest-leverage build after launch.
+- More use-case pages (built: ten, see above). Candidates: nonprofit volunteer survey, church or faith-group
+  questionnaire, HOA or neighbourhood vote, product feedback board. Each is a `useCases.json` entry plus a Render rewrite.
 - Comparison pages (LunchVoice vs Google Forms / SurveyMonkey) on anonymity and live results.
 - Founder write-ups: "What anonymous really means in a survey tool", "Why a small group's results are withheld".
   These are distinctive, linkable and match the product's actual behaviour.

@@ -4,7 +4,7 @@
 // Rules: a template is generic (no customer, venue or organisation is named), written for adult audiences, and
 // valid under the server's limits (at most 10 questions; choice questions need 2-10 different options). The test in
 // src/lib/surveyTemplates.test.ts enforces them with the same questionConfigProblem the editor and the API use.
-import type { QuestionKind } from "../lib/lvApi";
+import type { Anonymity, QuestionKind, SurveyAccess } from "../lib/lvApi";
 
 export interface TemplateQuestion {
   kind: QuestionKind;
@@ -24,6 +24,8 @@ export interface SurveyTemplate {
   /** Suggested title; the creator can change it. */
   title: string;
   questions: TemplateQuestion[];
+  /** Settings the picker applies with the template (the creator can still change them). Omitted = leave as they are. */
+  defaults?: { access?: SurveyAccess; anonymity?: Anonymity };
 }
 
 export const SURVEY_TEMPLATES: readonly SurveyTemplate[] = [
@@ -94,6 +96,57 @@ export const SURVEY_TEMPLATES: readonly SurveyTemplate[] = [
       { kind: "single_choice", prompt: "How was the pace?", options: ["Too slow", "About right", "Too fast"] },
       { kind: "yes_no", prompt: "Did you leave with a clear next step?" },
       { kind: "text", prompt: "What should we do differently next time?", optional: true },
+    ],
+  },
+  {
+    id: "employee-survey",
+    name: "Anonymous employee survey",
+    blurb: "Honest feedback with no names attached.",
+    title: "Employee feedback survey",
+    questions: [
+      { kind: "rating", prompt: "Overall, how satisfied are you working here?" },
+      { kind: "single_choice", prompt: "How likely are you to still be here in a year?", options: ["Very likely", "Likely", "Unsure", "Unlikely"] },
+      { kind: "multi_choice", prompt: "Which of these would improve your work most?", options: ["Clearer priorities", "Better tools", "More flexibility", "Recognition", "Training and growth", "Communication from leadership"] },
+      { kind: "yes_no", prompt: "Do you feel comfortable raising concerns?" },
+      { kind: "text", prompt: "What is one thing we should start, stop or change?", optional: true },
+    ],
+  },
+  {
+    id: "committee-vote",
+    name: "Club or committee vote",
+    blurb: "A one-person-one-vote ballot for a decision or a chair.",
+    title: "Committee vote",
+    // A ballot should only reach the people you invited, and each signed-in account answers once.
+    defaults: { access: "invite", anonymity: "anonymous" },
+    questions: [
+      { kind: "single_choice", prompt: "Which candidate do you vote for?", options: ["Candidate A", "Candidate B", "Candidate C", "Abstain"] },
+      { kind: "yes_no", prompt: "Do you approve the proposed budget for next year?" },
+    ],
+  },
+  {
+    id: "member-questionnaire",
+    name: "Member questionnaire",
+    blurb: "Learn what your members want before you plan.",
+    title: "Member questionnaire",
+    questions: [
+      { kind: "multi_choice", prompt: "Which activities interest you?", options: ["Social events", "Workshops", "Volunteering", "Sports or outdoors", "Fundraising", "Online meetups"] },
+      { kind: "single_choice", prompt: "How often can you take part?", options: ["Weekly", "Monthly", "A few times a year", "Rarely"] },
+      { kind: "single_choice", prompt: "What time suits you best?", options: ["Weekday mornings", "Weekday evenings", "Weekends", "No preference"] },
+      { kind: "yes_no", prompt: "Would you like to help organise something?" },
+      { kind: "text", prompt: "Anything else we should know?", optional: true },
+    ],
+  },
+  {
+    id: "menu-feedback",
+    name: "Menu and dining feedback",
+    blurb: "For canteens, cafés and catered events.",
+    title: "How was the food?",
+    questions: [
+      { kind: "rating", prompt: "How was your meal today?" },
+      { kind: "multi_choice", prompt: "What should we serve more of?", options: ["Hot meals", "Vegetarian or vegan", "Healthier options", "Snacks", "Breakfast", "Drinks"] },
+      { kind: "single_choice", prompt: "How was the portion size?", options: ["Too small", "About right", "Too big"] },
+      { kind: "yes_no", prompt: "Would you recommend it to a friend?" },
+      { kind: "text", prompt: "Any dish we should bring back or drop?", optional: true },
     ],
   },
 ];
