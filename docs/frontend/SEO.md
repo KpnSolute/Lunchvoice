@@ -18,7 +18,8 @@ public site is made discoverable.
 | Guard | `scripts/seo-prerender.test.mjs` (in `npm run test:pr`) | Every indexed page is a public route, titles fit result limits and are unique, `render.yaml` rewrites every page, the theme script's CSP hash is still valid. |
 
 **Indexed:** `/`, `/how-it-works`, `/use-cases`, `/pricing`, `/waitlist`, `/about`, `/discover`, `/support`,
-`/privacy`, `/terms`.
+`/privacy`, `/terms`, `/guidelines`, and one page per entry in `src/config/useCases.json` (`/use-cases/<slug>`). The
+use-case pages are merged into the page list by `loadSeo()` in `scripts/seo-prerender.mjs` and by `src/ui/Seo.tsx`.
 
 **Never indexed:** account and sign-in routes, Quick Surveys, respondent players (`/c/`, `/s/`), invite links and
 every Hub. A Hub belongs to its customer; making Hubs findable is the Discover feature's job (Team plan, 700 genuine
@@ -26,7 +27,7 @@ active members, approved), and would be an explicit, opt-in change.
 
 ## Adding or changing a public page
 
-1. Add or edit its entry in `src/config/seo.json` (title ≤ 70 characters with the suffix; description 70–200,
+1. Add or edit its entry in `src/config/seo.json` (for a use case, add it to `src/config/useCases.json` instead) (title ≤ 70 characters with the suffix; description 70–200,
    ideally ≤ 160 so Google shows it whole).
 2. Add a matching rewrite to `render.yaml` above the `/*` catch-all.
 3. `npm run test:pr`.

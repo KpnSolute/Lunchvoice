@@ -27,6 +27,14 @@
       "milestone": "M1"
     },
     {
+      "path": "/use-cases/:slug",
+      "name": "Use case page (sample questions, Use this template)",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M2"
+    },
+    {
       "path": "/pricing",
       "name": "Pricing",
       "layout": "L1",
