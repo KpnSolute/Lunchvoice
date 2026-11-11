@@ -65,6 +65,20 @@ to without further backend or UI work. Nothing in this plan charges money.
 
 | F-14 | KpnWorld, LunchVoice's own Hub, is listed on Discover by founder override (2026-11-08) of the Team + 700 genuine members rule: made public, granted Team (source `grant`, no end date), approved Discover entry with its real genuine-member count; recorded in `lv.discover_decisions` and the audit log (`discover.founder_override`). The rule still applies to every other Hub. |
 
+### Founder decisions (2026-11-11, from the chief engineer review, `docs/strategy/`)
+
+Decided before any of it is built. Each is implemented through the entitlement map and policy rows, never as constants.
+
+| ID | Decision |
+| --- | --- |
+| F-15 | **Guests are never turned away by a shared limit.** If the host made the survey open by link and allows guests, anyone can answer, the way a room joins a Kahoot. The single per-survey limit (10 a minute for everyone combined) is replaced by a per-guest limit (one browser cannot flood) and a high safety ceiling per survey that normal use never reaches. Supersedes the mechanism in L-05; F-02 stands (the numbers are configuration). |
+| F-16 | **Pricing page shows three cards:** Free, Starter Hub, Team Hub. The two-week passes (Campaign Starter, Campaign Plus) are offered in one line under the cards and at checkout. The comparison table stays. "Reserve your Hub URL" ($25 per 12 months, $25 renewal) moves up so it is not missed. No price changes. |
+| F-17 | **Annual Hub plans, two months free:** Starter Hub $130 a year, Team Hub $290 a year, same limits as the monthly plan, same cancel rule (access to the end of the paid period). Ships with billing, not before. |
+| F-18 | **Referral credit:** when an invited person starts a paid Hub subscription, the inviter and the new Hub each get one free month of their plan. It pays out only on a real first payment, once per new Hub, has no cash value, and ships after billing is live. |
+| F-19 | **The name stays LunchVoice.** Tell the lunch-line origin story; remove cafeteria wording from the site and the brand files. |
+| F-20 | **No Labs switch.** The review proposed hiding Shop, Points, Leaderboard and others behind a new switch. Withdrawn: a new Hub starts with only Home and Campaigns, the Owner adds the other pages in the Builder, and points are off by default, so the control already exists. |
+| F-21 | **Email goes live.** The `lunchvoice.com` domain is verified at Resend (founder, 2026-11-11). Remaining: set `RESEND_API_KEY` and `EMAIL_FROM` as function secrets (names only) and schedule the dispatcher. |
+
 Launch gate: no production launch while any BLOCKER or HIGH finding is open. MEDIUM findings are triaged into
 "before public beta" and "after public beta".
 

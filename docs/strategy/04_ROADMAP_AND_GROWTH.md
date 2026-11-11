@@ -52,18 +52,18 @@ Feature freeze is 2026-11-21. Only the launch list from the review goes in befor
 
 | # | Work | Review ref | Size | Why it cannot wait |
 | --- | --- | --- | --- | --- |
-| 1 | Guest limits per guest and per-plan burst; counters | B-1 | 1 migration | A shared link fails its own audience |
+| 1 | Guest limits per guest plus a high safety ceiling; counters (F-15) | B-1 | 1 migration | A shared link fails its own audience |
 | 2 | Session renewal; keep Studio edits across re-sign-in | B-2 | `session` function + provider | Creators lose work hourly |
 | 3 | Landing: lead with "Make a survey free"; remove elections, idea boards, "live" | P-2, P-5 | copy | Honesty and first click |
 | 4 | Locked-results state with share controls | P-3 | 1 component | First-run dead end |
 | 5 | Thank-you invitation on the guest screen | P-4 | 1 component + beacon | The growth loop |
-| 6 | Scheduled jobs: three dispatchers, retention | B-3 | 1 migration | Email and a privacy promise depend on it |
+| 6 | Scheduled jobs: three dispatchers, retention; set the Resend key and sender (F-21) | B-3 | 1 migration + 2 secrets | Email and a privacy promise depend on it |
 | 7 | Counters, client error reporter, uptime checks, staff tiles | B-4 | 1 migration + 1 function | Launching blind |
-| 8 | Labs switch: hide Shop, Points, Leaderboard, Reservation purchase, API keys | P-1 | flag + UI | Smaller surface to support. **Founder decision** |
+| 8 | Pricing page: three cards, passes line, reservation card under the plans (F-16) | P-7 | UI | Clear first read of the prices |
 | 9 | Results auto-refresh every 15 s while a survey is open | P-2 | small | Makes "live" true |
 | 10 | Stop using the cafeteria lockup; About page origin story | D-7 | copy | First impression |
 
-Founder actions that no agent can take: connect Resend (email), decide on Stripe before or after launch (the product
+Founder actions that no agent can take: add the Resend API key as the `RESEND_API_KEY` function secret (the domain is already verified; F-21), decide on Stripe before or after launch (the product
 works without it; Founding members are free until billing opens plus 30 days), supply the legal operator name for
 the legal pages (F-12), have the Terms and Privacy text reviewed, recruit the 10 design partners.
 
@@ -82,7 +82,7 @@ creator path in under 5 minutes without help; the four funnel counters record a 
 | QR poster and slide layouts | creator → respondents | – |
 | `results.unlocked` email: "your survey reached 5 answers" | creator return | architecture §5 |
 | Ten starter templates (event feedback, server pulse, meeting check-out, ...) | time to first publish | – |
-| Pricing page as three cards | conversion clarity | P-7 |
+| Annual Hub plans ($130, $290) and the referral month, with billing (F-17, F-18) | revenue, creator → creator | P-7 |
 | Billing live (Stripe keys, Tax, portal) once 20 communities ask for paid features | revenue | – |
 | Contract tests, e2e in CI, module map | speed of every later change | B-5, B-6 |
 | Design consolidation, `check:design` | consistency | D-2 to D-6 |
@@ -139,8 +139,8 @@ for a few minutes when a large community posts a survey.
 
 Payment costs come out of revenue, not the budget: card processing is roughly 3% plus a fixed fee per charge, which
 on a $13 charge is about 5 to 6%, plus smaller percentages for subscription billing and automatic tax. Check
-Stripe's current pricing before modelling margins. Annual plans (two months free) cut the fixed-fee share and
-improve cash; consider them when billing opens. **Founder decision.**
+Stripe's current pricing before modelling margins. Annual plans at two months free (F-17) cut the fixed-fee share and
+improve cash.
 
 **Rules that keep it cheap**
 

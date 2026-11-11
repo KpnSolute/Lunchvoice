@@ -50,6 +50,11 @@ UI and API; the backend evaluates the active entitlement.
   $13 per additional week.
 - Campaign Plus: Team family, time-bounded. $39 for the first 2 weeks, $19 per
   additional week (founder, 2026-11-07).
+- Annual Hub plans (founder, 2026-11-11, ship with billing): Starter Hub $130 per
+  year, Team Hub $290 per year (two months free), same limits as monthly.
+- Referral credit (founder, 2026-11-11, ships after billing): one free month for
+  the inviter and for the new Hub on that Hub's first paid subscription. No cash
+  value.
 - Free Quick Survey: $0 for any signed-in account. 5 active surveys, 10
   questions, core kinds, link or invite-only; lives in a personal space that is
   never a Hub. The launch waitlist is never authorization.

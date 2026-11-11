@@ -20,7 +20,7 @@ Category: community feedback. Not "forms", not "employee engagement".
 | Option | Cost | Verdict |
 | --- | --- | --- |
 | Rename before launch | New domain, lost search history, relabel everything, three weeks before launch | No |
-| **Keep the name, own the story, remove every cafeteria cue** | One paragraph on the About page and a copy pass | **Recommended** |
+| **Keep the name, own the story, remove every cafeteria cue** | One paragraph on the About page and a copy pass | **Decided (F-19)** |
 
 The story, in the founder's voice, for the About page and for every "why is it called that?" reply:
 
@@ -159,7 +159,7 @@ say you built it; give the useful thing in the post itself; answer every comment
 | Shared results card | An image and public page a creator can post | to build (review P-9) |
 | QR poster | A print-ready sheet with the code and "Powered by LunchVoice" | QR exists; poster layout to build |
 | Founding member badge | A Discord role and a mark on the Hub page | role rules exist |
-| Referral | "Give a community one free month of Hub; get one when they subscribe" | after billing is live; **Founder decision** |
+| Referral | The inviter and the new Hub each get one free month when the new Hub first pays (F-18) | decided; ships after billing is live |
 
 ## 8. Launch kit
 

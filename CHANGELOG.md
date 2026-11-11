@@ -6,6 +6,20 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (documentation only, 2026-11-11: founder decisions on the review; nothing built or applied)
+
+- `docs/v2/LAUNCH_PLAN.md` records F-15 to F-21: guests are never refused by a shared per-survey limit (per-guest limit
+  plus a high safety ceiling); `/pricing` shows three cards with a passes line and the URL reservation card moved up;
+  annual Hub plans at two months free (Starter $130, Team $290 a year, with billing); referral credit of one free month
+  for the inviter and the new Hub on its first payment (after billing); the name stays LunchVoice; no Labs switch; the
+  `lunchvoice.com` domain is verified at Resend, with `RESEND_API_KEY` / `EMAIL_FROM` secrets and the dispatcher
+  schedule still to do.
+- `AGENTS.md` and `CLAUDE.md` (identical): annual Hub plans and the referral credit added to Canonical Pricing so no
+  agent treats them as invented prices. `PRODUCT.md` lists the yearly plans.
+- `docs/strategy/00`-`04` updated to the decisions. Review finding P-1 corrected: the Labs switch was unnecessary,
+  because a new Hub has only Home and Campaigns and the Owner already adds Shop, Leaderboard, News and Comments in the
+  Builder, with points off by default.
+
 ### Added (documentation only, 2026-11-10: chief engineer review and launch strategy; proposals, no code or production change)
 
 - `docs/strategy/00_CHIEF_ENGINEER_REVIEW.md`: audit of what is built at `5d29758` with ranked findings and the order

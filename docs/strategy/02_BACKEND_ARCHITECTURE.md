@@ -86,7 +86,7 @@ functions whose body writes to a table owned by another module and fails on any 
 | --- | --- | --- |
 | **Policy** | `lv.policy` key/value, exists | – |
 | **Limits** | `lv.limit_check`, one entry point over `plan_limits` | per-module limit code in `000014`, `000018`, `000020` |
-| **Feature flags** | `lv.feature_flags(key, scope, hub_id, enabled, note)`; `lv.feature_enabled(hub, key)`; returned in `lv_my_context` and `lv_hub_get` so the UI can hide entry points | ad-hoc "Coming with M2" states; enables the Labs switch (review P-1) |
+| **Feature flags** | `lv.feature_flags(key, scope, hub_id, enabled, note)`; `lv.feature_enabled(hub, key)`; returned in `lv_my_context` and `lv_hub_get` so the UI can hide entry points | ad-hoc "Coming with M2" states; for unfinished features only; no Labs switch (F-20) |
 | **Outbox** | one `lv.outbox(id, topic, payload, run_after, attempts, state)` with a dispatcher per channel (email, webhook, Discord) reading its own topic | three separate outbox tables; migrate lazily, new channels use the shared one |
 | **Jobs** | `lv.jobs(name, schedule, last_started, last_ok, last_error)` registered with `pg_cron`; each job is a function that records its own run | undefined scheduling (review B-3) |
 | **Events** | §5 | direct cross-module calls |
@@ -143,11 +143,12 @@ Proposed:
 2. **Counters, not counts.** `lv.campaign_counters(campaign_id, guest_total, member_total, updated_at)` updated with
    one `update ... set guest_total = guest_total + 1 where guest_total < limit returning`. One row lock held for
    microseconds; the guest cap is enforced by the `where`.
-3. **Two rate limits with different jobs:**
+3. **Two limits with different jobs (F-15: a guest is never refused because other people are answering):**
    - `participation.guest_per_key_per_minute` (suggest 3): stops one browser hammering. Keyed on the guest hash.
-   - `participation.burst_per_minute` by plan in `plan_limits` (suggest free 120, starter 600, team 1,800): protects
-     the database, sized so a full lecture hall or a busy Discord channel never hits it. Use `lv.rate_take`.
-   Both remain policy and plan values, never constants (F-02).
+   - `participation.safety_ceiling_per_minute` (suggest 600 on every plan): protects the database only. It is sized
+     so a full lecture hall or a busy Discord channel never meets it, and reaching it raises a staff alert, because
+     it means an attack or a number that should be raised. Use `lv.rate_take`.
+   Both are policy rows, never constants (F-02). The host's own `guest_limit` (a total they choose) is unchanged.
 4. **Abuse is handled where it is cheap:** a staff "pause guest answers" switch per Campaign (exists as a block),
    report-abuse (exists), and an optional proof-of-work or Turnstile challenge that turns on automatically for a
    Campaign that reaches its burst ceiling three minutes in a row. No CAPTCHA by default: it breaks the ten-second

@@ -79,7 +79,7 @@ Organisation accounts that own several Hubs. This is where the higher price poin
 
 What it should **not** become: a general form builder (payments, file uploads, conditional logic trees), a social
 network, or a rewards marketplace. Points and the shop came from the product's first life and pull toward a
-different business. Keep them in Labs until customers ask twice.
+different business. They stay as optional pages a Hub owner can add; build no more on them until customers ask twice.
 
 ## 6. Vocabulary
 
@@ -117,13 +117,16 @@ reach 5 answers, respondents who start their own survey, and creators who publis
 
 ## 8. Pricing as the user should see it
 
-Prices are canonical and unchanged. This is presentation only. **Founder decision.**
+Decided by the founder on 2026-11-11 (F-16, F-17). Monthly prices are unchanged.
 
 | Card | Price | For | Headline |
 | --- | --- | --- | --- |
 | **Free** | $0 | anyone | 5 active surveys, 10 questions each, link, QR or code |
 | **Hub** | $13 / month | one community | Members, 3 roles, 3 pages, 15 active surveys, export |
 | **Team** | $29 / month | larger communities | 6 roles, more pages, role targeting, deeper analytics, API and Discord roles |
+
+Starter Hub and Team Hub also come yearly at two months free: **$130** and **$290** a year, shown with a monthly /
+yearly toggle once billing opens. Directly under the cards: "Reserve your Hub URL", $25 per 12 months.
 
 Under the cards, one line: "Only need it for an event? Get a two-week pass from $19." The passes (Campaign Starter,
 Campaign Plus) and the URL reservation remain purchasable from checkout and Hub settings; they do not need columns.
