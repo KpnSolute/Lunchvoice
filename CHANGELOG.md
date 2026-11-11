@@ -6,6 +6,24 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed (people left signed in on a dead session saw "Something went wrong on our side")
+
+- Reported: after a while of inactivity, My home showed "Something went wrong on our side. Try again." while the header
+  still showed the person signed in. Cause: sessions last at most one hour by design (LC-04, LC-33), but the app checked
+  the expiry only when the page loaded, and the real transport turned the backend's `401 JWT expired` (a PostgREST
+  error, not an envelope) into `lv_server_error`. A tab left open past the hour kept sending a dead token.
+- A refused or expired token now becomes `lv_unauthenticated` (`src/lib/authFailure.ts`: HTTP 401, PGRST301/302/303 or a
+  JWT message; a 403 stays a permission error). Edge Function calls (checkout, portal) get the same treatment.
+- `IdentityProvider` ends the session when its clock runs out (a timer, plus a re-check when the tab regains focus or
+  becomes visible, since background timers are throttled) and whenever the server refuses a token that was sent. Ending
+  clears the stored session, shows a toast, and sets a flag; signed-in pages go to `/signin` and keep the path
+  (`from`), where a "You were signed out" notice explains why. Signing in again returns to where they were.
+- The session lifetime is unchanged (1 hour, a compliance decision). Silent renewal, so people are not interrupted at
+  all, needs a backend and CSP decision and is not part of this fix.
+- Tests: `src/lib/authFailure.test.ts` (what counts as an ended session and what does not) and `e2e/session.test.mjs`
+  (the reported My home case, an expiry while the tab is open, a public page, and a healthy session left alone). In dev
+  the mock treats a session whose token is `expired` as a server-refused token.
+
 ### Added (use-case pages, four more templates, "more than lunch" positioning)
 
 - Ten public use-case pages at `/use-cases/<slug>` (anonymous employee survey, event feedback form, club and committee
