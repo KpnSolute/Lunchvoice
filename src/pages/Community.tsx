@@ -15,6 +15,7 @@ import { Icon } from "../components/Icon";
 import { HubMark } from "../ui/HubMark";
 import { accentHex, onAccent } from "../lib/accent";
 import { StateScreen } from "../ui/StateScreen";
+import { ReportDialog as ReportPersonDialog } from "../components/ReportDialog";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
 import { Input } from "@/components/shadcn/input";
@@ -274,6 +275,7 @@ export function CommentThread({ hubId, postId }: { hubId: string; postId?: strin
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [reporting, setReporting] = useState<CommentRow | null>(null);
+  const [reportingPerson, setReportingPerson] = useState<CommentRow | null>(null);
   if (q.loading && !q.data) return <LoadingRows rows={2} label="Loading comments" />;
   if (q.error) return <Blocked error={q.error} what="comments" />;
   const d = q.data!;
@@ -304,7 +306,8 @@ export function CommentThread({ hubId, postId }: { hubId: string; postId?: strin
             </div>
             <p className="lv-m0 lv-cm-commentbody">{c.body}</p>
             <div className="ui-row">
-              {!c.mine && !c.reported_by_me && <Button size="sm" variant="quiet" onClick={() => setReporting(c)}>Report</Button>}
+              {!c.mine && !c.reported_by_me && <Button size="sm" variant="quiet" onClick={() => setReporting(c)}>Report comment</Button>}
+              {!c.mine && <Button size="sm" variant="quiet" onClick={() => setReportingPerson(c)} data-testid="report-person">Report {c.author_name}</Button>}
               {c.reported_by_me && <span className="ui-muted lv-small">You reported this</span>}
               {d.can_moderate && <Button size="sm" variant="quiet" onClick={() => act(api.commentHide(c.comment_id, !c.hidden), c.hidden ? "Comment shown" : "Comment hidden")}>{c.hidden ? "Unhide" : "Hide"}</Button>}
               {(c.mine || d.can_moderate) && <Button size="sm" variant="quiet" onClick={() => act(api.commentDelete(c.comment_id), "Comment deleted")}>Delete</Button>}
@@ -321,6 +324,18 @@ export function CommentThread({ hubId, postId }: { hubId: string; postId?: strin
         </form>
       ) : <Notice tone="info">New comments are paused while this Hub has no active plan. Nothing is deleted.</Notice>}
       <ReportDialog comment={reporting} onClose={() => setReporting(null)} onDone={() => { setReporting(null); q.reload(); }} />
+      <ReportPersonDialog
+        open={Boolean(reportingPerson)}
+        onOpenChange={(o) => { if (!o) setReportingPerson(null); }}
+        title={`Report ${reportingPerson?.author_name ?? "this person"}`}
+        description="LunchVoice staff review it and can act on the account. They are never told who reported them, and Hub moderators can’t see who did."
+        onSend={async (reason, details) => {
+          const r = await api.reportAccount(hubId, { comment: reportingPerson!.comment_id }, reason, details);
+          if (!r.ok) return describeError(r.error);
+          toast.success(r.duplicate ? "You’ve already reported them. Staff will review it." : "Report sent to LunchVoice staff");
+          return null;
+        }}
+      />
     </section>
   );
 }

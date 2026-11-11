@@ -22,7 +22,9 @@ interface Staff {
   staff: { account_id: string; display_name: string; granted_at: string; granted_by_name: string | null }[];
   hubSusp: Record<string, { reason: string; suspended_at: string }>;
   accSusp: Record<string, { reason: string; suspended_at: string }>;
-  reports: { type: "survey" | "comment"; id: string; status: string; reasons: string[]; created_at: string; hub_slug: string; title: string; hidden?: boolean; blocked?: boolean }[];
+  reports: { type: "survey" | "comment" | "person" | "hub"; id: string; status: string; reasons: string[]; created_at: string; hub_slug: string; title: string; hidden?: boolean; blocked?: boolean;
+    /** 000029: people and Hubs. `mine` marks reports sent by the mock account (the real backend keys on the reporter). */
+    details?: string | null; staff_note?: string | null; target_name?: string; target_account_id?: string; mine?: boolean }[];
   audit: { id: number; occurred_at: string; actor_account_id: string; actor_name: string; action: string; target: string | null; hub_slug: string | null }[];
 }
 
@@ -91,7 +93,41 @@ export function staffMock(s: StateLike, fn: string, a: Record<string, unknown>, 
   }
   const mine = ["lv_admin_staff_list", "lv_admin_staff_add", "lv_admin_staff_revoke", "lv_admin_hub_suspend", "lv_admin_hub_unsuspend",
     "lv_admin_account_suspend", "lv_admin_account_unsuspend", "lv_admin_reports", "lv_admin_comment_hide", "lv_admin_comment_reports_dismiss",
-    "lv_admin_hub_search", "lv_admin_account_search", "lv_admin_account_email_reveal", "lv_admin_audit", "lv_admin_report_dismiss", "lv_admin_campaign_block"];
+    "lv_admin_hub_search", "lv_admin_account_search", "lv_admin_account_email_reveal", "lv_admin_audit", "lv_admin_report_dismiss", "lv_admin_campaign_block",
+    "lv_admin_user_report_decide"];
+
+  // 000029: reporting a person or a Hub, and the reporter's own list. Any signed-in person; never staff-only.
+  if (fn === "lv_report_hub" || fn === "lv_report_account" || fn === "lv_my_reports") {
+    if (!authed) return err("lv_unauthenticated", "Sign in with KpnIdentity first.");
+    if (fn === "lv_my_reports") {
+      return { ok: true, reports: d.reports.filter((r) => r.mine && (r.type === "person" || r.type === "hub")).map((r) => ({
+        report_id: r.id, kind: r.type, label: r.type === "person" ? r.target_name ?? "A person" : r.title, reason: r.reasons[0], status: r.status, created_at: r.created_at })) };
+    }
+    const REASONS = ["harassment", "hate", "threats", "sexual_content", "scam", "impersonation", "spam", "privacy", "other"];
+    if (!REASONS.includes(String(a.p_reason))) return err("lv_invalid_input", "Choose a reason.");
+    const details = String(a.p_details ?? "").trim() || null;
+    if (fn === "lv_report_hub") {
+      const h = s.hubs.find((x) => x.kind === "community" && x.slug === String(a.p_slug ?? "").trim().toLowerCase());
+      if (!h) return err("lv_not_found", "No Hub lives at that address.");
+      if (h.members.some((m) => m.account_id === ME && m.is_owner)) return err("lv_invalid_input", "You can't report your own Hub.");
+      if (d.reports.some((r) => r.mine && r.type === "hub" && r.hub_slug === h.slug && r.status === "open")) return { ok: true, duplicate: true };
+      const id = `rep-${d.reports.length + 1}-${Date.now()}`;
+      d.reports.unshift({ type: "hub", id, status: "open", reasons: [String(a.p_reason)], created_at: now(), hub_slug: h.slug ?? "", title: h.name, details, mine: true });
+      save();
+      return { ok: true, report_id: id, duplicate: false };
+    }
+    const h = hubById(a.p_hub);
+    if (!h || !h.members.some((m) => m.account_id === ME)) return err("lv_not_found", "No such person.");
+    if ((a.p_membership == null) === (a.p_comment == null)) return err("lv_invalid_input", "Say who you are reporting.");
+    const member = a.p_membership != null ? (h.members as { account_id: string; display_name: string; membership_id?: string }[]).find((m) => m.membership_id === a.p_membership) ?? h.members.find((m) => m.account_id !== ME) : undefined;
+    const targetId = member?.account_id ?? "acc-3";
+    if (targetId === ME) return err("lv_invalid_input", "You can't report yourself.");
+    if (d.reports.some((r) => r.mine && r.type === "person" && r.target_account_id === targetId && r.status === "open")) return { ok: true, duplicate: true };
+    const id = `rep-${d.reports.length + 1}-${Date.now()}`;
+    d.reports.unshift({ type: "person", id, status: "open", reasons: [String(a.p_reason)], created_at: now(), hub_slug: h.slug ?? "", title: "", details, target_name: member?.display_name ?? "Comment author", target_account_id: targetId, mine: true });
+    save();
+    return { ok: true, report_id: id, duplicate: false };
+  }
   if (!mine.includes(fn)) return undefined;
   if (!authed) return err("lv_unauthenticated", "Sign in to continue");
   if (!admin()) return err("lv_forbidden", "This needs a platform administrator.");
@@ -154,16 +190,32 @@ export function staffMock(s: StateLike, fn: string, a: Record<string, unknown>, 
       }
       case "lv_admin_reports": {
         const status = String(a.p_status ?? "open"), type = String(a.p_type ?? "all");
-        if (!["open", "actioned", "dismissed", "all"].includes(status) || !["survey", "comment", "all"].includes(type)) return err("lv_invalid_input", "Unknown status or type.");
+        if (!["open", "actioned", "dismissed", "all"].includes(status) || !["survey", "comment", "person", "hub", "all"].includes(type)) return err("lv_invalid_input", "Unknown status or type.");
         const items = d.reports.filter((r) => (status === "all" || r.status === status) && (type === "all" || r.type === type)).map((r) => {
           const h = s.hubs.find((x) => x.slug === r.hub_slug);
           const common = { type: r.type, id: r.id, status: r.status, reasons: r.reasons, report_count: r.reasons.length, created_at: r.created_at,
             hub_id: h?.hub_id ?? null, hub_name: h?.name ?? null, hub_slug: r.hub_slug, quick_survey: false, hub_suspended: Boolean(h && d.hubSusp[h.hub_id]) };
+          if (r.type === "person" || r.type === "hub") {
+            return { ...common, details: r.details ?? null, staff_note: r.staff_note ?? null, target_account_id: r.target_account_id ?? null, target_name: r.target_name ?? null,
+              target_suspended: r.target_account_id ? Boolean(d.accSusp[r.target_account_id]) : null,
+              target_open_reports: r.target_account_id ? d.reports.filter((o) => o.type === "person" && o.target_account_id === r.target_account_id && o.status === "open").length : null };
+          }
           return r.type === "survey"
             ? { ...common, campaign_id: "cmp-seed-1", campaign_title: r.title, join_code: "SEED01", blocked: Boolean(r.blocked) }
             : { ...common, comment_id: r.id, post_id: null, excerpt: r.title, hidden: Boolean(r.hidden), author_suspended: false, author_account_id: "acc-3" };
         });
         return { ok: true, items };
+      }
+      case "lv_admin_user_report_decide": {
+        const r = d.reports.find((x) => x.id === a.p_report && (x.type === "person" || x.type === "hub"));
+        if (!r) return err("lv_not_found", "No such report.");
+        if (!["actioned", "dismissed"].includes(String(a.p_status))) return err("lv_invalid_input", "Choose actioned or dismissed.");
+        const note = String(a.p_note ?? "").trim();
+        if (note.length > 500) return err("lv_invalid_input", "Keep the note to 500 characters.");
+        r.status = String(a.p_status);
+        r.staff_note = note || null;
+        audit(`report.${r.status}`, r.id, r.hub_slug);
+        return { ok: true, status: r.status };
       }
       case "lv_admin_comment_hide": {
         const r = d.reports.find((x) => x.type === "comment" && x.id === a.p_comment);
@@ -204,7 +256,8 @@ export function staffMock(s: StateLike, fn: string, a: Record<string, unknown>, 
         const email = String(a.p_email ?? "").trim().toLowerCase();
         if (!EMAIL.test(email)) return err("lv_invalid_input", "Search with a full email address.");
         return { ok: true, accounts: DIRECTORY.filter((x) => x.email === email).map((x) => ({ account_id: x.account_id, display_name: x.display_name,
-          created_at: x.created_at, hubs_owned: 0, memberships: 1, is_staff: d.staff.some((y) => y.account_id === x.account_id), suspension: d.accSusp[x.account_id] ?? null })) };
+          created_at: x.created_at, hubs_owned: 0, memberships: 1, is_staff: d.staff.some((y) => y.account_id === x.account_id), suspension: d.accSusp[x.account_id] ?? null,
+          open_reports: d.reports.filter((r) => r.type === "person" && r.target_account_id === x.account_id && r.status === "open").length })) };
       }
       case "lv_admin_account_email_reveal": {
         const p = DIRECTORY.find((x) => x.account_id === a.p_account);

@@ -192,3 +192,84 @@ test("staff: the Waitlist tab summarises seats and its Contact column lines up w
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+/* ------------------------------------------------------------------ reporting people and Hubs (000029) */
+
+test("reports: a person is reported from the Members tab and lands in the staff queue against their account, never naming the reporter", async () => {
+  const { page: p, go, ctx, errors } = await page({}, {});
+  await go("/northside-running/members");
+  const row = p.locator("tbody tr", { hasText: "Priya Nair" }).first();
+  await row.getByRole("button", { name: "Report Priya Nair" }).click();
+  const dialog = p.getByTestId("report-dialog");
+  await dialog.waitFor();
+  assert.equal(await p.getByTestId("report-send").isDisabled(), true, "Send waits for a reason");
+  await dialog.getByText("Harassment or bullying").click();
+  await dialog.getByLabel(/Anything we should know/).fill("Kept messaging me after I asked them to stop.");
+  await p.getByTestId("report-send").click();
+  await p.getByText(/Report sent to LunchVoice staff/).waitFor();
+  await dialog.waitFor({ state: "detached" });
+
+  // Staff see it, attached to the account and the Hub where it happened.
+  await p.evaluate(() => localStorage.setItem("lv.mock.admin", "1"));
+  await go("/admin");
+  await p.getByTestId("admin-console").waitFor();
+  await tab(p, "Reports").click();
+  const item = p.getByTestId("admin-report-item").filter({ hasText: "Priya Nair" }).first();
+  await item.waitFor();
+  await item.getByText("Person", { exact: true }).waitFor();
+  await item.getByTestId("report-details").getByText(/Kept messaging me/).waitFor();
+  assert.equal(await p.getByTestId("admin-reports").getByText(/reporter/i).count(), 1, "the only mention is the privacy footnote");
+  await item.getByRole("textbox", { name: "Mark actioned reason" }).fill("Warned them");
+  await item.getByRole("button", { name: "Mark actioned" }).click();
+  await p.getByText("Marked actioned").waitFor();
+  await p.getByRole("radio", { name: "Actioned" }).click();
+  await p.getByTestId("admin-report-item").filter({ hasText: "Warned them" }).first().waitFor();
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test("reports: the Support page reports a Hub by address, lists it as sent, and refuses reporting your own Hub", async () => {
+  const { page: p, go, ctx, errors } = await page({}, {});
+  await go("/me");
+  await p.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem("lv.mock.state"));
+    st.hubs.push({ hub_id: "hub-x", slug: "other-hub", name: "Other Hub", kind: "community", about: "", accent: null, visibility: "public", membership_mode: "open",
+      members: [{ membership_id: "mx", account_id: "acc-9", display_name: "Owner X", is_owner: true, status: "accepted", roles: [] }], pages: [] });
+    localStorage.setItem("lv.mock.state", JSON.stringify(st));
+  });
+  await go("/support");
+  const center = p.getByTestId("report-center");
+  await center.waitFor();
+  await center.getByRole("textbox", { name: "Hub address" }).fill("https://lunchvoice.com/Other-Hub/");
+  await p.getByTestId("rc-hub-continue").click();
+  await p.getByRole("heading", { name: "Report lunchvoice.com/other-hub" }).waitFor();
+  await p.getByTestId("report-dialog").getByText("Scam or phishing").click();
+  await p.getByTestId("report-send").click();
+  await p.getByText(/Report sent to LunchVoice staff/).waitFor();
+  const mine = p.getByTestId("my-reports");
+  await mine.getByText("Other Hub").waitFor();
+  await mine.getByText("With staff").waitFor();
+
+  // Your own Hub cannot be reported.
+  await center.getByRole("textbox", { name: "Hub address" }).fill("northside-running");
+  await p.getByTestId("rc-hub-continue").click();
+  await p.getByTestId("report-dialog").getByText("Spam", { exact: true }).click();
+  await p.getByTestId("report-send").click();
+  await p.getByText("You can't report your own Hub.").waitFor();
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test("reports: signed out, the Support page asks for sign-in to report a Hub and still shows the contact address", async () => {
+  const s = await openPage(app, { width: 390, signedIn: false });
+  const { page: p } = s;
+  await s.go("/support");
+  await p.getByTestId("report-center").waitFor();
+  await p.getByText(/Sign in to report a Hub/).waitFor();
+  assert.equal(await p.getByRole("link", { name: "admin@lunchvoice.com" }).first().getAttribute("href"), "mailto:admin@lunchvoice.com");
+  await p.getByRole("tab", { name: "A person" }).click();
+  await p.getByText(/The best place to report a person is where you met them/).waitFor();
+  assert.equal(await noHorizontalScroll(p), true);
+  assert.deepEqual(s.errors, []);
+  await s.ctx.close();
+});

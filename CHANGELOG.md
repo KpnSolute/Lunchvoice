@@ -6,6 +6,48 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (2026-11-11, founder-approved: "approved, apply 000029 and ship")
+
+- **Migration numbering and an overwrite caught.** While applying reporting I found production's history already held
+  `000029 v2_participation_guest_limits`, `000030 v2_staff_reports`, `000031 v2_kernel_jobs` and `000032 v2_kernel_jobs_install_fix`,
+  applied by another track (branch `claude/determined-darwin-aa79al`, not yet on `main`). My reporting migration is therefore
+  renumbered **000033** (files, rollback and `supabase/tests/33_reports.sql`). Because both 000030 and my migration replace
+  `lv.api_admin_reports`, mine overwrote their grouped survey queue in production for a short time; **000034** restores it
+  and keeps my person and Hub reports in the same queue (applied only when `lv.abuse_reports.category` exists, so `main`,
+  which lacks 000030, stays valid). Verified on a database with their four migrations plus mine: the queue function holds both
+  behaviours and all 24 reporting checks pass. The other track should expect `lv_admin_reports` to accept types `person`
+  and `hub` and to carry `details`, `target_*` fields on those items.
+- Production audit after 000033: row-level security on every table, nothing in `lv` granted to API roles, reporting calls
+  callable by signed-in users only; the signed-out list is unchanged apart from the other track's second `lv_report_abuse`.
+
+### Changed (Hub Console, founder direction 2026-11-11)
+
+- **Hub pages get a calmer, flatter look** (`docs/v2/PRODUCT_DIRECTION_2026-11-11.md` section 6), scoped to `.lv-hubscope` so
+  LunchVoice's own pages keep the tactile look. Done by overriding surface tokens, so every card, button and well follows:
+  the sections are now a **grouped rail on the left** (Hub, People, Manage) with the current page marked by the Hub's colour;
+  cards have hairline borders instead of raised shadows; buttons are rectangular with no glow; the Hub's own accent (indigo
+  when a Hub has not chosen one) is the single strong colour, replacing the orange tab underline and orange selected states;
+  LunchVoice's pill slider (filters) is kept. Phones keep the bottom bar. Editors (the Campaign Studio) go full width with no
+  rail so the question outline and preview have room. e2e checks the rail, the rectangular glow-free buttons, the pill slider
+  and the full-width editor.
+
+### Added (000033 reporting, applied to production 2026-11-11)
+
+- **Discord-style reporting** (founder direction 2026-11-11, `docs/v2/PRODUCT_DIRECTION_2026-11-11.md`). A person or a Hub can
+  be reported and the report attaches to that account's record and lands in the staff Reports queue.
+  `supabase/migrations/000029_v2_reports.sql` + rollback + `supabase/tests/29_reports.sql` (database suite 1279/0 with
+  rollback rehearsal): table `lv.user_reports` (nine reasons, details up to 1000, one open report per reporter per target,
+  10 a day per reporter), `lv_report_account` (by membership or by one of their comments; reporter and target must share the
+  Hub; self-reports refused), `lv_report_hub` (by address), `lv_my_reports`, the staff queue now carries people and Hubs,
+  `lv_admin_user_report_decide` (actioned or dismissed with a note), and an open-report count on the Accounts tab. The audit
+  never records the reporter and the queue never returns one.
+- UI: a shared Report dialog; Report on member rows, on comments ("Report {name}") and a Hub options menu ("Report this
+  Hub"); the Support page now leads with "Report something" (a person, a Hub by address, a survey by code) plus "Your
+  reports" with their status; staff Reports tab shows people and Hubs with details, repeat-report badges, "Mark actioned"
+  with a note and "Suspend account"; dev mock follows the SQL; e2e covers the flows.
+- `docs/v2/PRODUCT_DIRECTION_2026-11-11.md`: SurveyMonkey comparison, the social layer, Hub and profile customization
+  tiers, reporting design, the "Hub Console" look, and the build order.
+
 ### Changed
 
 - **Invitations, as the recipient sees them** (`/j/:code`). A signed-out recipient used to get an error ("Sign in with

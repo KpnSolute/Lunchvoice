@@ -75,7 +75,7 @@ test("Comments: post, report, hide and delete (moderation)", async () => {
   const thread = page.getByTestId("comments");
   await thread.waitFor();
   const priya = thread.getByTestId("comment").filter({ hasText: "Much better for my knees" });
-  await priya.getByRole("button", { name: "Report" }).click();
+  await priya.getByRole("button", { name: "Report comment" }).click();
   await page.getByLabel("What is wrong?").fill("Off topic");
   await page.getByRole("button", { name: "Send report" }).click();
   await priya.getByText("You reported this").waitFor();
@@ -87,7 +87,7 @@ test("Comments: post, report, hide and delete (moderation)", async () => {
   await thread.getByRole("button", { name: "Post comment" }).click();
   const mine = thread.getByTestId("comment").filter({ hasText: "See you at the boathouse" });
   await mine.waitFor();
-  assert.equal(await mine.getByRole("button", { name: "Report" }).count(), 0, "nobody reports their own comment");
+  assert.equal(await mine.getByRole("button", { name: "Report comment" }).count(), 0, "nobody reports their own comment");
   await mine.getByRole("button", { name: "Delete" }).click();
   await mine.waitFor({ state: "detached" });
   assert.deepEqual(s.errors, []);

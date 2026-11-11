@@ -452,6 +452,13 @@ export function createLvApi(transport: LvTransport) {
     inviteRedeem: (code: string) => call<{ hub_id: string; already_member: boolean }>("lv_invite_redeem", { p_code: code }),
     inviteRevoke: (invite: string) => call<object>("lv_invite_revoke", { p_invite: invite }),
 
+    /* ---- reporting people and Hubs (000029) ---- */
+    reportAccount: (hub: string, target: { membership?: string; comment?: string }, reason: string, details: string) =>
+      call<{ duplicate?: boolean; report_id?: string }>("lv_report_account", { p_hub: hub, p_membership: target.membership ?? null, p_comment: target.comment ?? null, p_reason: reason, p_details: details || null }),
+    reportHub: (slug: string, reason: string, details: string) =>
+      call<{ duplicate?: boolean; report_id?: string }>("lv_report_hub", { p_slug: slug, p_reason: reason, p_details: details || null }),
+    myReports: () => call<{ reports: MyReport[] }>("lv_my_reports"),
+
     /* ---- campaigns ---- */
     campaignList: (hub: string) => call<{ campaigns: CampaignRow[] }>("lv_campaign_list", { p_hub: hub }),
     campaignGet: (campaign: string) => call<CampaignDetailData>("lv_campaign_get", { p_campaign: campaign }),
@@ -821,7 +828,7 @@ export interface MyContext { suspension?: AccountSuspension | null }
 
 export interface StaffMember { account_id: string; display_name: string; granted_at: string; granted_by_name: string | null; is_me: boolean }
 export interface AdminReportItem {
-  type: "survey" | "comment";
+  type: "survey" | "comment" | "person" | "hub";
   id: string;
   status: "open" | "actioned" | "dismissed";
   reasons: string[];
@@ -842,7 +849,15 @@ export interface AdminReportItem {
   hidden?: boolean;
   author_suspended?: boolean;
   author_account_id?: string;
+  /** 000029: reports about people and Hubs (staff only). */
+  details?: string | null;
+  staff_note?: string | null;
+  target_account_id?: string | null;
+  target_name?: string | null;
+  target_suspended?: boolean | null;
+  target_open_reports?: number | null;
 }
+export interface MyReport { report_id: string; kind: "person" | "hub"; label: string; reason: string; status: "open" | "actioned" | "dismissed"; created_at: string }
 export interface AdminHubRow {
   hub_id: string; slug: string; name: string; created_at: string; visibility: string; membership_mode: string;
   plan: { family: PlanFamily | null; product: string | null; state: string; ends_at?: string | null };
@@ -852,6 +867,8 @@ export interface AdminHubRow {
 export interface AdminAccountRow {
   account_id: string; display_name: string; created_at: string; hubs_owned: number; memberships: number; is_staff: boolean;
   suspension: { reason: string; suspended_at: string } | null;
+  /** 000029: open reports about this account. */
+  open_reports?: number;
 }
 export interface AdminAuditEvent { id: number; occurred_at: string; actor_account_id: string | null; actor_name: string | null; action: string; target: string | null; hub_slug: string | null }
 export interface AdminOverviewV2 extends AdminOverview {
@@ -871,10 +888,12 @@ function createStaffApi(call: Caller) {
     adminHubUnsuspend: (hub: string) => call<{ suspended: boolean }>("lv_admin_hub_unsuspend", { p_hub: hub }),
     adminAccountSuspend: (account: string, reason: string) => call<{ suspended: boolean }>("lv_admin_account_suspend", { p_account: account, p_reason: reason }),
     adminAccountUnsuspend: (account: string) => call<{ suspended: boolean }>("lv_admin_account_unsuspend", { p_account: account }),
-    adminReports: (status: "open" | "actioned" | "dismissed" | "all" = "open", type: "survey" | "comment" | "all" = "all") =>
+    adminReports: (status: "open" | "actioned" | "dismissed" | "all" = "open", type: "survey" | "comment" | "person" | "hub" | "all" = "all") =>
       call<{ items: AdminReportItem[] }>("lv_admin_reports", { p_status: status, p_type: type }),
     adminCommentHide: (comment: string, hidden = true) => call<{ hidden: boolean }>("lv_admin_comment_hide", { p_comment: comment, p_hidden: hidden }),
     adminCommentReportsDismiss: (comment: string) => call<object>("lv_admin_comment_reports_dismiss", { p_comment: comment }),
+    adminUserReportDecide: (report: string, status: "actioned" | "dismissed", note = "") =>
+      call<{ status: string }>("lv_admin_user_report_decide", { p_report: report, p_status: status, p_note: note || null }),
     adminHubSearch: (query: string) => call<{ hubs: AdminHubRow[] }>("lv_admin_hub_search", { p_query: query }),
     adminAccountSearch: (email: string) => call<{ accounts: AdminAccountRow[] }>("lv_admin_account_search", { p_email: email }),
     adminAccountEmailReveal: (account: string) => call<{ account_id: string; emails: string[] }>("lv_admin_account_email_reveal", { p_account: account }),

@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
-import { Link, Outlet, useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import { RESERVED_SLUGS, slugProblem } from "../lib/reservedSlugs";
-import type { HubInfo, HubMembership, HubPage, MembershipMode, PageKind, Role, Visibility } from "../lib/lvApi";
+import type { HubInfo, HubMembership, Member, HubPage, MembershipMode, PageKind, Role, Visibility } from "../lib/lvApi";
 import { describeError, describeGate } from "../lib/errors";
 import { CHECKOUT_DISABLED_REASON, PLANS } from "../config/pricing";
 import { SUPPORT_EMAIL, supportMailto } from "../config/contact";
+import { ReportDialog } from "../components/ReportDialog";
 import { campaignPhase, LinkButton } from "../components/ui";
 import { Icon, type IconName } from "../components/Icon";
 import { HubMark } from "../ui/HubMark";
@@ -29,7 +30,7 @@ import { Separator } from "@/components/shadcn/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shadcn/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/shadcn/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/shadcn/dialog";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/shadcn/dropdown-menu";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/shadcn/dropdown-menu";
 import { ConfirmAction } from "./Studio";
 /* ---- track D: api + discord ---- */
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shadcn/tabs";
@@ -44,7 +45,6 @@ import {
   Field,
   LoadingRows,
   Metric,
-  NavTabs,
   Notice,
   PhaseBadge,
   QuotaMeter,
@@ -165,6 +165,7 @@ export function HubLayout() {
         <div className="ui-row">
           {plan && <Badge variant={plan.state === "active" ? "ok" : plan.state === "expired" ? "danger" : "neutral"}>{familyName(plan.family)}{plan.state === "expired" ? " · expired" : ""}</Badge>}
           {owner && <Badge variant="ink">Owner</Badge>}
+          {!owner && session && <HubReportMenu hub={hub} />}
         </div>
       </div>
       {/* ---- staff panel: Hub suspension ---- */}
@@ -176,11 +177,74 @@ export function HubLayout() {
       {plan?.state === "expired" && (
         <Notice tone="warn" title="This Hub’s plan has ended">Premium actions are locked: new Campaigns can’t be published and roles and pages can’t change. Everything you made is kept.</Notice>
       )}
-      <div className="lv-hubtabs-wrap"><NavTabs items={tabs} label="Hub sections" /></div>
-      <CommunityNav slug={hub.slug} hubId={hub.hub_id} />
-      <Outlet context={ctx} />
+      {/* Editors (the Campaign Studio) take the full width: no rail, so the question outline and preview have room. */}
+      <div className={/\/studio$/.test(pathname) ? "lv-hubshell lv-hubshell-editor" : "lv-hubshell"}>
+        {!/\/studio$/.test(pathname) && <HubRail items={tabs} icons={ICONS} />}
+        <div className="lv-hubmain">
+          <CommunityNav slug={hub.slug} hubId={hub.hub_id} />
+          <Outlet context={ctx} />
+        </div>
+      </div>
       <BottomTabs label="Hub sections" items={bottom} more={more} />
     </div>
+  );
+}
+
+/** The Hub's sections as a rail, grouped like a channel list (Hub Console). Phones keep the bottom bar. */
+const RAIL_GROUPS: { heading: string; labels: string[] }[] = [
+  { heading: "Hub", labels: ["Overview", "Campaigns", "Analytics"] },
+  { heading: "People", labels: ["Members", "Invites", "Roles"] },
+  { heading: "Manage", labels: ["Settings", "Builder", "Billing", "Reservation", "Discover"] },
+];
+function HubRail({ items, icons }: { items: { to: string; label: string; end?: boolean }[]; icons: Record<string, IconName> }) {
+  return (
+    <nav className="lv-hubrail" aria-label="Hub sections">
+      {RAIL_GROUPS.map((g) => {
+        const links = items.filter((i) => g.labels.includes(i.label));
+        if (!links.length) return null;
+        return (
+          <div className="lv-rail-group" key={g.heading}>
+            <p className="lv-rail-heading">{g.heading}</p>
+            {links.map((i) => (
+              <NavLink key={i.to} to={i.to} end={i.end} className="lv-rail-link" data-slot="nav-tab">
+                <Icon name={icons[i.label] ?? "dashboard"} size={18} />
+                {i.label}
+              </NavLink>
+            ))}
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
+/** "Report this Hub" for anyone who is not its owner (000029). Staff review it; the Hub's owner is never told who reported. */
+function HubReportMenu({ hub }: { hub: HubInfo }) {
+  const { api } = useIdentity();
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="sm" variant="quiet" aria-label="Hub options" data-testid="hub-options"><Icon name="more" size={18} /></Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={() => setOpen(true)} data-testid="report-hub">Report this Hub</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <ReportDialog
+        open={open}
+        onOpenChange={setOpen}
+        title={`Report ${hub.name}`}
+        description="LunchVoice staff review it and can act on the Hub. Its owner is never told who reported it."
+        onSend={async (reason, details) => {
+          const r = await api.reportHub(hub.slug, reason, details);
+          if (!r.ok) return describeError(r.error);
+          toast.success(r.duplicate ? "You’ve already reported this Hub. Staff will review it." : "Report sent to LunchVoice staff");
+          return null;
+        }}
+      />
+    </>
   );
 }
 
@@ -356,6 +420,7 @@ export function Members() {
   const members = useLv(() => api.memberList(hub.hub_id), [api, hub.hub_id]);
   const roles = useLv(() => api.roleList(hub.hub_id), [api, hub.hub_id]);
   const [query, setQuery] = useState("");
+  const [reporting, setReporting] = useState<Member | null>(null);
 
   async function act(fn: () => Promise<{ ok: boolean; error?: { code: string; message: string } }>, done: string) {
     const r = await fn();
@@ -428,6 +493,7 @@ export function Members() {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}
+                      <Button size="sm" variant="quiet" onClick={() => setReporting(m)} aria-label={`Report ${m.display_name ?? "member"}`}>Report</Button>
                       {can(membership, "admin.members.remove") && !m.is_owner && (
                         <ConfirmAction
                           trigger={<Button size="sm" variant="quiet">Remove</Button>}
@@ -446,6 +512,18 @@ export function Members() {
         )}
         <p className="ui-help lv-m0">Emails are never shown. The Owner is protected and can’t be removed or demoted. Guests are never members.</p>
       </Card>
+      <ReportDialog
+        open={Boolean(reporting)}
+        onOpenChange={(o) => { if (!o) setReporting(null); }}
+        title={`Report ${reporting?.display_name ?? "this member"}`}
+        description="LunchVoice staff review it and can act on the account. They are never told who reported them, and Hub owners can’t see who did."
+        onSend={async (reason, details) => {
+          const r = await api.reportAccount(hub.hub_id, { membership: reporting!.membership_id }, reason, details);
+          if (!r.ok) return describeError(r.error);
+          toast.success(r.duplicate ? "You’ve already reported them. Staff will review it." : "Report sent to LunchVoice staff");
+          return null;
+        }}
+      />
     </div>
   );
 }

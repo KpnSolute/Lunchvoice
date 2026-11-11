@@ -365,3 +365,42 @@ test("Invitation with a bad code: says it can't be used and how to get a new one
   assert.equal(await noHorizontalScroll(page), true);
   await s.ctx.close();
 });
+
+/* ------------------------------------------------------------------ Hub Console (founder direction 2026-11-11) */
+
+test("Hub Console: sections are a grouped rail on desktop, the editor goes full width, and LunchVoice's pill slider is kept", async () => {
+  const s = await openPage(app, { width: 1280 });
+  const { page } = s;
+  await s.go(HUB);
+  const rail = page.getByRole("navigation", { name: "Hub sections" });
+  await rail.waitFor();
+  for (const heading of ["Hub", "People", "Manage"]) await rail.getByText(heading, { exact: true }).waitFor();
+  for (const name of ["Overview", "Campaigns", "Analytics", "Members", "Invites", "Roles", "Settings", "Builder", "Billing"]) {
+    assert.equal(await rail.getByRole("link", { name }).count(), 1, name);
+  }
+  assert.equal(await rail.getByRole("link", { name: "Overview" }).getAttribute("aria-current"), "page");
+  // The shell is a rail beside the content, not a row of pills above it.
+  const box = await rail.boundingBox();
+  assert.ok(box.width < 260 && box.x < 400, "the rail sits on the left");
+
+  // Buttons are rectangular in a Hub, the Hub's own colour is used, and no LunchVoice orange glow is left on them.
+  await s.go(`${HUB}/campaigns`);
+  const cta = page.getByRole("link", { name: /New Campaign/ }).or(page.getByRole("button", { name: /New Campaign/ })).first();
+  await cta.waitFor();
+  const look = await cta.evaluate((el) => { const c = getComputedStyle(el); return { radius: parseFloat(c.borderTopLeftRadius), shadow: c.boxShadow }; });
+  assert.ok(look.radius <= 12, `Hub buttons are rectangular (radius ${look.radius})`);
+  assert.equal(look.shadow, "none", "no glow on Hub buttons");
+  // The filter slider keeps LunchVoice's pill shape.
+  const pill = await page.getByRole("radiogroup", { name: /filter|campaign/i }).first().evaluate((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius)).catch(() => 999);
+  assert.ok(pill >= 20, `the slider stays a pill (radius ${pill})`);
+
+  // The editor takes the full width: no rail.
+  await s.go(`${HUB}/campaigns/cmp-seed-3/studio`);
+  await page.getByTestId("studio").waitFor();
+  assert.equal(await page.getByRole("navigation", { name: "Hub sections" }).count(), 0, "no rail in the editor");
+  await page.setViewportSize({ width: 390, height: 800 });
+  await s.go(HUB);
+  assert.equal(await noHorizontalScroll(page), true);
+  assert.deepEqual(s.errors, []);
+  await s.ctx.close();
+});
