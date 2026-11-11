@@ -5,7 +5,7 @@ export type IconName =
   | "home" | "star" | "star-fill" | "fork" | "menu" | "survey" | "voice"
   | "store" | "orders" | "roster" | "dashboard" | "logout" | "check"
   | "chevron" | "arrow" | "coin" | "flame" | "bulb" | "plus" | "lock" | "sparkle"
-  | "settings" | "join" | "more" | "back" | "globe" | "clock";
+  | "settings" | "join" | "more" | "back" | "globe" | "clock" | "close";
 
 const paths: Record<IconName, React.ReactNode> = {
   settings: <path d="M4 7h9m4 0h3M4 17h3m4 0h9M15 4.5v5m-6 5v5" />,
@@ -33,6 +33,7 @@ const paths: Record<IconName, React.ReactNode> = {
   dashboard: <path d="M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z" />,
   logout: <path d="M14 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M9 8l-4 4 4 4M5 12h11" />,
   check: <path d="M4 12.5 9 17.5 20 6.5" />,
+  close: <path d="M6 6l12 12M18 6 6 18" />,
   chevron: <path d="m6 9 6 6 6-6" />,
   arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
   coin: <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v10M9.5 9.2c0-1 1.1-1.7 2.5-1.7s2.5.7 2.5 1.7-1.1 1.5-2.5 1.5-2.5.6-2.5 1.6 1.1 1.7 2.5 1.7 2.5-.7 2.5-1.7" />,

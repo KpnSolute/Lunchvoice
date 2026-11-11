@@ -376,7 +376,14 @@ export function RedeemInvite() {
   const { code = "" } = useParams();
   const { api, session } = useIdentity();
   const nav = useNavigate();
-  const preview = useLv(() => api.invitePreview(code), [api, code]);
+  // The preview needs a signed-in person (it limits code guessing), so a signed-out visitor gets an explanation instead.
+  const preview = useLv(
+    () => (session ? api.invitePreview(code) : Promise.resolve({ ok: false as const, error: { code: "lv_unauthenticated" as const, message: "" } })),
+    [api, code, session?.name],
+  );
+  // The Hub's own public face (colour, description, size), when the Hub shows it to a non-member.
+  const slug = preview.data?.hub.slug ?? null;
+  const face = useLv(() => (slug ? api.hubGet(slug) : Promise.resolve({ ok: false as const, error: { code: "lv_not_found" as const, message: "" } })), [api, slug]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -384,45 +391,95 @@ export function RedeemInvite() {
     setBusy(true);
     const r = await api.inviteRedeem(code);
     setBusy(false);
-    if (r.ok) nav(`/${preview.data?.hub.slug ?? ""}`);
+    if (r.ok) { toast.success("You’re in. Welcome."); nav(`/${preview.data?.hub.slug ?? ""}`); }
     else setError(describeError(r.error));
   }
 
-  return (
-    <div className="ui-page lv-narrow-page">
-      <PageHeader eyebrow="Invitation" title="You’ve been invited" />
-      {preview.loading && <LoadingRows rows={2} />}
-      {preview.error && (
-        <Card>
-          <Notice tone="error">{describeError(preview.error)}</Notice>
-          <LinkButton to="/join" variant="secondary">Try another code</LinkButton>
+  const shownCode = code.trim().toUpperCase();
+
+  // Signed out: say what this is and what happens, then sign in and come straight back.
+  if (!session) {
+    return (
+      <div className="ui-page lv-narrow-page lv-invite" data-testid="invite-signed-out">
+        <PageHeader eyebrow="Invitation" title="You’ve been invited to a Hub" sub="Someone wants you in their community on LunchVoice." />
+        <Card className="lv-invite-card">
+          <ol className="lv-invite-steps">
+            <li><span className="lv-step-n">1</span><div><strong>Sign in</strong><p>Use your KpnSolute account (Google works). It’s free.</p></div></li>
+            <li><span className="lv-step-n">2</span><div><strong>See which Hub it is</strong><p>You’ll see the Hub before you accept anything.</p></div></li>
+            <li><span className="lv-step-n">3</span><div><strong>Join</strong><p>Accepting makes you a member. You can leave any time.</p></div></li>
+          </ol>
+          {shownCode && <p className="lv-invite-code ui-mono">Invite code {shownCode}</p>}
+          <LinkButton to="/signin" state={{ from: `/j/${code}` }} variant="primary" size="lg" icon="arrow">Continue with KpnSolute</LinkButton>
+          <p className="ui-help lv-m0">Didn’t expect this? Close the page; nothing happens unless you accept.</p>
         </Card>
-      )}
-      {error && <Notice tone="error">{error}</Notice>}
-      {preview.data && (
-        <Card>
-          <div className="lv-review-hub">
-            <HubMark name={preview.data.hub.name} size={56} />
-            <div>
-              <strong className="lv-review-name">{preview.data.hub.name}</strong>
-              <span className="ui-mono ui-muted">lunchvoice.com/{preview.data.hub.slug}</span>
-            </div>
+      </div>
+    );
+  }
+
+  if (preview.loading && !preview.data) {
+    return <div className="ui-page lv-narrow-page"><LoadingRows rows={3} label="Opening your invitation" /></div>;
+  }
+
+  if (preview.error || !preview.data) {
+    return (
+      <div className="ui-page lv-narrow-page lv-invite" data-testid="invite-invalid">
+        <PageHeader eyebrow="Invitation" title="This invitation can’t be used" sub="It may have expired, been used up, or been withdrawn." />
+        <Card className="lv-invite-card">
+          <p className="lv-m0">Ask whoever invited you to send a new one. Codes look like <span className="ui-mono">ABCD-2345</span>.</p>
+          {preview.error && <p className="ui-help lv-m0">{describeError(preview.error)}</p>}
+          <div className="ui-row">
+            <LinkButton to="/join" variant="primary">Enter a different code</LinkButton>
+            <LinkButton to="/me" variant="quiet">Go to my home</LinkButton>
           </div>
-          {preview.data.already_member ? (
-            <>
-              <Notice tone="ok">You’re already a member of this Hub.</Notice>
-              <LinkButton to={`/${preview.data.hub.slug}`} variant="primary">Open the Hub</LinkButton>
-            </>
-          ) : session ? (
-            <Button variant="primary" onClick={redeem} disabled={busy}>{busy ? "Joining…" : "Join this Hub"}</Button>
-          ) : (
-            <>
-              <Notice>Sign in to accept. You’ll come straight back here.</Notice>
-              <LinkButton to="/signin" state={{ from: `/j/${code}` }} variant="primary">Sign in to join</LinkButton>
-            </>
-          )}
         </Card>
-      )}
+      </div>
+    );
+  }
+
+  const hub = preview.data.hub;
+  const info = face.data?.hub;
+  const hex = info?.accent_hex ?? null;
+  return (
+    <div className="ui-page lv-narrow-page lv-invite" data-testid="invite">
+      <PageHeader eyebrow="Invitation" title="You’re invited" />
+      {error && <Notice tone="error">{error}</Notice>}
+      <Card className="lv-invite-card" style={hex ? ({ "--invite-accent": hex } as React.CSSProperties) : undefined}>
+        {hex && <div className="lv-invite-band" aria-hidden="true" />}
+        <div className="lv-invite-head">
+          <HubMark name={hub.name} size={72} />
+          <div>
+            <span className="lv-eyebrow-mono">Join this Hub</span>
+            <h2 className="lv-invite-name">{hub.name}</h2>
+            <span className="ui-mono ui-muted">lunchvoice.com/{hub.slug}</span>
+          </div>
+        </div>
+        {info?.about && <p className="lv-invite-about">{info.about}</p>}
+        {info && (
+          <div className="ui-row">
+            <Badge variant="outline">{info.visibility === "public" ? "Public Hub" : "Private Hub"}</Badge>
+            {info.member_count > 0 && <Badge variant="outline">{info.member_count} {info.member_count === 1 ? "member" : "members"}</Badge>}
+          </div>
+        )}
+        {preview.data.already_member ? (
+          <>
+            <Notice tone="ok">You’re already a member of this Hub.</Notice>
+            <LinkButton to={`/${hub.slug}`} variant="primary">Open the Hub</LinkButton>
+          </>
+        ) : (
+          <>
+            <ul className="lv-invite-points">
+              <li><Icon name="check" size={18} />You become a member of {hub.name}.</li>
+              <li><Icon name="check" size={18} />You can answer its surveys and polls.</li>
+              <li><Icon name="check" size={18} />Its owners can see your display name in the member list.</li>
+              <li><Icon name="check" size={18} />You can leave any time from the Hub.</li>
+            </ul>
+            <div className="ui-row">
+              <Button variant="primary" size="lg" onClick={redeem} disabled={busy} data-testid="invite-join">{busy ? "Joining…" : `Join ${hub.name}`}</Button>
+              <LinkButton to="/me" variant="quiet">Not now</LinkButton>
+            </div>
+          </>
+        )}
+      </Card>
     </div>
   );
 }
