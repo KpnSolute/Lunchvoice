@@ -16,7 +16,7 @@
     "check:names": "node scripts/check-customer-names.mjs",
     "check:routes": "node scripts/check-route-layouts.mjs",
     "test:scripts": "node --test scripts/*.test.mjs",
-    "test:pr": "npm run check:brain && npm run check:names && npm run check:routes && npm run test:scripts && npm run test:functions && npm run build && npm run check:bundle",
+    "test:pr": "npm run check:brain && npm run check:names && npm run check:routes && npm run test:scripts && npm run test:unit && npm run test:functions && npm run build && npm run check:bundle",
     "test:light": "npm run check:brain && npm run check:names && npm run check:routes && npm run build",
     "test:heavy": "npm run test:light && npm audit --audit-level=high",
     "preview": "vite preview",

@@ -330,7 +330,7 @@ test("Invitation, signed out: an explanation and one sign-in button, never an er
   await page.getByText("Invite code ABCD-2345").waitFor();
   assert.equal(await page.getByRole("alert").count(), 0, "no error banner for a signed-out recipient");
   assert.equal(await page.getByText(/Try another code/).count(), 0);
-  const cta = page.getByRole("link", { name: /Continue with KpnSolute/ });
+  const cta = page.getByRole("link", { name: /Continue to sign in/ });
   assert.equal(await cta.getAttribute("href"), "/signin");
   assert.equal(await noHorizontalScroll(page), true);
   assert.deepEqual(s.errors, []);

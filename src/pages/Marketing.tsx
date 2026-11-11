@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useBilling } from "../lib/useBilling";
 import { Link } from "react-router-dom";
 import { Icon, type IconName } from "../components/Icon";
 import { USE_CASES, templateHref } from "../config/useCases";
@@ -50,6 +51,7 @@ const FAQ: [string, string][] = [
 ];
 
 export function HowItWorks() {
+  const { ctas } = useBilling();
   return (
     <div className="lv-mk">
       <Head eyebrow="How it works" title="From a question to a decision, without exposing anyone." sub="Quick Surveys for one-off questions, Hubs for communities, and a privacy floor that holds even when someone asks for the raw data." />
@@ -69,8 +71,8 @@ export function HowItWorks() {
         </Accordion>
       </Card>
       <div className="ui-row">
-        <LinkButton to="/surveys/new" variant="primary" size="lg" icon="arrow">Start a Quick Survey</LinkButton>
-        <LinkButton to="/waitlist" variant="secondary" size="lg">Join the waitlist</LinkButton>
+        <LinkButton to={ctas.primary.to} variant="primary" size="lg" icon="arrow">{ctas.primary.label}</LinkButton>
+        <LinkButton to={ctas.hub.to} variant="secondary" size="lg">{ctas.hub.label}</LinkButton>
       </div>
     </div>
   );

@@ -6,6 +6,41 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (UI and interaction review, 2026-11-11 handoff)
+
+- **One billing state drives every call to action.** `src/lib/billingState.ts` (pure, 9 unit tests) and
+  `src/lib/useBilling.tsx` (loaded once in the page shell) decide the wording and target of the header button, the homepage
+  hero, waitlist band and plan cards, the `/pricing` notice and every checkout button. Signed-out visitors read the public
+  `lv_plan_limits().billing` (000035); signed-in people also read `lv_billing_config`. Unknown means closed. Before billing:
+  "Join the waitlist". After: "Create your Hub" goes to the Hub plans on `/pricing`. "Start a free survey" is the primary
+  hero action in both states. While billing is closed no button says "Sign in to buy": the Starter Hub card points at the
+  waitlist and the other paid plans are disabled with the reason. **Needs 000035 applied in production** for signed-out
+  visitors to see the open state; until then they see closed, which is correct today.
+- **Sign-in page** says what happens before the click: sign-in is on auth.kpnsolute.com, run by the company that makes
+  LunchVoice, with a Google account. The button reads "Continue to sign in" (also on the invitation page). The identity
+  flow sends no provider hint, so a direct "Continue with Google" button needs KpnIdentity to accept one.
+- **Pricing:** free plan, then the highlighted Starter Hub, then Team Hub in one row of three; Campaign plans grouped under
+  their own heading. On screens up to 860px the compare table becomes a plan picker with one plan's values at a time (no
+  sideways scrolling at 360px; the picker stays pinned under the header). "Not set yet" is gone: the "Active Campaigns at
+  once" row is built from the backend map (`campaigns.max_active`) and left out if the backend has no value. The survey
+  replacement lines are in plain words ("A survey stops counting toward that limit once more than half your members have
+  answered").
+- **Homepage:** "LunchVoice 2.0" removed and the hero label is one line; the two hero actions sit under the headline; the
+  floating amber button under the code card is gone; "Join survey" is never disabled (with no code it says what is missing
+  and focuses the field). The result, Hub and account illustrations are labelled "Sample data" / "Example" on screen, the
+  fake "Live, updated 2 min ago" line and the "LOGO" placeholder are gone, and the mock Hub uses brand tokens.
+- **Accessibility:** new `--lv-accent-text` token for amber text (5.6:1 on the page; plain amber was about 1.8:1), used by
+  every accent eyebrow; `--lv-text-min` 12px floor applied to every stylesheet; header buttons, menu button, nav, footer and
+  chip links are at least 44px tall; the header action is hidden on `/waitlist` and `/signin`; "Sign in" is in the phone menu.
+- **Buttons:** on public pages and the header only the primary keeps the gradient and glow; secondary and ink buttons are
+  flat. The pill radius is unchanged on public pages (see the handoff).
+- **One brand source:** `DESIGN.md` and `brand/lv-package/README.txt` now describe `src/ui/tokens.css` (Bricolage Grotesque,
+  Geist, Space Mono, page `#EEEDEA`, the name as one word). `PRODUCT.md` carries the Campaign Plus price ($39, then $19 per
+  week) that `AGENTS.md` and `src/config/pricing.ts` already had.
+- `npm run test:pr` now also runs `test:unit`. New e2e: `e2e/sitecta.test.mjs` (both billing states, signed in and out,
+  header, phone menu, 360px compare, touch targets, type floor); `e2e/commerce.test.mjs` updated for the closed state.
+  Handoff: `docs/v2/handoffs/2026-11-11-ui-interaction-review.md`.
+
 ### Fixed (use-case pages blank in production, 2026-11-11)
 
 - **Cause:** PR #63 was squash-merged from a branch that predated PR #62, so its merge commit reverted all of #62: the ten

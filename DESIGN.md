@@ -5,11 +5,11 @@ Visual DNA: ink, amber, bone. The v1 cafeteria layouts are not a reference.
 
 ## Implementation status
 
-Tokens in `src/index.css` today are light-only OKLCH (bone surfaces, ink text, one amber
-accent, Fraunces display, Space Grotesk UI, Space Mono data). The rest of this file is the
-**target**; items are marked when they exist. The reusable library lives in `src/ui/` with a
-component gallery at `/__gallery` (dev builds only) — **not started** until the design-system
-slice lands. No page may carry bespoke CSS for something the library should own.
+`src/ui/tokens.css` is the single source of truth for colour, type, radius, spacing and motion, in light, dark and
+high-contrast themes. This file and `brand/lv-package/README.txt` describe it; if they ever disagree, the tokens win
+and the documents are corrected. The reusable library lives in `src/ui/` and `src/components/shadcn/`, with a
+component gallery at `/__gallery` (dev builds only). No page may carry bespoke CSS values for something the tokens or
+the library should own.
 
 ## Principles
 
@@ -25,15 +25,19 @@ slice lands. No page may carry bespoke CSS for something the library should own.
 6. **Suppressed is not zero.** Charts and tables render suppressed and withheld states as
    explicit, labelled states with a text explanation. Every chart has an accessible table.
 
-## Tokens (existing)
+## Tokens (`src/ui/tokens.css`)
 
-- Light: `--bg` bone, `--surface` white, `--surface-2` inset, `--ink`, `--muted`, `--line`.
-- Brand: `--accent` amber, `--accent-ink`, `--pop` jade (success), `--danger`.
-- Radius `--r-sm/--r/--r-lg/--r-pill`; motion `--ease` ease-out-quint, `--dur` 200ms.
-- Type: `--font-display` Fraunces, `--font-sans` Space Grotesk, `--font-mono` Space Mono.
-
-To add: dark values, spacing scale, elevation, z-index, semantic status colors, chart palette
-(color-blind safe, single-series default), tenant-color validator.
+- Surfaces: `--lv-page` (light `#EEEDEA`, a neutral grey), `--lv-surface`, `--lv-surface2`, `--lv-well`, `--lv-line`.
+- Text: `--lv-text` (ink `#14110F`), `--lv-muted`, `--lv-subtle`.
+- Brand: `--lv-accent` amber `#FF9A18` with `--lv-accent-deep` and `--lv-accent-light` for fills and icons, and
+  `--lv-accent-text` for amber **text** (plain `--lv-accent` on a light surface is about 1.8:1 and fails AA).
+  `--lv-success`, `--lv-danger`.
+- Type: `--lv-font-display` Bricolage Grotesque, `--lv-font-ui` Geist, `--lv-font-mono` Space Mono. Nothing is set
+  below `--lv-text-min` (12px).
+- Radius `--lv-radius-field/card/hero/pill`; spacing `--lv-space-*` (4px base); motion `--lv-ease-*`, `--lv-dur-*`.
+- Targets: `--lv-target-min` 44px for every link and button a finger has to hit, on public pages as well as the
+  respondent flow.
+- Buttons: one glowing amber primary per screen; secondary, ink and quiet buttons are flat.
 
 ## Required component coverage
 

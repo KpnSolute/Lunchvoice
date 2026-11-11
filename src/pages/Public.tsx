@@ -21,6 +21,8 @@ import {
 } from "@/components/shadcn/dropdown-menu";
 import { Field, Notice } from "@/components/shadcn/blocks";
 import { AccountSuspendedNotice, StaffMenuItem } from "../components/StaffStatus"; // staff panel
+import { BillingProvider, useBilling } from "../lib/useBilling";
+import { headerCta } from "../lib/billingState";
 
 // The marketing chrome (full nav, footer, maker's mark) belongs to the public pages.
 // In-product routes keep the compact header so Hub chrome stays the focus.
@@ -61,7 +63,7 @@ function AccountMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="secondary" size="sm" aria-label={`Account menu for ${session.name}`}>
+        <Button variant="secondary" size="md" aria-label={`Account menu for ${session.name}`}>
           <span className="lv-avatar-dot" aria-hidden="true">{session.name.slice(0, 1).toUpperCase()}</span>
           <span className="lv-hide-sm">{session.name}</span>
           <Icon name="chevron" size={14} />
@@ -81,12 +83,13 @@ function AccountMenu() {
   );
 }
 
-function MarketingMenu() {
+function MarketingMenu({ signedIn }: { signedIn: boolean }) {
   const [open, setOpen] = useState(false);
+  const links = signedIn ? MARKETING_LINKS : [...MARKETING_LINKS, { to: "/signin", label: "Sign in" }];
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="secondary" size="icon-sm" className="lv-show-sm" aria-label="Open menu">
+        <Button variant="secondary" size="icon" className="lv-show-sm" aria-label="Open menu">
           <Icon name="menu" size={18} />
         </Button>
       </SheetTrigger>
@@ -94,7 +97,7 @@ function MarketingMenu() {
         <SheetTitle>Menu</SheetTitle>
         <SheetDescription className="sr-only">Site sections</SheetDescription>
         <nav className="lv-sheet-nav" aria-label="Main">
-          {MARKETING_LINKS.map((l) => (
+          {links.map((l) => (
             <Button key={l.to} asChild variant="secondary" block size="lg" onClick={() => setOpen(false)}>
               <Link to={l.to}>{l.label}</Link>
             </Button>
@@ -105,7 +108,25 @@ function MarketingMenu() {
   );
 }
 
+/** The pinned header action: the waitlist before billing opens, the purchase path after (src/lib/billingState.ts). */
+function HeaderCta({ ink }: { ink: boolean }) {
+  const { state } = useBilling();
+  const { pathname } = useLocation();
+  const cta = headerCta(state, pathname);
+  if (!cta) return null;
+  // On the homepage the hero holds the one primary action, so this one is outlined there.
+  return (
+    <Button asChild variant={ink ? "quiet" : "primary"} size="md" className={ink ? "lv-header-signin" : undefined} data-lv-cta="header">
+      <Link to={cta.to}>{cta.label}</Link>
+    </Button>
+  );
+}
+
 export function Shell() {
+  return <BillingProvider><ShellInner /></BillingProvider>;
+}
+
+function ShellInner() {
   const { session } = useIdentity();
   const { pathname } = useLocation();
   const marketing = MARKETING_ROUTES.has(pathname) || pathname.startsWith("/use-cases/");
@@ -143,15 +164,15 @@ export function Shell() {
             <AccountMenu />
           ) : (
             <>
-              <Button asChild variant={ink ? "quiet" : "secondary"} size="sm" className="lv-hide-sm lv-header-signin">
-                <Link to="/signin">Sign in</Link>
-              </Button>
-              <Button asChild variant="primary" size="sm">
-                <Link to="/waitlist">Join the waitlist</Link>
-              </Button>
+              {pathname !== "/signin" && (
+                <Button asChild variant="quiet" size="md" className={`lv-hide-sm${ink ? " lv-header-signin" : ""}`}>
+                  <Link to="/signin">Sign in</Link>
+                </Button>
+              )}
+              <HeaderCta ink={ink} />
             </>
           )}
-          {marketing && <MarketingMenu />}
+          {marketing && <MarketingMenu signedIn={Boolean(session)} />}
         </div>
       </header>
 
@@ -224,7 +245,9 @@ export function SignIn() {
             Sessions last up to an hour, so yours ended. Sign in again to carry on where you were. Anything you had saved is still there.
           </Notice>
         )}
-        <p className="ui-muted lv-signin-sub">One KpnSolute account for every Hub. We keep your verified sign-in, never your email as your identity.</p>
+        <p className="ui-muted lv-signin-sub" data-testid="signin-how">
+          Sign-in happens on auth.kpnsolute.com, run by KpnSolute, the company that makes LunchVoice. Use your Google account there and you come straight back here.
+        </p>
         {issuerConfigured ? (
           <Button
             variant="ink"
@@ -240,7 +263,7 @@ export function SignIn() {
               });
             }}
           >
-            {busy ? "Opening KpnSolute sign-in…" : "Continue with KpnSolute"}
+            {busy ? "Opening sign-in…" : "Continue to sign in"}
           </Button>
         ) : (
           <Notice tone="warn" title="Sign-in isn't available in this build">
@@ -248,7 +271,8 @@ export function SignIn() {
           </Notice>
         )}
         {error && <Notice tone="error">{error}</Notice>}
-        <Button asChild variant="quiet" size="sm">
+        <p className="ui-help lv-m0">One KpnSolute account works for every Hub. We keep your verified sign-in, never your email as your identity.</p>
+        <Button asChild variant="quiet" size="md">
           <Link to="/join">Have a join code? Answer without signing in</Link>
         </Button>
         {import.meta.env.DEV && canSimulate && (

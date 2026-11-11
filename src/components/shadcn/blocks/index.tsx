@@ -30,7 +30,7 @@ import {
 /** Eyebrow / label role. */
 export function Eyebrow({ children, accent = false, className }: { children: React.ReactNode; accent?: boolean; className?: string }) {
   return (
-    <span className={cn("tactile-label inline-flex items-center gap-2", accent ? "text-[var(--lv-accent-deep)]" : "text-[var(--lv-subtle)]", className)}>
+    <span className={cn("tactile-label inline-flex items-center gap-2", accent ? "text-[var(--lv-accent-text)]" : "text-[var(--lv-subtle)]", className)}>
       {accent && <span aria-hidden="true" className="size-2 rounded-full bg-[var(--lv-accent)]" />}
       {children}
     </span>
