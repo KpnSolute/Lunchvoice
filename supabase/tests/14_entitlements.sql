@@ -260,7 +260,7 @@ select t.put('q11', lv_api.lv_campaign_question_add(t.id('q1'), 11, 'rating', 'Q
 select t.check('quick: the 11th question is lv_limit_reached with limit and used',
   t.code(t.get('q11')::jsonb) = 'lv_limit_reached' and (t.get('q11')::jsonb #>> '{error,limit}') = '10'
   and (t.get('q11')::jsonb #>> '{error,used}') = '10');
-select t.check('quick: a Quick Survey stays a survey', t.code(lv_api.lv_campaign_update(t.id('q1'), null, 'poll')) = 'lv_invalid_input');
+select t.check('quick: a Quick Survey takes only free feedback types (000036)', t.code(lv_api.lv_campaign_update(t.id('q1'), null, 'election')) = 'lv_invalid_input');
 select t.check('quick: activation in the personal space works on the free family', t.code(lv_api.lv_campaign_activate(t.id('q1'))) = 'ok');
 
 -- five active, the sixth is refused

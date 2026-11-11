@@ -6,6 +6,20 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (000036 feedback types, built and tested, NOT yet applied to production)
+
+- **Feedback types for everyone** (founder direction 2026-11-11). A Campaign's mode is now shown as its *feedback type*:
+  Survey, Poll, Rating and Open feedback (the `feedback` mode). Free Quick Surveys may now be any of them, not only a
+  survey. `supabase/migrations/000036_v2_feedback_types.sql` + rollback + `supabase/tests/37_feedback_types.sql`
+  (database suite 1335/0 with rollback rehearsal): entitlement key `free.quick.modes` in `lv.plan_limits`,
+  `lv_quick_survey_create(..., p_mode = 'survey')` (old calls unchanged), and `lv_campaign_update` on a Quick Survey checks
+  the same list. Question kinds and the 10-question and 5-active limits are unchanged. Test 14's "a Quick Survey stays a
+  survey" check now asserts that a type outside the list is refused.
+- UI: `src/config/feedbackTypes.ts` (labels only; the allowed list comes from `lv_plan_limits`). New Quick Survey gets a
+  Feedback type picker; Hub "Mode" is renamed "Feedback type"; lists show "Poll", "Open feedback" and so on instead of
+  the raw mode. Election appears in both pickers as "Coming soon" (disabled) until its own model ships; it is never a
+  relabelled poll. e2e covers the picker and creating a free poll.
+
 ### Changed (schools, founder direction 2026-11-11)
 
 - **Minimum age 13** (founder, 2026-11-11): Terms and Privacy on `src/pages/Marketing.tsx` now say LunchVoice is for people 13

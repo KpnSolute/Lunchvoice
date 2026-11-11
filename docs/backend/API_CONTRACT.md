@@ -380,9 +380,11 @@ can always activate its first surveys, so it never deadlocks; a survey that meet
 
 ### Quick Surveys (personal space)
 
-- `lv_quick_survey_create(p_title, p_access "link"|"invite" = "link", p_anonymity = "anonymous", p_guests = true)`
-  → `{ ok, campaign: CampaignSummary }`. Guests only with `link` (silently off for `invite`). Throttled:
-  `lv_rate_limited` above 20 creations per hour.
+- `lv_quick_survey_create(p_title, p_access "link"|"invite" = "link", p_anonymity = "anonymous", p_guests = true,
+  p_mode = "survey")` → `{ ok, campaign: CampaignSummary }`. Guests only with `link` (silently off for `invite`). Throttled:
+  `lv_rate_limited` above 20 creations per hour. `p_mode` is the feedback type (000036): any value in the entitlement map's
+  `free.quick.modes` (`survey`, `poll`, `rating`, `feedback`, read it from `lv_plan_limits`), else `lv_invalid_input`.
+  `lv_campaign_update(p_mode)` on a Quick Survey follows the same list (it no longer refuses every non-survey type).
 - `lv_quick_survey_list()` → `{ ok, surveys: [CampaignSummary], active, limit, question_limit }` (history included).
 - `CampaignSummary = { campaign_id, title, mode, anonymity, status, phase, access, guests, opens_at, closes_at,
   created_at, blocked, question_count, join_code }`.

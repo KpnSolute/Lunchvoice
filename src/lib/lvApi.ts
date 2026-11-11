@@ -509,12 +509,13 @@ export function createLvApi(transport: LvTransport) {
     campaignArchive: (campaign: string) => call<object>("lv_campaign_archive", { p_campaign: campaign }),
 
     /* ---- Quick Surveys (personal space) ---- */
-    quickSurveyCreate: (title: string, access: SurveyAccess, anonymity: Anonymity, guests = true) =>
+    quickSurveyCreate: (title: string, access: SurveyAccess, anonymity: Anonymity, guests = true, mode: CampaignMode = "survey") =>
       call<{ campaign: { campaign_id: string } & Partial<CampaignRow> }>("lv_quick_survey_create", {
         p_title: title,
         p_access: access,
         p_anonymity: anonymity,
         p_guests: access === "link" ? guests : false,
+        p_mode: mode,
       }),
     quickSurveyList: () => call<{ surveys: CampaignRow[]; active: number; limit: number | null }>("lv_quick_survey_list"),
     campaignInviteCreate: (campaign: string, maxUses?: number | null, expiresAt?: string | null) =>

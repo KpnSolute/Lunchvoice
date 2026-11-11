@@ -6,6 +6,7 @@ import { CountUp } from "../ui/motion";
 import { useLv } from "../lib/useLv";
 import { describeError } from "../lib/errors";
 import type { Anonymity, CampaignMode, HubInfo, HubMembership } from "../lib/lvApi";
+import { ELECTION_PREVIEW, FEEDBACK_TYPES, feedbackTypeLabel } from "../config/feedbackTypes";
 import { Icon } from "../components/Icon";
 import { campaignPhase, LinkButton, type Phase } from "../components/ui";
 import { Button } from "@/components/shadcn/button";
@@ -75,7 +76,7 @@ export function Campaigns() {
           {rows.map((c) => (
             <Link key={c.campaign_id} to={`/${hub.slug}/campaigns/${c.campaign_id}`} className="lv-campaign-card">
               <Card className="lv-campaign-card-inner">
-                <div className="ui-spread"><PhaseBadge phase={campaignPhase(c)} /><Eyebrow>{c.mode}</Eyebrow></div>
+                <div className="ui-spread"><PhaseBadge phase={campaignPhase(c)} /><Eyebrow>{feedbackTypeLabel(c.mode)}</Eyebrow></div>
                 <h3 className="lv-campaign-title">{c.title}</h3>
                 <div className="ui-row">
                   <Badge variant={c.anonymity === "anonymous" ? "ok" : "neutral"}>{c.anonymity}</Badge>
@@ -93,12 +94,6 @@ export function Campaigns() {
 
 /* ------------------------------------------------------------------ new */
 
-const MODES: { key: CampaignMode; label: string; body: string }[] = [
-  { key: "survey", label: "Survey", body: "Several questions, one screen at a time." },
-  { key: "poll", label: "Poll", body: "One choice question, fast to answer." },
-  { key: "rating", label: "Rating", body: "A score from 1 to 5." },
-  { key: "feedback", label: "Feedback", body: "An open answer." },
-];
 
 export function NewCampaign() {
   const { hub } = useHubCtx();
@@ -144,10 +139,10 @@ export function NewCampaign() {
             <Input id="c-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Which night works for the social?" maxLength={120} autoFocus />
           </Field>
           <fieldset className="lv-fieldset">
-            <legend className="lv-legend">Mode</legend>
-            <RadioGroup value={mode} onValueChange={(v) => setMode(v as CampaignMode)} aria-label="Mode" className="ui-grid-2">
-              {MODES.map((m) => <RadioCard key={m.key} value={m.key} title={m.label} description={m.body} />)}
-              <RadioCard value="election" title="Election" description="Ranked options with a ballot." disabled badge={<Badge>Coming with M2</Badge>} />
+            <legend className="lv-legend">Feedback type</legend>
+            <RadioGroup value={mode} onValueChange={(v) => setMode(v as CampaignMode)} aria-label="Feedback type" className="ui-grid-2">
+              {FEEDBACK_TYPES.map((m) => <RadioCard key={m.key} value={m.key} title={m.label} description={m.body} />)}
+              <RadioCard value="election" title={ELECTION_PREVIEW.label} description={ELECTION_PREVIEW.body} disabled badge={<Badge>Coming soon</Badge>} />
             </RadioGroup>
           </fieldset>
           {mode === "poll" && (
@@ -202,7 +197,7 @@ export function CampaignDetail() {
     <div className="lv-stack-16">
       <div className="ui-spread">
         <div className="lv-stack-8">
-          <div className="ui-row"><PhaseBadge phase={phase} /><Badge variant={d.campaign.anonymity === "anonymous" ? "ok" : "neutral"}>{d.campaign.anonymity}</Badge><Eyebrow>{d.campaign.mode}</Eyebrow></div>
+          <div className="ui-row"><PhaseBadge phase={phase} /><Badge variant={d.campaign.anonymity === "anonymous" ? "ok" : "neutral"}>{d.campaign.anonymity}</Badge><Eyebrow>{feedbackTypeLabel(d.campaign.mode)}</Eyebrow></div>
           <h1 className="lv-detail-title">{d.campaign.title}</h1>
         </div>
         {d.can_manage && (

@@ -39,6 +39,7 @@ function limitsOut(fam: "free" | "starter" | "team") {
   return {
     "quick.max_active": l.quick_surveys_active ?? null,
     "quick.max_questions": l.quick_survey_questions ?? null,
+    ...(fam === "free" ? { "quick.modes": ["survey", "poll", "rating", "feedback"] } : {}),
     "roles.max_custom": fam === "free" ? null : l.custom_roles,
     "pages.max_custom": fam === "free" ? null : l.custom_pages,
     "campaigns.max_active": fam === "free" ? null : l.active_campaigns,
@@ -502,13 +503,15 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (!title) return err("lv_invalid_input", "A survey needs a title");
       const access = String(a.p_access);
       if (access !== "link" && access !== "invite") return err("lv_invalid_input", "Access must be link or invite");
+      const qmode = String(a.p_mode ?? "survey");
+      if (!["survey", "poll", "rating", "feedback"].includes(qmode)) return err("lv_invalid_input", "Choose a feedback type: survey, poll, rating or open feedback.");
       let space = personal(s);
       if (!space) {
         space = { hub_id: id("space"), slug: null, name: "Personal space", kind: "personal", about: "", accent: null, visibility: "private", membership_mode: "invite_only", members: [], pages: [] };
         s.hubs.push(space);
       }
       const c: C = {
-        campaign_id: id("qs"), hub_id: space.hub_id, title, mode: "survey", anonymity: String(a.p_anonymity ?? "anonymous"), status: "draft",
+        campaign_id: id("qs"), hub_id: space.hub_id, title, mode: qmode, anonymity: String(a.p_anonymity ?? "anonymous"), status: "draft",
         created_at: iso(Date.now()), join_code: code6(), questions: [], responses: [], opens_at: null, closes_at: null,
         audience: access === "link" && a.p_guests !== false ? "members_and_guests" : "members", access,
       };

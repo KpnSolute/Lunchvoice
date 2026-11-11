@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { feedbackTypeLabel } from "../config/feedbackTypes";
 import { Link, NavLink, Outlet, useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
@@ -344,7 +345,7 @@ export function HubOverview() {
           ) : (
             <RowList>
               {rows.slice(0, 6).map((c) => (
-                <RowItem key={c.campaign_id} asChild={<Link to={`/${hub.slug}/campaigns/${c.campaign_id}`} />} title={c.title} sub={`${c.mode} · ${c.question_count} questions`} trailing={<PhaseBadge phase={campaignPhase(c)} />} />
+                <RowItem key={c.campaign_id} asChild={<Link to={`/${hub.slug}/campaigns/${c.campaign_id}`} />} title={c.title} sub={`${feedbackTypeLabel(c.mode)} · ${c.question_count} questions`} trailing={<PhaseBadge phase={campaignPhase(c)} />} />
               ))}
             </RowList>
           )}

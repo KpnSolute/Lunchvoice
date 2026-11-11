@@ -425,3 +425,21 @@ test("Quick Survey stays the simple flow: Title, Questions, Who can respond, Pub
   assert.ok(await noHorizontalScroll(page));
   await ctx.close();
 });
+
+test("Quick Survey: every free feedback type can be picked; election is shown as coming soon", async () => {
+  const { page, go, ctx } = await openPage(app, { width: 1280 });
+  await go("/surveys/new");
+  const types = page.getByRole("radiogroup", { name: "Feedback type" });
+  await types.waitFor();
+  for (const name of ["Survey", "Poll", "Rating", "Open feedback"]) {
+    assert.equal(await types.getByRole("radio", { name: new RegExp(`^${name}`) }).isEnabled(), true, `${name} is free`);
+  }
+  assert.equal(await types.getByRole("radio", { name: /^Election/ }).isDisabled(), true, "election is not offered yet");
+  await page.getByLabel("Title").fill("Lunch poll");
+  await types.getByRole("radio", { name: /^Poll/ }).click();
+  await page.getByRole("button", { name: /Create draft/ }).click();
+  await page.getByTestId("quick-editor").waitFor();
+  await go("/surveys");
+  await page.getByText(/^Poll · /).first().waitFor();
+  await ctx.close();
+});
