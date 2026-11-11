@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { Icon } from "../components/Icon";
 import { LinkButton } from "../components/ui";
-import { CAPABILITY_COLUMNS, CAPABILITY_ROWS, CHECKOUT_DISABLED_REASON, PLANS, PRICING_NOTES } from "../config/pricing";
+import { CAPABILITY_COLUMNS, CAPABILITY_ROWS, PLANS, PRICING_NOTES } from "../config/pricing";
+import { useBillingReason } from "../lib/billingNotice";
 import { Card } from "@/components/shadcn/card";
 import { Badge } from "@/components/shadcn/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shadcn/table";
@@ -22,6 +23,7 @@ function CellValue({ v }: { v: string | boolean | null }) {
 export function Pricing() {
   const { config } = useBillingConfig();
   const open = Boolean(config?.checkout_available);
+  const reason = useBillingReason();
   return (
     <div className="lv-mk">
       <div className="lv-mk-head">
@@ -94,7 +96,7 @@ export function Pricing() {
         <Card variant="well">
           <strong>Good to know</strong>
           <ul className="lv-price-list">{PRICING_NOTES.map((n) => <li key={n}><Icon name="check" size={15} />{n}</li>)}</ul>
-          {!open && <p className="ui-help lv-m0">{CHECKOUT_DISABLED_REASON}</p>}
+          {!open && <p className="ui-help lv-m0" data-testid="billing-reason">{reason}</p>}
         </Card>
       </div>
     </div>

@@ -6,6 +6,21 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (000035 staff billing controls, built and tested, NOT yet applied to production)
+
+- **Turn billing on from the staff panel** (founder request 2026-11-11). `supabase/migrations/000035_v2_billing_controls.sql` +
+  rollback + `supabase/tests/35_billing_controls.sql` (23 checks) + `supabase/tests/36_paid_plan_delivers.sql` (12 checks; database
+  suite 1316/0 with rollback rehearsal). `lv_admin_billing_status` and `lv_admin_billing_set` (schedule a future launch date, clear
+  it, open billing with a typed confirmation and every Stripe price set, pause new purchases), all audited and staff-only; the
+  public `lv_plan_limits` now carries `billing {open, launch_at, founding_ends_at}`. Setting the date gives every Founding Hub a
+  real end date (30 days later); opening turns on the policy flag every purchase path reads and starts the countdown now.
+- Staff panel Billing tab is now a console: state, launch date and Founding end date, a checklist, schedule and open controls
+  with explanations, typed-confirmation dialogs, a warning when the date has passed with billing still off, and the Stripe
+  events below. Hub Billing, Pricing and the disabled purchase buttons say "Billing opens {date}" once a date is set. e2e covers
+  schedule, the counter showing the date, opening, purchases unlocking, pausing, missing prices and non-staff access.
+- `docs/v2/BILLING_FULFILLMENT_AUDIT_2026-11-11.md`: purchase to access, advertised versus enforced (two Team claims, "enhanced
+  Campaign modes" and "advanced analytics", are not delivered yet), and what is still unproven (one real $13 payment).
+
 ### Operations (2026-11-11, founder-approved: "approved, apply 000029 and ship")
 
 - **Migration numbering and an overwrite caught.** While applying reporting I found production's history already held

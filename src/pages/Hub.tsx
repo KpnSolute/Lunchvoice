@@ -6,7 +6,8 @@ import { useLv } from "../lib/useLv";
 import { RESERVED_SLUGS, slugProblem } from "../lib/reservedSlugs";
 import type { HubInfo, HubMembership, Member, HubPage, MembershipMode, PageKind, Role, Visibility } from "../lib/lvApi";
 import { describeError, describeGate } from "../lib/errors";
-import { CHECKOUT_DISABLED_REASON, PLANS } from "../config/pricing";
+import { PLANS } from "../config/pricing";
+import { useBillingReason } from "../lib/billingNotice";
 import { SUPPORT_EMAIL, supportMailto } from "../config/contact";
 import { ReportDialog } from "../components/ReportDialog";
 import { campaignPhase, LinkButton } from "../components/ui";
@@ -188,6 +189,12 @@ export function HubLayout() {
       <BottomTabs label="Hub sections" items={bottom} more={more} />
     </div>
   );
+}
+
+/** A disabled purchase button that says when billing opens (the real date once staff have set one). */
+function BillingDisabled({ children }: { children: React.ReactNode }) {
+  const reason = useBillingReason();
+  return <DisabledAction reason={reason}>{children}</DisabledAction>;
 }
 
 /** The Hub's sections as a rail, grouped like a channel list (Hub Console). Phones keep the bottom bar. */
@@ -977,7 +984,7 @@ export function HubBilling() {
                 </Card>
               ))}
             </div>
-            <DisabledAction reason={CHECKOUT_DISABLED_REASON}>Choose a plan</DisabledAction>
+            <BillingDisabled>Choose a plan</BillingDisabled>
           </Card>
         </>
       )}
@@ -1012,7 +1019,7 @@ export function HubReservation() {
             </dl>
           )}
           <div className="lv-price-figure"><strong>{reservation.priceLabel}</strong><span>{reservation.cadence}</span></div>
-          <DisabledAction reason={CHECKOUT_DISABLED_REASON}>Reserve this address</DisabledAction>
+          <BillingDisabled>Reserve this address</BillingDisabled>
         </Card>
         <Card variant="well">
           <SectionTitle>How a reservation works</SectionTitle>
