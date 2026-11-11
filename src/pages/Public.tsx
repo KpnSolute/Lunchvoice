@@ -109,14 +109,13 @@ function MarketingMenu({ signedIn }: { signedIn: boolean }) {
 }
 
 /** The pinned header action: the waitlist before billing opens, the purchase path after (src/lib/billingState.ts). */
-function HeaderCta({ ink }: { ink: boolean }) {
+function HeaderCta() {
   const { state } = useBilling();
   const { pathname } = useLocation();
   const cta = headerCta(state, pathname);
   if (!cta) return null;
-  // On the homepage the hero holds the one primary action, so this one is outlined there.
   return (
-    <Button asChild variant={ink ? "quiet" : "primary"} size="md" className={ink ? "lv-header-signin" : undefined} data-lv-cta="header">
+    <Button asChild variant="primary" size="md" data-lv-cta="header">
       <Link to={cta.to}>{cta.label}</Link>
     </Button>
   );
@@ -169,7 +168,7 @@ function ShellInner() {
                   <Link to="/signin">Sign in</Link>
                 </Button>
               )}
-              <HeaderCta ink={ink} />
+              <HeaderCta />
             </>
           )}
           {marketing && <MarketingMenu signedIn={Boolean(session)} />}
