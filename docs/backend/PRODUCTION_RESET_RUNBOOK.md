@@ -369,3 +369,26 @@ codes. The Discord job removes roles after unlink or account deletion and sends 
   anonymous Campaign shows only the "Answer in LunchVoice" button.
 - Staff can turn a server off with `lv_api.lv_admin_discord_guild_disable(guild_id, true, reason)` (Admin UI pending).
 <!-- ---- end track D: api + discord ---- -->
+
+## 13. Scheduled jobs (000031) — replaces the hand-written schedules in 11.4 and 12.4
+
+Needs the founder's approval for each step; steps 2 to 5 change production. Values never go in chat, code or this file.
+
+1. Apply `000030_v2_staff_reports.sql`, then `000031_v2_kernel_jobs.sql` (hashes verified, rehearsed on a seeded
+   000029 database first, history versions normalized, grant audit as in section 2).
+2. Enable the extensions `pg_cron` and `pg_net` (Dashboard, Database, Extensions). Vault is already enabled.
+3. Put the dispatch bearer in Vault under the name `email_dispatch_secret`, with the same value as the
+   `EMAIL_DISPATCH_SECRET` function secret (Dashboard, Project Settings, Vault). Nobody can read a function secret
+   back, so if its value is not to hand, set a new random value in both places.
+4. `update lv.policy set value = '"https://qprfonxvthmaoxfixigk.supabase.co"'::jsonb where key = 'jobs.functions_base_url';`
+5. Deploy the functions so the dispatchers run the current code: `email-dispatch` (reply-to and the `staff_report`
+   template), `webhook-dispatch`, `discord`.
+6. `select lv.jobs_install();` as the service role. Expect `missing: []` and five names under `scheduled`.
+7. Verify in `/admin`, Overview, Scheduled jobs: every row "OK" or "Not run yet" within two minutes, and the Email tab's
+   queue draining. To stop everything: `update lv.jobs set enabled = false; select lv.jobs_install();`.
+
+Remove any `lv-email-dispatch`, `lv-webhook-dispatch` or `lv-discord-dispatch` jobs created by hand from 11.4 or 12.4
+before step 6; `jobs_install` uses the same names and replaces their commands.
+
+**000029: EXECUTED 2026-11-11** (guest limits, F-15) under the founder's approval, from commit `d12761d` (function
+body hash verified after apply), rehearsed on a seeded 000028 database first; history version normalized.

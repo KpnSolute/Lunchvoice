@@ -879,6 +879,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
     case "lv_report_abuse": {
       const reason = String(a.p_reason ?? "").trim();
       if (!reason) return err("lv_invalid_input", "Tell us what is wrong");
+      if (!["harmful", "scam", "private_info", "spam", "other"].includes(String(a.p_category ?? "other"))) return err("lv_invalid_input", "Unknown report category.");
       s.reports.push({ join_code: String(a.p_join_code ?? ""), reason: reason.slice(0, 500) });
       return { ok: true };
     }

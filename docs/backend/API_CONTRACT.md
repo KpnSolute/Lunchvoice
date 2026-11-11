@@ -1113,3 +1113,40 @@ role removals and auto-posts.
   identified Campaigns only and people with `analytics.read` (`lv_not_available` for anonymous ones). Rows:
   `{response_id, kind: member|guest, verified, name, at, answers[{question_id, prompt, kind, value}]}`; guests are
   `verified: false`. Opening the first page is audited as `campaign.responses_viewed`.
+
+## Reporting, step 1 (000030) and scheduled jobs (000031)
+
+Built 2026-11-11. Not applied to production until the founder approves.
+
+### Reporting
+
+- `lv_report_abuse(p_join_code, p_reason, p_category)`: signed out allowed. `p_category` is one of `harmful`, `scam`,
+  `private_info`, `spam`, `other`. Success is always `{ ok, received: true }`, identical for known and unknown codes.
+  One caller holds at most one open report per survey; a repeat is received and stores nothing. Errors:
+  `lv_invalid_input` (empty or over 1000 characters, unknown category), `lv_rate_limited` (this caller passed
+  `abuse.reports_per_caller_per_minute`, or the platform safeguard `abuse.reports_per_minute`). The two-argument call
+  still works and files under `other`.
+- `lv_admin_reports(p_status, p_type)` (staff): unchanged arguments. Response adds `median_decision_hours` (7 days,
+  null when nothing was decided). A **survey item is now one survey with all its reports**: `id` is the Campaign id,
+  `report_count`, `distinct_count` (distinct people), `categories` (`{ category: count }`), `reasons` (newest three),
+  `first_at`, `created_at` (latest), `decided_at`. Items sort with `scam` and `private_info` first, then by
+  `distinct_count`, then newest. Reporters and caller hashes are never returned.
+- `lv_admin_campaign_reports_dismiss(p_campaign)` (staff) → `{ ok, status: "dismissed", reports }`; `lv_not_found`
+  when the survey has no open report. `lv_admin_report_dismiss(p_report)` remains for a single report.
+- Every decision stamps `decided_at` and `decided_by` on the report, whichever function makes it.
+- Email `staff_report` is queued to policy `abuse.notify_email` at the first open report on a survey or comment and
+  again at 3 and 10 distinct reporters. Payload: kind, title, Hub name, category, count. Never the reporter or text.
+
+### Scheduled jobs
+
+- `lv_admin_jobs()` (staff) → `{ ok, scheduler: { pg_cron, pg_net, base_url_set }, jobs: [{ name, kind, schedule,
+  enabled, scheduled, note, last_run_at, last_ok_at, last_error, runs, pending, oldest_minutes }] }`. Never a secret,
+  URL or address.
+- Not in `lv_api` (service role only): `lv.job_tick(name)`, the one function pg_cron calls, and `lv.jobs_install()`,
+  which registers the enabled jobs and returns `{ scheduled: [...], missing: [...] }`.
+- Jobs: `email-dispatch`, `webhook-dispatch` (every minute), `discord-dispatch` (every 2 minutes), `retention`
+  (03:17 daily), `counter-trim` (every 10 minutes). An http job calls its function only when its outbox has due rows,
+  its last run failed, or its idle interval has passed.
+- Policies: `jobs.functions_base_url` (null until set in production), `jobs.vault_secret_name`
+  (`email_dispatch_secret`), `abuse.reports_per_caller_per_minute` 5, `abuse.reports_per_minute` 300 (was 20),
+  `abuse.notify_email` `admin@lunchvoice.com`.

@@ -574,7 +574,8 @@ export function createLvApi(transport: LvTransport) {
     discoverApply: (hub: string) => call<{ status: "submitted" }>("lv_discover_apply", { p_hub: hub }),
 
     /* ---- abuse ---- */
-    reportAbuse: (joinCode: string, reason: string) => call<object>("lv_report_abuse", { p_join_code: joinCode, p_reason: reason }),
+    reportAbuse: (joinCode: string, reason: string, category: ReportCategory = "other") =>
+      call<object>("lv_report_abuse", { p_join_code: joinCode, p_reason: reason, p_category: category }),
 
     /* ---- track A: hardening ---- */
     // lv_campaign_create(..., p_description) (000018).
@@ -820,12 +821,35 @@ export interface HubInfo { suspension?: HubSuspension }
 export interface MyContext { suspension?: AccountSuspension | null }
 
 export interface StaffMember { account_id: string; display_name: string; granted_at: string; granted_by_name: string | null; is_me: boolean }
+/** 000030: the category a reporter picks. */
+export type ReportCategory = "harmful" | "scam" | "private_info" | "spam" | "other";
+/** 000031: one scheduled job as staff see it. Never a secret, URL or address. */
+export interface AdminJob {
+  name: string;
+  kind: "http" | "sql";
+  schedule: string;
+  enabled: boolean;
+  scheduled: boolean;
+  note: string;
+  last_run_at: string | null;
+  last_ok_at: string | null;
+  last_error: string | null;
+  runs: number;
+  pending: number;
+  oldest_minutes: number | null;
+}
 export interface AdminReportItem {
   type: "survey" | "comment";
+  /** A survey item is one survey with all its reports (000030), so this is the Campaign id; a comment item is the comment. */
   id: string;
   status: "open" | "actioned" | "dismissed";
   reasons: string[];
   report_count: number;
+  /** Distinct people who reported. */
+  distinct_count?: number;
+  categories?: Partial<Record<ReportCategory, number>>;
+  first_at?: string;
+  decided_at?: string | null;
   created_at: string;
   hub_id: string | null;
   hub_name: string | null;
@@ -872,7 +896,9 @@ function createStaffApi(call: Caller) {
     adminAccountSuspend: (account: string, reason: string) => call<{ suspended: boolean }>("lv_admin_account_suspend", { p_account: account, p_reason: reason }),
     adminAccountUnsuspend: (account: string) => call<{ suspended: boolean }>("lv_admin_account_unsuspend", { p_account: account }),
     adminReports: (status: "open" | "actioned" | "dismissed" | "all" = "open", type: "survey" | "comment" | "all" = "all") =>
-      call<{ items: AdminReportItem[] }>("lv_admin_reports", { p_status: status, p_type: type }),
+      call<{ items: AdminReportItem[]; median_decision_hours?: number | null }>("lv_admin_reports", { p_status: status, p_type: type }),
+    adminCampaignReportsDismiss: (campaign: string) => call<{ reports: number }>("lv_admin_campaign_reports_dismiss", { p_campaign: campaign }),
+    adminJobs: () => call<{ scheduler: { pg_cron: boolean; pg_net: boolean; base_url_set: boolean }; jobs: AdminJob[] }>("lv_admin_jobs", {}),
     adminCommentHide: (comment: string, hidden = true) => call<{ hidden: boolean }>("lv_admin_comment_hide", { p_comment: comment, p_hidden: hidden }),
     adminCommentReportsDismiss: (comment: string) => call<object>("lv_admin_comment_reports_dismiss", { p_comment: comment }),
     adminHubSearch: (query: string) => call<{ hubs: AdminHubRow[] }>("lv_admin_hub_search", { p_query: query }),

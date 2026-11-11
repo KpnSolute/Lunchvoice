@@ -192,3 +192,54 @@ test("staff: the Waitlist tab summarises seats and its Contact column lines up w
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+test("staff (000030): a survey's reports are one item with its category and count; the category filter works", async () => {
+  const { page: p, go, ctx, errors } = await page({}, STAFF);
+  await go("/admin");
+  await tab(p, "Reports").click();
+  const q = p.getByTestId("admin-reports");
+  const survey = q.locator('[data-testid="admin-report-item"][data-type="survey"]');
+  await survey.waitFor();
+  assert.equal(await q.getByTestId("admin-report-item").first().getAttribute("data-type"), "survey", "phishing reports are listed first");
+  await survey.getByTestId("report-category-badge").getByText("Scam or phishing × 2").waitFor();
+  await survey.getByText(/2 reports/).waitFor();
+  assert.equal(await survey.locator("li").count(), 2);
+  await q.getByTestId("report-category").click();
+  await p.getByRole("option", { name: "Spam" }).click();
+  await q.getByText("No reports here").waitFor();
+  await q.getByTestId("report-category").click();
+  await p.getByRole("option", { name: "Scam or phishing" }).click();
+  await survey.waitFor();
+  assert.equal(await q.getByTestId("admin-report-item").count(), 1);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test("staff (000031): the overview lists every scheduled job and flags the one that is failing", async () => {
+  const { page: p, go, ctx, errors } = await page({}, STAFF);
+  await go("/admin");
+  const jobs = p.getByTestId("admin-jobs");
+  await jobs.getByTestId("job-row").nth(4).waitFor();
+  assert.equal(await jobs.getByTestId("job-row").count(), 5);
+  assert.equal(await jobs.locator('[data-testid="job-row"][data-state="Failing"]').count(), 1);
+  await jobs.locator('[data-state="Failing"]').getByText("pg_net is not installed").waitFor();
+  await jobs.locator('[data-testid="job-row"]', { hasText: "email-dispatch" }).getByText(/2 · oldest 1 min/).waitFor();
+  const text = await jobs.textContent();
+  assert.equal(/https?:\/\/|Bearer|@/.test(text), false, "no address, URL or secret is shown");
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test("report form offers the five categories and submits", async () => {
+  const { page: p, go, ctx } = await page();
+  // The mock's codes are random: read the seeded open link survey's code, then open it as a respondent would.
+  await go("/surveys");
+  const code = await p.evaluate(() => JSON.parse(localStorage.getItem("lv.mock.state")).campaigns.find((c) => c.campaign_id === "qs-seed-1").join_code);
+  await go(`/c/${code}`);
+  await p.getByRole("button", { name: "Report this survey" }).click();
+  await p.getByRole("radio", { name: "Scam or phishing" }).click();
+  await p.getByRole("radio", { name: "Spam" }).waitFor();
+  await p.getByRole("button", { name: "Send report" }).click();
+  await p.getByText("Thanks. We’ll review this survey.").waitFor();
+  await ctx.close();
+});

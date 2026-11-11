@@ -6,6 +6,42 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (2026-11-11, founder-approved: "approved apply 000029")
+
+- **Production:** migration 000029 (guests are never refused by a shared limit, F-15) applied to `qprfonxvthmaoxfixigk`
+  from commit `d12761d` through the connected Supabase toolkit, after a rehearsal on a seeded 000028 database (the old
+  function refused the 11th guest in a minute; after the migration 12 of 12 were accepted; rows and receipts unchanged).
+  Pre-apply backup: `2224177223` (2026-11-10 10:41 UTC). Post-apply audit: the live function body's hash equals the
+  repository's (`151a2f93…`), policies 600 and 60, the rate-window scope includes `guest_caller`, `anon` reaches only
+  the `lv_api` wrapper, 142 `lv_api` functions, nothing in `lv` granted to `anon`/`authenticated`, RLS on every `lv`
+  table, data unchanged (4 accounts, 6 Hubs, 7 Campaigns, 10 submissions). History version normalized to `000029`.
+  Not run by GitHub CI (the branch has no pull request); the same checks were run locally (canonical DB suite, PR checks,
+  e2e).
+- Observed: `pg_cron` and `pg_net` are available but not enabled, and 2 emails are queued. Enabling the schedule is
+  runbook section 13 and needs approval.
+
+### Added (000030 and 000031, built and tested, NOT yet applied to production)
+
+- **Reporting, step 1** (`docs/strategy/05_STAFF_AND_REPORTING.md`). `supabase/migrations/000030_v2_staff_reports.sql` +
+  rollback + `supabase/tests/30_staff_reports.sql`: a real `category` on survey reports (the form already collected
+  it); a per-caller limit of 5 a minute with the platform-wide number raised from 20 to 300, so one caller can no longer
+  silence reporting; one open report per caller per survey; the staff queue groups a survey's reports into one item
+  (count, distinct people, categories, newest three texts) with phishing and private-information first;
+  `lv_admin_campaign_reports_dismiss`; `decided_at`/`decided_by` on every decision and a 7-day median time to decision;
+  an email to `abuse.notify_email` (`admin@lunchvoice.com`) at the first report and at 3 and 10 distinct reporters, which
+  never carries the reporter or their words. Tests 14 and 23 follow the new shape.
+- **Scheduled jobs.** `supabase/migrations/000031_v2_kernel_jobs.sql` + rollback + `supabase/tests/31_kernel_jobs.sql`:
+  a registry of five jobs (email, webhook and Discord dispatch, retention, counter trim) and one entry point,
+  `lv.job_tick(name)`, for pg_cron. Dispatch jobs call their Edge Function through pg_net with the bearer read from
+  Vault at run time, and only when something is waiting, the last run failed or the idle interval passed. What a job
+  does is fixed by its name in code, never by text in a table. `lv.jobs_install()` registers them and reports what is
+  missing; `lv_admin_jobs()` shows staff each job's last success, error and queue depth.
+- Canonical DB suite 1321/0 with rollback rehearsal (was 1273). `API_CONTRACT.md` and runbook section 13 updated.
+- Staff panel: the Reports tab shows category badges, counts and a category filter, and dismisses a survey's reports in
+  one action; the Overview has a Scheduled jobs card that flags a failing, unscheduled or lagging job. The report form
+  sends its category and gains "Spam". New email template `staff_report` with tests. Dev mock follows the SQL.
+  e2e 86/0.
+
 ### Operations (2026-11-11, founder-approved: "confirmed", sender hello@, questions to admin@)
 
 - **Email credentials set on production functions** (`qprfonxvthmaoxfixigk`) through the connected Resend and Supabase

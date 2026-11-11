@@ -22,7 +22,7 @@ interface Staff {
   staff: { account_id: string; display_name: string; granted_at: string; granted_by_name: string | null }[];
   hubSusp: Record<string, { reason: string; suspended_at: string }>;
   accSusp: Record<string, { reason: string; suspended_at: string }>;
-  reports: { type: "survey" | "comment"; id: string; status: string; reasons: string[]; created_at: string; hub_slug: string; title: string; hidden?: boolean; blocked?: boolean }[];
+  reports: { type: "survey" | "comment"; id: string; status: string; reasons: string[]; created_at: string; hub_slug: string; title: string; hidden?: boolean; blocked?: boolean; categories?: Record<string, number> }[];
   audit: { id: number; occurred_at: string; actor_account_id: string; actor_name: string; action: string; target: string | null; hub_slug: string | null }[];
 }
 
@@ -43,7 +43,7 @@ function load(s: StateLike): Staff {
     hubSusp: {},
     accSusp: {},
     reports: hub ? [
-      { type: "survey", id: "rep-s1", status: "open", reasons: ["Asks people for their passwords"], created_at: now(), hub_slug: hub.slug ?? "", title: "Spring route check-in" },
+      { type: "survey", id: "rep-s1", status: "open", reasons: ["Asks people for their passwords", "Looks like phishing"], categories: { scam: 2 }, created_at: now(), hub_slug: hub.slug ?? "", title: "Spring route check-in" },
       { type: "comment", id: "cm-1", status: "open", reasons: ["Insults another member", "Abusive"], created_at: now(), hub_slug: hub.slug ?? "", title: "You all run like snails, idiots." },
     ] : [],
     audit: [{ id: 1, occurred_at: "2026-11-01T09:05:00Z", actor_account_id: "acc-founder-2", actor_name: "Founder (second account)", action: "staff.added", target: ME, hub_slug: null }],
@@ -91,7 +91,8 @@ export function staffMock(s: StateLike, fn: string, a: Record<string, unknown>, 
   }
   const mine = ["lv_admin_staff_list", "lv_admin_staff_add", "lv_admin_staff_revoke", "lv_admin_hub_suspend", "lv_admin_hub_unsuspend",
     "lv_admin_account_suspend", "lv_admin_account_unsuspend", "lv_admin_reports", "lv_admin_comment_hide", "lv_admin_comment_reports_dismiss",
-    "lv_admin_hub_search", "lv_admin_account_search", "lv_admin_account_email_reveal", "lv_admin_audit", "lv_admin_report_dismiss", "lv_admin_campaign_block"];
+    "lv_admin_hub_search", "lv_admin_account_search", "lv_admin_account_email_reveal", "lv_admin_audit", "lv_admin_report_dismiss", "lv_admin_campaign_block",
+    "lv_admin_campaign_reports_dismiss", "lv_admin_jobs"];
   if (!mine.includes(fn)) return undefined;
   if (!authed) return err("lv_unauthenticated", "Sign in to continue");
   if (!admin()) return err("lv_forbidden", "This needs a platform administrator.");
@@ -157,13 +158,17 @@ export function staffMock(s: StateLike, fn: string, a: Record<string, unknown>, 
         if (!["open", "actioned", "dismissed", "all"].includes(status) || !["survey", "comment", "all"].includes(type)) return err("lv_invalid_input", "Unknown status or type.");
         const items = d.reports.filter((r) => (status === "all" || r.status === status) && (type === "all" || r.type === type)).map((r) => {
           const h = s.hubs.find((x) => x.slug === r.hub_slug);
-          const common = { type: r.type, id: r.id, status: r.status, reasons: r.reasons, report_count: r.reasons.length, created_at: r.created_at,
+          const common = { type: r.type, id: r.id, status: r.status, reasons: r.reasons.slice(0, r.type === "survey" ? 3 : 5), report_count: r.reasons.length, distinct_count: r.reasons.length,
+            categories: r.categories ?? { other: r.reasons.length }, first_at: r.created_at, decided_at: r.status === "open" ? null : r.created_at, created_at: r.created_at,
             hub_id: h?.hub_id ?? null, hub_name: h?.name ?? null, hub_slug: r.hub_slug, quick_survey: false, hub_suspended: Boolean(h && d.hubSusp[h.hub_id]) };
           return r.type === "survey"
             ? { ...common, campaign_id: "cmp-seed-1", campaign_title: r.title, join_code: "SEED01", blocked: Boolean(r.blocked) }
             : { ...common, comment_id: r.id, post_id: null, excerpt: r.title, hidden: Boolean(r.hidden), author_suspended: false, author_account_id: "acc-3" };
         });
-        return { ok: true, items };
+        // 000030: phishing and private-information reports first, then the most-reported.
+        const urgent = (x: { categories: Record<string, number> }) => (x.categories.scam || x.categories.private_info ? 1 : 0);
+        items.sort((x, y) => urgent(y) - urgent(x) || y.distinct_count - x.distinct_count);
+        return { ok: true, items, median_decision_hours: d.reports.some((r) => r.status !== "open") ? 2.5 : null };
       }
       case "lv_admin_comment_hide": {
         const r = d.reports.find((x) => x.type === "comment" && x.id === a.p_comment);
@@ -173,9 +178,18 @@ export function staffMock(s: StateLike, fn: string, a: Record<string, unknown>, 
         audit(r.hidden ? "comment.hidden_by_staff" : "comment.shown_by_staff", r.id, r.hub_slug);
         return { ok: true, hidden: r.hidden };
       }
+      case "lv_admin_jobs":
+        return { ok: true, scheduler: { pg_cron: true, pg_net: true, base_url_set: true }, jobs: [
+          { name: "counter-trim", kind: "sql", schedule: "*/10 * * * *", enabled: true, scheduled: true, note: "Deletes expired rate-limit windows and join-code misses.", last_run_at: new Date(Date.now() - 4 * 60_000).toISOString(), last_ok_at: new Date(Date.now() - 4 * 60_000).toISOString(), last_error: null, runs: 212, pending: 0, oldest_minutes: null },
+          { name: "discord-dispatch", kind: "http", schedule: "*/2 * * * *", enabled: true, scheduled: true, note: "Sends queued Discord posts and role changes.", last_run_at: new Date(Date.now() - 9 * 60_000).toISOString(), last_ok_at: new Date(Date.now() - 9 * 60_000).toISOString(), last_error: null, runs: 40, pending: 0, oldest_minutes: null },
+          { name: "email-dispatch", kind: "http", schedule: "* * * * *", enabled: true, scheduled: true, note: "Sends queued email.", last_run_at: new Date(Date.now() - 60_000).toISOString(), last_ok_at: new Date(Date.now() - 60_000).toISOString(), last_error: null, runs: 96, pending: 2, oldest_minutes: 1 },
+          { name: "retention", kind: "sql", schedule: "17 3 * * *", enabled: true, scheduled: true, note: "Trims logs after 12 months and unlinks guest hashes after 7 days.", last_run_at: null, last_ok_at: null, last_error: null, runs: 0, pending: 0, oldest_minutes: null },
+          { name: "webhook-dispatch", kind: "http", schedule: "* * * * *", enabled: true, scheduled: false, note: "Delivers queued webhooks.", last_run_at: new Date(Date.now() - 50 * 60_000).toISOString(), last_ok_at: null, last_error: "pg_net is not installed", runs: 3, pending: 0, oldest_minutes: null },
+        ] };
+      case "lv_admin_campaign_reports_dismiss":
       case "lv_admin_comment_reports_dismiss":
       case "lv_admin_report_dismiss": {
-        const r = d.reports.find((x) => x.id === (a.p_comment ?? a.p_report) && x.status === "open");
+        const r = d.reports.find((x) => x.id === (a.p_campaign ?? a.p_comment ?? a.p_report) && x.status === "open");
         if (!r) return err("lv_not_found", "No open report for that item.");
         r.status = "dismissed";
         audit(r.type === "comment" ? "comment_report.dismissed" : "abuse.dismissed", r.id, r.hub_slug);

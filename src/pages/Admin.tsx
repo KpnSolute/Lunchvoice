@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import { describeError } from "../lib/errors";
-import type { AdminAccountRow, AdminDiscoverApplication, AdminHubRow, AdminReportItem, LvError } from "../lib/lvApi";
+import type { AdminAccountRow, AdminDiscoverApplication, AdminHubRow, AdminReportItem, LvError, ReportCategory } from "../lib/lvApi";
 import { NotFoundPage } from "./Marketing";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
@@ -15,8 +15,10 @@ import { Input } from "@/components/shadcn/input";
 import { Badge } from "@/components/shadcn/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shadcn/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shadcn/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/shadcn/select";
 import { EmptyState, Field, LoadingRows, Notice, PageHeader, SectionTitle, Segmented, StatTile } from "@/components/shadcn/blocks";
 
+const CATEGORY_LABEL: Record<ReportCategory, string> = { scam: "Scam or phishing", private_info: "Private information", harmful: "Harmful", spam: "Spam", other: "Other" };
 const fmtDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—");
 const familyName = (f?: string | null) => (f === "team" ? "Team" : f === "starter" ? "Starter" : "Free");
 
@@ -85,7 +87,10 @@ function ReportsQueue() {
   const [status, setStatus] = useState<"open" | "actioned" | "dismissed" | "all">("open");
   const [type, setType] = useState<"all" | "survey" | "comment">("all");
   const list = useLv(() => api.adminReports(status, type), [api, status, type]);
-  const items: AdminReportItem[] = list.data?.items ?? [];
+  const [category, setCategory] = useState<"all" | ReportCategory>("all");
+  const all: AdminReportItem[] = list.data?.items ?? [];
+  const items = category === "all" ? all : all.filter((r) => (r.categories?.[category] ?? 0) > 0);
+  const median = list.data?.median_decision_hours;
   const reload = list.reload;
   return (
     <div className="lv-stack-16" data-testid="admin-reports">
@@ -94,13 +99,27 @@ function ReportsQueue() {
           options={[{ value: "open", label: "Open" }, { value: "actioned", label: "Actioned" }, { value: "dismissed", label: "Dismissed" }, { value: "all", label: "All" }]} />
         <Segmented<typeof type> value={type} onValueChange={setType} label="Report type"
           options={[{ value: "all", label: "All types" }, { value: "survey", label: "Surveys" }, { value: "comment", label: "Comments" }]} />
+        <Select value={category} onValueChange={(v) => setCategory(v as typeof category)}>
+          <SelectTrigger aria-label="Report category" data-testid="report-category"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories</SelectItem>
+            {(Object.keys(CATEGORY_LABEL) as ReportCategory[]).map((c) => <SelectItem key={c} value={c}>{CATEGORY_LABEL[c]}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
+      <p className="ui-muted lv-m0" data-testid="reports-summary">
+        Phishing and private-information reports are listed first, then the most-reported.
+        {median != null && <> Median time to a decision over the last 7 days: <strong>{median} h</strong>.</>}
+      </p>
       {list.loading && !list.data ? <LoadingRows rows={3} /> : list.error ? <Notice tone="error">{describeError(list.error)}</Notice> : !items.length ? <EmptyState title="No reports here" /> : items.map((r) => (
         <Card key={`${r.type}-${r.id}`} size="sm" data-testid="admin-report-item" data-type={r.type}>
           <div className="ui-spread">
             <strong>{r.type === "survey" ? r.campaign_title ?? "Deleted Campaign" : "Comment"}</strong>
             <span className="ui-row">
               <Badge variant="outline">{r.type === "survey" ? "Survey" : "Comment"}</Badge>
+              {(Object.entries(r.categories ?? {}) as [ReportCategory, number][]).filter(([c]) => r.type === "survey" || c !== "other").map(([c, n]) => (
+                <Badge key={c} variant={c === "scam" || c === "private_info" ? "danger" : "neutral"} data-testid="report-category-badge">{CATEGORY_LABEL[c] ?? c}{n > 1 ? ` × ${n}` : ""}</Badge>
+              ))}
               <Badge variant={r.status === "open" ? "neutral" : r.status === "actioned" ? "ok" : "outline"}>{r.status}</Badge>
               {r.blocked && <Badge variant="danger">Blocked</Badge>}
               {r.hidden && <Badge variant="danger">Hidden</Badge>}
@@ -110,7 +129,8 @@ function ReportsQueue() {
           <p className="ui-muted lv-m0">
             {r.quick_survey ? "Quick Survey" : r.hub_slug ? <Link className="lv-inline-link" to={`/${r.hub_slug}`}>{r.hub_name ?? r.hub_slug}</Link> : "No Hub"}
             {r.type === "survey" && r.join_code && <> · <Link className="lv-inline-link" to={`/c/${r.join_code}`}>open survey</Link></>}
-            {" "}· {r.report_count} report{r.report_count === 1 ? "" : "s"} · {fmtDate(r.created_at)}
+            {" "}· {r.report_count} report{r.report_count === 1 ? "" : "s"}
+            {r.distinct_count != null && r.distinct_count !== r.report_count ? ` from ${r.distinct_count} ${r.distinct_count === 1 ? "person" : "people"}` : ""} · latest {fmtDate(r.created_at)}
           </p>
           {r.type === "comment" && r.excerpt && <blockquote className="lv-m0 ui-muted">“{r.excerpt}”</blockquote>}
           <ul className="lv-m0">{r.reasons.map((x, i) => <li key={i}>{x}</li>)}</ul>
@@ -122,7 +142,7 @@ function ReportsQueue() {
               ? <Button size="sm" variant="secondary" onClick={() => act(api.adminCommentHide(r.comment_id!, false), "Comment shown", reload)}>Show comment</Button>
               : <Button size="sm" variant="danger" onClick={() => act(api.adminCommentHide(r.comment_id!, true), "Comment hidden", reload)}>Hide comment</Button>)}
             {r.status === "open" && (
-              <Button size="sm" variant="quiet" onClick={() => act(r.type === "survey" ? api.adminReportDismiss(r.id) : api.adminCommentReportsDismiss(r.id), "Dismissed", reload)}>Dismiss</Button>
+              <Button size="sm" variant="quiet" onClick={() => act(r.type === "survey" ? api.adminCampaignReportsDismiss(r.id) : api.adminCommentReportsDismiss(r.id), "Dismissed", reload)}>Dismiss</Button>
             )}
             {r.hub_id && !r.quick_survey && !r.hub_suspended && (
               <ReasonAction label="Suspend Hub" placeholder="Reason the Owner will see" onSubmit={(why) => act(api.adminHubSuspend(r.hub_id!, why), "Hub suspended", reload)} />
@@ -405,6 +425,49 @@ function AdminEmail() {
 }
 
 
+/* ------------------------------------------------------------------ scheduled jobs (000031) */
+
+function ago(iso: string | null): string {
+  if (!iso) return "never";
+  const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60_000));
+  return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
+}
+
+/** Each job's last run, last error and queue depth. A job that is not scheduled, or whose last run failed, is flagged. */
+function JobsCard() {
+  const { api } = useIdentity();
+  const q = useLv(() => api.adminJobs(), [api]);
+  if (q.loading && !q.data) return <Card data-testid="admin-jobs"><LoadingRows rows={2} label="Loading scheduled jobs" /></Card>;
+  if (q.error) return <Card data-testid="admin-jobs"><Notice tone="error">{describeError(q.error)}</Notice></Card>;
+  const d = q.data!;
+  const missing = [!d.scheduler.pg_cron && "the scheduler (pg_cron)", !d.scheduler.pg_net && "outbound requests (pg_net)", !d.scheduler.base_url_set && "the functions address"].filter(Boolean);
+  return (
+    <Card data-testid="admin-jobs">
+      <SectionTitle>Scheduled jobs</SectionTitle>
+      {missing.length > 0 && <Notice tone="warn" title="Jobs are not fully set up">Missing: {missing.join(", ")}. Until then queued email, webhooks and Discord posts wait; nothing is lost.</Notice>}
+      <Table>
+        <TableHeader><TableRow><TableHead>Job</TableHead><TableHead>Last success</TableHead><TableHead>Waiting</TableHead><TableHead>State</TableHead></TableRow></TableHeader>
+        <TableBody>
+          {d.jobs.map((j) => {
+            const state = !j.enabled ? "Off" : j.last_error ? "Failing" : !j.scheduled ? "Not scheduled" : (j.oldest_minutes ?? 0) > 15 ? "Behind" : j.runs === 0 ? "Not run yet" : "OK";
+            return (
+              <TableRow key={j.name} data-testid="job-row" data-state={state}>
+                <TableCell><strong>{j.name}</strong><div className="ui-muted lv-small">{j.note}</div></TableCell>
+                <TableCell>{ago(j.last_ok_at)}</TableCell>
+                <TableCell>{j.kind === "http" ? (j.pending ? `${j.pending}${j.oldest_minutes != null ? ` · oldest ${j.oldest_minutes} min` : ""}` : "None") : "—"}</TableCell>
+                <TableCell>
+                  <Badge variant={state === "OK" ? "ok" : state === "Off" || state === "Not run yet" ? "outline" : "danger"}>{state}</Badge>
+                  {j.last_error && <div className="ui-muted lv-small">{j.last_error}</div>}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </Card>
+  );
+}
+
 /* ------------------------------------------------------------------ the page */
 
 export function Admin() {
@@ -443,6 +506,7 @@ export function Admin() {
               <StatTile label="Email" value={o.email.queued} note={`queued · ${o.email.failed} failed`} />
             </div>
             {!o.billing.provider_ready && <Notice tone="info">Billing is not open (billing.provider_ready is false). Checkout stays off everywhere.</Notice>}
+            <JobsCard />
             <AuditLog />
           </div>
         </TabsContent>
