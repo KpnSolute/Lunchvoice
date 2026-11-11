@@ -6,6 +6,20 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (2026-11-11, founder-approved: "approved, apply 000029 and ship")
+
+- **Migration numbering and an overwrite caught.** While applying reporting I found production's history already held
+  `000029 v2_participation_guest_limits`, `000030 v2_staff_reports`, `000031 v2_kernel_jobs` and `000032 v2_kernel_jobs_install_fix`,
+  applied by another track (branch `claude/determined-darwin-aa79al`, not yet on `main`). My reporting migration is therefore
+  renumbered **000033** (files, rollback and `supabase/tests/33_reports.sql`). Because both 000030 and my migration replace
+  `lv.api_admin_reports`, mine overwrote their grouped survey queue in production for a short time; **000034** restores it
+  and keeps my person and Hub reports in the same queue (applied only when `lv.abuse_reports.category` exists, so `main`,
+  which lacks 000030, stays valid). Verified on a database with their four migrations plus mine: the queue function holds both
+  behaviours and all 24 reporting checks pass. The other track should expect `lv_admin_reports` to accept types `person`
+  and `hub` and to carry `details`, `target_*` fields on those items.
+- Production audit after 000033: row-level security on every table, nothing in `lv` granted to API roles, reporting calls
+  callable by signed-in users only; the signed-out list is unchanged apart from the other track's second `lv_report_abuse`.
+
 ### Changed (Hub Console, founder direction 2026-11-11)
 
 - **Hub pages get a calmer, flatter look** (`docs/v2/PRODUCT_DIRECTION_2026-11-11.md` section 6), scoped to `.lv-hubscope` so
@@ -17,7 +31,7 @@ categories and the repository's decimal `X.X.X` release policy.
   rail so the question outline and preview have room. e2e checks the rail, the rectangular glow-free buttons, the pill slider
   and the full-width editor.
 
-### Added (000029 reporting, built and tested, NOT yet applied to production)
+### Added (000033 reporting, applied to production 2026-11-11)
 
 - **Discord-style reporting** (founder direction 2026-11-11, `docs/v2/PRODUCT_DIRECTION_2026-11-11.md`). A person or a Hub can
   be reported and the report attaches to that account's record and lands in the staff Reports queue.

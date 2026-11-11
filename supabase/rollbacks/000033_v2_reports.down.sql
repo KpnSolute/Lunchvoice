@@ -1,4 +1,4 @@
--- Rollback for 000029_v2_reports: the staff queue and the account row return to their 000023 form; reports about people and
+-- Rollback for 000033_v2_reports: the staff queue and the account row return to their 000023 form; reports about people and
 -- Hubs are dropped with the table.
 begin;
 drop function if exists lv_api.lv_admin_user_report_decide(uuid, text, text);

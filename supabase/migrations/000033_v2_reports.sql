@@ -1,4 +1,4 @@
--- 000029: reporting, Discord-style (founder direction 2026-11-11). A person or a Hub can be reported; a report about a person
+-- 000033: reporting, Discord-style (founder direction 2026-11-11). A person or a Hub can be reported; a report about a person
 -- attaches to that ACCOUNT's record and lands in the staff Reports queue. Reporters are never shown to the reported person or to
 -- Hub owners, and the staff audit never names the reporter. Nothing is deleted by a report; staff act with the tools they
 -- already have (dismiss, mark actioned, suspend the Hub or the account).

@@ -1,5 +1,5 @@
--- 29: reporting people and Hubs (000029). A report attaches to the account, reaches staff, and never exposes the reporter.
-select set_config('t.file', '29_reports', false);
+-- 33: reporting people and Hubs (000029). A report attaches to the account, reaches staff, and never exposes the reporter.
+select set_config('t.file', '33_reports', false);
 begin;
 create function t.err_of(p_sql text) returns text language plpgsql security definer as $$
 begin execute p_sql; return 'ok'; exception when others then return sqlerrm; end $$;
