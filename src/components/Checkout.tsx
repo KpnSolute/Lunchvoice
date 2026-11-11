@@ -9,7 +9,8 @@ import { useLv } from "../lib/useLv";
 import { describeError } from "../lib/errors";
 import type { BillingConfig, LvError, PurchasableProduct } from "../lib/lvApi";
 import { PLANS } from "../config/pricing";
-import { useBillingReason } from "../lib/billingNotice";
+import { useBilling } from "../lib/useBilling";
+import { JOIN_WAITLIST, planAction } from "../lib/billingState";
 import { Button } from "@/components/shadcn/button";
 import { Input } from "@/components/shadcn/input";
 import { DisabledAction, Field, Notice } from "@/components/shadcn/blocks";
@@ -48,16 +49,19 @@ export function CheckoutButton({
 }) {
   const { api, session } = useIdentity();
   const [busy, setBusy] = useState(false);
-  const disabledReason = useBillingReason();
-  if (!session) {
+  const billing = useBilling();
+  // One rule for every purchase button (src/lib/billingState.ts). While billing is closed nobody is asked to
+  // "sign in to buy" something that cannot be bought.
+  const action = planAction(billing.state, Boolean(session), "", Boolean(config?.products[product]));
+  if (action === "signin") {
     return (
-      <Button asChild variant={variant} block={block} data-testid={`checkout-${product}`}>
+      <Button asChild variant={variant} block={block} data-testid={`checkout-${product}`} data-state="signin">
         <Link to="/signin" state={{ from: returnPath }}>Sign in to buy</Link>
       </Button>
     );
   }
-  if (!config?.products[product]) {
-    return <div data-testid={`checkout-${product}`} data-state="disabled"><DisabledAction block={block} variant={variant} reason={disabledReason}>{label}</DisabledAction></div>;
+  if (action !== "buy") {
+    return <div data-testid={`checkout-${product}`} data-state="disabled"><DisabledAction block={block} variant={variant} reason={billing.ctas.reason || billing.closedReason}>{label}</DisabledAction></div>;
   }
   async function go() {
     setBusy(true);
@@ -101,14 +105,23 @@ export function WeeksField({ id, value, onChange }: { id: string; value: number;
 /** The buy action under a plan card on /pricing (no Hub yet: a Hub plan becomes a Hub credit for /create). */
 export function PricingAction({ product, config, variant }: { product: PurchasableProduct; config: BillingConfig | null; variant: "primary" | "secondary" }) {
   const [weeks, setWeeks] = useState(2);
+  const { session } = useIdentity();
+  const billing = useBilling();
   const plan = planOf(product);
   const campaign = product === "campaign_starter" || product === "campaign_plus";
+  // Before billing opens the Starter Hub is the Founding seat, and the way to it is the waitlist.
+  if (planAction(billing.state, Boolean(session), product, Boolean(config?.products[product])) === "waitlist") {
+    return (
+      <Button asChild variant={variant} block data-testid={`checkout-${product}`} data-state="waitlist">
+        <Link to={JOIN_WAITLIST.to}>{JOIN_WAITLIST.label}</Link>
+      </Button>
+    );
+  }
   return (
     <div className="lv-stack-16">
-      {campaign && config?.products[product] && <WeeksField id={`weeks-${product}`} value={weeks} onChange={setWeeks} />}
+      {campaign && billing.state.open && config?.products[product] && <WeeksField id={`weeks-${product}`} value={weeks} onChange={setWeeks} />}
       <CheckoutButton product={product} config={config} label={`Buy ${plan?.name ?? "plan"}`} weeks={campaign ? weeks : null}
         returnPath="/create" variant={variant} block />
     </div>
   );
 }
-

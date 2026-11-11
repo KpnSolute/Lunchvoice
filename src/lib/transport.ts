@@ -1,13 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 import { createLvApi, type LvApi, type LvTransport } from "./lvApi";
 import { createMockTransport } from "./mockTransport";
+import { rpcFailure, SESSION_ENDED_MESSAGE } from "./authFailure";
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Real transport: all data operations are lv_api functions, authenticated with
 // the KpnIdentity token. No table access.
-function realTransport(getToken: () => string | null): LvTransport {
+function realTransport(getToken: () => string | null, onAuthFailure?: () => void): LvTransport {
   const client = createClient(url as string, key as string, {
     db: { schema: "lv_api" },
     auth: { persistSession: false, autoRefreshToken: false },
@@ -15,8 +16,9 @@ function realTransport(getToken: () => string | null): LvTransport {
   });
   return {
     async rpc(fn, args) {
-      const { data, error } = await client.rpc(fn, args);
-      if (error) throw new Error(error.message);
+      const { data, error, status } = await client.rpc(fn, args);
+      // An ended session is an ordinary {ok:false} result, not a server fault (see lib/authFailure.ts).
+      if (error) return rpcFailure(error, status, Boolean(getToken()), onAuthFailure);
       return data;
     },
     /* ---- track B: commerce ---- */
@@ -28,6 +30,10 @@ function realTransport(getToken: () => string | null): LvTransport {
         headers: { "content-type": "application/json", apikey: key as string, authorization: `Bearer ${token ?? key}` },
         body: JSON.stringify(body),
       });
+      if (res.status === 401 && token) {
+        onAuthFailure?.();
+        return { ok: false, error: { code: "lv_unauthenticated", message: SESSION_ENDED_MESSAGE } };
+      }
       return res.json().catch(() => ({ ok: false, error: { code: "lv_server_error", message: "Unexpected response" } }));
     },
   };
@@ -45,7 +51,21 @@ const failClosed: LvTransport = {
 export const usingMock: boolean =
   import.meta.env.DEV && (import.meta.env.VITE_LV_MOCK === "1" || !url || !key);
 
-export function createApi(getToken: () => string | null, displayName?: string): LvApi {
-  if (import.meta.env.DEV && usingMock) return createLvApi(createMockTransport(displayName, () => Boolean(getToken())));
-  return createLvApi(url && key ? realTransport(getToken) : failClosed);
+export function createApi(getToken: () => string | null, displayName?: string, onAuthFailure?: () => void): LvApi {
+  if (import.meta.env.DEV && usingMock) {
+    const mock = createMockTransport(displayName, () => Boolean(getToken()));
+    // Dev only: a session whose token is the literal "expired" behaves like a server-refused token, so the
+    // session-ended flow can be exercised without waiting an hour (e2e/session.test.mjs).
+    return createLvApi({
+      ...mock,
+      async rpc(fn, args) {
+        if (getToken() === "expired") {
+          onAuthFailure?.();
+          return { ok: false, error: { code: "lv_unauthenticated", message: SESSION_ENDED_MESSAGE } };
+        }
+        return mock.rpc(fn, args);
+      },
+    });
+  }
+  return createLvApi(url && key ? realTransport(getToken, onAuthFailure) : failClosed);
 }

@@ -1,4 +1,4 @@
-LUNCH VOICE — BRAND ASSET PACKAGE
+LUNCHVOICE — BRAND ASSET PACKAGE
 ==================================
 
 /favicons
@@ -10,7 +10,7 @@ LUNCH VOICE — BRAND ASSET PACKAGE
 
 /logo
   lunchvoice-mark_*        - monogram only, transparent background
-  lunchvoice-wordmark_*    - full lockup (mark + "Lunch Voice" + tagline)
+  lunchvoice-wordmark_*    - full lockup (mark + "LunchVoice" + tagline)
   lunchvoice-lockup-dark_* - lockup on dark (Espresso) background
   lunchvoice-lockup-light_*- lockup on light (Cream) background
 
@@ -18,10 +18,17 @@ LUNCH VOICE — BRAND ASSET PACKAGE
   Editable vector source files (.svg) for everything above.
   Open in Illustrator, Figma, or Inkscape to recolor/resize/edit.
 
-Brand colors:
-  Amber Orange  #FF9A18
-  Espresso      #14110F
-  Warm Charcoal #2A241F
-  Cream         #FAF7F2
-  Oat Beige     #EFE7DC
-  Warm Gray     #8B857E
+The name is one word: LunchVoice.
+
+Brand colors and type (the live source is src/ui/tokens.css; this list mirrors it):
+  Amber         #FF9A18   accent (fills, icons). For amber TEXT on light use #8F4A00.
+  Ink           #14110F   text and dark bands
+  Page          #EEEDEA   light page background
+  Surface       #FFFFFF   cards
+  Bone          #F7F3EA   text on ink
+  Display type  Bricolage Grotesque
+  UI type       Geist
+  Data type     Space Mono
+
+  The earlier palette in this package (Cream #FAF7F2, Oat Beige #EFE7DC, Warm Charcoal #2A241F, Warm Gray #8B857E)
+  is not used by the product. A warmer page background closer to Cream is a proposal awaiting founder approval.

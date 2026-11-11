@@ -6,6 +6,54 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (UI and interaction review, 2026-11-11 handoff)
+
+- **One billing state drives every call to action.** `src/lib/billingState.ts` (pure, 9 unit tests) and
+  `src/lib/useBilling.tsx` (loaded once in the page shell) decide the wording and target of the header button, the homepage
+  hero, waitlist band and plan cards, the `/pricing` notice and every checkout button. Signed-out visitors read the public
+  `lv_plan_limits().billing` (000035); signed-in people also read `lv_billing_config`. Unknown means closed. Before billing:
+  "Join the waitlist". After: "Create your Hub" goes to the Hub plans on `/pricing`. "Start a free survey" is the primary
+  hero action in both states. While billing is closed no button says "Sign in to buy": the Starter Hub card points at the
+  waitlist and the other paid plans are disabled with the reason. **Needs 000035 applied in production** for signed-out
+  visitors to see the open state; until then they see closed, which is correct today.
+- **Sign-in page** says what happens before the click: sign-in is on auth.kpnsolute.com, run by the company that makes
+  LunchVoice, with a Google account. The button reads "Continue to sign in" (also on the invitation page). The identity
+  flow sends no provider hint, so a direct "Continue with Google" button needs KpnIdentity to accept one.
+- **Pricing:** free plan, then the highlighted Starter Hub, then Team Hub in one row of three; Campaign plans grouped under
+  their own heading. On screens up to 860px the compare table becomes a plan picker with one plan's values at a time (no
+  sideways scrolling at 360px; the picker stays pinned under the header). "Not set yet" is gone: the "Active Campaigns at
+  once" row is built from the backend map (`campaigns.max_active`) and left out if the backend has no value. The survey
+  replacement lines are in plain words ("A survey stops counting toward that limit once more than half your members have
+  answered").
+- **Homepage:** "LunchVoice 2.0" removed and the hero label is one line; the two hero actions sit under the headline; the
+  floating amber button under the code card is gone; "Join survey" is never disabled (with no code it says what is missing
+  and focuses the field). The result, Hub and account illustrations are labelled "Sample data" / "Example" on screen, the
+  fake "Live, updated 2 min ago" line and the "LOGO" placeholder are gone, and the mock Hub uses brand tokens.
+- **Accessibility:** new `--lv-accent-text` token for amber text (5.6:1 on the page; plain amber was about 1.8:1), used by
+  every accent eyebrow; `--lv-text-min` 12px floor applied to every stylesheet; header buttons, menu button, nav, footer and
+  chip links are at least 44px tall; the header action is hidden on `/waitlist` and `/signin`; "Sign in" is in the phone menu.
+- **Buttons:** on public pages and the header only the primary keeps the gradient and glow; secondary and ink buttons are
+  flat. The pill radius is unchanged on public pages (see the handoff).
+- **One brand source:** `DESIGN.md` and `brand/lv-package/README.txt` now describe `src/ui/tokens.css` (Bricolage Grotesque,
+  Geist, Space Mono, page `#EEEDEA`, the name as one word). `PRODUCT.md` carries the Campaign Plus price ($39, then $19 per
+  week) that `AGENTS.md` and `src/config/pricing.ts` already had.
+- `npm run test:pr` now also runs `test:unit`. New e2e: `e2e/sitecta.test.mjs` (both billing states, signed in and out,
+  header, phone menu, 360px compare, touch targets, type floor); `e2e/commerce.test.mjs` updated for the closed state.
+  Handoff: `docs/v2/handoffs/2026-11-11-ui-interaction-review.md`.
+
+### Fixed (use-case pages blank in production, 2026-11-11)
+
+- **Cause:** PR #63 was squash-merged from a branch that predated PR #62, so its merge commit reverted all of #62: the ten
+  `/use-cases/<slug>` pages, `src/config/useCases.json`, the Quick Survey and Campaign templates, the expired-session fix
+  (`src/lib/authFailure.ts`), their tests and their `render.yaml` rewrites. The Render dashboard rules (not synced from
+  `render.yaml`) still rewrote each slug to `/use-cases/<slug>/index.html`, a file the build no longer wrote, so the host
+  answered 200 with an empty body. The sitemap fell from 21 URLs to 11 and the homepage section disappeared for the same reason.
+- **Fix:** #62 is re-applied on top of #63 (both sets of changes are kept; nothing from #63 is lost). No Render change is
+  needed: the dashboard rules already point at the files this build writes again.
+- **Guard:** `scripts/seo-prerender.mjs` now fails the build when an indexable page or any `render.yaml` rewrite destination
+  has no non-empty file in `dist/` (`missingOutputs`), and `scripts/seo-prerender.test.mjs` covers it, including one file with
+  a heading per use case. A stale-branch revert of the whole feature still needs review to catch; see the handoff.
+
 ### Added (000035 staff billing controls, built and tested, NOT yet applied to production)
 
 - **Turn billing on from the staff panel** (founder request 2026-11-11). `supabase/migrations/000035_v2_billing_controls.sql` +
@@ -20,6 +68,86 @@ categories and the repository's decimal `X.X.X` release policy.
   schedule, the counter showing the date, opening, purchases unlocking, pausing, missing prices and non-staff access.
 - `docs/v2/BILLING_FULFILLMENT_AUDIT_2026-11-11.md`: purchase to access, advertised versus enforced (two Team claims, "enhanced
   Campaign modes" and "advanced analytics", are not delivered yet), and what is still unproven (one real $13 payment).
+
+### Added (ten more Quick Survey templates, and Hub Campaign templates for each plan)
+
+- Quick Survey templates grow from 10 to 20 and gain categories (Customers, Teams and work, Events, Community,
+  Decisions) with a filter on `/surveys/new`: Would you recommend us?, Support satisfaction, Product or app feedback,
+  Training evaluation, New starter check-in, Event RSVP, Speaker or session feedback, Volunteer interest, Neighbourhood
+  priorities, Priority vote. RSVP and Volunteer interest default to Identified (you need to know who replied); a choice
+  question can cap picks (`config.max`, "Pick up to 3").
+- Hub Campaign templates, grouped by what each plan is for (`src/config/campaignTemplates.ts`), on
+  `/:hub/campaigns/new`. Starter Hub (6): polls, ratings and a feedback box, which do not use one of the 2 active
+  surveys, plus one monthly survey that says it does. Team Hub (5): four role-targeted templates (Role pulse,
+  Volunteer shift feedback, New member check-in, Ask the leads) and a Quarterly community survey. Time-bounded (5):
+  Event week feedback, Launch week poll, Season review, Call for ideas, and a Campaign Plus role check-in; the end date is
+  set on the draft and can be changed under Schedule.
+- Picking one fills the title, creates the draft with its description and questions, and opens the next decision:
+  Audience for a role-targeted template (roles belong to each Hub), otherwise Review. A summary shows the mode, answers,
+  who can answer, when it runs and the questions before anything is created.
+- Honest by construction: role targeting needs identified answers (FB-01), so every targeted template is identified and
+  says so; Team templates are shown but disabled, with the reason, on a Hub without the Team family. That is display
+  only (`templateOffered`): the backend still decides and refuses with `lv_entitlement_required`. A shared link
+  `?template=<id>` preselects an offered template and falls back to Blank for one the plan does not offer.
+- `/pricing` gets "Templates for every plan", built from the same data so the counts stay true.
+- `src/components/TemplateQuestions.tsx` is shared by the use-case pages and the picker.
+- Tests: `src/lib/campaignTemplates.test.ts` (one question for a poll, rating or feedback; targeted means Team and
+  identified; windows say when they close; offering is display-only) and `e2e/campaigntemplates.test.mjs` (Starter,
+  locked Team templates, a Team Hub landing on Audience, a time-bounded end date, deep links, phone width, pricing).
+
+### Fixed (people left signed in on a dead session saw "Something went wrong on our side")
+
+- Reported: after a while of inactivity, My home showed "Something went wrong on our side. Try again." while the header
+  still showed the person signed in. Cause: sessions last at most one hour by design (LC-04, LC-33), but the app checked
+  the expiry only when the page loaded, and the real transport turned the backend's `401 JWT expired` (a PostgREST
+  error, not an envelope) into `lv_server_error`. A tab left open past the hour kept sending a dead token.
+- A refused or expired token now becomes `lv_unauthenticated` (`src/lib/authFailure.ts`: HTTP 401, PGRST301/302/303 or a
+  JWT message; a 403 stays a permission error). Edge Function calls (checkout, portal) get the same treatment.
+- `IdentityProvider` ends the session when its clock runs out (a timer, plus a re-check when the tab regains focus or
+  becomes visible, since background timers are throttled) and whenever the server refuses a token that was sent. Ending
+  clears the stored session, shows a toast, and sets a flag; signed-in pages go to `/signin` and keep the path
+  (`from`), where a "You were signed out" notice explains why. Signing in again returns to where they were.
+- The session lifetime is unchanged (1 hour, a compliance decision). Silent renewal, so people are not interrupted at
+  all, needs a backend and CSP decision and is not part of this fix.
+- Tests: `src/lib/authFailure.test.ts` (what counts as an ended session and what does not) and `e2e/session.test.mjs`
+  (the reported My home case, an expiry while the tab is open, a public page, and a healthy session left alone). In dev
+  the mock treats a session whose token is `expired` as a server-refused token.
+
+### Added (use-case pages, four more templates, "more than lunch" positioning)
+
+- Ten public use-case pages at `/use-cases/<slug>` (anonymous employee survey, event feedback form, club and committee
+  votes, weekly team pulse survey, customer feedback questionnaire, meeting and workshop feedback, group scheduling
+  poll, community suggestion box, menu and dining feedback, member questionnaire). Each shows the template's real
+  sample questions, why it works, recommended settings, related pages and a "Use this template" button that opens
+  `/surveys/new?template=<id>`. One source, `src/config/useCases.json`, feeds the page, its title, description,
+  canonical, prerendered HTML and sitemap entry (21 sitemap URLs). Unknown slugs show the 404 page.
+- Four new Quick Survey templates: Anonymous employee survey, Club or committee vote, Member questionnaire, Menu and
+  dining feedback (ten in total). The vote template sets Invite only and Anonymous when picked (a ballot should reach
+  only the people invited; each signed-in account counts once); other templates leave those settings alone.
+- The Use cases hub is rebuilt from the same data and now leads with "The name has lunch in it. The product doesn't."
+  The home page gets a use-case band linking to every page. Dining is one use case of ten.
+- Honest about elections: the vote page states a LunchVoice poll is a straightforward vote, not a certified election,
+  and that a dedicated Election mode is planned (Campaign Election mode is still disabled until M2).
+- `render.yaml` gains ten rewrites (one per use-case page, above the catch-all). The Render dashboard needs the same
+  ten rules; the file is not synced from the repo. `routes.json` lists `/use-cases/:slug`.
+- Card-title links on marketing pages use ink instead of the amber accent for contrast.
+- Tests: `scripts/seo-prerender.test.mjs` now covers every use-case page; `e2e/usecases.test.mjs` covers the hub, a
+  page's real questions and canonical, the sign-in round trip, the vote defaults and caveat, a 404 and phone width.
+
+### Added (try-it path: Quick Survey templates and go-to-market plan)
+
+- Quick Surveys can start from six templates (Event feedback, Team pulse check, Pick a time or option, Suggestion box,
+  Service feedback, Meeting or workshop feedback) on `/surveys/new`. Picking one fills the title (unless the creator
+  typed their own) and creates the draft with its questions already added in order; everything stays editable until
+  publish. Blank is still the default. `/surveys/new?template=<id>` preselects a template, so each one is a shareable
+  marketing link; an unknown id falls back to Blank. Source: `src/config/surveyTemplates.ts` (generic, no customer
+  named); `src/lib/surveyTemplates.test.ts` checks limits and the server's question rules; `e2e/templates.test.mjs`
+  covers the flow.
+- `RequireSignIn` now keeps the query string through sign-in (`from: pathname + search`), so a shared template link
+  survives the redirect. `safeReturnTo` already validated queries.
+- `docs/frontend/GO_TO_MARKET.md`: audience, the path to trying the product, template links, channel plan, honest
+  offers, messaging rules tied to F-11, measurement options and the respondent growth loop, both left as founder
+  decisions.
 
 ### Operations (2026-11-11, founder-approved: "approved, apply 000029 and ship")
 

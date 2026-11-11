@@ -53,8 +53,11 @@
   --lv-signature-calm: 9s;
   --lv-signature-default: 6s;
   --lv-signature-lively: 4s;
+  /* type floor: nothing on screen is set smaller than this */
+  --lv-text-min: 12px;
   /* targets */
   --lv-target-min: 44px;
+  --lv-header-clear: 76px; /* height the pinned header covers; sticky content sits below it */
   --lv-circle-control: 58px;
 }
 :root,
@@ -74,6 +77,7 @@
   --lv-accent: #ff9a18;
   --lv-accent-deep: #e98207;
   --lv-accent-light: #ffb347;
+  --lv-accent-text: #8f4a00; /* amber for TEXT on light surfaces: 5.6:1 on --lv-page, 6.6:1 on white */
   --lv-on-accent: #14110f;
   --lv-danger: #c2382b;
   --lv-danger-ink: #8a2318;
@@ -98,6 +102,7 @@
   --lv-accent: #ff9a18;
   --lv-accent-deep: #e98207;
   --lv-accent-light: #ffb347;
+  --lv-accent-text: #ffb347;
   --lv-on-accent: #14110f;
   --lv-danger: #ff8a7a;
   --lv-danger-ink: #ffb3a8;
@@ -135,6 +140,7 @@
   --lv-accent: #ffb347;
   --lv-accent-deep: #ffb347;
   --lv-accent-light: #ffb347;
+  --lv-accent-text: #5c2e00;
   --lv-on-accent: #000000;
   --lv-danger: #a3140a;
   --lv-danger-ink: #a3140a;

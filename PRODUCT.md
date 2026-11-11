@@ -33,7 +33,7 @@ manager through the same onboarding as every other customer.
 | Starter Hub | $13 / month | 3 roles, 3 custom pages, 15 active Campaigns, 2 active surveys, >50% participation threshold |
 | Team Hub | $29 / month | 6 roles, expanded pages, enhanced modes, advanced targeting and analytics, 5 active surveys, ≥20% threshold, Discover eligibility at 700 active members |
 | Campaign Starter | $19 for the first 2 weeks, $13 per extra week | Starter features during the paid window |
-| Campaign Plus | no numeric price yet | Team features during the paid window. **Do not show a price; checkout stays disabled** |
+| Campaign Plus | $39 for the first 2 weeks, $19 per extra week (founder, 2026-11-07) | Team features during the paid window |
 | Hub Name Reservation ("Reserve your Hub URL") | $25 / 12 months, $25 renewal | 25-day grace, then released; grants no paid features |
 
 ## Privacy language

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Icon } from "../components/Icon";
+import { Icon, type IconName } from "../components/Icon";
+import { USE_CASES } from "../config/useCases";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
+import { useBilling } from "../lib/useBilling";
 import { PLANS } from "../config/pricing";
 import { Button } from "@/components/shadcn/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/shadcn/input-otp";
@@ -11,6 +13,9 @@ import { Progress } from "@/components/shadcn/progress";
 // `/` is built 1:1 from the design handoff's "LunchVoice v2 Landing" (founder decision): ink hero with the join-code
 // card, amber ticker, three steps, live results, your Hub, for participants, pricing. The founder's launch adds the
 // waitlist section. Prices come from src/config/pricing.ts; dining is one use case among many.
+// Every call to action and billing sentence here comes from useBilling() (src/lib/billingState.ts): "Start a free
+// survey" is always the primary action, and the Hub action is the waitlist until billing opens.
+// The result, Hub and account panels are illustrations with made-up numbers, and each one says so on screen.
 
 const ROTATOR: [string, string][] = [
   ["Rating scales people tap in seconds", ": stars, choices, yes or no, and a short answer."],
@@ -37,22 +42,32 @@ function Rotator() {
 
 function CodeCard() {
   const [code, setCode] = useState("");
+  const [nudge, setNudge] = useState(false);
   const nav = useNavigate();
-  const go = () => code.length === 6 && nav(`/c/${code.toUpperCase()}`);
+  const ready = code.length === 6;
+  // The button is never disabled (a greyed-out button reads as broken): with no code yet it is the quiet style, and
+  // pressing it says what is missing and puts the cursor in the code field.
+  function go(form: HTMLFormElement) {
+    if (ready) return nav(`/c/${code.toUpperCase()}`);
+    setNudge(true);
+    form.querySelector<HTMLInputElement>("input")?.focus();
+  }
   return (
-    <form id="join" className="lv-l-code" onSubmit={(e) => { e.preventDefault(); go(); }} aria-labelledby="code-h">
+    <form id="join" className="lv-l-code" onSubmit={(e) => { e.preventDefault(); go(e.currentTarget); }} aria-labelledby="code-h">
       <div className="lv-l-code-head">
         <h2 id="code-h">Got a code?</h2>
         <span className="lv-l-mono">No account needed</span>
       </div>
-      <InputOTP maxLength={6} value={code} onChange={(v) => setCode(v.toUpperCase())} aria-label="Six-character join code" pattern="^[A-Za-z0-9]*$">
+      <InputOTP maxLength={6} value={code} onChange={(v) => { setCode(v.toUpperCase()); setNudge(false); }} aria-label="Six-character join code" aria-describedby="code-hint" pattern="^[A-Za-z0-9]*$">
         <InputOTPGroup>{[0, 1, 2, 3, 4, 5].map((i) => <InputOTPSlot key={i} index={i} />)}</InputOTPGroup>
       </InputOTP>
       <div className="lv-l-code-foot">
-        <Button type="submit" variant="ink" size="lg" disabled={code.length < 6}>
+        <Button type="submit" variant={ready ? "ink" : "secondary"} size="lg" data-ready={ready || undefined} data-testid="join-submit">
           Join survey <Icon name="arrow" size={16} />
         </Button>
-        <span>or scan the QR on the poster</span>
+        <span id="code-hint" role={nudge ? "alert" : undefined} data-nudge={nudge || undefined}>
+          {nudge ? "Type the six-character code first." : "Type the code, or scan the QR on the poster."}
+        </span>
       </div>
     </form>
   );
@@ -60,23 +75,30 @@ function CodeCard() {
 
 function WaitlistBand() {
   const { api } = useIdentity();
+  const { state, ctas } = useBilling();
   const status = useLv(() => api.waitlistStatus(), [api]);
   const s = status.data;
   const left = s ? Math.max(0, s.seats_total - s.seats_taken) : null;
   return (
-    <section id="waitlist" className="lv-l-section" aria-labelledby="wl-h">
+    <section id="waitlist" className="lv-l-section" aria-labelledby="wl-h" data-billing={state.open ? "open" : "closed"}>
       <div className="lv-l-waitlist">
         <div className="lv-l-waitlist-copy">
           <span className="lv-l-eyebrow lv-l-eyebrow-accent">Founding seats</span>
           <h2 id="wl-h" className="lv-l-h2">50 Founding seats. A Hub on us.</h2>
-          <p>
-            LunchVoice opens through a waitlist. Sign in and join: the first 50 people admitted receive a Founding Hub
-            credit, a Starter Hub free until paid billing launches and for 30 days after. Everyone else can buy a plan once
-            billing opens.
-          </p>
+          {state.open ? (
+            <p>
+              The first 50 people admitted from the waitlist received a Founding Hub credit. Billing is open now, so anyone
+              can buy a Hub plan without waiting.
+            </p>
+          ) : (
+            <p>
+              LunchVoice opens through a waitlist. Sign in and join: the first 50 people admitted receive a Founding Hub
+              credit, a Starter Hub free until paid billing launches and for 30 days after. Everyone else can buy a plan once
+              billing opens.
+            </p>
+          )}
           <div className="lv-l-actions">
-            <Button asChild variant="primary" size="lg"><Link to="/waitlist">Join the waitlist</Link></Button>
-            <Button asChild variant="secondary" size="lg"><Link to="/surveys/new">Or start a free Quick Survey</Link></Button>
+            <Button asChild variant="secondary" size="lg" data-lv-cta="waitlist-band"><Link to={ctas.hub.to}>{ctas.hub.label}</Link></Button>
           </div>
         </div>
         <div className="lv-l-seats" aria-live="polite">
@@ -93,6 +115,7 @@ function WaitlistBand() {
 
 export function Landing() {
   const plans = ["free", "starter", "team"].map((id) => PLANS.find((p) => p.id === id)!);
+  const { state, ctas } = useBilling();
 
   return (
     <div className="lv-l">
@@ -100,21 +123,22 @@ export function Landing() {
       <div className="lv-l-ink">
         <header className="lv-l-hero">
           <div className="lv-l-hero-copy">
-            <span className="lv-l-eyebrow"><i aria-hidden="true" />LunchVoice 2.0<span>· surveys for any community</span></span>
+            <span className="lv-l-eyebrow"><i aria-hidden="true" />Surveys for any community</span>
             <h1 className="lv-l-h1">Every voice has a story. <em>Hear it.</em></h1>
             <p className="lv-l-lede">
               Build a survey in minutes, share it with one QR code or a six-character code, and watch anonymous answers
               arrive while it’s still happening. Every community gets its own Hub at <b>lunchvoice.com/yourname</b>.
             </p>
+            <div className="lv-l-actions" data-testid="hero-actions" data-billing={state.open ? "open" : "closed"}>
+              <Button asChild variant="primary" size="lg" data-lv-cta="hero" className="lv-l-cta">
+                <Link to={ctas.primary.to}>{ctas.primary.label}</Link>
+              </Button>
+              <Link className="lv-l-outline-btn lv-l-outline-btn-band" to={ctas.hub.to} data-lv-cta="hero-hub">{ctas.hub.label}</Link>
+            </div>
             <Rotator />
           </div>
           <div className="lv-l-hero-side">
             <CodeCard />
-            <div className="lv-l-cta-row">
-              <Button asChild variant="primary" size="lg" data-lv-cta="hero" className="lv-l-cta">
-                <Link to="/waitlist">Create your Hub</Link>
-              </Button>
-            </div>
           </div>
         </header>
         <div className="lv-l-ticker" aria-hidden="true">
@@ -123,6 +147,19 @@ export function Landing() {
           </div>
         </div>
       </div>
+
+      {/* ---------------- more than lunch ---------------- */}
+      <section id="uses" className="lv-l-section" aria-labelledby="uses-h">
+        <div className="lv-l-head">
+          <span className="lv-l-eyebrow lv-l-eyebrow-muted">Use cases</span>
+          <h2 id="uses-h" className="lv-l-h2">The name has lunch in it. The product doesn’t.</h2>
+        </div>
+        <ul className="lv-l-chips" data-testid="landing-use-cases">
+          {USE_CASES.map((u) => (
+            <li key={u.slug}><Link to={`/use-cases/${u.slug}`}><Icon name={u.icon as IconName} size={16} />{u.name}</Link></li>
+          ))}
+        </ul>
+      </section>
 
       {/* ---------------- how it works ---------------- */}
       <section id="how" className="lv-l-section" aria-labelledby="how-h">
@@ -157,10 +194,10 @@ export function Landing() {
             <h2 id="live-h" className="lv-l-h2">Know before the line clears.</h2>
             <p>Answers land by the minute. Question summaries and charts are built in, and you only ever see totals, never names. A group too small to stay anonymous is withheld, never shown as zero.</p>
           </div>
-          <div className="lv-l-live" aria-label="Sample results">
+          <div className="lv-l-live" role="figure" aria-label="Illustration of a results screen, with sample data">
             <div className="lv-l-live-top">
-              <span className="lv-l-mono"><i aria-hidden="true" />Live · Sample survey</span>
-              <span className="lv-l-mono lv-l-dim">updated 2 min ago</span>
+              <span className="lv-l-mono">Results screen</span>
+              <span className="lv-l-sample">Sample data</span>
             </div>
             <div className="lv-l-live-metrics">
               <div><strong className="lv-l-amber">412</strong><span>Responses</span></div>
@@ -182,10 +219,10 @@ export function Landing() {
           <p>Every Hub gets <b>lunchvoice.com/yourname</b>. Add pages as your community grows, and choose who gets in.</p>
         </div>
         <div className="lv-l-hubgrid">
-          <div className="lv-l-browser" aria-hidden="true">
-            <div className="lv-l-browser-bar"><span><i>lunchvoice.com/</i><b>yourname</b></span></div>
+          <div className="lv-l-browser" role="figure" aria-label="Illustration of a Hub page, with sample content">
+            <div className="lv-l-browser-bar"><span><i>lunchvoice.com/</i><b>yourname</b></span><span className="lv-l-sample">Example</span></div>
             <div className="lv-l-browser-cover">
-              <div><span className="lv-l-logo">LOGO</span><b>Your community</b></div>
+              <div><span className="lv-l-logo" aria-hidden="true"><Icon name="voice" size={18} /></span><b>Your community</b></div>
               <div className="lv-l-browser-tabs"><span data-on>Campaigns</span><span>News</span><span>Leaderboard</span><span>Comments</span></div>
             </div>
             <div className="lv-l-browser-body">
@@ -219,7 +256,8 @@ export function Landing() {
               <Link className="lv-l-outline-btn" to="/join">Join with a code</Link>
             </div>
           </div>
-          <div className="lv-l-stats" aria-label="Example account">
+          <div className="lv-l-stats" role="figure" aria-label="Illustration of an account summary, with sample data">
+            <span className="lv-l-sample lv-l-stats-tag">Example account</span>
             <div data-tone="ink"><span>Surveys answered</span><strong>37</strong></div>
             <div><span>Hubs joined</span><strong>3</strong></div>
             <div><span>Quick Surveys made</span><strong>2</strong></div>
@@ -239,17 +277,17 @@ export function Landing() {
         <div className="lv-l-plans">
           {plans.map((p) => (
             <div key={p.id} className={`lv-l-plan${p.id === "starter" ? " lv-l-plan-ink" : ""}`}>
-              <div className="lv-l-plan-top"><b>{p.name}</b><span className="lv-l-mono">{p.id === "starter" ? "Founding seat" : p.id === "free" ? "No Hub needed" : "More of everything"}</span></div>
-              <div className="lv-l-plan-price"><strong>{p.priceLabel ?? "Price not set"}</strong><span>{p.cadence}</span></div>
+              <div className="lv-l-plan-top"><b>{p.name}</b><span className="lv-l-mono">{p.id === "starter" ? (state.open ? "For one community" : "Founding seat") : p.id === "free" ? "No Hub needed" : "More of everything"}</span></div>
+              <div className="lv-l-plan-price"><strong>{p.priceLabel}</strong><span>{p.cadence}</span></div>
               <ul>{p.features.slice(0, 5).map((f) => <li key={f}><Icon name="check" size={16} />{f}</li>)}</ul>
-              {p.id === "free" && <Button asChild variant="secondary" size="lg" block><Link to="/surveys/new">Start a Quick Survey</Link></Button>}
-              {p.id === "starter" && <Button asChild variant="primary" size="lg" block><Link to="/waitlist">Join the waitlist</Link></Button>}
+              {p.id === "free" && <Button asChild variant="secondary" size="lg" block><Link to={ctas.primary.to}>{ctas.primary.label}</Link></Button>}
+              {p.id === "starter" && <Button asChild variant="secondary" size="lg" block data-lv-cta="plan-starter"><Link to={ctas.hub.to}>{ctas.hub.label}</Link></Button>}
               {p.id === "team" && <Button asChild variant="secondary" size="lg" block><Link to="/pricing">See every plan</Link></Button>}
             </div>
           ))}
         </div>
         <p className="lv-l-foot">
-          Campaign Starter, Campaign Plus and Hub URL reservations are on the <Link to="/pricing">pricing page</Link>. Checkout opens when billing launches; nothing here charges money.
+          Campaign Starter, Campaign Plus and Hub URL reservations are on the <Link to="/pricing">pricing page</Link>. <span data-testid="billing-sentence">{ctas.sentence}</span>
         </p>
       </section>
     </div>

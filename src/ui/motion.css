@@ -81,6 +81,6 @@
   .lv-glide > b, .lv-circle, .lv-option, .lv-tile-choice, .lv-next, .lv-circle-btn { transition: none !important; }
 }
 
-.lv-live-head { display: inline-flex; align-items: center; gap: 8px; font: 700 11.5px/1 var(--lv-font-mono); letter-spacing: 0.12em; text-transform: uppercase; }
+.lv-live-head { display: inline-flex; align-items: center; gap: 8px; font: 700 12px/1 var(--lv-font-mono); letter-spacing: 0.12em; text-transform: uppercase; }
 .lv-live-count strong { font: 800 26px/1 var(--lv-font-display); letter-spacing: -0.03em; }
 .lv-countup { font-variant-numeric: tabular-nums; }

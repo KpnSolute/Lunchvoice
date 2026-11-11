@@ -56,19 +56,39 @@ test("admin: a platform admin sees the console; waitlist emails stay hidden unti
   await ctx.close();
 });
 
-test("pricing: signed out, every buy action asks for sign-in", async () => {
+test("pricing: signed out while billing is closed, nothing says Sign in to buy", async () => {
   const { page: p, go, ctx } = await page({ signedIn: false });
   await go("/pricing");
-  const buy = p.getByTestId("checkout-starter_hub");
-  await buy.waitFor();
-  assert.equal(await buy.textContent(), "Sign in to buy");
+  const starter = p.getByTestId("checkout-starter_hub");
+  await starter.waitFor();
+  assert.equal(await starter.textContent(), "Join the waitlist");
+  assert.equal(await starter.getAttribute("href"), "/waitlist");
+  assert.equal(await p.getByText("Sign in to buy").count(), 0);
+  for (const product of ["team_hub", "campaign_starter", "campaign_plus"]) {
+    assert.equal(await p.getByTestId(`checkout-${product}`).getAttribute("data-state"), "disabled", product);
+  }
+  assert.equal(await p.getByTestId("billing-notice").getAttribute("data-state"), "closed");
+  await ctx.close();
+});
+
+test("pricing: signed out once billing is open, every buy action asks for sign-in", async () => {
+  const { page: p, go, ctx } = await page({ signedIn: false }, READY);
+  await go("/pricing");
+  for (const product of ["starter_hub", "team_hub", "campaign_starter", "campaign_plus"]) {
+    const el = p.getByTestId(`checkout-${product}`);
+    await el.waitFor();
+    assert.equal(await el.textContent(), "Sign in to buy", product);
+  }
+  assert.equal(await p.getByTestId("billing-notice").getAttribute("data-state"), "open");
+  await p.getByText("Checkout is open", { exact: true }).waitFor();
   await ctx.close();
 });
 
 test("pricing: while billing is closed, checkout is disabled with a visible reason", async () => {
   const { page: p, go, ctx } = await page();
   await go("/pricing");
-  for (const product of ["starter_hub", "team_hub", "campaign_starter", "campaign_plus"]) {
+  assert.equal(await p.getByTestId("checkout-starter_hub").getAttribute("data-state"), "waitlist");
+  for (const product of ["team_hub", "campaign_starter", "campaign_plus"]) {
     const el = p.getByTestId(`checkout-${product}`);
     await el.waitFor();
     assert.equal(await el.getAttribute("data-state"), "disabled", product);
