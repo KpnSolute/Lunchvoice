@@ -130,7 +130,7 @@ dispatcher's default. No ticket system is proposed: below roughly 20 messages a 
 
 Steps 1 and 2 belong before the December launch: they are what lets one person run moderation.
 
-**Status 2026-11-11:** step 1 and the staff email from step 2 are built as migration 000030 (R-1, R-2, R-3, R-4, R-10),
+**Status 2026-11-11:** step 1 and the staff email from step 2 are live in production as migration 000030 (R-1, R-2, R-3, R-4, R-10),
 with the scheduled-jobs card from step 3 in 000031. Not yet built: the creator notice (3.6), the growth and trust
 tiles (3.9), automatic pause (3.5), more report targets (3.7), Hub moderators (3.8).
 

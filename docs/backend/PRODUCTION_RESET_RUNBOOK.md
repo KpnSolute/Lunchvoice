@@ -392,3 +392,15 @@ before step 6; `jobs_install` uses the same names and replaces their commands.
 
 **000029: EXECUTED 2026-11-11** (guest limits, F-15) under the founder's approval, from commit `d12761d` (function
 body hash verified after apply), rehearsed on a seeded 000028 database first; history version normalized.
+
+**000030, 000031, 000032 and section 13: EXECUTED 2026-11-11** under the founder's approval (see CHANGELOG). Notes for
+the next run of this section:
+
+- Deploying a function through the Management API resets `verify_jwt` to true. Set it back to false immediately for
+  every function listed in `supabase/config.toml`, and confirm with a request that carries no bearer: the answer must
+  be the function's own `lv_unauthenticated`, not the gateway's "Missing authorization header".
+- A function deployed as a single file must be bundled first (`esbuild --bundle --format=esm --platform=neutral
+  --external:postgres`, then the `postgres` import rewritten to the specifier in that function's `deno.json`).
+- `lv.jobs_install()` needs 000032; with the 000031 body it reports `pg_cron` missing and schedules nothing.
+- To check health: `select * from cron.job_run_details order by start_time desc limit 20;`,
+  `select name, last_ok_at, last_error from lv.jobs;` and the newest rows of `net._http_response`.

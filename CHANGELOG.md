@@ -6,6 +6,33 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (2026-11-11, founder-approved: "approved apply 000030 and 000031 and do the setup remove them")
+
+- **Production migrations:** 000030 (reporting, step 1) and 000031 (scheduled jobs) applied to `qprfonxvthmaoxfixigk`
+  from commit `ceff42a`, fetched from GitHub with file hashes verified (`737fbb13…`, `f479cb9c…`), after a rehearsal on a
+  seeded 000029 database that held an existing report. Post-apply audit: the eight new or changed function bodies hash
+  identically to the rehearsal, 145 `lv_api` functions (142 + `lv_report_abuse` with a category,
+  `lv_admin_campaign_reports_dismiss`, `lv_admin_jobs`), the signed-out list gains only the second `lv_report_abuse`,
+  nothing in `lv` is executable by or granted to `anon`/`authenticated`, RLS on every `lv` table, data unchanged
+  (4 accounts, 6 Hubs, 7 Campaigns, 10 submissions). 000032 (the install fix below) applied from `029952a`, hash
+  `a0df3ca0…`. History versions normalized to `000030`, `000031`, `000032`.
+- **Scheduler set up (runbook section 13):** `pg_cron` and `pg_net` enabled; a new random dispatch bearer set as the
+  `EMAIL_DISPATCH_SECRET` function secret and as the Vault secret `email_dispatch_secret` (generated and stored without
+  being displayed); `jobs.functions_base_url` set; `lv.jobs_install()` scheduled all five jobs
+  (`lv-email-dispatch`, `lv-webhook-dispatch`, `lv-discord-dispatch`, `lv-retention`, `lv-counter-trim`).
+- **`email-dispatch` deployed** (version 10) as a single bundled file built from `ceff42a`; the bundle built in the
+  deploy sandbox hashed identically to the local build (`b2b21ac8…`). The deploy API reset `verify_jwt` to true; it was
+  set back to false at once and the function's own check confirmed (401 `lv_unauthenticated` without the bearer).
+  `webhook-dispatch` and `discord` were not redeployed: their code has not changed.
+- **Verified live:** the first dispatch sent the two queued emails through Resend (`hub_created`, `hub_invite`:
+  claimed 2, sent 2); the webhook and Discord dispatchers answer 200 with the new bearer; pg_cron reports every run
+  succeeded; `lv.jobs` shows no error. `retention` first runs at 03:17 UTC. Not exercised: a real abuse report (it
+  would create a production record and email the founder).
+- **Removed, on the founder's instruction:** twelve v1 function secrets that no v2 function reads (the old database
+  URL and keys, the menu key, the earlier mail provider's endpoint and key, the old sender name and address, the old
+  origins list, the auth email hook secret, and the two earlier KpnSolute events settings). Nineteen remain, all read
+  by v2 or reserved by Supabase.
+
 ### Fixed (000032)
 
 - `lv.jobs_install()` reported pg_cron as missing even when it was enabled, so no job was ever put on a timer: it

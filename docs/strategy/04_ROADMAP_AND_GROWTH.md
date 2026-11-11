@@ -57,7 +57,7 @@ Feature freeze is 2026-11-21. Only the launch list from the review goes in befor
 | 3 | Landing: lead with "Make a survey free"; remove elections, idea boards, "live". **Copy corrected; hero button order still to do** | P-2, P-5 | copy | Honesty and first click |
 | 4 | Sealed-results state for open anonymous surveys, with share controls | P-3 | 1 component | First-run dead end |
 | 5 | Thank-you invitation on the guest screen | P-4 | 1 component + beacon | The growth loop |
-| 6 | Scheduled jobs: three dispatchers, retention, counter trim. **Built (000031); production setup is runbook section 13** | B-3 | 1 migration + setup | Email and a privacy promise depend on it |
+| 6 | Scheduled jobs: three dispatchers, retention, counter trim. **Live in production since 2026-11-11 (000031, 000032); email sends** | B-3 | done | Email and a privacy promise depend on it |
 | 7 | Counters, client error reporter, uptime checks, staff tiles | B-4 | 1 migration + 1 function | Launching blind |
 | 8 | Pricing page: three cards, reservation card under the plans, passes (F-16). **Built** | P-7 | UI | Clear first read of the prices |
 | 9 | Results refresh every 20 s for open named surveys; anonymous stay sealed. **Built** | P-2 | small | Makes "live" true where it is safe |

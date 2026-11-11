@@ -77,7 +77,7 @@ Decided before any of it is built. Each is implemented through the entitlement m
 | F-18 | **Referral credit:** when an invited person starts a paid Hub subscription, the inviter and the new Hub each get one free month of their plan. It pays out only on a real first payment, once per new Hub, has no cash value, and ships after billing is live. |
 | F-19 | **The name stays LunchVoice.** Tell the lunch-line origin story; remove cafeteria wording from the site and the brand files. |
 | F-20 | **No Labs switch.** The review proposed hiding Shop, Points, Leaderboard and others behind a new switch. Withdrawn: a new Hub starts with only Home and Campaigns, the Owner adds the other pages in the Builder, and points are off by default, so the control already exists. |
-| F-21 | **Email goes live.** The `lunchvoice.com` domain is verified at Resend (founder, 2026-11-11). Remaining: set `RESEND_API_KEY` and `EMAIL_FROM` as function secrets (names only) and schedule the dispatcher. |
+| F-21 | **Email goes live.** The `lunchvoice.com` domain is verified at Resend (founder, 2026-11-11). Done 2026-11-11: `RESEND_API_KEY` and `EMAIL_FROM` set, the dispatcher scheduled (000031, 000032), and the first two queued emails sent. |
 
 Launch gate: no production launch while any BLOCKER or HIGH finding is open. MEDIUM findings are triaged into
 "before public beta" and "after public beta".
