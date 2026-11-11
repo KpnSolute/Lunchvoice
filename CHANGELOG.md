@@ -6,6 +6,12 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (product identity, founder direction 2026-11-11)
+
+- `docs/v2/PRODUCT_DIRECTION_2026-11-11.md` section 1 now leads with the core identity statement: **"LunchVoice is where
+  a community decides."** (Discord is where a community talks; LunchVoice is where it decides, with an equal, safe voice
+  and a record of what was asked, said, decided and changed.) Documentation only; no product behaviour changes.
+
 ### Added (000035 staff billing controls, built and tested, NOT yet applied to production)
 
 - **Turn billing on from the staff panel** (founder request 2026-11-11). `supabase/migrations/000035_v2_billing_controls.sql` +

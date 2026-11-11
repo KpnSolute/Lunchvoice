@@ -5,6 +5,10 @@ anonymity, suppression, guest rules, entitlements or the no-special-casing rule 
 
 ## 1. Positioning
 
+**LunchVoice is where a community decides.** Discord is where a community talks; LunchVoice is where it decides.
+Everyone gets an equal, safe voice, and what was asked, said, decided and changed stays on record. Other tools help
+organizations hear their people; LunchVoice helps communities show their people they were heard (founder, 2026-11-11).
+
 LunchVoice is not a survey tool with a community bolted on. It is **a place where asking is social**: the audience is a
 community people belong to (a Hub, a Discord server, a link they share), not a panel you buy. We make surveys easy to
 build and make handling the audience easy and human.
