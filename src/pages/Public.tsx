@@ -1,3 +1,4 @@
+import { LvMark } from "../components/LvMark";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
@@ -50,7 +51,7 @@ const MARKETING_LINKS = [
 function Brand() {
   return (
     <Link to="/" className="lv-brand" aria-label="LunchVoice home">
-      <img src="/brand/lunchvoice-mark.svg" alt="" height={28} width={28} />
+      <LvMark size={28} />
       <span>LunchVoice</span>
     </Link>
   );
@@ -192,7 +193,7 @@ function Footer() {
     <footer className="lv-footer">
       <div className="lv-footer-inner">
         <span className="lv-footer-brand">
-          <img src="/brand/lunchvoice-mark.svg" alt="" height={26} width={26} />
+          <LvMark size={26} />
           <strong>LunchVoice</strong>
         </span>
         <nav className="lv-footer-nav" aria-label="Footer">
@@ -237,7 +238,7 @@ export function SignIn() {
   return (
     <div className="lv-narrow">
       <Card className="lv-signin">
-        <img src="/brand/lunchvoice-mark.svg" alt="" height={44} width={44} />
+        <LvMark size={44} />
         <h1 className="lv-signin-title">Sign in to LunchVoice</h1>
         {ended && (
           <Notice tone="info" title="You were signed out">
