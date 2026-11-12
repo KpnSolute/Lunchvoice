@@ -68,7 +68,7 @@ export function guidelinesHtml({ sources, sized, img, tokens }) {
     <h2>Tagline</h2>
     <div style="font-family:'Bricolage Grotesque';font-weight:800;font-variation-settings:'opsz' 96;letter-spacing:-0.045em;font-size:34pt;line-height:1;margin:2mm 0 4mm">${TAGLINE}</div>
     <p>This is the one tagline. It appears beside or below the logo in marketing, never inside the logo file. The logo always works without it.</p>
-    <p>Retired lines, not to be used on anything new: "Smart feedback. Better cafeterias." and "Every voice has a story. Hear it." LunchVoice is not a cafeteria product; dining is one of many uses.</p>
+    <p>The home page headline alternates: each visitor is shown either "Make every voice count." or "Every voice has a story. Hear it.", and keeps that one on later visits. The second line belongs to the home page only. Retired, not to be used on anything new: "Smart feedback. Better cafeterias." LunchVoice is not a cafeteria product; dining is one of many uses.</p>
     <h2>Character</h2>
     <ul><li><b>Ink anchors.</b> Most of what you see is ink on a calm neutral, or bone on ink.</li><li><b>Amber is the accent.</b> One amber thing per screen or graphic: the thing that matters most.</li><li><b>Confident, not loud.</b> Big, tight display type; plain words; no stock photos, no invented numbers, no emoji standing in for icons.</li></ul>`));
 

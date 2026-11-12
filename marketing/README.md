@@ -6,7 +6,9 @@ This directory is the source of truth for LunchVoice's outward-facing marketing 
 - Name: **LunchVoice** (one word).
 - Brand visual DNA: **ink, amber, bone**, NOT blue/purple. Ink `#14110F`; amber `#FF9A18`; bone `#F7F3EA`; page `#EEEDEA`; white `#FFFFFF`.
 - Display: Bricolage Grotesque; interface: Geist; data: Space Mono. Preserve accessibility and clear contrast.
-- Tagline: **Make every voice count.** (the only one; "Every voice has a story. Hear it." and "Smart feedback. Better cafeterias." are retired). It sits beside or below the logo, never inside it.
+- Tagline: **Make every voice count.** Use it in every marketing asset. The website's home page headline alternates it with
+  "Every voice has a story. Hear it." per visitor; that second line stays on the home page. "Smart feedback. Better
+  cafeterias." is retired. It sits beside or below the logo, never inside it.
 - Use actual graphics from the brand kit, never an AI-generated or redrawn replacement. Start with
   `brand/lv-package/README.md`, which says which file to use where:
   - Logos: `brand/lv-package/logo/` (transparent PNG) and `brand/lv-package/source-svg/` (vector). Use `on-light` on

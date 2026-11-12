@@ -11,6 +11,7 @@ import { PLANS } from "../config/pricing";
 import { PRODUCTS } from "../config/products";
 import { Button } from "@/components/shadcn/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/shadcn/input-otp";
+import { deviceStore, heroLineFor } from "../lib/heroLine";
 import { Progress } from "@/components/shadcn/progress";
 
 // `/` keeps the design handoff's ink hero (founder decision) and answers, in order: who it is for (use cases), how a
@@ -155,6 +156,8 @@ function KitchenBand() {
 export function Landing() {
   const plans = ["free", "starter", "team"].map((id) => PLANS.find((p) => p.id === id)!);
   const { state, ctas } = useBilling();
+  // One of the two approved headlines, fixed per device (see src/lib/heroLine.ts).
+  const [heroLine] = useState(() => heroLineFor(deviceStore()));
 
   return (
     <div className="lv-l">
@@ -163,7 +166,7 @@ export function Landing() {
         <header className="lv-l-hero">
           <div className="lv-l-hero-copy">
             <span className="lv-l-eyebrow"><i aria-hidden="true" />Surveys for any community</span>
-            <h1 className="lv-l-h1">Make every voice <em>count.</em></h1>
+            <h1 className="lv-l-h1" data-hero-line={heroLine.id}>{heroLine.lead} <em>{heroLine.accent}</em></h1>
             <p className="lv-l-lede">
               Build a survey in minutes, share it with one QR code or a six-character code, and watch anonymous answers
               arrive while it’s still happening. Every community gets its own Hub at <b>lunchvoice.com/yourname</b>.

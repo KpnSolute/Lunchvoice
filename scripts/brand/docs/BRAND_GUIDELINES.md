@@ -8,7 +8,9 @@ and `DESIGN.md` decide.
 
 - Name: **LunchVoice**, one word, capital L and V.
 - Tagline: **Make every voice count.** Beside or below the logo in marketing; never inside a logo file.
-- Retired: "Smart feedback. Better cafeterias." and "Every voice has a story. Hear it."
+- Home page only: the headline alternates per visitor between "Make every voice count." and "Every voice has a story.
+  Hear it." (each device keeps its line; `src/lib/heroLine.ts`). Use "Every voice has a story. Hear it." nowhere else.
+- Retired: "Smart feedback. Better cafeterias."
 - LunchVoice is a surveys and feedback platform for any community. It is not a cafeteria product.
 
 ## Logo

@@ -6,6 +6,17 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Home page headline: one of two lines per device (2026-11-12, founder request)
+
+- The home hero shows either "Make every voice **count.**" or "Every voice has a story. **Hear it.**". Each device is
+  given one at random on its first visit and keeps it (`localStorage["lv.heroLine"]`), so returning visitors never see it
+  flip. If storage is blocked, a line is picked for that visit only. The `h1` carries `data-hero-line="count|story"` so
+  the two can be compared once sign-ups are measured. Logic and tests: `src/lib/heroLine.ts`, `e2e/heroline.test.mjs`.
+- Brand rules: "Make every voice count." stays the tagline for logos, social, video, link previews and search results.
+  "Every voice has a story. Hear it." is approved again for the home page headline only. `check:brand` now requires both
+  lines in `heroLine.ts` and fails if the second one appears in `index.html`, `seo.json` or any logo file. The guidelines
+  PDF, the brand readme, the marketing guide and the design-system skill say the same.
+
 ### Changed (survey creation and Campaign lists, founder assignment 2026-11-12, PR D)
 
 - **New Quick Survey opens on a short template list:** Blank and the first five templates, then "Show all N templates".

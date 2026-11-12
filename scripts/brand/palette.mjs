@@ -1,11 +1,16 @@
 // Brand facts shared by the build and the checks: the tagline, the platform sizes, and the colour specification, which
 // is computed from src/ui/tokens.css so the document cannot drift from the product.
 
-/** The tagline (founder decision, 2026-11-12). It replaced "Every voice has a story. Hear it." everywhere. */
+/** The tagline (founder decision, 2026-11-12): logos, social, video, link previews and search results. */
 export const TAGLINE = "Make every voice count.";
+/**
+ * The home page headline rotates per device between the tagline and a second approved line (founder decision,
+ * 2026-11-12, later the same day). The second line is for the home page headline only. Source: src/lib/heroLine.ts.
+ */
+export const HOME_LINES = [TAGLINE, "Every voice has a story. Hear it."];
 export const SITE = "lunchvoice.com";
 /** Lines that must never appear in a current asset. */
-export const RETIRED_LINES = ["SMART FEEDBACK", "BETTER CAFETERIAS", "Every voice has a story"];
+export const RETIRED_LINES = ["SMART FEEDBACK", "BETTER CAFETERIAS"];
 
 /**
  * Platform sizes and safe areas, checked on 2026-11-12 against current platform guidance (see
