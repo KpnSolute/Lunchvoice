@@ -20,6 +20,22 @@ categories and the repository's decimal `X.X.X` release policy.
   canonical suite passed on the merged chain and on production's own chain (000001 to 000035 including 000029 to
   000032 from PR #59). See the Operations entry for the verification.
 
+### Operations (2026-11-12, production, founder approval)
+
+- **Applied 000036, 000037, 000038, 000039 to production** (`qprfonxvthmaoxfixigk`), one at a time, each recorded in
+  `supabase_migrations.schema_migrations` under its canonical version with its SQL. Files fetched from commit `ae0babc`
+  and checked by SHA-256 against the tested files before apply. Backup before apply: `2244167446` (2026-11-12 10:45
+  UTC). Pre-checks: no Hub at `products`, all 10 Campaigns in existing modes.
+- **Verified after apply:** `lv_quick_survey_create` takes `p_mode` (defaults to `survey`, so the previous frontend
+  kept working); `free.quick.modes` = survey, poll, rating, yes_no, feedback; `modes.election` on starter and team;
+  `lv_ballot_submit` is the only new anon function (anon list otherwise unchanged); `lv_election_results` is not
+  anon-executable; `products` is reserved; the public `lv_plan_limits` returns the new keys.
+- **Local rehearsal of production's exact chain** (main + 000029 to 000032 from PR #59 + 000036 to 000039): 1411
+  checks, 3 failures, all pre-existing drift from PR #59 rather than these migrations: production has a second
+  signature of `lv_guest_submit` and `lv_report_abuse` (000029/000030) and no `guest.rate` policy, which `main`'s
+  tests do not expect, and 000030's staff report queue differs from 000033/000034. Merging PR #59 into `main` (or
+  closing it with its migrations ported) would remove the drift.
+
 ### Changed (survey creation and Campaign lists, founder assignment 2026-11-12, PR D)
 
 - **New Quick Survey opens on a short template list:** Blank and the first five templates, then "Show all N templates".
