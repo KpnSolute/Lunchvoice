@@ -33,7 +33,7 @@ export function readConfig(env: Record<string, string | undefined>, origin: stri
   const issuer = env.VITE_KPNIDENTITY_ISSUER?.replace(/\/+$/, "");
   const clientId = env.VITE_KPNIDENTITY_CLIENT_ID;
   const supabaseUrl = env.VITE_SUPABASE_URL?.replace(/\/+$/, "");
-  const anonKey = env.VITE_SUPABASE_ANON_KEY;
+  const anonKey = env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY;
   if (!issuer || !clientId || !supabaseUrl || !anonKey) return null;
   return {
     issuer,
@@ -130,7 +130,7 @@ export async function completeSignIn(
 
   const sessionResponse = await fetcher(config.sessionUrl, {
     method: "POST",
-    headers: { "content-type": "application/json", apikey: config.anonKey, authorization: `Bearer ${config.anonKey}` },
+    headers: { "content-type": "application/json", apikey: config.anonKey },
     body: JSON.stringify({ idToken: tokens.id_token, nonce: pending.nonce }),
   });
   const body = (await sessionResponse.json().catch(() => ({}))) as { ok?: boolean; session?: string; expiresIn?: number; error?: { message?: string } };

@@ -3,24 +3,26 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 import { Slot } from "radix-ui"
 
-// Tactile buttons. `primary` is the accent CTA and the only primary: one per view. `secondary` is the raised
-// surface, `ink` the dark surface, `quiet` text-only, `danger` the tinted destructive action.
+// Buttons (design system 3). `primary` is the amber action and the only primary: one per view. `secondary` is a
+// bordered surface, `ink` solid ink, `quiet` text-only, `danger` the tinted destructive action. Rounded rectangles;
+// hover changes colour, never position; the springy press (tactile-press) is what keeps them lively.
 const buttonVariants = cva(
-  "tactile-press tactile-focus inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full border-0 " +
-    "font-semibold whitespace-nowrap no-underline select-none disabled:cursor-not-allowed disabled:opacity-55 " +
+  "tactile-press tactile-focus inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[var(--lv-radius-control)] border-0 " +
+    "font-semibold whitespace-nowrap no-underline select-none disabled:cursor-not-allowed disabled:opacity-100 " +
+    "disabled:bg-[var(--lv-well)] disabled:text-[var(--lv-subtle)] disabled:shadow-none " +
     "aria-disabled:cursor-not-allowed aria-disabled:opacity-55 [&_svg]:pointer-events-none [&_svg]:shrink-0 " +
     "[&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        primary: "surface-cta hover:not-disabled:-translate-y-0.5",
-        secondary: "surface-raised hover:not-disabled:-translate-y-px",
-        ink: "surface-ink hover:not-disabled:-translate-y-0.5",
+        primary: "surface-cta hover:not-disabled:bg-[var(--lv-accent-light)]",
+        secondary: "surface-raised hover:not-disabled:bg-[var(--lv-surface2)]",
+        ink: "surface-ink hover:not-disabled:opacity-90",
         quiet: "bg-transparent text-[var(--lv-muted)] hover:text-[var(--lv-text)] hover:bg-[var(--lv-surface2)]",
-        danger: "surface-danger hover:not-disabled:-translate-y-px",
+        danger: "surface-danger hover:not-disabled:bg-[color-mix(in_srgb,var(--lv-danger)_22%,transparent)]",
         /* shadcn's own names, kept so generated components keep working */
         default: "surface-ink",
-        outline: "surface-raised",
+        outline: "surface-raised hover:not-disabled:bg-[var(--lv-surface2)]",
         ghost: "bg-transparent text-[var(--lv-muted)] hover:text-[var(--lv-text)] hover:bg-[var(--lv-surface2)]",
         destructive: "surface-danger",
         link: "bg-transparent px-0 text-[var(--lv-text)] underline underline-offset-4",

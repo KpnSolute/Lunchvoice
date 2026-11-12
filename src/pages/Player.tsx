@@ -1,3 +1,4 @@
+import { LvMark } from "../components/LvMark";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
@@ -23,7 +24,7 @@ const randomKey = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), (
 function PoweredBy() {
   return (
     <p className="lv-powered">
-      Powered by <img src="/brand/lunchvoice-mark.svg" alt="" height={16} width={16} /> <strong>LunchVoice</strong>
+      Powered by <LvMark size={16} /> <strong>LunchVoice</strong>
     </p>
   );
 }

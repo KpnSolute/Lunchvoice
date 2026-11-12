@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
@@ -10,13 +10,14 @@ import type { SaveTracker } from "./QuestionWorkbench";
 import { Icon } from "../components/Icon";
 import { campaignPhase, LinkButton } from "../components/ui";
 import { StateScreen } from "../ui/StateScreen";
+import { SURVEY_TEMPLATES, TEMPLATE_CATEGORIES, templateById, templateConfig, type TemplateCategory } from "../config/surveyTemplates";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
 import { Input } from "@/components/shadcn/input";
 import { Switch } from "@/components/shadcn/switch";
 import { Badge } from "@/components/shadcn/badge";
 import { RadioCard, RadioGroup } from "@/components/shadcn/radio-group";
-import { EmptyState, Field, LoadingRows, Notice, PageHeader, PhaseBadge, QuotaMeter, RowItem, RowList, ToggleRow } from "@/components/shadcn/blocks";
+import { EmptyState, Field, LoadingRows, Notice, PageHeader, PhaseBadge, QuotaMeter, RowItem, RowList, Segmented, ToggleRow } from "@/components/shadcn/blocks";
 import {
   DescriptionField,
   GuestsGroup,
@@ -93,7 +94,6 @@ export function SurveyList() {
             <Card>
               <h2 className="lv-share-h">Your free limits</h2>
               <QuotaMeter label="Active Quick Surveys" used={d.active} limit={d.limit} hint="Archiving a survey frees a slot." />
-              <p className="lv-m0"><strong>{d.active} of {d.limit ?? "–"} active</strong></p>
               <p className="ui-muted lv-m0">Up to 10 questions each: rating, single choice, multiple choice, yes/no and short text.</p>
             </Card>
             <Card variant="dashed">
@@ -110,34 +110,98 @@ export function SurveyList() {
 
 /* ------------------------------------------------------------------ /surveys/new */
 
+/** How many templates "All" lists before "Show all"; Blank is always first. */
+const TEMPLATES_AT_FIRST = 5;
+
 export function NewSurvey() {
   const { api } = useIdentity();
   const nav = useNavigate();
-  const [title, setTitle] = useState("");
+  // /surveys/new?template=event-feedback preselects a starter template (shareable, and kept through sign-in).
+  const [params] = useSearchParams();
+  const fromLink = templateById(params.get("template"));
+  const [tplId, setTplId] = useState<string>(fromLink?.id ?? "blank");
+  const tpl = templateById(tplId);
+  const [cat, setCat] = useState<"All" | TemplateCategory>(fromLink?.category ?? "All");
+  const [showAll, setShowAll] = useState(false);
+  const [title, setTitle] = useState(fromLink?.title ?? "");
+  const [access, setAccess] = useState<SurveyAccess>(fromLink?.defaults?.access ?? "link");
+  const [anonymity, setAnonymity] = useState<Anonymity>(fromLink?.defaults?.anonymity ?? "anonymous");
   const limits = useLv(() => api.planLimits(), [api]);
   const allowed = freeFeedbackTypes(limits.data);
   const [mode, setMode] = useState<CampaignMode>("survey");
-  const [access, setAccess] = useState<SurveyAccess>("link");
-  const [anonymity, setAnonymity] = useState<Anonymity>("anonymous");
   const [guests, setGuests] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Choosing a template fills the title unless the creator already typed their own.
+  function pickTemplate(id: string) {
+    const next = templateById(id);
+    if (!title.trim() || title === tpl?.title) setTitle(next?.title ?? "");
+    if (next?.defaults?.access) setAccess(next.defaults.access);
+    if (next?.defaults?.anonymity) setAnonymity(next.defaults.anonymity);
+    // A template has several questions, so it is a Survey.
+    if (next) setMode("survey");
+    setTplId(id);
+  }
+
   async function create() {
+    if (busy) return;
     setBusy(true);
     setError(null);
-    const r = await api.quickSurveyCreate(title.trim(), access, anonymity, access === "link" && guests, mode);
+    const r = await api.quickSurveyCreate(title.trim(), access, anonymity, access === "link" && guests, tpl ? "survey" : mode);
+    if (!r.ok) { setBusy(false); return setError(describeError(r.error)); }
+    const id = r.campaign.campaign_id;
+    // The draft exists now. Add the template's questions in order (positions start at 1); if one fails the creator
+    // still lands in the editor with the draft and whatever was added.
+    let failed = false;
+    if (tpl) {
+      for (const [i, q] of tpl.questions.entries()) {
+        const added = await api.questionAdd(id, i + 1, q.kind, q.prompt, templateConfig(q));
+        if (!added.ok) { failed = true; break; }
+      }
+    }
     setBusy(false);
-    if (!r.ok) return setError(describeError(r.error));
-    toast.success("Draft created. Add your questions.");
-    nav(`/surveys/${r.campaign.campaign_id}`);
+    if (tpl && !failed) toast.success(`Draft created from “${tpl.name}”. Edit anything before you publish.`);
+    else if (tpl) toast.warning("Draft created, but some template questions could not be added. Add the rest in the editor.");
+    else toast.success("Draft created. Add your questions.");
+    nav(`/surveys/${id}`);
   }
+
+  // "All" opens on a short list so the title and the privacy choices are on screen without scrolling past every
+  // template; a category, or "Show all", lists everything. The chosen template is always listed.
+  const matching = SURVEY_TEMPLATES.filter((t) => cat === "All" || t.category === cat);
+  const shortList = cat === "All" && !showAll ? matching.slice(0, TEMPLATES_AT_FIRST) : matching;
+  const chosen = SURVEY_TEMPLATES.find((t) => t.id === tplId);
+  const visibleTemplates = chosen && !shortList.includes(chosen) ? [...shortList, chosen] : shortList;
+  const hiddenCount = matching.length - shortList.length;
 
   return (
     <div className="ui-page lv-narrow-page">
       <PageHeader eyebrow="New Quick Survey" title="What do you want to ask?" sub="It starts as a draft. Nobody sees it until you publish." actions={<LinkButton to="/surveys" variant="quiet">Cancel</LinkButton>} />
       <Card>
         <form className="lv-stack-24" onSubmit={(e) => { e.preventDefault(); if (title.trim()) void create(); }}>
+          <fieldset className="lv-fieldset" data-testid="template-picker">
+            <legend className="lv-legend">Start from</legend>
+            <Segmented<"All" | TemplateCategory>
+              label="Template category"
+              value={cat}
+              onValueChange={setCat}
+              options={[{ value: "All", label: "All" }, ...TEMPLATE_CATEGORIES.map((c) => ({ value: c, label: c }))]}
+            />
+            <RadioGroup value={tplId} onValueChange={pickTemplate} aria-label="Start from" className="ui-grid-2">
+              <RadioCard value="blank" title="Blank" description="Write your own questions." />
+              {/* The chosen template stays visible when the filter changes, so the selection never disappears. */}
+              {visibleTemplates.map((t) => (
+                <RadioCard key={t.id} value={t.id} title={t.name} description={`${t.blurb} ${t.questions.length} questions.`} />
+              ))}
+            </RadioGroup>
+            {hiddenCount > 0 && (
+              <Button type="button" variant="quiet" size="sm" onClick={() => setShowAll(true)} data-testid="templates-more">
+                Show all {matching.length} templates <Icon name="chevron" size={14} />
+              </Button>
+            )}
+          </fieldset>
+
           <Field label="Title" htmlFor="qs-title" counter={{ value: title.length, max: 120 }}>
             <Input id="qs-title" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} placeholder="Book club: next month’s pick" autoFocus />
           </Field>

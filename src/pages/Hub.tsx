@@ -1,3 +1,4 @@
+import { LvMark } from "../components/LvMark";
 import { useEffect, useState } from "react";
 import { feedbackTypeLabel } from "../config/feedbackTypes";
 import { Link, NavLink, Outlet, useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
@@ -14,7 +15,9 @@ import { ReportDialog } from "../components/ReportDialog";
 import { campaignPhase, LinkButton } from "../components/ui";
 import { Icon, type IconName } from "../components/Icon";
 import { HubMark } from "../ui/HubMark";
-import { HubCover } from "../ui/HubCover";
+import { HubProfile } from "../ui/HubProfile";
+import { ShareHubDialog } from "../components/ShareHub";
+import { IconBadge } from "../components/IconBadge";
 import { accentVars, onAccent } from "../lib/accent";
 import { HubAppearance } from "./HubAppearance";
 import { StateScreen } from "../ui/StateScreen";
@@ -36,6 +39,8 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { ConfirmAction } from "./Studio";
 /* ---- track D: api + discord ---- */
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shadcn/tabs";
+import { Progress } from "@/components/shadcn/progress";
+import { RadioCard, RadioGroup } from "@/components/shadcn/radio-group";
 import { HubApiSettings, HubDiscordSettings } from "./Integrations";
 /* ---- end track D ---- */
 import { QrCode } from "@/components/shadcn/blocks/qr";
@@ -46,7 +51,6 @@ import {
   Eyebrow,
   Field,
   LoadingRows,
-  Metric,
   Notice,
   PhaseBadge,
   QuotaMeter,
@@ -112,15 +116,17 @@ export function HubLayout() {
   if (!membership || ADDON_PAGE.test(pathname)) {
     return (
       <div className="lv-l10 lv-hubscope" style={accentVars(hub.accent_hex ?? null)}>
-        <HubCover
-          name={hub.name}
-          slug={hub.slug}
-          accent={hub.accent_hex}
-          pills={<span className="lv-cover-pill">{hub.visibility === "public" ? "Public" : "Private"} · {hub.membership_mode.replace("_", " ")}</span>}
-          action={!session ? <LinkButton to="/signin" state={{ from: base }} variant="secondary">Sign in</LinkButton> : membership ? <LinkButton to={base} variant="secondary">Open workspace</LinkButton> : undefined}
+        <HubProfile
+          hub={hub}
+          actions={
+            <>
+              <ShareHubDialog hub={hub} trigger={<Button variant="secondary" data-testid="hub-share-open"><Icon name="join" size={16} />Share</Button>} />
+              {membership && <LinkButton to={base} variant="primary">Open workspace</LinkButton>}
+            </>
+          }
         />
         <div className="lv-l10-body"><CommunityNav slug={hub.slug} hubId={hub.hub_id} /><Outlet context={ctx} /></div>
-        <p className="lv-powered">Powered by <img src="/brand/lunchvoice-mark.svg" alt="" height={16} width={16} /> <strong>LunchVoice</strong></p>
+        <p className="lv-powered">Powered by <LvMark size={16} /> <strong>LunchVoice</strong></p>
       </div>
     );
   }
@@ -150,26 +156,18 @@ export function HubLayout() {
 
   return (
     <div className="ui-page lv-hubscope" style={accentVars(hub.accent_hex ?? null)} data-accent={hub.accent ?? undefined}>
-      {hub.accent_hex && <div className="lv-hub-banner" aria-hidden="true" />}
-      <div className="lv-hubhead">
-        <div className="lv-hubhead-main">
-          <span className="lv-hubmark-wrap"><HubMark name={hub.name} size={64} /></span>
-          <div>
-            <Eyebrow accent>Hub</Eyebrow>
-            <h1>{hub.name}</h1>
-            <div className="ui-row">
-              <Badge>{hub.visibility}</Badge>
-              <Badge>{hub.membership_mode.replace("_", " ")}</Badge>
-              <span className="ui-muted ui-mono lv-small">/{hub.slug}</span>
-            </div>
-          </div>
-        </div>
-        <div className="ui-row">
-          {plan && <Badge variant={plan.state === "active" ? "ok" : plan.state === "expired" ? "danger" : "neutral"}>{familyName(plan.family)}{plan.state === "expired" ? " · expired" : ""}</Badge>}
-          {owner && <Badge variant="ink">Owner</Badge>}
-          {!owner && session && <HubReportMenu hub={hub} />}
-        </div>
-      </div>
+      <HubProfile
+        hub={hub}
+        owner={owner}
+        compact
+        actions={
+          <>
+            {plan?.state === "expired" && <Badge variant="danger">{familyName(plan.family)} · ended</Badge>}
+            <ShareHubDialog hub={hub} trigger={<Button variant="secondary" size="md" data-testid="hub-share-open"><Icon name="join" size={16} />Share</Button>} />
+            {!owner && session && <HubReportMenu hub={hub} />}
+          </>
+        }
+      />
       {/* ---- staff panel: Hub suspension ---- */}
       {hub.suspension?.suspended && (
         <Notice tone="error" title="This Hub is suspended" className="lv-suspended-notice">
@@ -258,6 +256,41 @@ function HubReportMenu({ hub }: { hub: HubInfo }) {
 
 /* ------------------------------------------------------------------ overview */
 
+type SetupStep = { key: string; title: string; body: string; to: string; done: boolean };
+
+/**
+ * "Set up your Hub" for the people who can act on it. Every tick comes from real state (the Hub's about line and
+ * colour, its Campaigns, its member count, its Discord connections); nothing is ticked because it was clicked.
+ * It disappears once every step it shows is done.
+ */
+function HubSetupChecklist({ steps }: { steps: SetupStep[] }) {
+  const done = steps.filter((x) => x.done).length;
+  if (steps.length === 0 || done === steps.length) return null;
+  return (
+    <Card data-testid="getting-started">
+      <div className="lv-setup-head">
+        <SectionTitle>Set up your Hub</SectionTitle>
+        <span className="lv-setup-count" data-testid="setup-progress">{done} of {steps.length} done</span>
+      </div>
+      <Progress value={(done / steps.length) * 100} aria-label={`${done} of ${steps.length} setup steps done`} />
+      <ol className="lv-setup">
+        {steps.map((x) => (
+          <li key={x.key} data-done={x.done || undefined} data-testid={`setup-${x.key}`}>
+            <span className="lv-setup-tick" aria-hidden="true">{x.done && <Icon name="check" size={14} />}</span>
+            {x.done ? (
+              <span className="lv-setup-text"><b>{x.title}</b></span>
+            ) : (
+              <Link to={x.to} className="lv-setup-text"><b>{x.title}</b><span>{x.body}</span></Link>
+            )}
+            <span className="sr-only">{x.done ? "(done)" : "(to do)"}</span>
+          </li>
+        ))}
+      </ol>
+    </Card>
+  );
+}
+
+
 export function HubOverview() {
   const { hub, membership } = useHubCtx();
   const { api, session } = useIdentity();
@@ -270,6 +303,8 @@ export function HubOverview() {
     () => (can(membership, "admin.members.admit") || can(membership, "admin.members.remove") ? api.memberList(hub.hub_id) : Promise.resolve(denied)),
     [api, hub.hub_id, Boolean(membership)],
   );
+  const settingsManager = Boolean(membership?.is_owner || can(membership, "hub.settings.manage"));
+  const discord = useLv(() => (settingsManager ? api.discordConnections(hub.hub_id) : Promise.resolve(denied)), [api, hub.hub_id, settingsManager]);
 
   async function join() {
     setBusy(true);
@@ -281,29 +316,23 @@ export function HubOverview() {
 
   if (!membership) {
     return (
-      <div className="ui-grid-2">
-        <Card>
-          <Eyebrow>Membership</Eyebrow>
-          <h2 className="lv-detail-title">
-            {hub.membership_mode === "open" ? "This Hub is open to join." : hub.membership_mode === "approval" ? "Join requests are reviewed by a manager." : "This Hub is invite only."}
-          </h2>
-          {hub.about && <p className="lv-m0">{hub.about}</p>}
-          <p className="ui-muted lv-m0">Campaigns, members and results stay private until you’re a member.</p>
-          {error && <Notice tone="error">{error}</Notice>}
-          {pending && <Notice tone="ok">Request sent. A manager will review it.</Notice>}
+      <Card className="lv-hub-joincard" data-testid="hub-join">
+        <h2 className="lv-detail-title">
+          {hub.membership_mode === "open" ? "This Hub is open to join." : hub.membership_mode === "approval" ? "Join requests are reviewed by a manager." : "This Hub is invite only."}
+        </h2>
+        <p className="ui-muted lv-m0">Campaigns, members and results stay private until you’re a member. Answering is always free.</p>
+        {error && <Notice tone="error">{error}</Notice>}
+        {pending && <Notice tone="ok">Request sent. A manager will review it.</Notice>}
+        <div className="ui-row">
           {!session ? (
-            <LinkButton to="/signin" state={{ from: `/${hub.slug}` }} variant="primary">Sign in to join</LinkButton>
+            <LinkButton to="/signin" state={{ from: `/${hub.slug}` }} variant="primary" size="lg">Sign in to join</LinkButton>
           ) : hub.membership_mode === "invite_only" ? (
-            <LinkButton to="/join" variant="secondary">Use an invite code</LinkButton>
+            <LinkButton to="/join" variant="secondary" size="lg">Use an invite code</LinkButton>
           ) : (
-            <Button variant="primary" onClick={join} disabled={busy || pending}>{busy ? "Working…" : hub.membership_mode === "open" ? "Join this Hub" : "Request to join"}</Button>
+            <Button variant="primary" size="lg" onClick={join} disabled={busy || pending}>{busy ? "Working…" : hub.membership_mode === "open" ? "Join this Hub" : "Request to join"}</Button>
           )}
-        </Card>
-        <Card variant="well">
-          <Eyebrow>About this Hub</Eyebrow>
-          <div className="ui-grid-2"><Metric value={hub.member_count} label="Members" hint="Guests never count." /><Metric value={hub.visibility} label="Visibility" /></div>
-        </Card>
-      </div>
+        </div>
+      </Card>
     );
   }
 
@@ -312,30 +341,35 @@ export function HubOverview() {
   const accepted = people.data?.members.filter((m) => m.status === "accepted") ?? [];
   const waiting = people.data?.members.filter((m) => m.status === "pending").length ?? 0;
   const manager = can(membership, "campaign.manage");
+  const steps: SetupStep[] = [];
+  if (settingsManager) {
+    steps.push({ key: "about", title: "Describe your Hub", body: "Add an about line so visitors know what it is for.", to: `/${hub.slug}/settings`, done: Boolean(hub.about?.trim()) });
+    steps.push({ key: "colour", title: "Pick your Hub color", body: "It shows on your banner, icon and Campaign cards.", to: `/${hub.slug}/settings#appearance`, done: Boolean(hub.accent) });
+  }
+  if (manager && campaigns.data) {
+    steps.push({ key: "campaign", title: "Ask your first question", body: "A quick poll takes a minute.", to: `/${hub.slug}/campaigns/new`, done: rows.length > 0 });
+  }
+  if (can(membership, "admin.members.admit")) {
+    steps.push({ key: "invite", title: "Invite people", body: "Share a code or send it by email.", to: `/${hub.slug}/invites`, done: hub.member_count > 1 });
+  }
+  if (settingsManager && discord.data) {
+    steps.push({ key: "discord", title: "Connect your Discord server", body: "Optional: post Campaigns where your community already talks.", to: `/${hub.slug}/settings?tab=discord`, done: discord.data.connections.length > 0 });
+  }
 
   return (
-    <div className="lv-dash">
-      <div className="lv-stack">
+    <div className="lv-hub-overview">
         <div className="lv-tiles lv-tiles-3" data-testid="hub-stats">
           <StatTile tone="ink" label="Live Campaigns" value={live} note={`${rows.length} in total`} />
           <StatTile label="Members" value={hub.member_count} note={waiting > 0 ? `${waiting} waiting on you` : hub.member_count <= 1 ? "Just you so far" : "No requests waiting"} />
           <StatTile
-            tone="edge"
             label="Plan"
             value={familyName(hub.plan?.family)}
             note={hub.plan?.state === "active" ? (hub.plan.ends_at ? `Until ${fmtDate(hub.plan.ends_at)}` : hub.plan.product === "founding" ? "Founding · active" : "Active") : "Premium actions locked"}
           />
         </div>
-        {manager && campaigns.data && rows.length === 0 && (
-          <Card variant="ink" data-testid="getting-started">
-            <Eyebrow accent>Get your Hub going</Eyebrow>
-            <ol className="lv-getting-started">
-              <li><Link to={`/${hub.slug}/campaigns/new`}><b>Ask your first question</b><span>A quick poll takes a minute.</span></Link></li>
-              {can(membership, "admin.members.admit") && <li><Link to={`/${hub.slug}/invites`}><b>Invite people</b><span>Share a code or send it by email.</span></Link></li>}
-              {can(membership, "hub.settings.manage") && <li><Link to={`/${hub.slug}/settings`}><b>Make it yours</b><span>Add an about line and a Hub color.</span></Link></li>}
-            </ol>
-          </Card>
-        )}
+    <div className="lv-dash">
+      <div className="lv-stack">
+        <HubSetupChecklist steps={steps} />
         <Card>
           <SectionTitle action={manager ? <LinkButton to={`/${hub.slug}/campaigns/new`} variant="ink" size="sm" icon="plus">New Campaign</LinkButton> : undefined}>Campaigns</SectionTitle>
           {campaigns.loading && !campaigns.data ? (
@@ -357,7 +391,7 @@ export function HubOverview() {
             <SectionTitle action={waiting > 0 ? <LinkButton to={`/${hub.slug}/members`} variant="quiet" size="sm">{waiting} waiting</LinkButton> : undefined}>People</SectionTitle>
             <RowList>
               {accepted.slice(0, 4).map((m) => (
-                <RowItem key={m.membership_id} leading={<HubMark name={m.display_name ?? "Member"} size={34} />} title={m.display_name ?? "Member"} trailing={<span className="ui-muted lv-small">{m.is_owner ? "Owner" : m.roles[0]?.name ?? "Member"}</span>} />
+                <RowItem key={m.membership_id} leading={<HubMark name={m.display_name ?? "Member"} size={34} />} title={m.display_name ?? "Member"} trailing={m.is_owner ? <span className="ui-row"><IconBadge kind="owner" /><span className="ui-muted lv-small">Owner</span></span> : <span className="ui-muted lv-small">{m.roles[0]?.name ?? "Member"}</span>} />
               ))}
             </RowList>
             <LinkButton to={`/${hub.slug}/members`} variant="quiet" size="sm" icon="arrow">All members</LinkButton>
@@ -365,6 +399,7 @@ export function HubOverview() {
         )}
         <HubShareCard hub={hub} canInvite={can(membership, "admin.members.admit")} />
       </aside>
+    </div>
     </div>
   );
 }
@@ -474,8 +509,11 @@ export function Members() {
             <TableBody>
               {accepted.map((m) => (
                 <TableRow key={m.membership_id}>
-                  <TableCell><span className="lv-member-name">{m.display_name ?? "Member"} {m.is_owner && <Badge variant="ink">Owner</Badge>}</span></TableCell>
-                  <TableCell><div className="ui-row">{m.roles.length === 0 ? <span className="ui-muted">—</span> : m.roles.map((r) => <Badge key={r.key}>{r.name}</Badge>)}</div></TableCell>
+                  <TableCell><span className="lv-member-name">{m.display_name ?? "Member"} {m.is_owner && <IconBadge kind="owner" />}</span></TableCell>
+                  <TableCell><div className="ui-row">{m.roles.length === 0 ? <span className="ui-muted">—</span> : m.roles.map((r) => {
+                    const icon = roles.data?.roles.find((x) => x.key === r.key)?.icon;
+                    return <span key={r.key} className="lv-role-pill"><Icon name={(icon && ROLE_ICONS.includes(icon as IconName) ? icon : "star") as IconName} size={14} />{r.name}</span>;
+                  })}</div></TableCell>
                   <TableCell>
                     <div className="lv-member-actions">
                       {can(membership, "admin.roles.manage") && !m.is_owner && (roles.data?.roles.length ?? 0) > 0 && (
@@ -835,33 +873,38 @@ function HubGeneralSettings() {
   return (
     <div className="lv-stack-16">
       <Card>
-        <SectionTitle>Hub details</SectionTitle>
         <form className="lv-stack-16" onSubmit={(e) => { e.preventDefault(); void save(); }}>
-          <Field label="Name" htmlFor="h-name" counter={{ value: name.length, max: 60 }}>
+          <SectionTitle>Name and description</SectionTitle>
+          <Field label="Hub name" htmlFor="h-name" counter={{ value: name.length, max: 60 }}>
             <Input id="h-name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
           </Field>
-          <Field label="About" htmlFor="h-about" help="Shown on the Hub’s landing page." counter={{ value: about.length, max: 500 }}>
-            <Textarea id="h-about" value={about} maxLength={500} onChange={(e) => setAbout(e.target.value)} aria-describedby="h-about-help" />
+          <Field label="What is this Hub for?" htmlFor="h-about" help="One or two sentences. Shown on your Hub’s page, its share card and Discover." counter={{ value: about.length, max: 500 }}>
+            <Textarea id="h-about" value={about} maxLength={500} onChange={(e) => setAbout(e.target.value)} aria-describedby="h-about-help" placeholder="Weekly long runs, a monthly social, and a say in the route." />
           </Field>
-          <div className="ui-grid-2">
-            <Field label="Visibility" htmlFor="h-vis" help={visibility === "private" ? "Only members can see it. To everyone else it looks like it doesn’t exist." : "Anyone with the address can see the landing page."}>
-              <Select value={visibility} onValueChange={(v) => setVisibility(v as Visibility)}>
-                <SelectTrigger id="h-vis"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="public">Public</SelectItem><SelectItem value="private">Private</SelectItem></SelectContent>
-              </Select>
-            </Field>
-            <Field label="Joining" htmlFor="h-mode">
-              <Select value={mode} onValueChange={(v) => setMode(v as MembershipMode)}>
-                <SelectTrigger id="h-mode"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="open">Open: anyone signed in can join</SelectItem>
-                  <SelectItem value="approval">Approval: a manager admits requests</SelectItem>
-                  <SelectItem value="invite_only">Invite only: invite codes</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
+          <div className="lv-settings-address" data-testid="settings-address">
+            <span className="ui-help">Address</span>
+            <span className="lv-settings-address-url">lunchvoice.com/<b>{hub.slug}</b></span>
+            <span className="ui-help">Addresses cannot be changed in the app yet. <a className="lv-inline-link" href={supportMailto(`Change the address of ${hub.slug}`)}>Ask support</a> if you need a different one.</span>
           </div>
-          <div className="ui-row">
+          <Separator />
+          <SectionTitle>Who can see it and join</SectionTitle>
+          <fieldset className="lv-settings-group">
+            <legend>Who can see this Hub</legend>
+            <RadioGroup value={visibility} onValueChange={(v) => setVisibility(v as Visibility)} aria-label="Who can see this Hub" className="ui-grid-2">
+              <RadioCard value="public" title="Public" description="Anyone with the address sees the Hub’s page. Campaigns and results stay for members." />
+              <RadioCard value="private" title="Private" description="Only members can see it. To everyone else the address looks like it doesn’t exist." />
+            </RadioGroup>
+          </fieldset>
+          <fieldset className="lv-settings-group">
+            <legend>How people join</legend>
+            <RadioGroup value={mode} onValueChange={(v) => setMode(v as MembershipMode)} aria-label="How people join" className="lv-settings-modes">
+              <RadioCard value="open" title="Open" description="Anyone signed in can join straight away." />
+              <RadioCard value="approval" title="By approval" description="People ask to join and a manager admits them." />
+              <RadioCard value="invite_only" title="Invite only" description="Only people with an invite code can join." />
+            </RadioGroup>
+          </fieldset>
+          <p className="ui-help lv-m0">Changing these never removes anyone who is already a member.</p>
+          <div className="ui-row lv-settings-save">
             <Button type="submit" variant="ink" disabled={!dirty || saving || !name.trim()}>{saving ? "Saving…" : "Save settings"}</Button>
             <span className="lv-save" role="status" aria-live="polite" data-status={saving ? "saving" : dirty ? "dirty" : savedOnce ? "saved" : "idle"} data-testid="settings-save-state">
               <span className="lv-save-dot" aria-hidden="true" />
@@ -874,7 +917,8 @@ function HubGeneralSettings() {
 
       {owner && (
         <Card>
-          <SectionTitle>Owner only</SectionTitle>
+          <SectionTitle>Ownership and deletion</SectionTitle>
+          <p className="ui-help lv-m0">Only you, the Owner, see this section.</p>
           {dangerError && <Notice tone="error">{dangerError}</Notice>}
           <div className="lv-stack-16">
             <div className="lv-stack-8">

@@ -1113,6 +1113,21 @@ role removals and auto-posts.
   `{response_id, kind: member|guest, verified, name, at, answers[{question_id, prompt, kind, value}]}`; guests are
   `verified: false`. Opening the first page is audited as `campaign.responses_viewed`.
 
+## Requested by the UI thread (2026-11-12): Hub card fields
+
+The Hub card and profile header (`src/components/HubCard.tsx`, `src/ui/HubProfile.tsx`) and the share-preview Worker
+(`workers/hub-card`) read these from `lv_hub_get(p_slug)` and `lv_discover_list` **when present**. Until the backend
+sends them, the UI shows nothing in their place; it never estimates them.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `hub.created_at` | timestamptz | When the Hub was created; shown as "Est. Nov 2026". Public Hubs only for signed-out callers. |
+| `hub.online` | integer or absent | Members active in the last few minutes (the presence work in progress on another track). Absent when presence is off or the Hub is private. |
+| `hub.tags` | text[] (max 4 shown) | Owner-chosen tags (also in progress on another track). |
+
+No new error codes. The Worker calls `lv_hub_get` with the anon key and treats any `ok: false` or non-public Hub the
+same (a neutral card), so private Hubs stay indistinguishable from missing ones.
+
 ## Feedback types and elections (000036, 000037)
 
 Vocabulary: **Poll, Rating, Yes/No, Open feedback and Election are feedback types; a Survey combines several questions.**

@@ -1,25 +1,28 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { CountUp } from "../ui/motion";
 import { useLv } from "../lib/useLv";
 import { describeError } from "../lib/errors";
 import type { Anonymity, CampaignMode, HubInfo, HubMembership } from "../lib/lvApi";
-import { ELECTION_TYPE, FEEDBACK_TYPES, SURVEY_TYPE, feedbackTypeLabel, hubHasElections, startingKind } from "../config/feedbackTypes";
+import { ELECTION_TYPE, FEEDBACK_TYPES, SURVEY_TYPE, hubHasElections, startingKind } from "../config/feedbackTypes";
 import { Icon } from "../components/Icon";
-import { campaignPhase, LinkButton, type Phase } from "../components/ui";
+import { campaignPhase, LinkButton, modeLabel, type Phase } from "../components/ui";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
 import { Input } from "@/components/shadcn/input";
 import { Badge } from "@/components/shadcn/badge";
 import { Switch } from "@/components/shadcn/switch";
 import { RadioCard, RadioGroup } from "@/components/shadcn/radio-group";
-import { EmptyState, Eyebrow, Field, LoadingRows, Notice, PageHeader, PhaseBadge, Segmented, ToggleRow } from "@/components/shadcn/blocks";
+import { EmptyState, Field, LoadingRows, Notice, PageHeader, PhaseBadge, Segmented, ToggleRow } from "@/components/shadcn/blocks";
 import { can, useHubCtx } from "./Hub";
 import { Player } from "./Player";
 import { StudioView } from "./Studio";
 import { ResultsView } from "./Results";
+import { CampaignTemplatePicker, CampaignTemplateSummary } from "./CampaignTemplatePicker";
+import { campaignTemplateById, groupOf, templateOffered } from "../config/campaignTemplates";
+import { templateConfig } from "../config/surveyTemplates";
 
 /** Why export is off for this Hub, or null when the API should be asked. Display only; the backend decides. */
 export function exportBlockedReason(hub: HubInfo, membership: HubMembership | null): string | null {
@@ -53,7 +56,7 @@ export function Campaigns() {
           label="Filter Campaigns"
           value={filter}
           onValueChange={setFilter}
-          options={[{ value: "all", label: "All" }, { value: "open", label: "Live" }, { value: "scheduled", label: "Scheduled" }, { value: "draft", label: "Drafts" }, { value: "closed", label: "Closed" }]}
+          options={[{ value: "all", label: "All" }, { value: "open", label: "Open" }, { value: "scheduled", label: "Scheduled" }, { value: "draft", label: "Drafts" }, { value: "closed", label: "Closed" }]}
         />
         {manage && <LinkButton to={`/${hub.slug}/campaigns/new`} variant="primary" icon="plus">New Campaign</LinkButton>}
       </div>
@@ -76,7 +79,7 @@ export function Campaigns() {
           {rows.map((c) => (
             <Link key={c.campaign_id} to={`/${hub.slug}/campaigns/${c.campaign_id}`} className="lv-campaign-card">
               <Card className="lv-campaign-card-inner">
-                <div className="ui-spread"><PhaseBadge phase={campaignPhase(c)} /><Eyebrow>{feedbackTypeLabel(c.mode)}</Eyebrow></div>
+                <div className="ui-spread"><PhaseBadge phase={campaignPhase(c)} /><span className="ui-muted lv-small">{modeLabel(c.mode)}</span></div>
                 <h3 className="lv-campaign-title">{c.title}</h3>
                 <div className="ui-row">
                   <Badge variant={c.anonymity === "anonymous" ? "ok" : "neutral"}>{c.anonymity}</Badge>
@@ -99,7 +102,13 @@ export function NewCampaign() {
   const { hub } = useHubCtx();
   const { api } = useIdentity();
   const nav = useNavigate();
-  const [title, setTitle] = useState("");
+  // /:hub/campaigns/new?template=<id> preselects a template (only if this Hub's plan offers it).
+  const [params] = useSearchParams();
+  const linked = campaignTemplateById(params.get("template"));
+  const startTpl = linked && templateOffered(linked, hub.plan) ? linked : null;
+  const [tplId, setTplId] = useState<string>(startTpl?.id ?? "blank");
+  const tpl = campaignTemplateById(tplId);
+  const [title, setTitle] = useState(startTpl?.title ?? "");
   const [mode, setMode] = useState<CampaignMode>("survey");
   const [anonymity, setAnonymity] = useState<Anonymity>("anonymous");
   // Elections come from the Hub's plan (lv_hub_limits: modes.election), never from a hardcoded plan name.
@@ -111,8 +120,42 @@ export function NewCampaign() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Choosing a template fills the title unless the creator already typed their own.
+  function pickTemplate(id: string) {
+    const next = campaignTemplateById(id);
+    if (!title.trim() || title === tpl?.title) setTitle(next?.title ?? "");
+    setTplId(id);
+  }
+
+  // A template creates the draft with its description and questions, sets the end date for a time-bounded one, and
+  // lands on the step that needs a decision next (Audience for a role-targeted template, otherwise Review).
+  async function createFromTemplate(t: NonNullable<typeof tpl>) {
+    setBusy(true);
+    setError(null);
+    const r = await api.campaignCreateDescribed(hub.hub_id, title.trim(), t.mode, t.anonymity, t.description);
+    if (!r.ok) { setBusy(false); return setError(describeError(r.error)); }
+    const id = r.campaign_id;
+    let failed = false;
+    for (const [i, q] of t.questions.entries()) {
+      const added = await api.questionAdd(id, i + 1, q.kind, q.prompt, templateConfig(q));
+      if (!added.ok) { failed = true; break; }
+    }
+    let closes: Date | null = null;
+    if (t.windowDays && !failed) {
+      const at = new Date(Date.now() + t.windowDays * 86_400_000);
+      const u = await api.campaignUpdate(id, { closesAt: at.toISOString() });
+      if (u.ok) closes = at; else failed = true;
+    }
+    setBusy(false);
+    if (failed) toast.warning("Draft created, but part of the template could not be added. Check the questions and the schedule.");
+    else if (closes) toast.success(`Draft created from “${t.name}”. It closes on ${closes.toLocaleDateString(undefined, { day: "numeric", month: "short" })}; change it under Schedule.`);
+    else toast.success(`Draft created from “${t.name}”. Edit anything before you publish.`);
+    nav(`/${hub.slug}/campaigns/${id}/studio?section=${t.targetsRoles ? "audience" : "review"}`);
+  }
+
   async function create() {
     if (busy) return;
+    if (tpl) return createFromTemplate(tpl);
     setBusy(true);
     setError(null);
     const r = await api.campaignCreate(hub.hub_id, title.trim(), mode, election ? "anonymous" : anonymity);
@@ -139,9 +182,12 @@ export function NewCampaign() {
       <PageHeader eyebrow="New Campaign" title="Start a Campaign" sub="It starts as a draft. Nothing is visible to members until you publish it." />
       <Card>
         <form className="lv-stack-24" onSubmit={(e) => { e.preventDefault(); if (title.trim()) void create(); }}>
+          <CampaignTemplatePicker value={tplId} onChange={pickTemplate} plan={hub.plan} hubSlug={hub.slug} initialGroup={startTpl ? groupOf(startTpl) : "starter"} />
           <Field label="Title" htmlFor="c-title" counter={{ value: title.length, max: 120 }}>
             <Input id="c-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Which night works for the social?" maxLength={120} autoFocus />
           </Field>
+          {tpl && <CampaignTemplateSummary t={tpl} />}
+          {!tpl && (
           <fieldset className="lv-fieldset">
             <legend className="lv-legend">Feedback type</legend>
             <RadioGroup value={mode} onValueChange={(v) => setMode(v as CampaignMode)} aria-label="Feedback type" className="ui-grid-2">
@@ -151,13 +197,14 @@ export function NewCampaign() {
               <RadioCard value="survey" title={SURVEY_TYPE.label} description={SURVEY_TYPE.body} />
             </RadioGroup>
           </fieldset>
-          {election && (
+          )}
+          {!tpl && election && (
             <Notice tone="info" title="How elections work">
               Each question is a race and its options are the candidates. Voting is always a secret ballot: no names, no guests, and
               results appear only after the election ends. Members vote, or hand out one-time ballot codes to people without accounts.
             </Notice>
           )}
-          {mode === "poll" && (
+          {!tpl && mode === "poll" && (
             <Field label="Start with">
               <Segmented<"single_choice" | "yes_no">
                 label="Start with"
@@ -167,14 +214,14 @@ export function NewCampaign() {
               />
             </Field>
           )}
-          {mode === "rating" && (
+          {!tpl && mode === "rating" && (
             <ToggleRow
               title="Start from “How was it?”"
               description="One rating question from 1 to 5, ready to publish. You can change the wording."
               control={<Switch checked={ratingTemplate} onCheckedChange={setRatingTemplate} aria-label="Start from How was it?" />}
             />
           )}
-          {!election && (
+          {!tpl && !election && (
           <fieldset className="lv-fieldset">
             <legend className="lv-legend">Answers</legend>
             <RadioGroup value={anonymity} onValueChange={(v) => setAnonymity(v as Anonymity)} aria-label="Answers" className="ui-grid-2">
@@ -184,7 +231,7 @@ export function NewCampaign() {
           </fieldset>
           )}
           {error && <Notice tone="error">{error}</Notice>}
-          <div className="ui-row"><Button type="submit" variant="primary" disabled={!title.trim() || busy}>{busy ? "Creating…" : mode === "poll" ? "Create poll" : election ? "Create election" : "Create draft"} <Icon name="arrow" size={16} /></Button></div>
+          <div className="ui-row"><Button type="submit" variant="primary" disabled={!title.trim() || busy}>{busy ? "Creating…" : !tpl && mode === "poll" ? "Create poll" : !tpl && election ? "Create election" : "Create draft"} <Icon name="arrow" size={16} /></Button></div>
         </form>
       </Card>
     </div>
@@ -211,7 +258,7 @@ export function CampaignDetail() {
     <div className="lv-stack-16">
       <div className="ui-spread">
         <div className="lv-stack-8">
-          <div className="ui-row"><PhaseBadge phase={phase} /><Badge variant={d.campaign.anonymity === "anonymous" ? "ok" : "neutral"}>{d.campaign.anonymity}</Badge><Eyebrow>{feedbackTypeLabel(d.campaign.mode)}</Eyebrow></div>
+          <div className="ui-row"><PhaseBadge phase={phase} /><Badge variant={d.campaign.anonymity === "anonymous" ? "ok" : "neutral"}>{d.campaign.anonymity === "anonymous" ? "Anonymous" : "Identified"}</Badge><span className="ui-muted lv-small">{modeLabel(d.campaign.mode)}</span></div>
           <h1 className="lv-detail-title">{d.campaign.title}</h1>
         </div>
         {d.can_manage && (

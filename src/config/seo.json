@@ -2,19 +2,19 @@
   "note": "Search metadata. The single source for the runtime <Seo/> component (src/ui/Seo.tsx) and the build-time prerender (scripts/seo-prerender.mjs), which writes per-page HTML, sitemap.xml and robots.txt into dist/. Only paths listed under pages are indexable; every other route is served noindex. Hubs are never indexed here: a customer's Hub is its own, and listing is the Discover feature's job.",
   "siteUrl": "https://lunchvoice.com",
   "siteName": "LunchVoice",
-  "titleSuffix": " \u00b7 LunchVoice",
+  "titleSuffix": " · LunchVoice",
   "defaultTitle": "LunchVoice: anonymous surveys and polls for any community",
   "defaultDescription": "Build a survey in minutes, share it by QR code or a six-character code, and see anonymous, privacy-safe results live. Free Quick Surveys; Hubs for communities from $13/month.",
-  "image": "/og-image.png",
-  "imageAlt": "LunchVoice: every voice has a story. Hear it.",
+  "image": "/og-image.png?v=2",
+  "imageAlt": "LunchVoice: make every voice count.",
   "locale": "en_US",
   "pages": [
     {
       "path": "/",
       "title": "LunchVoice: anonymous surveys and polls for any community",
       "description": "Build a survey in minutes, share it by QR code or a six-character code, and see anonymous, privacy-safe results live. Free Quick Surveys; Hubs for communities from $13/month.",
-      "h1": "Every voice has a story. Hear it.",
-      "body": "LunchVoice is a community feedback platform. Build a survey in minutes, share it with one QR code or a six-character code, and watch anonymous answers arrive while it is still happening. Every community gets its own Hub at lunchvoice.com/yourname, with members, roles, pages and Campaigns: surveys, polls, ratings, ideas and elections. Answering is always free.",
+      "h1": "Make every voice count.",
+      "body": "LunchVoice is a community feedback platform. Build a survey in minutes, share it with one QR code or a six-character code, and watch anonymous answers arrive while it is still happening. Every community gets its own Hub at lunchvoice.com/yourname, with members, roles, pages and Campaigns: surveys, polls, ratings and open feedback. Answering is always free.",
       "changefreq": "weekly",
       "priority": 1.0
     },
@@ -28,11 +28,20 @@
       "priority": 0.8
     },
     {
+      "path": "/products",
+      "title": "LunchVoice products: feedback, Hubs, Discord and API",
+      "description": "Everything LunchVoice does, in six parts: free feedback tools, Hubs for your community, Campaigns for your members, Discord, an API, and privacy built into every answer.",
+      "h1": "LunchVoice products",
+      "body": "Ask with free surveys, polls, ratings and open feedback. Give your community a Hub at its own address, run Campaigns for your members, post them to Discord, run it all from the API, and keep anonymous answers anonymous.",
+      "changefreq": "monthly",
+      "priority": 0.8
+    },
+    {
       "path": "/use-cases",
       "title": "Use cases: surveys for clubs, teams, events and work",
-      "description": "Anonymous surveys, polls, ratings, idea boards and elections for clubs, teams, events, workplaces, dining programs and neighbourhoods, where the answer matters and the respondent stays protected.",
+      "description": "Anonymous surveys, polls, ratings and suggestion boxes for clubs, teams, events, workplaces, dining programs and neighbourhoods, where the answer matters and the respondent stays protected.",
       "h1": "Use cases for community surveys",
-      "body": "Anything a group needs to ask, answer and settle: event feedback, team pulse checks, club elections, workplace surveys, dining and menu ratings, neighbourhood idea boards. The answer matters, and the respondent is never exposed.",
+      "body": "Anything a group needs to ask, answer and settle: event feedback, team pulse checks, club votes, workplace surveys, dining and menu ratings, neighbourhood suggestion boxes. The answer matters, and the respondent is never exposed.",
       "changefreq": "monthly",
       "priority": 0.8
     },

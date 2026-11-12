@@ -4,10 +4,11 @@
 
 /** A text field: the well surface, 16px radius, 48px tall, ink focus ring. */
 export const fieldClass =
-  "surface-well w-full min-w-0 rounded-[var(--lv-radius-field)] px-4 text-[14.5px] leading-[1.4] font-medium " +
+  "surface-field w-full min-w-0 rounded-[var(--lv-radius-field)] px-4 text-[15px] leading-[1.4] font-medium " +
   "placeholder:text-[var(--lv-subtle)] placeholder:font-normal outline-none transition-[background,box-shadow] duration-200 " +
-  "hover:bg-[var(--lv-well-hover)] focus-visible:bg-[var(--lv-well-focus)] focus-visible:outline-2 focus-visible:outline-offset-2 " +
-  "focus-visible:outline-[var(--lv-focus)] disabled:cursor-not-allowed disabled:opacity-55 " +
+  "hover:shadow-[inset_0_0_0_1px_var(--lv-subtle)] focus-visible:shadow-[inset_0_0_0_2px_var(--lv-text)] " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--lv-accent)_45%,transparent)] " +
+  "disabled:cursor-not-allowed disabled:bg-[var(--lv-well)] disabled:opacity-70 " +
   "aria-invalid:outline-2 aria-invalid:outline-[var(--lv-danger)]";
 
 /** Floating content: popovers, menus, select lists. Pops from the trigger origin on the spring. */

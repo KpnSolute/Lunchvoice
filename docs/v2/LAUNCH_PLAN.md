@@ -87,39 +87,43 @@ Governing-agent decisions (architecture, not product):
 
 ## Definition of done (launch)
 
+Status checked against the code, CI and `CHANGELOG.md` on 2026-11-12. Evidence for every line is in
+`V2_STATUS_2026-11-12.md`. `[x]` = proven in the repository; `[~]` = done in code, waiting on a founder action.
+
 Backend
-- [ ] Entitlements: `lv.entitlements`, `lv.plan_limits`, Hub credits; `lv_hub_create` gated by a Hub credit, not beta.
-- [ ] Every limit (custom roles, custom pages, active Campaigns, active surveys + threshold gate, Quick Survey limits,
+- [x] Entitlements: `lv.entitlements`, `lv.plan_limits`, Hub credits; `lv_hub_create` gated by a Hub credit, not beta.
+- [x] Every limit (custom roles, custom pages, active Campaigns, active surveys + threshold gate, Quick Survey limits,
       question kinds) enforced server-side from the map; expired access fails closed for premium actions only.
-- [ ] Quick Surveys: create, edit, schedule, activate, close, list; link and invite-only access; analytics.
-- [ ] Waitlist: join (atomic first-50 admission), status, Founding grant; `billing.launched_at` ends it +30 days.
-- [ ] Account: profile update, account delete. Hub: update/branding, owner transfer, delete, pages (Builder).
-- [ ] Billing-ready: checkout intent (fail closed), summary, idempotent event log, grant path, webhook function.
-- [ ] Hub Name Reservation ACTIVE → GRACE (25 days) → RELEASED, status read, slug protection.
-- [ ] Analytics export of released aggregates only; Discover application gate (Team, 700 genuine members).
-- [ ] Reserved slugs in `lv.reserved_slugs` cover every top-level UI route.
-- [ ] Policies set: min cohort 5, guest rate 10. No NULL policy blocks a launch path.
-- [ ] `scripts/db-test-canonical.sh` passes from empty, with rollbacks rehearsed; `API_CONTRACT.md` matches.
+- [x] Quick Surveys: create, edit, schedule, activate, close, list; link and invite-only access; analytics.
+- [x] Waitlist: join (atomic first-50 admission), status, Founding grant; `billing.launched_at` ends it +30 days.
+- [x] Account: profile update, account delete. Hub: update/branding, owner transfer, delete, pages (Builder).
+- [x] Billing-ready: checkout intent (fail closed), summary, idempotent event log, grant path, webhook function.
+- [x] Hub Name Reservation ACTIVE → GRACE (25 days) → RELEASED, status read, slug protection.
+- [x] Analytics export of released aggregates only; Discover application gate (Team, 700 genuine members).
+- [x] Reserved slugs in `lv.reserved_slugs` cover every top-level UI route.
+- [x] Policies set: min cohort 5, guest rate 10. No NULL policy blocks a launch path.
+- [x] `scripts/db-test-canonical.sh` passes from empty, with rollbacks rehearsed; `API_CONTRACT.md` matches.
 
 UI
-- [ ] One UI system: shadcn components restyled to the tactile design (`src/components/shadcn/`), used by every page.
-- [ ] Every route in the founder's journey works against `lvApi` (mock in dev, real in prod): landing, waitlist,
+- [x] One UI system: shadcn components restyled (design system 3 since 2026-11-12, `DESIGN.md`), used by every page.
+- [x] Every route in the founder's journey works against `lvApi` (mock in dev, real in prod): landing, waitlist,
       sign-in, `/me` dashboard, Quick Surveys, create Hub, Hub workspace, Studio, player, results, settings, billing,
       reservation, Discover, account settings.
-- [ ] Pricing page shows the founder's capability table from `src/config/pricing.ts`; checkout disabled with reason.
-- [ ] Light, dark, high contrast; 390 / 768 / 1280 with no horizontal scroll; keyboard and screen-reader basics.
-- [ ] `npm run test:pr` green; route registry covers every route.
+- [x] Pricing page shows the founder's capability table from `src/config/pricing.ts`; checkout follows billing state.
+- [x] Light, dark, high contrast; 390 / 768 / 1280 with no horizontal scroll; keyboard and screen-reader basics.
+- [x] `npm run test:pr` green; route registry covers every route.
 
 Compliance
-- [ ] Review of privacy (anonymity, guests, exports, withheld never zero), security (RLS, grants, definer functions,
-      secrets), identity, data retention and customer-name rules, with no open blocking finding.
-- [ ] Legal pages carry visible "Legal text pending review" placeholders; the waitlist form has a privacy notice.
+- [x] Review of privacy, security, identity, data retention and customer-name rules, with no open blocking finding
+      (`docs/compliance/LAUNCH_COMPLIANCE_REVIEW.md` section 8.6: 0 BLOCKER, 0 HIGH).
+- [x] Legal pages carry visible "Legal text pending review" placeholders; the waitlist form has a privacy notice.
 
 Release
-- [ ] All of the above on `claude/wizardly-meitner-wohkzr`; PR to `main`.
-- [ ] Production migrations applied only with the founder's explicit approval, per `PRODUCTION_RESET_RUNBOOK.md`.
-- [ ] Live check: sign in, join waitlist, create a Hub, run a Campaign and a Quick Survey, answer as a guest, read
-      results.
+- [x] Work reaches `main` through PRs (the single integration branch named here originally was retired).
+- [~] Production migrations applied only with the founder's explicit approval, per `PRODUCTION_RESET_RUNBOOK.md`.
+      Several built migrations are recorded as not yet applied; see the status file.
+- [~] Live check: sign in, join waitlist, create a Hub, run a Campaign and a Quick Survey, answer as a guest, read
+      results. Needs the founder's real sign-in.
 
 ## Roadmap
 

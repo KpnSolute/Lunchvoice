@@ -7,6 +7,7 @@
 // LunchVoice session token to PostgREST (lv_checkout_start / lv_billing_portal_check). Only after that succeeds does
 // it use the service role to read the intent's context and store the Stripe customer. It fails closed with 503
 // lv_billing_unavailable while STRIPE_SECRET_KEY, the database or the price IDs are missing.
+import { isApiKey, publishableKey } from "./keys.ts";
 import {
   CheckoutConfigError,
   checkoutSessionParams,
@@ -60,7 +61,7 @@ async function rpcAsCaller(deps: CheckoutDeps, token: string, fn: string, args: 
   const res = await deps.fetch(`${url}/rest/v1/rpc/${fn}`, {
     method: "POST",
     headers: {
-      apikey: deps.env("SUPABASE_ANON_KEY")!,
+      apikey: publishableKey(deps.env)!,
       authorization: `Bearer ${token}`,
       "content-type": "application/json",
       "content-profile": "lv_api",
@@ -81,11 +82,11 @@ export async function handleCheckoutRequest(req: Request, deps: CheckoutDeps): P
   if (req.method !== "POST") return fail(405, "lv_method", "Use POST.", cors);
 
   const key = deps.env("STRIPE_SECRET_KEY");
-  if (!key || !deps.env("SUPABASE_URL") || !deps.env("SUPABASE_ANON_KEY") || !deps.db) return unavailable(cors);
+  if (!key || !deps.env("SUPABASE_URL") || !publishableKey(deps.env) || !deps.db) return unavailable(cors);
 
   const auth = req.headers.get("authorization") ?? "";
   const token = /^Bearer ([A-Za-z0-9._-]{20,4096})$/.exec(auth)?.[1];
-  if (!token || token === deps.env("SUPABASE_ANON_KEY")) return fail(401, "lv_unauthenticated", "Sign in to continue.", cors);
+  if (!token || isApiKey(token, deps.env)) return fail(401, "lv_unauthenticated", "Sign in to continue.", cors);
 
   const raw = await req.text();
   if (raw.length > 4096) return fail(413, "lv_invalid_input", "Too large.", cors);

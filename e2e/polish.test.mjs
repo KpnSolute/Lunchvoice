@@ -34,8 +34,9 @@ test("Hub colour swatches are painted from the real palette shape and saving sen
   const hub = (await mockState(page)).hubs.find((h) => h.slug === "northside-running");
   assert.equal(hub.accent, "teal", "lv_hub_update receives the palette key, as the SQL requires");
   await go(HUB);
-  const strip = await page.locator(".lv-hub-banner").evaluate((e) => getComputedStyle(e).backgroundColor);
-  assert.equal(strip, "rgb(15, 118, 110)", "the Hub's own pages use the accent");
+  const mark = await page.locator(".lv-hprofile-mark .lv-hubmark").evaluate((e) => getComputedStyle(e).backgroundColor);
+  assert.equal(mark, "rgb(15, 118, 110)", "the Hub's own pages use the accent");
+  assert.match(await page.locator(".lv-hprofile-banner").evaluate((e) => getComputedStyle(e).backgroundImage), /rgb\(15, 118, 110\)/, "and its banner");
   const header = await page.locator("header.lv-header").evaluate((e) => getComputedStyle(e).backgroundColor);
   assert.notEqual(header, "rgb(15, 118, 110)", "LunchVoice chrome never takes the Hub accent");
   await ctx.close();
@@ -330,7 +331,7 @@ test("Invitation, signed out: an explanation and one sign-in button, never an er
   await page.getByText("Invite code ABCD-2345").waitFor();
   assert.equal(await page.getByRole("alert").count(), 0, "no error banner for a signed-out recipient");
   assert.equal(await page.getByText(/Try another code/).count(), 0);
-  const cta = page.getByRole("link", { name: /Continue with KpnSolute/ });
+  const cta = page.getByRole("link", { name: /Continue to sign in/ });
   assert.equal(await cta.getAttribute("href"), "/signin");
   assert.equal(await noHorizontalScroll(page), true);
   assert.deepEqual(s.errors, []);

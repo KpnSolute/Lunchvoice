@@ -46,6 +46,27 @@ services:
         source: /use-cases
         destination: /use-cases/index.html
       - type: rewrite
+        source: /products
+        destination: /products/index.html
+      - type: rewrite
+        source: /products/hubs
+        destination: /products/hubs/index.html
+      - type: rewrite
+        source: /products/feedback
+        destination: /products/feedback/index.html
+      - type: rewrite
+        source: /products/campaigns
+        destination: /products/campaigns/index.html
+      - type: rewrite
+        source: /products/discord
+        destination: /products/discord/index.html
+      - type: rewrite
+        source: /products/developers
+        destination: /products/developers/index.html
+      - type: rewrite
+        source: /products/privacy
+        destination: /products/privacy/index.html
+      - type: rewrite
         source: /pricing
         destination: /pricing/index.html
       - type: rewrite
@@ -70,12 +91,46 @@ services:
         source: /guidelines
         destination: /guidelines/index.html
       - type: rewrite
+        source: /use-cases/anonymous-employee-survey
+        destination: /use-cases/anonymous-employee-survey/index.html
+      - type: rewrite
+        source: /use-cases/event-feedback-form
+        destination: /use-cases/event-feedback-form/index.html
+      - type: rewrite
+        source: /use-cases/club-and-committee-votes
+        destination: /use-cases/club-and-committee-votes/index.html
+      - type: rewrite
+        source: /use-cases/weekly-team-pulse-survey
+        destination: /use-cases/weekly-team-pulse-survey/index.html
+      - type: rewrite
+        source: /use-cases/customer-feedback-questionnaire
+        destination: /use-cases/customer-feedback-questionnaire/index.html
+      - type: rewrite
+        source: /use-cases/meeting-and-workshop-feedback
+        destination: /use-cases/meeting-and-workshop-feedback/index.html
+      - type: rewrite
+        source: /use-cases/group-scheduling-poll
+        destination: /use-cases/group-scheduling-poll/index.html
+      - type: rewrite
+        source: /use-cases/community-suggestion-box
+        destination: /use-cases/community-suggestion-box/index.html
+      - type: rewrite
+        source: /use-cases/menu-and-dining-feedback
+        destination: /use-cases/menu-and-dining-feedback/index.html
+      - type: rewrite
+        source: /use-cases/member-questionnaire
+        destination: /use-cases/member-questionnaire/index.html
+      - type: rewrite
         source: /*
         destination: /app.html
     envVars:
       - key: NODE_VERSION
         value: 22.12.0
       - key: VITE_SUPABASE_URL
+        sync: false
+      # Preferred: the publishable key (sb_publishable_...). The legacy anon key below is used only when it is empty and
+      # stops working once the legacy keys are disabled in Supabase.
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
         sync: false
       - key: VITE_SUPABASE_ANON_KEY
         sync: false

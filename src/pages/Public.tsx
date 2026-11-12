@@ -1,11 +1,14 @@
+import { LvMark } from "../components/LvMark";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
 import { MadeBy } from "../components/MakerMark";
-import { Icon } from "../components/Icon";
+import { Icon, type IconName } from "../components/Icon";
+import { PRODUCTS } from "../config/products";
 import { BottomTabs } from "../ui/BottomTabs";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO, supportMailto } from "../config/contact";
 import { safeReturnTo } from "../lib/kpnIdentity";
+import { SESSION_ENDED_FLAG } from "../lib/authFailure";
 import { Button } from "@/components/shadcn/button";
 import { Input } from "@/components/shadcn/input";
 import { Card } from "@/components/shadcn/card";
@@ -20,13 +23,16 @@ import {
 } from "@/components/shadcn/dropdown-menu";
 import { Field, Notice } from "@/components/shadcn/blocks";
 import { AccountSuspendedNotice, StaffMenuItem } from "../components/StaffStatus"; // staff panel
+import { BillingProvider, useBilling } from "../lib/useBilling";
+import { headerCta } from "../lib/billingState";
 
 // The marketing chrome (full nav, footer, maker's mark) belongs to the public pages.
 // In-product routes keep the compact header so Hub chrome stays the focus.
 const MARKETING_ROUTES = new Set([
   "/", "/how-it-works", "/use-cases", "/pricing", "/beta", "/about", "/waitlist",
-  "/status", "/terms", "/guidelines", "/privacy", "/support", "/discover",
+  "/status", "/terms", "/guidelines", "/privacy", "/support", "/discover", "/products",
 ]);
+const isMarketingRoute = (p: string) => MARKETING_ROUTES.has(p) || p.startsWith("/use-cases/") || p.startsWith("/products/");
 
 // Account routes get the account shell: header pills on desktop, bottom tabs on phones.
 const isAccountRoute = (p: string) => ["/me", "/join", "/settings", "/create"].includes(p) || p === "/surveys" || p.startsWith("/surveys/");
@@ -36,18 +42,47 @@ const ACCOUNT_TABS = [
   { to: "/join", label: "Join", icon: "join" as const, end: true },
   { to: "/settings", label: "Settings", icon: "settings" as const, end: true },
 ];
+// After the Products menu. The waitlist is the amber header action, so it is not repeated here.
 const MARKETING_LINKS = [
-  { to: "/how-it-works", label: "How it works" },
   { to: "/use-cases", label: "Use cases" },
   { to: "/pricing", label: "Pricing" },
-  { to: "/waitlist", label: "Waitlist" },
   { to: "/discover", label: "Discover" },
+  { to: "/how-it-works", label: "How it works" },
 ];
+
+/** The Products menu: the six product pages from src/config/products.json, then the index. */
+function ProductsMenu() {
+  const { pathname } = useLocation();
+  const current = pathname === "/products" || pathname.startsWith("/products/");
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button type="button" className="lv-nav-menu" data-current={current ? "" : undefined} data-testid="nav-products">
+          Products <Icon name="chevron" size={14} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="lv-prodmenu" data-testid="products-menu">
+        {PRODUCTS.map((p) => (
+          <DropdownMenuItem key={p.slug} asChild>
+            <Link to={`/products/${p.slug}`}>
+              <Icon name={p.icon as IconName} size={18} />
+              <span><strong>{p.name}</strong>{p.line}</span>
+            </Link>
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/products" className="lv-prodmenu-all">All products <Icon name="arrow" size={16} /></Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 function Brand() {
   return (
     <Link to="/" className="lv-brand" aria-label="LunchVoice home">
-      <img src="/brand/lunchvoice-mark.svg" alt="" height={28} width={28} />
+      <LvMark size={28} />
       <span>LunchVoice</span>
     </Link>
   );
@@ -60,7 +95,7 @@ function AccountMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="secondary" size="sm" aria-label={`Account menu for ${session.name}`}>
+        <Button variant="secondary" size="md" aria-label={`Account menu for ${session.name}`}>
           <span className="lv-avatar-dot" aria-hidden="true">{session.name.slice(0, 1).toUpperCase()}</span>
           <span className="lv-hide-sm">{session.name}</span>
           <Icon name="chevron" size={14} />
@@ -80,12 +115,13 @@ function AccountMenu() {
   );
 }
 
-function MarketingMenu() {
+function MarketingMenu({ signedIn }: { signedIn: boolean }) {
   const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="secondary" size="icon-sm" className="lv-show-sm" aria-label="Open menu">
+        <Button variant="secondary" size="icon" className="lv-show-sm" aria-label="Open menu">
           <Icon name="menu" size={18} />
         </Button>
       </SheetTrigger>
@@ -93,21 +129,55 @@ function MarketingMenu() {
         <SheetTitle>Menu</SheetTitle>
         <SheetDescription className="sr-only">Site sections</SheetDescription>
         <nav className="lv-sheet-nav" aria-label="Main">
-          {MARKETING_LINKS.map((l) => (
-            <Button key={l.to} asChild variant="secondary" block size="lg" onClick={() => setOpen(false)}>
-              <Link to={l.to}>{l.label}</Link>
+          <h3>Products</h3>
+          <ul className="lv-sheet-products">
+            {PRODUCTS.map((p) => (
+              <li key={p.slug}>
+                <Link to={`/products/${p.slug}`} onClick={close}>
+                  <Icon name={p.icon as IconName} size={18} />
+                  <span><strong>{p.name}</strong>{p.line}</span>
+                </Link>
+              </li>
+            ))}
+            <li><Link to="/products" onClick={close} className="lv-sheet-all">All products <Icon name="arrow" size={16} /></Link></li>
+          </ul>
+          <h3>LunchVoice</h3>
+          <ul className="lv-sheet-links">
+            {MARKETING_LINKS.map((l) => <li key={l.to}><Link to={l.to} onClick={close}>{l.label}</Link></li>)}
+            <li><Link to="/waitlist" onClick={close}>Waitlist</Link></li>
+          </ul>
+          {!signedIn && (
+            <Button asChild variant="secondary" block size="lg" onClick={close}>
+              <Link to="/signin">Sign in</Link>
             </Button>
-          ))}
+          )}
         </nav>
       </SheetContent>
     </Sheet>
   );
 }
 
+/** The pinned header action: the waitlist before billing opens, the purchase path after (src/lib/billingState.ts). */
+function HeaderCta() {
+  const { state } = useBilling();
+  const { pathname } = useLocation();
+  const cta = headerCta(state, pathname);
+  if (!cta) return null;
+  return (
+    <Button asChild variant="primary" size="md" data-lv-cta="header">
+      <Link to={cta.to}>{cta.label}</Link>
+    </Button>
+  );
+}
+
 export function Shell() {
+  return <BillingProvider><ShellInner /></BillingProvider>;
+}
+
+function ShellInner() {
   const { session } = useIdentity();
   const { pathname } = useLocation();
-  const marketing = MARKETING_ROUTES.has(pathname);
+  const marketing = isMarketingRoute(pathname);
   const account = Boolean(session) && isAccountRoute(pathname);
   const bare = pathname.startsWith("/c/") || pathname.startsWith("/s/");
   const ink = pathname === "/";
@@ -133,6 +203,7 @@ export function Shell() {
 
         {marketing && (
           <nav className="lv-nav" aria-label="Main">
+            <ProductsMenu />
             {MARKETING_LINKS.map((l) => <NavLink key={l.to} to={l.to}>{l.label}</NavLink>)}
           </nav>
         )}
@@ -142,15 +213,15 @@ export function Shell() {
             <AccountMenu />
           ) : (
             <>
-              <Button asChild variant={ink ? "quiet" : "secondary"} size="sm" className="lv-hide-sm lv-header-signin">
-                <Link to="/signin">Sign in</Link>
-              </Button>
-              <Button asChild variant="primary" size="sm">
-                <Link to="/waitlist">Join the waitlist</Link>
-              </Button>
+              {pathname !== "/signin" && (
+                <Button asChild variant="quiet" size="md" className={`lv-hide-sm${ink ? " lv-header-signin" : ""}`}>
+                  <Link to="/signin">Sign in</Link>
+                </Button>
+              )}
+              <HeaderCta />
             </>
           )}
-          {marketing && <MarketingMenu />}
+          {marketing && <MarketingMenu signedIn={Boolean(session)} />}
         </div>
       </header>
 
@@ -166,27 +237,33 @@ export function Shell() {
   );
 }
 
+const FOOTER_COLUMNS: { title: string; links: { to: string; label: string }[] }[] = [
+  { title: "Products", links: PRODUCTS.map((p) => ({ to: `/products/${p.slug}`, label: p.name })) },
+  { title: "Use it for", links: [{ to: "/use-cases", label: "Use cases" }, { to: "/discover", label: "Discover" }, { to: "/how-it-works", label: "How it works" }] },
+  { title: "Company", links: [{ to: "/about", label: "About" }, { to: "/pricing", label: "Pricing" }, { to: "/waitlist", label: "Waitlist" }, { to: "/support", label: "Support" }, { to: "/status", label: "Status" }] },
+  // "Privacy policy", not "Privacy": /products/privacy is the product page about how answers are protected.
+  { title: "Legal", links: [{ to: "/privacy", label: "Privacy policy" }, { to: "/terms", label: "Terms" }, { to: "/guidelines", label: "Community guidelines" }] },
+];
+
 function Footer() {
   return (
     <footer className="lv-footer">
       <div className="lv-footer-inner">
-        <span className="lv-footer-brand">
-          <img src="/brand/lunchvoice-mark.svg" alt="" height={26} width={26} />
-          <strong>LunchVoice</strong>
-        </span>
-        <nav className="lv-footer-nav" aria-label="Footer">
-          <Link to="/how-it-works">Product</Link>
-          <Link to="/use-cases">Use cases</Link>
-          <Link to="/pricing">Pricing</Link>
-          <Link to="/waitlist">Waitlist</Link>
-          <Link to="/discover">Discover</Link>
-          <Link to="/about">About</Link>
-          <Link to="/privacy">Privacy</Link>
-          <Link to="/terms">Terms</Link>
-          <Link to="/guidelines">Guidelines</Link>
-          <Link to="/support">Support</Link>
-          <Link to="/status">Status</Link>
+        <div className="lv-footer-about">
+          <span className="lv-footer-brand">
+            <LvMark size={26} />
+            <strong>LunchVoice</strong>
+          </span>
+          <p>Surveys, polls and decisions for communities.</p>
           <a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a>
+        </div>
+        <nav className="lv-footer-cols" aria-label="Footer">
+          {FOOTER_COLUMNS.map((c) => (
+            <div key={c.title}>
+              <h2>{c.title}</h2>
+              <ul>{c.links.map((l) => <li key={l.to}><Link to={l.to}>{l.label}</Link></li>)}</ul>
+            </div>
+          ))}
         </nav>
         <div className="lv-footer-end">
           <MadeBy />
@@ -206,15 +283,26 @@ export function SignIn() {
   const [name, setName] = useState("Dana Reyes");
   const location = useLocation();
   const nav = useNavigate();
+  // Shown when the person lands here because their session ran out (see IdentityProvider). Read in render, cleared in an
+  // effect, so React StrictMode's double render still shows it.
+  const [ended] = useState(() => { try { return sessionStorage.getItem(SESSION_ENDED_FLAG) === "1"; } catch { return false; } });
+  useEffect(() => { try { sessionStorage.removeItem(SESSION_ENDED_FLAG); } catch { /* nothing to clear */ } }, []);
   // LC-14: history state is caller-controlled; only safe same-site paths are followed.
   const from = safeReturnTo((location.state as { from?: string } | null)?.from);
   if (session) return <Navigate to={from} replace />;
   return (
     <div className="lv-narrow">
       <Card className="lv-signin">
-        <img src="/brand/lunchvoice-mark.svg" alt="" height={44} width={44} />
+        <LvMark size={44} />
         <h1 className="lv-signin-title">Sign in to LunchVoice</h1>
-        <p className="ui-muted lv-signin-sub">One KpnSolute account for every Hub. We keep your verified sign-in, never your email as your identity.</p>
+        {ended && (
+          <Notice tone="info" title="You were signed out">
+            Sessions last up to an hour, so yours ended. Sign in again to carry on where you were. Anything you had saved is still there.
+          </Notice>
+        )}
+        <p className="ui-muted lv-signin-sub" data-testid="signin-how">
+          Sign-in happens on auth.kpnsolute.com, run by KpnSolute, the company that makes LunchVoice. Use your Google account there and you come straight back here.
+        </p>
         {issuerConfigured ? (
           <Button
             variant="ink"
@@ -230,7 +318,7 @@ export function SignIn() {
               });
             }}
           >
-            {busy ? "Opening KpnSolute sign-in…" : "Continue with KpnSolute"}
+            {busy ? "Opening sign-in…" : "Continue to sign in"}
           </Button>
         ) : (
           <Notice tone="warn" title="Sign-in isn't available in this build">
@@ -238,7 +326,8 @@ export function SignIn() {
           </Notice>
         )}
         {error && <Notice tone="error">{error}</Notice>}
-        <Button asChild variant="quiet" size="sm">
+        <p className="ui-help lv-m0">One KpnSolute account works for every Hub. We keep your verified sign-in, never your email as your identity.</p>
+        <Button asChild variant="quiet" size="md">
           <Link to="/join">Have a join code? Answer without signing in</Link>
         </Button>
         {import.meta.env.DEV && canSimulate && (
@@ -257,7 +346,7 @@ export function SignIn() {
 export function RequireSignIn({ children }: { children: ReactNode }) {
   const { session } = useIdentity();
   const location = useLocation();
-  if (!session) return <Navigate to="/signin" state={{ from: location.pathname }} replace />;
+  if (!session) return <Navigate to="/signin" state={{ from: location.pathname + location.search }} replace />;
   return <>{children}</>;
 }
 

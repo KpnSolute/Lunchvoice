@@ -19,7 +19,7 @@ export function WithheldTag({ className }: { className?: string }) {
     <span
       title={WITHHELD_EXPLAINER}
       className={cn(
-        "tactile-label inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-[10.5px] text-[var(--lv-text)] " +
+        "tactile-label inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-[12px] text-[var(--lv-text)] " +
           "bg-[repeating-linear-gradient(45deg,var(--lv-well)_0_5px,var(--lv-surface2)_5px_10px)] shadow-[inset_0_0_0_1px_var(--lv-line)]",
         className
       )}

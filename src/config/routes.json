@@ -27,6 +27,30 @@
       "milestone": "M1"
     },
     {
+      "path": "/use-cases/:slug",
+      "name": "Use case page (sample questions, Use this template)",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M2"
+    },
+    {
+      "path": "/products",
+      "name": "Products (the six product pages)",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M2"
+    },
+    {
+      "path": "/products/:slug",
+      "name": "Product page (who it is for, by plan, how it fits, price)",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M2"
+    },
+    {
       "path": "/pricing",
       "name": "Pricing",
       "layout": "L1",
@@ -137,6 +161,15 @@
       "shell": "none",
       "access": "public",
       "milestone": "M1"
+    },
+    {
+      "path": "/h/:slug",
+      "name": "Hub share link",
+      "layout": "L2",
+      "shell": "none",
+      "access": "public",
+      "milestone": "M1",
+      "note": "Forwards to /:slug. In production the hub-card Worker (workers/hub-card) answers link-preview bots first."
     },
     {
       "path": "/j/:code",

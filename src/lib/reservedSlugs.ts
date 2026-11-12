@@ -4,7 +4,7 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   // live routes
   "me", "api", "analytics", "campaigns", "signin", "signout", "login", "logout", "auth", "callback", "oauth", "sso",
   "join", "invite", "invites", "discover", "discovery", "pricing", "waitlist", "beta",
-  "whitelist", "surveys", "s", "c", "j", "brand", "licenses", "how-it-works", "use-cases", "signup",
+  "whitelist", "surveys", "s", "c", "j", "h", "brand", "licenses", "how-it-works", "use-cases", "signup",
   // static / system
   "assets", "static", "public", "favicon.ico", "robots.txt", "sitemap.xml", "manifest.webmanifest", ".well-known",
   "index.html",
@@ -14,7 +14,9 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   "leaderboard", "newsroom", "comments", "pages",
   // brand / ops
   "lunchvoice", "kpnsolute", "kpnidentity", "kpn", "www", "app", "status", "docs", "help", "support", "about",
-  "terms", "privacy", "blog", "legal", "security", "contact",
+  "terms", "privacy", "blog", "legal", "security", "contact", "guidelines",
+  /* ---- product pages (000039) ---- */
+  "products",
   /* ---- track B: commerce ---- */
   "reserve",
   /* ---- track D: api + discord ---- */

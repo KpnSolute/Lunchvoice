@@ -404,12 +404,12 @@ export function RedeemInvite() {
         <PageHeader eyebrow="Invitation" title="You’ve been invited to a Hub" sub="Someone wants you in their community on LunchVoice." />
         <Card className="lv-invite-card">
           <ol className="lv-invite-steps">
-            <li><span className="lv-step-n">1</span><div><strong>Sign in</strong><p>Use your KpnSolute account (Google works). It’s free.</p></div></li>
+            <li><span className="lv-step-n">1</span><div><strong>Sign in</strong><p>Use your Google account on auth.kpnsolute.com, run by the company that makes LunchVoice. It’s free.</p></div></li>
             <li><span className="lv-step-n">2</span><div><strong>See which Hub it is</strong><p>You’ll see the Hub before you accept anything.</p></div></li>
             <li><span className="lv-step-n">3</span><div><strong>Join</strong><p>Accepting makes you a member. You can leave any time.</p></div></li>
           </ol>
           {shownCode && <p className="lv-invite-code ui-mono">Invite code {shownCode}</p>}
-          <LinkButton to="/signin" state={{ from: `/j/${code}` }} variant="primary" size="lg" icon="arrow">Continue with KpnSolute</LinkButton>
+          <LinkButton to="/signin" state={{ from: `/j/${code}` }} variant="primary" size="lg" icon="arrow">Continue to sign in</LinkButton>
           <p className="ui-help lv-m0">Didn’t expect this? Close the page; nothing happens unless you accept.</p>
         </Card>
       </div>

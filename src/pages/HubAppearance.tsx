@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { RadioGroup as RadioGroupPrimitive } from "radix-ui";
 import { useIdentity } from "../identity/IdentityProvider";
@@ -49,9 +50,17 @@ export function HubAppearance({ hub, reload }: { hub: HubInfo; reload: () => voi
 
   const status = state === "saving" ? "Saving…" : state === "error" ? `Couldn’t save: ${error}` : dirty ? "Unsaved changes" : state === "saved" ? "Saved" : "No changes";
 
+  // The setup checklist links here as /<hub>/settings#appearance.
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash !== "#appearance") return;
+    const t = window.setTimeout(() => { const el = document.getElementById("appearance"); el?.scrollIntoView({ block: "start" }); el?.focus({ preventScroll: true }); }, 50);
+    return () => window.clearTimeout(t);
+  }, [hash]);
+
   return (
-    <Card data-testid="appearance">
-      <SectionTitle>Community appearance</SectionTitle>
+    <Card data-testid="appearance" id="appearance" tabIndex={-1}>
+      <SectionTitle>Hub color</SectionTitle>
       <div className="lv-appearance">
         <div className="lv-stack-16">
           <p className="ui-muted lv-m0">Pick your Hub’s color. It shows on your Hub’s banner, icon, tabs and Campaign cards. Every color keeps text readable.</p>

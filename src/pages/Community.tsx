@@ -1,5 +1,7 @@
 // Track C: the community surface (custom pages, Newsroom, comments, leaderboard, Shop) inside the L10 Hub shell, and
 // the public Discover directory. Every rule is enforced by lv_api (000020); the UI only shows what the API returns.
+import { HubCard } from "../components/HubCard";
+import type { MembershipMode } from "../lib/lvApi";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useOutletContext, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -12,8 +14,7 @@ import { parseMarkdownLite, type Span } from "../lib/markdownLite";
 import type { HubCtx } from "./Hub";
 import { LinkButton } from "../components/ui";
 import { Icon } from "../components/Icon";
-import { HubMark } from "../ui/HubMark";
-import { accentHex, onAccent } from "../lib/accent";
+import { accentHex } from "../lib/accent";
 import { StateScreen } from "../ui/StateScreen";
 import { ReportDialog as ReportPersonDialog } from "../components/ReportDialog";
 import { Button } from "@/components/shadcn/button";
@@ -602,18 +603,16 @@ export function DiscoverDirectory() {
             </EmptyState>
           </Card>
         ) : (
-          <ul className="lv-cm-discover" aria-label="Listed Hubs">
+          <ul className="lv-hcard-grid" aria-label="Listed Hubs">
             {q.data!.hubs.map((h: DiscoverHub) => (
               <li key={h.slug}>
-                <Link to={`/${h.slug}`} className="lv-cm-hubcard" data-testid="discover-hub">
-                  <span className="lv-hubmark-wrap" style={accentHex(h.accent) ? { background: accentHex(h.accent)!, color: onAccent(accentHex(h.accent)!) } : undefined}><HubMark name={h.name} size={48} /></span>
-                  <span className="lv-cm-hubtext">
-                    <strong>{h.name}</strong>
-                    <span className="ui-muted lv-small">lunchvoice.com/{h.slug}{label(h.category) ? ` · ${label(h.category)}` : ""}</span>
-                    {h.about && <span className="lv-small">{h.about}</span>}
-                    <span className="ui-muted lv-small">{h.members_rounded.toLocaleString()}+ active members · {h.membership_mode === "open" ? "Open to join" : h.membership_mode === "approval" ? "Ask to join" : "Invite only"}</span>
-                  </span>
-                </Link>
+                <HubCard
+                  to={`/${h.slug}`}
+                  testId="discover-hub"
+                  badges={["discover"]}
+                  hub={{ name: h.name, slug: h.slug, accent_hex: accentHex(h.accent), about: h.about, membership_mode: h.membership_mode as MembershipMode, category: label(h.category) ?? null, members_label: `${h.members_rounded.toLocaleString("en-US")}+ active members` }}
+                  action={<span className="lv-hcard-fakebtn" aria-hidden="true">{h.membership_mode === "open" ? "Join" : "View Hub"}</span>}
+                />
               </li>
             ))}
           </ul>

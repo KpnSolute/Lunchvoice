@@ -1,6 +1,7 @@
 // The email dispatcher (build plan B-02): claims due outbox rows, renders them and sends them through Resend.
 // Provider-agnostic at the edges: without RESEND_API_KEY it claims nothing and leaves every message queued.
 // Dependencies are injected so Node tests can drive it with a mock fetch and a fake database.
+import { serviceSecrets } from "../keys.ts";
 import { renderEmail } from "./templates.ts";
 
 export const RESEND_ENDPOINT = "https://api.resend.com/emails";
@@ -94,10 +95,13 @@ export function sameSecret(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/** Only the service role (or the optional EMAIL_DISPATCH_SECRET) may run the dispatcher. */
-export function dispatchAuthorized(authorization: string | null, env: (name: string) => string | undefined): boolean {
-  const token = /^Bearer (.+)$/.exec(authorization ?? "")?.[1] ?? "";
-  const service = env("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const extra = env("EMAIL_DISPATCH_SECRET") ?? "";
-  return sameSecret(token, service) || sameSecret(token, extra);
+/**
+ * Only a service-level caller may run the dispatchers: a Supabase secret key (SUPABASE_SECRET_KEYS, which replaces the
+ * retiring service-role key), the legacy SUPABASE_SERVICE_ROLE_KEY while it is enabled, or the optional
+ * EMAIL_DISPATCH_SECRET. Read from `Authorization: Bearer` or, as Supabase recommends for API keys, `apikey`.
+ */
+export function dispatchAuthorized(authorization: string | null, env: (name: string) => string | undefined, apikey?: string | null): boolean {
+  const candidates = [/^Bearer (.+)$/.exec(authorization ?? "")?.[1] ?? "", apikey ?? ""].filter(Boolean);
+  const allowed = [...serviceSecrets(env), env("EMAIL_DISPATCH_SECRET") ?? ""].filter(Boolean);
+  return candidates.some((t) => allowed.some((a) => sameSecret(t, a)));
 }

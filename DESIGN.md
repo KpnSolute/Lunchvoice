@@ -5,11 +5,13 @@ Visual DNA: ink, amber, bone. The v1 cafeteria layouts are not a reference.
 
 ## Implementation status
 
-Tokens in `src/index.css` today are light-only OKLCH (bone surfaces, ink text, one amber
-accent, Fraunces display, Space Grotesk UI, Space Mono data). The rest of this file is the
-**target**; items are marked when they exist. The reusable library lives in `src/ui/` with a
-component gallery at `/__gallery` (dev builds only) — **not started** until the design-system
-slice lands. No page may carry bespoke CSS for something the library should own.
+`src/ui/tokens.css` is the single source of truth for colour, type, radius, spacing and motion, in light, dark and
+high-contrast themes. This file describes it; if they ever disagree, the tokens win and the documents are
+corrected. The logo, the tagline and every brand asset (icons, social, video, Canva, the guidelines PDF) are generated
+from one vector source, `scripts/brand/logo.mjs`, into `brand/lv-package/` by `npm run brand:build` and verified by
+`npm run check:brand`; start at `brand/lv-package/README.md`. The reusable library lives in `src/ui/` and `src/components/shadcn/`, with a
+component gallery at `/__gallery` (dev builds only). No page may carry bespoke CSS values for something the tokens or
+the library should own.
 
 ## Principles
 
@@ -25,15 +27,40 @@ slice lands. No page may carry bespoke CSS for something the library should own.
 6. **Suppressed is not zero.** Charts and tables render suppressed and withheld states as
    explicit, labelled states with a text explanation. Every chart has an accessible table.
 
-## Tokens (existing)
+## Tokens (`src/ui/tokens.css`)
 
-- Light: `--bg` bone, `--surface` white, `--surface-2` inset, `--ink`, `--muted`, `--line`.
-- Brand: `--accent` amber, `--accent-ink`, `--pop` jade (success), `--danger`.
-- Radius `--r-sm/--r/--r-lg/--r-pill`; motion `--ease` ease-out-quint, `--dur` 200ms.
-- Type: `--font-display` Fraunces, `--font-sans` Space Grotesk, `--font-mono` Space Mono.
+- Surfaces: `--lv-page` (light `#EEEDEA`, a neutral grey), `--lv-surface`, `--lv-surface2`, `--lv-well`, `--lv-line`.
+- Text: `--lv-text` (ink `#14110F`), `--lv-muted`, `--lv-subtle`.
+- Brand: `--lv-accent` amber `#FF9A18` with `--lv-accent-deep` and `--lv-accent-light` for fills and icons, and
+  `--lv-accent-text` for amber **text** (plain `--lv-accent` on a light surface is about 1.8:1 and fails AA).
+  `--lv-success`, `--lv-danger`.
+- Type: `--lv-font-display` Bricolage Grotesque, `--lv-font-ui` Geist, `--lv-font-mono` Space Mono. Nothing is set
+  below `--lv-text-min` (12px).
+- Radius `--lv-radius-field/card/hero/pill`; spacing `--lv-space-*` (4px base); motion `--lv-ease-*`, `--lv-dur-*`.
+- Targets: `--lv-target-min` 44px for every link and button a finger has to hit, on public pages as well as the
+  respondent flow.
+- Buttons: one amber primary per screen; secondary, ink and quiet buttons are flat.
 
-To add: dark values, spacing scale, elevation, z-index, semantic status colors, chart palette
-(color-blind safe, single-series default), tenant-color validator.
+## Design system 3 (2026-11-12): the element rebuild
+
+Professional and calm by default, lively where people act. Everything below lives in tokens and the component layer
+(`src/components/shadcn/`), so pages follow without their own CSS.
+
+| Element | Rule |
+| --- | --- |
+| Surfaces | Solid fills, 1px hairline (`--lv-line`), a 1-3px shadow at most. Real shadows only on what floats: menus, dialogs, toasts. No gradients on controls. |
+| Buttons | Rounded rectangles (`--lv-radius-control`, 12px). Primary is solid amber with a short, low glow; hover changes colour, never position. Disabled is neutral grey, never faded amber. |
+| Press | `tactile-press` keeps the springy squash on every control. This is where the "lively" lives. |
+| Fields | White (`--lv-field-bg`) with a hairline; hover darkens the hairline; focus is a 2px ink ring plus an amber halo. |
+| Selected | App controls (radio cards, segmented tabs, bottom tabs) use a tint plus an outline (`--lv-selected-*`). The solid amber fill is reserved for the respondent's answer choices and status badges. |
+| Labels | The UI font in sentence case (`tactile-label`, 13px 600). Space Mono only for codes, addresses and numbers. Public pages keep their mono eyebrows. |
+| Badges | Small rounded tags (`--lv-radius-tag`, 8px), 12px semibold, first letter capitalised. |
+| Header | One full-width bar with a blur and a hairline; the homepage hero keeps its ink header. |
+| Inside a Hub | The same elements, with the Hub's own colour as `--lv-accent` and the selected tint (`.lv-hubscope`). |
+
+Hub identity: `HubProfile` (banner in the Hub's colour, mark overlapping it, facts, actions), `HubCard` (the shareable
+card used on Discover, in the share dialog and on the home page) and `ShareHubDialog` (card preview, `/h/<slug>` link,
+invite message, phone share sheet, QR). See `src/ui/hub.css`.
 
 ## Required component coverage
 

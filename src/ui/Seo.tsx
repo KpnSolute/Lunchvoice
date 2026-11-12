@@ -1,8 +1,21 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import seo from "../config/seo.json";
+import useCaseData from "../config/useCases.json";
+import productData from "../config/products.json";
 
 export type SeoPage = (typeof seo.pages)[number];
+
+/** Hand-written pages plus one per product and one per use case (the same merge scripts/seo-prerender.mjs does for the build). */
+const PAGES: SeoPage[] = [
+  ...seo.pages,
+  ...productData.products.map((p) => ({
+    path: `/products/${p.slug}`, title: p.title, description: p.description, h1: p.h1, body: p.lede, changefreq: "monthly", priority: 0.8,
+  })),
+  ...useCaseData.useCases.map((u) => ({
+    path: `/use-cases/${u.slug}`, title: u.title, description: u.description, h1: u.h1, body: u.lede, changefreq: "monthly", priority: 0.7,
+  })),
+];
 
 /** Strip a trailing slash so "/pricing/" and "/pricing" share one canonical entry. */
 export function normalizePath(pathname: string): string {
@@ -11,7 +24,7 @@ export function normalizePath(pathname: string): string {
 
 export function seoFor(pathname: string): { page: SeoPage | null; title: string; description: string; url: string; index: boolean } {
   const path = normalizePath(pathname);
-  const page = seo.pages.find((p) => p.path === path) ?? null;
+  const page = PAGES.find((p) => p.path === path) ?? null;
   const title = page ? (path === "/" ? page.title : page.title + seo.titleSuffix) : seo.siteName;
   return {
     page,

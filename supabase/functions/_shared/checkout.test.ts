@@ -117,6 +117,7 @@ test("checkout: a missing or anon bearer is lv_unauthenticated", async () => {
   const h = harness({ rpc: started });
   assert.equal((await h.run({ action: "checkout", product: "starter_hub" }, {})).status, 401);
   assert.equal((await h.run({ action: "checkout", product: "starter_hub" }, { authorization: `Bearer ${ENV.SUPABASE_ANON_KEY}` })).status, 401);
+  assert.equal((await h.run({ action: "checkout", product: "starter_hub" }, { authorization: "Bearer sb_publishable_placeholder_value_x" })).status, 401, "a publishable key is not a person");
   assert.equal(h.calls.length, 0);
 });
 

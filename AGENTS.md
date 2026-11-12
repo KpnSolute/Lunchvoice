@@ -157,6 +157,24 @@ mimo.cmd run --dir $PWD --format json "<bounded task and required output>"
   return meaningful exit codes, and print concise machine-readable results when
   possible.
 
+## Frontend Design Protocol
+
+Applies whenever a task creates or changes UI a person sees. Backend, SQL, Edge Function, documentation-only and
+infrastructure tasks skip it. It sits inside the startup, scope and Git rules above; it never widens them.
+
+1. Inspect the components the change touches and the component map in `docs/frontend/design-system/README.md`.
+2. Follow the `design-system` skill (tokens from `src/ui/tokens.css` only; reuse before building).
+3. Follow `frontend-design` when creating a screen or flow, or significantly polishing one.
+4. Follow `design-element-authoring` only when a genuinely new reusable component or design standard is needed.
+5. Check light, dark and high contrast at 390, 768 and 1280, keyboard focus and reduced motion; look at a screenshot.
+6. Register reusable components at `/__gallery` and in the component map; `npm run check:design` must pass.
+7. Confirm no global standard changed silently. New token values, brand, type or global rules need founder approval
+   (`docs/frontend/design-system/DESIGN_EXTENSIONS.md`).
+
+The skills live in `.agents/skills/` (Codex) and `.claude/skills/` (Claude Code), kept identical by
+`npm run skills:sync`. Both agents load them automatically from their descriptions; to call one explicitly, Claude Code
+uses `/design-system`, `/frontend-design`, `/design-element-authoring` and Codex uses `$design-system` (or `/skills`).
+
 ## Architecture and Security Contracts
 
 - Hub URLs are path-based: `https://lunchvoice.com/{hubSlug}`. There is no

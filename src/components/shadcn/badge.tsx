@@ -3,10 +3,11 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 import { Slot } from "radix-ui"
 
-// Pills use the label role (Space Mono, uppercase). Phase tones follow the Campaign lifecycle.
+// Badges (design system 3): small rounded tags in the UI font, sentence case as written. Phase tones follow the
+// Campaign lifecycle.
 const badgeVariants = cva(
-  "tactile-label inline-flex h-6 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full px-2.5 whitespace-nowrap " +
-    "text-[10.5px] [&>svg]:pointer-events-none [&>svg]:size-3",
+  "inline-flex h-6 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-[var(--lv-radius-tag)] px-2 whitespace-nowrap " +
+    "font-[family-name:var(--lv-font-ui)] text-[12px] leading-none font-semibold [&>svg]:pointer-events-none [&>svg]:size-3",
   {
     variants: {
       variant: {
@@ -38,10 +39,13 @@ function Badge({
   className,
   variant = "neutral",
   asChild = false,
+  children,
   ...props
 }: React.ComponentProps<"span"> & VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
   const Comp = asChild ? Slot.Root : "span"
-  return <Comp data-slot="badge" data-variant={variant} className={cn(badgeVariants({ variant }), className)} {...props} />
+  // Many callers pass raw values ("public", "invite_only"); show them as words with a capital first letter.
+  const text = typeof children === "string" ? children.replace(/_/g, " ").replace(/^\p{Ll}/u, (c) => c.toUpperCase()) : children
+  return <Comp data-slot="badge" data-variant={variant} className={cn(badgeVariants({ variant }), className)} {...props}>{text}</Comp>
 }
 
 export { Badge, badgeVariants }

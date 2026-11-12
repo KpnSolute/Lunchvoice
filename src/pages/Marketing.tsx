@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
+import { useBilling } from "../lib/useBilling";
 import { Link } from "react-router-dom";
 import { Icon, type IconName } from "../components/Icon";
+import { USE_CASES, templateHref } from "../config/useCases";
 import { LinkButton } from "../components/ui";
 import { MadeBy } from "../components/MakerMark";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../config/contact";
@@ -17,7 +19,7 @@ import { DiscoverDirectory } from "./lazy";
 /** The legal operator is not decided yet. Never invent a company entity (founder decision 8). */
 const OPERATOR = "[Legal operator name — pending]";
 
-function Head({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?: ReactNode }) {
+export function Head({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?: ReactNode }) {
   return (
     <div className="lv-mk-head">
       <Eyebrow accent>{eyebrow}</Eyebrow>
@@ -49,27 +51,28 @@ const FAQ: [string, string][] = [
 ];
 
 export function HowItWorks() {
+  const { ctas } = useBilling();
   return (
     <div className="lv-mk">
       <Head eyebrow="How it works" title="From a question to a decision, without exposing anyone." sub="Quick Surveys for one-off questions, Hubs for communities, and a privacy floor that holds even when someone asks for the raw data." />
-      <div className="lv-mk-grid">
-        {LOOP.map((s, i) => (
-          <Card key={s.title}>
-            <div className="ui-spread"><span className="lv-mk-icon"><Icon name={s.icon} size={22} /></span><Eyebrow>{String(i + 1).padStart(2, "0")}</Eyebrow></div>
-            <h2 className="lv-mk-card-title">{s.title}</h2>
-            <p className="lv-mk-card-body">{s.body}</p>
-          </Card>
+      <dl className="lv-pd-points" data-testid="how-points">
+        {LOOP.map((s) => (
+          <div key={s.title}>
+            <dt className="lv-hiw-term"><Icon name={s.icon} size={20} />{s.title}</dt>
+            <dd>{s.body}</dd>
+          </div>
         ))}
-      </div>
-      <Card>
-        <h2 className="lv-mk-card-title">Questions about privacy</h2>
-        <Accordion type="single" collapsible>
+      </dl>
+      <section className="lv-pd-section" aria-labelledby="hiw-faq">
+        <h2 id="hiw-faq">Questions about privacy</h2>
+        <Accordion type="single" collapsible className="lv-hiw-faq">
           {FAQ.map(([q, a]) => <AccordionItem key={q} value={q}><AccordionTrigger>{q}</AccordionTrigger><AccordionContent><p>{a}</p></AccordionContent></AccordionItem>)}
         </Accordion>
-      </Card>
+        <p className="ui-help lv-m0">More on how answers are protected: <Link className="lv-inline-link" to="/products/privacy">Privacy</Link>.</p>
+      </section>
       <div className="ui-row">
-        <LinkButton to="/surveys/new" variant="primary" size="lg" icon="arrow">Start a Quick Survey</LinkButton>
-        <LinkButton to="/waitlist" variant="secondary" size="lg">Join the waitlist</LinkButton>
+        <LinkButton to={ctas.primary.to} variant="primary" size="lg" icon="arrow">{ctas.primary.label}</LinkButton>
+        <LinkButton to={ctas.hub.to} variant="secondary" size="lg">{ctas.hub.label}</LinkButton>
       </div>
     </div>
   );
@@ -77,26 +80,21 @@ export function HowItWorks() {
 
 /* ------------------------------------------------------------------ use cases */
 
-const CASES: { icon: IconName; name: string; line: string; ex: string }[] = [
-  { icon: "star", name: "Clubs and societies", line: "Settle a decision, rate an event, or float ideas before the next meeting.", ex: "Which night works? · Rate the venue" },
-  { icon: "roster", name: "Teams and leagues", line: "Availability, season feedback and next-season planning in one place.", ex: "Who can play Saturday? · Rate the season" },
-  { icon: "sparkle", name: "Events and meetups", line: "A QR code on the table, results before you pack up.", ex: "How was tonight? · What should we run next?" },
-  { icon: "bulb", name: "Workplaces", line: "Idea boxes and pulse questions with a privacy floor you can point at.", ex: "One change you’d make · Rate the offsite" },
-  { icon: "home", name: "School and campus staff", line: "Administrators and staff asking adult colleagues, parents or guardians, with results that never name anyone.", ex: "Rate the parents’ evening · Choose the training day" },
-  { icon: "fork", name: "Dining and catering", line: "Menu and service feedback from the people you serve.", ex: "Rate today’s lunch · Which dish should return?" },
-];
-
 export function UseCases() {
   return (
     <div className="lv-mk">
-      <Head eyebrow="Use cases" title="Dining is one use case. Yours is probably different." sub="Anything a group needs to ask, answer and settle, where the answer matters but the respondent shouldn’t be exposed." />
-      <div className="lv-mk-grid">
-        {CASES.map((c) => (
-          <Card key={c.name}>
-            <span className="lv-mk-icon"><Icon name={c.icon} size={22} /></span>
-            <h2 className="lv-mk-card-title">{c.name}</h2>
+      <Head
+        eyebrow="Use cases"
+        title="The name has lunch in it. The product doesn’t."
+        sub="Anything a group needs to ask, answer and settle: votes, questionnaires, feedback, suggestions, schedules. The answer matters, and the respondent shouldn’t be exposed."
+      />
+      <div className="lv-mk-grid" data-testid="use-case-grid">
+        {USE_CASES.map((c) => (
+          <Card key={c.slug}>
+            <span className="lv-mk-icon"><Icon name={c.icon as IconName} size={22} /></span>
+            <h2 className="lv-mk-card-title"><Link to={`/use-cases/${c.slug}`}>{c.name}</Link></h2>
             <p className="lv-mk-card-body">{c.line}</p>
-            <Eyebrow>{c.ex}</Eyebrow>
+            <LinkButton to={templateHref(c)} variant="secondary" icon="arrow">Use this template</LinkButton>
           </Card>
         ))}
       </div>

@@ -6,6 +6,320 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Merged (feedback types, elections and election night into `main`, founder approval 2026-11-12)
+
+- `claude/vigilant-feynman-npze3t` (000036 feedback types, 000037 elections and Yes/No, 000038 election night, minimum
+  age 13, product vocabulary) brought up to date with `main` and merged. Conflicts resolved so both sides keep working:
+  the new-survey form keeps the template list (short list and "Show all") and gains the feedback-type choice (picking
+  a template makes it a Survey); the new-Campaign form keeps Campaign templates and gains Yes/No and Election (shown
+  only without a template); `modeLabel` now reads the labels from `src/config/feedbackTypes.ts`.
+- **Product pages updated:** Feedback lists the five ways to ask (Poll, Rating, Yes/No, Open feedback, Survey) and
+  shows Elections as a Hub feature read from `modes.election`; Campaigns adds "Elections with a secret ballot" and an
+  Elections row.
+- **Production:** with the founder's approval, 000036, 000037, 000038 and 000039 are applied in order after the
+  canonical suite passed on the merged chain and on production's own chain (000001 to 000035 including 000029 to
+  000032 from PR #59). See the Operations entry for the verification.
+
+### Changed (survey creation and Campaign lists, founder assignment 2026-11-12, PR D)
+
+- **New Quick Survey opens on a short template list:** Blank and the first five templates, then "Show all N templates".
+  A category lists everything. The chosen template always stays listed. Before, 21 options came before the title, who
+  can answer and anonymity; on a 390px phone the title is now reached after six options.
+- **The free-limits card** no longer repeats "1 of 5 active" under the meter that already shows "1 / 5".
+- **Same words everywhere:** the Campaign list filter "Live" is now "Open", matching the phase badge. Modes read
+  "Survey", "Poll", "Rating" and "Feedback" instead of the code values (`modeLabel` in `src/components/ui.tsx`), on
+  Campaign cards, the Hub overview rows and the Campaign header, where anonymity also reads "Anonymous" or
+  "Identified". The disabled Election mode says "Coming later" instead of the internal "Coming with M2".
+- **Tests:** `e2e/surveyflow.test.mjs` (3): the short list and Show all at 390px, a template from the full list stays
+  selected, list labels.
+
+### Changed (Hub workspace: setup checklist, plain settings, Connected communities; founder assignment 2026-11-12, PR C)
+
+- **Overview:** the three numbers (live Campaigns, members, plan) run across the top instead of stacking in a narrow
+  column. "Get your Hub going" (shown only with no Campaigns) is replaced by **"Set up your Hub"**: describe your Hub,
+  pick your Hub color, ask your first question, invite people, connect your Discord server. Every tick comes from
+  real state (about line, accent, Campaign count, member count, Discord connections); each open step links to the
+  place that does it; there is a progress bar and "N of M done"; it shows only the steps the viewer can act on and
+  disappears when they are all done. Discord connections are read only for settings managers. The Plan tile loses its
+  green left-edge bar (founder request 2026-11-12); the three tiles share one flat style.
+- **Settings:** grouped as "Name and description" and "Who can see it and join". The labels are "Hub name" and "What is
+  this Hub for?", and the help text says where the description shows. The address is shown, with a way to ask support
+  (owners cannot change it in the app yet; whether they should is a founder decision). Visibility and joining are radio
+  choices with one sentence each instead of selects (the joining select truncated "Approval: a manager admits
+  reque…"). A line says changing them never removes members (`lv_hub_update` touches no memberships). "Community
+  appearance" is now "Hub color" and the checklist links to it (`#appearance`). "Owner only" is now "Ownership and
+  deletion", with a line saying only the Owner sees it.
+- **Discord tab, "Connected communities":** when nothing is connected, three numbered steps (add the bot, run
+  `/lunchvoice connect hub:<slug>` with a copy button, confirm the link). When connected, one card per server with
+  its name and date, an auto-post switch with a sentence saying what it does (toast on change, disabled when staff
+  turned the server off), role rules in words, and Disconnect behind a confirmation that says nothing in the Hub is
+  deleted. A panel says what Discord can and cannot see: LunchVoice never reads server messages (the bot only posts
+  to channels), and anonymous Campaigns are answered in LunchVoice. No new API is used.
+- **Tests:** `e2e/hubsetup.test.mjs` (3): ticks from real state, Discord connection closes the checklist; plain
+  labels, radio choices, address; empty steps with the command, the server card, auto-post toast, disconnect
+  confirmation, 390px. The launch-plan UI gate adds Hub settings and its Discord tab.
+- **Needs the founder:** the bot's invite link. The repository has none, so step 1 cannot link to it. A decision on
+  letting owners change their Hub address (needs a backend function with the reserved-name and quarantine rules). The
+  Hub banner's gradient glow (from #66) disagrees with DESIGN.md's "solid surfaces"; left as it is.
+
+### Changed (public site: the "less generated" pass, founder assignment 2026-11-12, PR B)
+
+- **Home page answers what, who, how and what next.** The approved hero is unchanged. The use cases now say who
+  LunchVoice is for. "How it works" is one connected four-step sequence: create a survey, share it, collect responses,
+  understand results. It replaces three unrelated numbered cards in three fills and becomes a vertical timeline on
+  phones. A new "What you can do with LunchVoice" section is a ruled grid of the six products linking to their pages;
+  it replaces the "Your Hub" section, whose content now lives on `/products/hubs`. The participant band lists three
+  facts instead of an invented "example account" dashboard with made-up numbers.
+- **Fewer generated-page tells.** Eyebrows are kept only where they add a fact the heading does not (hero, For
+  participants, Founding seats, Built in the open); the four that repeated their heading are gone. Headings rewritten
+  as plain statements: "How a survey works", "What you can do with LunchVoice", "Answering is always free." and
+  "Free for surveys, from $13 a month for a Hub" (the price comes from `src/config/pricing.ts`). Two light sections in
+  a row share one gap instead of stacking two.
+- **`/how-it-works`:** the four points are not steps, so the numbers 01 to 04 and the identical cards are gone. They
+  are a two-by-two list with hairlines. The privacy questions sit in an open section that links to the Privacy
+  product page.
+- **Copy accuracy:** `seo.json` (home and use cases) and the use-cases lede no longer name "ideas", "idea boards" or
+  "elections", which `main` does not have. They say survey, poll, rating, open feedback and suggestion box.
+- **Not changed** (founder decision, recorded in the billing audit): the Team plan's "Enhanced Campaign modes" and
+  "Advanced targeting and analytics" lines on `/pricing`.
+- **Test:** the homepage shows the four steps, links all six products, keeps at most three section eyebrows and has
+  exactly one sample-data illustration.
+
+### Added (product website: six product pages, Products menu, footer; founder assignment 2026-11-12, PR A)
+
+- **Six product pages** at `/products/<slug>`: Hubs, Feedback, Campaigns, LunchVoice for Discord, Developers and Privacy,
+  plus the `/products` index (grouped by job: ask a question, run a community, connect your tools). Finished from the
+  `wip/product-pages` drafts. Content is `src/config/products.json` (one source for the pages, the menu, the footer, the
+  search metadata and the sitemap). Each page: headline and lede, who it is for, a demo drawn with real components
+  (labelled as an example), what you get, a "By plan" table read from `lv_plan_limits` (rows with no value in the map are
+  left out, never guessed), how it fits with links to related products, price and the billing-driven primary action
+  (`src/lib/billingState.ts`). On phones the plan table becomes a stacked list instead of scrolling sideways.
+- **Copy checked against `main` and production** (2026-11-12): Campaign modes `survey`, `poll`, `rating`, `feedback`;
+  question kinds rating, single and multiple choice, yes or no, short text; Discord commands link, unlink, verify,
+  connect, post and setup; production's public `lv_plan_limits` returns every key the pages read (API 10 keys, 60
+  requests a minute, 5 webhook endpoints, Team only; shop items 10 and 50; role targeting Team only), so `000024` is
+  live in production despite `V2_STATUS_2026-11-12.md` listing it as unapplied. Nothing planned (Pulse, goals, recaps,
+  missions, achievements, Trends, Creator plans, AI) or on the elections branch is described.
+- **Header:** Products menu (the six with icon and one line, then "All products"; existing `DropdownMenu`, works on the
+  ink home header), then Use cases, Pricing, Discover, How it works. The waitlist stays the amber header action. The
+  phone sheet lists the products under "Products", then the site links in two columns.
+- **Footer:** brand and contact, then four labelled columns: Products (the six), Use it for, Company, Legal. The legal
+  page is "Privacy policy" (`/privacy`) so it is not confused with the Privacy product page (`/products/privacy`).
+  KpnSolute attribution kept. Footer links are 44px on phones.
+- **Routes and search:** `products` and `products/:slug` before the Hub route (`src/main.tsx`, `routes.json`);
+  `/products` in `seo.json`; `scripts/seo-prerender.mjs` and `src/ui/Seo.tsx` add one page per product (title,
+  description, canonical, Open Graph, sitemap); seven rewrites in `render.yaml`. **The Render dashboard rules are not
+  synced from `render.yaml`:** until the founder adds the seven `/products` rewrites there, people get the app (it
+  routes) but crawlers get the home page's metadata.
+- **Reserved name `products`:** `src/lib/reservedSlugs.ts` and migration `000039_v2_reserve_products.sql` with its
+  rollback and test `39_reserve_products.sql` (000036 to 000038 belong to the elections branch). `guidelines` added to
+  the frontend list to match `000026`. **Not applied to production; needs founder approval.** Canonical suite: 1319
+  checks, 0 failed, rollbacks rehearsed.
+- **Mock:** `limitsOut` in `src/lib/mockTransport.ts` returns production's community, shop, export, role-targeting,
+  API and webhook keys so development shows the full plan tables.
+- **Tests:** `e2e/products.test.mjs` (8: index, every page's h1/table/prices/related/CTA/title/canonical, map-driven
+  rows, unknown slug, the menu on both headers, phone sheet, footer columns and every footer link, 360px in three
+  themes); the three new routes join the "launch plan UI gate"; the SEO script test accepts `/products/:slug`.
+
+### Operations (2026-11-11, founder request)
+
+- **The LunchVoice Hub moved to `lunchvoice.com/kitchen`.** In production, Hub `b3311357-89cc-4550-90e6-018ee35d40fa` had its
+  address changed from `kpnworld` to `kitchen` (one row in `lv.hubs`; `kitchen` was not reserved, held or quarantined, and no
+  Discord code or checkout intent pointed at the old address). `kpnworld` is free to claim again and has no redirect.
+- **PR #66 merged to `main`** (`e0d4247`) at the founder's request, 17 ahead and 0 behind with both checks green.
+
+### Brand identity system (2026-11-12, founder direction)
+
+- **One logo.** The sharp-cornered LV with the amber speech bubble and smile is the official mark (founder decision).
+  The second, rounded LV that the favicon and app icons used is deleted. Every logo, icon, social, video and Canva file
+  is now generated from one vector source, `scripts/brand/logo.mjs`, by `npm run brand:build`; the wordmark is
+  Bricolage Grotesque 800 converted to outlines. The shapes themselves were not redrawn.
+- **Icons are amber** (founder decision): the favicon, app icons and profile picture show the mark in white on an amber
+  tile. Under 48px the smile and dots are left off so the mark stays readable.
+- **Tagline: "Make every voice count."** (founder decision) replaces "Every voice has a story. Hear it." on the home
+  page hero, in the search metadata and on the link-preview image. "Smart feedback. Better cafeterias." is removed from
+  every file. The link-preview image address carries `?v=2` so Discord and others fetch the new one.
+- **Every version for every background:** horizontal, stacked, symbol, small-size symbol and wordmark, each for light
+  backgrounds, dark backgrounds, all ink and all white, all transparent. The old files had ink letters baked in and
+  vanished on dark.
+- **Kit contents** (`brand/lv-package/`): icons at 16 to 1024px plus ICO, square and maskable shapes; social frames for
+  Instagram, Reels, YouTube, Shorts, LinkedIn, Facebook and slides with crop guides; video outros, title card, lower
+  third, backgrounds and overlays; a Canva folder with setup steps; a 15-page guidelines PDF; a colour specification
+  computed from `src/ui/tokens.css` with measured contrast; typography; an audit of what was wrong. No colour or font
+  value changed.
+- **Site:** new favicon, Apple and Android icons, maskable icons added to `site.webmanifest`, new link-preview image and
+  public logo downloads. `LvMark` now uses a viewBox cropped to the artwork, so the header logo is centred in its box;
+  its drawn size is unchanged.
+- **`npm run check:brand`** (now part of `test:pr`) checks required files, PNG sizes against their names, transparency,
+  the ICO, SVG validity and palette, that `LvMark` matches the master geometry, and that no retired tagline returns.
+- Known, not changed: `public/brand/discord-banner.png` has no source and still reads "Ask your community. Hear every
+  voice."; the V's point dips below the L by design; details in `brand/lv-package/documentation/AUDIT.md`.
+
+### Added (native design skills for Claude Code and Codex, founder assignment 2026-11-12)
+
+- **Three project skills**, discovered natively by both agents: `design-system` (follow the system on every visible UI
+  change), `frontend-design` (polished new screens within the fixed identity; adapted from Anthropic's Apache-2.0
+  `frontend-design` skill, with `LICENSE.txt` and `NOTICE.md`), `design-element-authoring` (discover, evaluate,
+  specify, design, implement, register, test, document, approve, release; founder approval for new token values and
+  global rules). Canonical copies in `.agents/skills/` (Codex), byte-for-byte mirrors in `.claude/skills/`
+  (Claude Code); `.gitattributes` pins LF endings so Windows checkouts stay identical.
+- **Shared guidance** in `docs/frontend/design-system/`: `README.md` (source order with `tokens.css` first, identity,
+  token map, component map, known inconsistencies), `COMPONENT_STANDARDS.md` (rules and the new-component spec),
+  `DESIGN_EXTENSIONS.md` (lifecycle, approval table, proposal template, recorded extensions), `AGENT_WORKFLOW.md`
+  (invocation, maintenance, verification record).
+- **Checks:** `scripts/skills.mjs` (`npm run skills:sync`; validates metadata, references, licence and that both copies
+  match), `scripts/check-gallery.mjs` (every reusable component shown at `/__gallery` or exempted with a reason),
+  together `npm run check:design`, now part of `test:pr` and `test:light`. `scripts/verify-skills-live.mjs`
+  (`npm run skills:verify`) asks the installed CLIs what they discover. 11 script tests; e2e: the gallery renders every
+  section in light, dark and high contrast with no errors.
+- **Frontend Design Protocol** in `AGENTS.md` and `CLAUDE.md` (identical): when to use each skill, the checks before
+  finishing, approval for global changes, explicit invocation commands. UI-only; other tasks skip it.
+- **Gallery:** brand (`LvMark`), Hub identity (`HubProfile`, `HubCard`, `ShareHubDialog`), badges, results and charts
+  (`ResultBars`, `WithheldTag`, `TextAnswers`, `Bars`, `DistributionColumns`, `TrendLine`, `CountUp`), rows, QR, alerts
+  and the full icon set.
+- **Verified:** Claude Code 2.1.322 discovers all three (48 skills in the repo, 45 outside) and, in read-only runs with
+  prompts that did not name a skill, chose `design-system` for a Hub card, `design-element-authoring` for a progress
+  indicator (after checking existing components) and for a warning token (proposal, stopped for approval). Codex CLI
+  0.167.2 lists all three from `.agents/skills` in its model-visible prompt (`codex debug prompt-input`). Not verified:
+  Codex running the scenarios live (no OpenAI login here).
+
+### Changed
+
+- `.impeccable/config.json`: the font exemptions named Fraunces and Space Grotesk, a retired type system; now Space Mono
+  (the data typeface) and Arial (email), with the reason updated. Gallery and `FRONTEND.md` wording follows design
+  system 3. `src/ui/HubCover.tsx` removed (unused since the Hub profile header).
+
+### Found (recorded, not changed: needs a founder decision)
+
+- Warnings inside a Hub take the Hub's colour: the `warn` notice uses `--lv-accent`, which `.lv-hubscope` replaces.
+  A semantic warning token was proposed by the scenario C run; adopting it needs approval.
+- Two duration scales: `--lv-dur-*` in `tokens.css` and `--lv-d1/2/3` in `src/ui/motion.css`.
+- `src/index.css` keeps legacy aliases (including the old glossy `--cta-shadow`) for pre-shadcn classes.
+
+### Changed (design system 3: UI element rebuild, Hub identity and sharing, founder direction 2026-11-12)
+
+- **Element rebuild** (tokens and `src/components/shadcn/`, so every page follows): solid surfaces with hairlines instead of
+  gradients and glows; rounded-rectangle buttons (pill shape and hover lift gone, springy press kept); disabled buttons
+  neutral grey; white input fields with a clear focus ring; selected radio cards, segmented tabs and phone tabs use a tint
+  and outline (solid amber kept for answer choices in surveys and status badges); labels in the UI font, sentence case
+  (Space Mono only for codes and numbers); badges as small rounded tags at 12px (they were 10.5px); one full-width header
+  bar. Segmented filters scroll in one row on phones. `DESIGN.md` documents the rules.
+- **Hub profile header** (`src/ui/HubProfile.tsx`): a banner in the Hub's colour with its mark overlapping it, the name,
+  address, member count, how to join, visibility and a Share button. Replaces the coloured strip and title on member pages
+  and the cover on visitor pages. The visitor join card no longer repeats the about line or shows "public" as a number.
+- **Hub card** (`src/components/HubCard.tsx`): the Discord-style card used on Discover, in the share dialog and on the home
+  page. Online count, tags and "Est." date render only when the backend sends them (requested in `API_CONTRACT.md`).
+- **Share dialog** (`src/components/ShareHub.tsx`): card preview, the `lunchvoice.com/h/<slug>` share link, "Copy invite
+  message", the phone share sheet and a QR code. `/h/<slug>` forwards to the Hub in the app (route added, `h` reserved).
+- **Share links live on `hub.lunchvoice.com/<slug>`** (deployed 2026-11-12 through the Cloudflare API via Composio).
+  lunchvoice.com points at Render with a proxied A record, and Cloudflare only runs a zone's Workers in front of a Render
+  site through a proxied CNAME (O2O), so the `lunchvoice.com/h/*` route never fired (checked: responses came straight
+  from Render's cache). The Worker now answers on its own Custom Domain: verified live, Discordbot gets "Kitchen on
+  LunchVoice", "3 members · Open to join", the about line and `theme-color` #1D4ED8; people get a 302 to
+  `lunchvoice.com/kitchen`; an unknown slug gets the neutral card; `/` goes to Discover. The Share dialog copies the
+  new link; `lunchvoice.com/h/<slug>` still forwards to the Hub. Bindings: `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`
+  (plain text; the old anon-key secret was dropped). Also set: Render `VITE_SUPABASE_PUBLISHABLE_KEY` on the Lunchvoice
+  static site and the Supabase Edge Function secret `LV_PUBLISHABLE_KEY`.
+- **Link previews per Hub** (`workers/hub-card`): a Cloudflare Worker for the route `lunchvoice.com/h/*` gives Discord,
+  Slack, X, WhatsApp and iMessage a card with the Hub's name, member count, how to join, about line and colour
+  (`theme-color`), and sends people on to the Hub. Supabase functions cannot serve HTML and Render cannot vary it per Hub;
+  the domain is on Cloudflare. Private and missing Hubs get the same neutral card. 6 tests (`npm run test:workers`, now in
+  `test:pr`). **Not deployed:** needs `wrangler deploy` from the founder's Cloudflare account (README in the folder).
+- **Badges are icons with a meaning** (Discord-style, founder direction 2026-11-12): `src/config/badges.ts` and
+  `IconBadge`. A small coloured icon after a name, each with a tooltip and an accessible label: Owner (crown), Founding Hub
+  (sprout, founding plan), Team Hub (star, active Team plan) and Listed on Discover (shield-check, approved listing). Shown
+  only when the data says so. Roles in the member list show their own icon. Text badges remain for states that need words
+  (an ended plan, Campaign phases).
+- **v2 docs brought up to date:** `docs/v2/LAUNCH_PLAN.md` definition of done ticked against evidence (two release items
+  wait on the founder); `docs/v2/V2_STATUS_2026-11-12.md` records the evidence for every launch and build-plan item and
+  what is waiting on the founder; `docs/v2/handoffs/2026-11-12-ui-design-system-3.md` hands the general UI pass to a
+  separate agent. New e2e gate: 8 main routes in light, dark and high contrast at 390, 768 and 1280 with no sideways
+  scroll and no console errors. Badge tooltips stack the label over the meaning, left aligned, with an arrow.
+- **Ready for Supabase's new API keys** (founder note 2026-11-12: the legacy anon and service-role keys are retired in
+  early 2027). The app prefers `VITE_SUPABASE_PUBLISHABLE_KEY` (falls back to the anon key) and sends keys only in the
+  `apikey` header: `src/lib/apiKey.ts` strips the copy supabase-js puts in `Authorization: Bearer` when no one is signed
+  in, and the sign-in exchange and function calls send `Authorization` only with a person's token. Functions:
+  `supabase/functions/_shared/keys.ts` (publishable key from `LV_PUBLISHABLE_KEY`, `SUPABASE_PUBLISHABLE_KEYS` or the
+  legacy anon key; service secrets from `SUPABASE_SECRET_KEYS` or the legacy service-role key; no API key is ever taken
+  for a signed-in person). Checkout uses it; the email, webhook and Discord dispatchers accept the new secret keys by
+  Bearer or `apikey`. The share-preview Worker uses `SUPABASE_PUBLISHABLE_KEY`, set in `workers/hub-card/wrangler.toml` (public by design;
+  verified against production: `lv_plan_limits` answers 200 with the key in `apikey` only). Tests: 3 key tests, 2 header tests, new
+  checkout and dispatch cases. Switch-over steps: `docs/backend/PRODUCTION_RESET_RUNBOOK.md`, "Retiring the legacy anon
+  and service-role keys".
+- **LunchVoice's own Hub:** `COMMUNITY_HUB_SLUG = "kitchen"` in `src/config/contact.ts`. The home page shows a "Pull up a
+  seat in the Kitchen" section with its card only while `lv_hub_get("kitchen")` returns a public Hub. The founder creates
+  it through the normal flow; nothing is seeded or reserved.
+
+### Fixed (broken link previews, founder report 2026-11-12)
+
+- Every link preview of lunchvoice.com (Discord, Slack, iMessage) ended "Hubs for communities from <meta property=":
+  `scripts/seo-prerender.mjs` passed page text to `String.replace` as a replacement string, where "$1" means "group 1",
+  so "$13/month" became group 1 plus "3/month" and broke the tag. All replacements are now functions. New test: no tag
+  ever appears inside a meta value, and "$13", "$&", "$1$2" and "$$" render as typed.
+
+### Fixed (logo invisible on dark surfaces, founder report 2026-11-12)
+
+- The LunchVoice mark was an `<img>` of a file with ink-coloured letters, so on a dark surface (the survey player's
+  "Powered by" line, the dark theme header, sign-in card and Hub footer) only the amber bubble showed. New
+  `src/components/LvMark.tsx` draws it inline: the L and V take the text colour of the surface, the bubble and bowl stay
+  amber. It replaces the image in the header, footer, sign-in card, Hub "Powered by" and the player, and the CSS colour
+  filters that patched the homepage header and footer are removed. `e2e/sitecta.test.mjs` checks the letters contrast
+  with their background in light and dark and that no fixed-colour logo image is rendered.
+
+### Changed (waitlist action back in the brand amber, founder feedback 2026-11-11)
+
+- The Hub action ("Join the waitlist" before billing, "Create your Hub" after) is the amber primary button again in the
+  header on every page, in the homepage waitlist band and on the Starter Hub card. In the hero it stays outlined beside
+  "Start a free survey", which is the primary action there.
+
+### Changed (UI and interaction review, 2026-11-11 handoff)
+
+- **One billing state drives every call to action.** `src/lib/billingState.ts` (pure, 9 unit tests) and
+  `src/lib/useBilling.tsx` (loaded once in the page shell) decide the wording and target of the header button, the homepage
+  hero, waitlist band and plan cards, the `/pricing` notice and every checkout button. Signed-out visitors read the public
+  `lv_plan_limits().billing` (000035); signed-in people also read `lv_billing_config`. Unknown means closed. Before billing:
+  "Join the waitlist". After: "Create your Hub" goes to the Hub plans on `/pricing`. "Start a free survey" is the primary
+  hero action in both states. While billing is closed no button says "Sign in to buy": the Starter Hub card points at the
+  waitlist and the other paid plans are disabled with the reason. **Needs 000035 applied in production** for signed-out
+  visitors to see the open state; until then they see closed, which is correct today.
+- **Sign-in page** says what happens before the click: sign-in is on auth.kpnsolute.com, run by the company that makes
+  LunchVoice, with a Google account. The button reads "Continue to sign in" (also on the invitation page). The identity
+  flow sends no provider hint, so a direct "Continue with Google" button needs KpnIdentity to accept one.
+- **Pricing:** free plan, then the highlighted Starter Hub, then Team Hub in one row of three; Campaign plans grouped under
+  their own heading. On screens up to 860px the compare table becomes a plan picker with one plan's values at a time (no
+  sideways scrolling at 360px; the picker stays pinned under the header). "Not set yet" is gone: the "Active Campaigns at
+  once" row is built from the backend map (`campaigns.max_active`) and left out if the backend has no value. The survey
+  replacement lines are in plain words ("A survey stops counting toward that limit once more than half your members have
+  answered").
+- **Homepage:** "LunchVoice 2.0" removed and the hero label is one line; the two hero actions sit under the headline; the
+  floating amber button under the code card is gone; "Join survey" is never disabled (with no code it says what is missing
+  and focuses the field). The result, Hub and account illustrations are labelled "Sample data" / "Example" on screen, the
+  fake "Live, updated 2 min ago" line and the "LOGO" placeholder are gone, and the mock Hub uses brand tokens.
+- **Accessibility:** new `--lv-accent-text` token for amber text (5.6:1 on the page; plain amber was about 1.8:1), used by
+  every accent eyebrow; `--lv-text-min` 12px floor applied to every stylesheet; header buttons, menu button, nav, footer and
+  chip links are at least 44px tall; the header action is hidden on `/waitlist` and `/signin`; "Sign in" is in the phone menu.
+- **Buttons:** on public pages and the header only the primary keeps the gradient and glow; secondary and ink buttons are
+  flat. The pill radius is unchanged on public pages (see the handoff).
+- **One brand source:** `DESIGN.md` and `brand/lv-package/README.txt` now describe `src/ui/tokens.css` (Bricolage Grotesque,
+  Geist, Space Mono, page `#EEEDEA`, the name as one word). `PRODUCT.md` carries the Campaign Plus price ($39, then $19 per
+  week) that `AGENTS.md` and `src/config/pricing.ts` already had.
+- `npm run test:pr` now also runs `test:unit`. New e2e: `e2e/sitecta.test.mjs` (both billing states, signed in and out,
+  header, phone menu, 360px compare, touch targets, type floor); `e2e/commerce.test.mjs` updated for the closed state.
+  Handoff: `docs/v2/handoffs/2026-11-11-ui-interaction-review.md`.
+
+### Fixed (use-case pages blank in production, 2026-11-11)
+
+- **Cause:** PR #63 was squash-merged from a branch that predated PR #62, so its merge commit reverted all of #62: the ten
+  `/use-cases/<slug>` pages, `src/config/useCases.json`, the Quick Survey and Campaign templates, the expired-session fix
+  (`src/lib/authFailure.ts`), their tests and their `render.yaml` rewrites. The Render dashboard rules (not synced from
+  `render.yaml`) still rewrote each slug to `/use-cases/<slug>/index.html`, a file the build no longer wrote, so the host
+  answered 200 with an empty body. The sitemap fell from 21 URLs to 11 and the homepage section disappeared for the same reason.
+- **Fix:** #62 is re-applied on top of #63 (both sets of changes are kept; nothing from #63 is lost). No Render change is
+  needed: the dashboard rules already point at the files this build writes again.
+- **Guard:** `scripts/seo-prerender.mjs` now fails the build when an indexable page or any `render.yaml` rewrite destination
+  has no non-empty file in `dist/` (`missingOutputs`), and `scripts/seo-prerender.test.mjs` covers it, including one file with
+  a heading per use case. A stale-branch revert of the whole feature still needs review to catch; see the handoff.
+
 ### Changed (docs, 2026-11-12)
 
 - `docs/v2/PRODUCT_DIRECTION_2026-11-11.md` section 8: product vocabulary (feedback types, Survey as a combination,
@@ -94,6 +408,86 @@ categories and the repository's decimal `X.X.X` release policy.
   schedule, the counter showing the date, opening, purchases unlocking, pausing, missing prices and non-staff access.
 - `docs/v2/BILLING_FULFILLMENT_AUDIT_2026-11-11.md`: purchase to access, advertised versus enforced (two Team claims, "enhanced
   Campaign modes" and "advanced analytics", are not delivered yet), and what is still unproven (one real $13 payment).
+
+### Added (ten more Quick Survey templates, and Hub Campaign templates for each plan)
+
+- Quick Survey templates grow from 10 to 20 and gain categories (Customers, Teams and work, Events, Community,
+  Decisions) with a filter on `/surveys/new`: Would you recommend us?, Support satisfaction, Product or app feedback,
+  Training evaluation, New starter check-in, Event RSVP, Speaker or session feedback, Volunteer interest, Neighbourhood
+  priorities, Priority vote. RSVP and Volunteer interest default to Identified (you need to know who replied); a choice
+  question can cap picks (`config.max`, "Pick up to 3").
+- Hub Campaign templates, grouped by what each plan is for (`src/config/campaignTemplates.ts`), on
+  `/:hub/campaigns/new`. Starter Hub (6): polls, ratings and a feedback box, which do not use one of the 2 active
+  surveys, plus one monthly survey that says it does. Team Hub (5): four role-targeted templates (Role pulse,
+  Volunteer shift feedback, New member check-in, Ask the leads) and a Quarterly community survey. Time-bounded (5):
+  Event week feedback, Launch week poll, Season review, Call for ideas, and a Campaign Plus role check-in; the end date is
+  set on the draft and can be changed under Schedule.
+- Picking one fills the title, creates the draft with its description and questions, and opens the next decision:
+  Audience for a role-targeted template (roles belong to each Hub), otherwise Review. A summary shows the mode, answers,
+  who can answer, when it runs and the questions before anything is created.
+- Honest by construction: role targeting needs identified answers (FB-01), so every targeted template is identified and
+  says so; Team templates are shown but disabled, with the reason, on a Hub without the Team family. That is display
+  only (`templateOffered`): the backend still decides and refuses with `lv_entitlement_required`. A shared link
+  `?template=<id>` preselects an offered template and falls back to Blank for one the plan does not offer.
+- `/pricing` gets "Templates for every plan", built from the same data so the counts stay true.
+- `src/components/TemplateQuestions.tsx` is shared by the use-case pages and the picker.
+- Tests: `src/lib/campaignTemplates.test.ts` (one question for a poll, rating or feedback; targeted means Team and
+  identified; windows say when they close; offering is display-only) and `e2e/campaigntemplates.test.mjs` (Starter,
+  locked Team templates, a Team Hub landing on Audience, a time-bounded end date, deep links, phone width, pricing).
+
+### Fixed (people left signed in on a dead session saw "Something went wrong on our side")
+
+- Reported: after a while of inactivity, My home showed "Something went wrong on our side. Try again." while the header
+  still showed the person signed in. Cause: sessions last at most one hour by design (LC-04, LC-33), but the app checked
+  the expiry only when the page loaded, and the real transport turned the backend's `401 JWT expired` (a PostgREST
+  error, not an envelope) into `lv_server_error`. A tab left open past the hour kept sending a dead token.
+- A refused or expired token now becomes `lv_unauthenticated` (`src/lib/authFailure.ts`: HTTP 401, PGRST301/302/303 or a
+  JWT message; a 403 stays a permission error). Edge Function calls (checkout, portal) get the same treatment.
+- `IdentityProvider` ends the session when its clock runs out (a timer, plus a re-check when the tab regains focus or
+  becomes visible, since background timers are throttled) and whenever the server refuses a token that was sent. Ending
+  clears the stored session, shows a toast, and sets a flag; signed-in pages go to `/signin` and keep the path
+  (`from`), where a "You were signed out" notice explains why. Signing in again returns to where they were.
+- The session lifetime is unchanged (1 hour, a compliance decision). Silent renewal, so people are not interrupted at
+  all, needs a backend and CSP decision and is not part of this fix.
+- Tests: `src/lib/authFailure.test.ts` (what counts as an ended session and what does not) and `e2e/session.test.mjs`
+  (the reported My home case, an expiry while the tab is open, a public page, and a healthy session left alone). In dev
+  the mock treats a session whose token is `expired` as a server-refused token.
+
+### Added (use-case pages, four more templates, "more than lunch" positioning)
+
+- Ten public use-case pages at `/use-cases/<slug>` (anonymous employee survey, event feedback form, club and committee
+  votes, weekly team pulse survey, customer feedback questionnaire, meeting and workshop feedback, group scheduling
+  poll, community suggestion box, menu and dining feedback, member questionnaire). Each shows the template's real
+  sample questions, why it works, recommended settings, related pages and a "Use this template" button that opens
+  `/surveys/new?template=<id>`. One source, `src/config/useCases.json`, feeds the page, its title, description,
+  canonical, prerendered HTML and sitemap entry (21 sitemap URLs). Unknown slugs show the 404 page.
+- Four new Quick Survey templates: Anonymous employee survey, Club or committee vote, Member questionnaire, Menu and
+  dining feedback (ten in total). The vote template sets Invite only and Anonymous when picked (a ballot should reach
+  only the people invited; each signed-in account counts once); other templates leave those settings alone.
+- The Use cases hub is rebuilt from the same data and now leads with "The name has lunch in it. The product doesn't."
+  The home page gets a use-case band linking to every page. Dining is one use case of ten.
+- Honest about elections: the vote page states a LunchVoice poll is a straightforward vote, not a certified election,
+  and that a dedicated Election mode is planned (Campaign Election mode is still disabled until M2).
+- `render.yaml` gains ten rewrites (one per use-case page, above the catch-all). The Render dashboard needs the same
+  ten rules; the file is not synced from the repo. `routes.json` lists `/use-cases/:slug`.
+- Card-title links on marketing pages use ink instead of the amber accent for contrast.
+- Tests: `scripts/seo-prerender.test.mjs` now covers every use-case page; `e2e/usecases.test.mjs` covers the hub, a
+  page's real questions and canonical, the sign-in round trip, the vote defaults and caveat, a 404 and phone width.
+
+### Added (try-it path: Quick Survey templates and go-to-market plan)
+
+- Quick Surveys can start from six templates (Event feedback, Team pulse check, Pick a time or option, Suggestion box,
+  Service feedback, Meeting or workshop feedback) on `/surveys/new`. Picking one fills the title (unless the creator
+  typed their own) and creates the draft with its questions already added in order; everything stays editable until
+  publish. Blank is still the default. `/surveys/new?template=<id>` preselects a template, so each one is a shareable
+  marketing link; an unknown id falls back to Blank. Source: `src/config/surveyTemplates.ts` (generic, no customer
+  named); `src/lib/surveyTemplates.test.ts` checks limits and the server's question rules; `e2e/templates.test.mjs`
+  covers the flow.
+- `RequireSignIn` now keeps the query string through sign-in (`from: pathname + search`), so a shared template link
+  survives the redirect. `safeReturnTo` already validated queries.
+- `docs/frontend/GO_TO_MARKET.md`: audience, the path to trying the product, template links, channel plan, honest
+  offers, messaging rules tied to F-11, measurement options and the respondent growth loop, both left as founder
+  decisions.
 
 ### Operations (2026-11-11, founder-approved: "approved, apply 000029 and ship")
 
@@ -407,6 +801,7 @@ categories and the repository's decimal `X.X.X` release policy.
 - #47 merged and deployed; 12 live routes (incl. /discover, /reserve) with zero CSP violations; sign-in reads
   "Continue with KpnSolute". Edge Functions `session` (LC-13), `billing-webhook`, `checkout`, `email-dispatch` await
   a CLI deploy by the founder (the Composio deploy tool cannot set `verify_jwt` or an import map).
+
 ### Fixed (SEO: public pages served a static noindex)
 
 - Production check: with the Render dashboard rule changed to `/* -> /app.html` but the per-page rules missing or
@@ -817,7 +1212,6 @@ categories and the repository's decimal `X.X.X` release policy.
   placeholder until the real SVG and typeface are supplied (`--font-maker` token added in `src/styles/landing.css`).
 - Anchor targets carry `scroll-margin-top` so sections do not hide under the sticky header; hash links scroll on navigation.
 - Verified in the browser at 1280px and 390px: no console errors, no horizontal overflow at 390px.
-
 
 ### Fixed
 

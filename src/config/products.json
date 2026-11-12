@@ -1,0 +1,508 @@
+{
+  "note": "One entry per product page (/products/<slug>), in the founder's six-product structure (PRODUCT_DIRECTION section 8): Hubs, Feedback, Campaigns, LunchVoice for Discord, Developers, Privacy. This file feeds the page, the Products menu, the footer, the search metadata and the sitemap. Every claim must be true of the product on main today: check AGENTS.md (pricing), PRODUCT.md and docs/backend/API_CONTRACT.md before editing. Nothing planned (Pulse, missions, recaps, AI) is described as available. In planRows, a row with `key` is read from the server's entitlement map (lv_plan_limits) and is left out when the map has no value; a row with `cells` is a fact that does not vary by a limit. Cells are [Free, Starter Hub, Team Hub].",
+  "products": [
+    {
+      "slug": "hubs",
+      "name": "Hubs",
+      "icon": "home",
+      "line": "A home for your community at lunchvoice.com/yourname.",
+      "title": "Hubs: a home where your community decides",
+      "description": "Give your community its own address on LunchVoice, with members, roles, pages and Campaigns. Choose who can join and what they can see.",
+      "h1": "One address where your community asks, answers and sees what changed",
+      "lede": "A Hub is your community's place on LunchVoice. It has its own address, colour, members and roles, and everything you ask lives there, so people always know where to go and what came of it.",
+      "audience": [
+        "Clubs, teams and groups that ask their members things more than once",
+        "Community managers who already have a Discord server or a group chat and need a place to decide",
+        "Organisations that want members, roles and results in one place"
+      ],
+      "points": [
+        {
+          "title": "You decide who gets in",
+          "body": "Open to anyone signed in, join by approval, or invite only. A private Hub looks like it does not exist to everyone outside it."
+        },
+        {
+          "title": "Roles that match how you work",
+          "body": "Give people exactly the permissions they need: run Campaigns, admit members, read results. The Owner is protected and does not use up a role."
+        },
+        {
+          "title": "Pages for what happens next",
+          "body": "A Newsroom to post what changed, comments, an opt-in leaderboard, a points shop, and pages you write yourself."
+        },
+        {
+          "title": "A card worth sharing",
+          "body": "Every Hub has a share card with its name, members and how to join. Paste the link into a chat and it shows up properly."
+        }
+      ],
+      "planRows": [
+        {
+          "label": "Your own address and Hub colour",
+          "cells": [
+            false,
+            true,
+            true
+          ]
+        },
+        {
+          "label": "Members and joining rules",
+          "cells": [
+            false,
+            true,
+            true
+          ]
+        },
+        {
+          "label": "Custom roles",
+          "key": "roles.max_custom"
+        },
+        {
+          "label": "Pages you write yourself",
+          "key": "pages.max_custom"
+        },
+        {
+          "label": "Newsroom",
+          "key": "community.newsroom"
+        },
+        {
+          "label": "Comments",
+          "key": "community.comments"
+        },
+        {
+          "label": "Opt-in leaderboard",
+          "key": "community.leaderboard"
+        },
+        {
+          "label": "Shop items",
+          "key": "shop.max_items"
+        },
+        {
+          "label": "Apply for Discover at this many members",
+          "key": "discover.min_members"
+        }
+      ],
+      "fits": "A Hub is where Campaigns run. Connect it to your Discord server to post them where people already talk, and use the API to run it from your own tools.",
+      "plans": [
+        "starter",
+        "team"
+      ],
+      "cta": "hub",
+      "demo": "hub-card",
+      "related": [
+        "campaigns",
+        "discord",
+        "feedback"
+      ]
+    },
+    {
+      "slug": "feedback",
+      "name": "Feedback",
+      "icon": "survey",
+      "line": "Polls, ratings, yes/no, open feedback and surveys. Free to start.",
+      "title": "Feedback: free polls, ratings, yes/no and surveys",
+      "description": "Ask with a poll, a rating, a yes/no question, open feedback or a full survey. Quick Surveys are free: share a link, a QR code or a six-character code and read anonymous totals.",
+      "h1": "Ask a question today and have answers by this afternoon",
+      "lede": "Feedback is every way of asking on LunchVoice. Poll, Rating, Yes/No and Open feedback each ask one thing well; a Survey combines several of them. A Quick Survey is the free version, and you do not need a Hub to use it. Elections are a Hub feature.",
+      "audience": [
+        "Anyone with one thing to ask a group this week",
+        "Event hosts, teachers and team leads who want answers on phones, with no app to install",
+        "People who need honest answers and so need them to be anonymous"
+      ],
+      "points": [
+        {
+          "title": "Five ways to ask",
+          "body": "A poll for one quick choice, a rating for a score, a yes/no question, open feedback in people's own words, or a survey that combines several questions. Every free Quick Survey can be any of them."
+        },
+        {
+          "title": "Three ways in",
+          "body": "Share a link, print the QR code, or read out the six-character code. A link survey can also let guests answer without an account."
+        },
+        {
+          "title": "Anonymous or by name",
+          "body": "You choose before you publish. On an anonymous survey you see totals only, and nobody, including you, can link an answer to a person."
+        },
+        {
+          "title": "Start from a template",
+          "body": "Event feedback, a team pulse, a club vote and more. Every question in a template can be edited before you publish."
+        }
+      ],
+      "planRows": [
+        {
+          "label": "Quick Surveys active at once",
+          "key": "quick.max_active"
+        },
+        {
+          "label": "Questions in a Quick Survey",
+          "key": "quick.max_questions"
+        },
+        {
+          "label": "Surveys active at once in a Hub",
+          "key": "surveys.max_active"
+        },
+        {
+          "label": "Poll, Rating, Yes/No, Open feedback and Survey",
+          "cells": [
+            true,
+            true,
+            true
+          ]
+        },
+        {
+          "label": "Elections with a secret ballot",
+          "key": "modes.election"
+        },
+        {
+          "label": "Link, QR code and six-character code",
+          "cells": [
+            true,
+            true,
+            true
+          ]
+        },
+        {
+          "label": "Invite-only access",
+          "cells": [
+            true,
+            true,
+            true
+          ]
+        },
+        {
+          "label": "Anonymous or identified",
+          "cells": [
+            true,
+            true,
+            true
+          ]
+        },
+        {
+          "label": "Totals and charts",
+          "cells": [
+            true,
+            true,
+            true
+          ]
+        }
+      ],
+      "fits": "When the same people keep answering, give them a Hub and run your feedback as Campaigns: scheduled, aimed at your members, and followed by what you did about it.",
+      "plans": [
+        "free"
+      ],
+      "cta": "survey",
+      "demo": "questions",
+      "related": [
+        "campaigns",
+        "privacy",
+        "hubs"
+      ]
+    },
+    {
+      "slug": "campaigns",
+      "name": "Campaigns",
+      "icon": "voice",
+      "line": "Feedback run inside your Hub: who, when, and the results.",
+      "title": "Campaigns: scheduled surveys and polls for your members",
+      "description": "Run surveys, polls, ratings, yes/no questions, open feedback and elections inside your Hub. Schedule them, choose who answers, and close them when you have what you need.",
+      "h1": "Ask your members properly: scheduled, aimed and closed on time",
+      "lede": "A Campaign is feedback running in a Hub. It has an audience, a beginning and an end. Draft it, schedule it, open it to your members, and close it when you have what you need.",
+      "audience": [
+        "Hub owners who ask their members on a schedule",
+        "Groups that need a vote or a survey to open and close at set times",
+        "Organisers who need a Hub for a few weeks, not a monthly plan"
+      ],
+      "points": [
+        {
+          "title": "A clear lifecycle",
+          "body": "Draft, scheduled, open, closed. Questions can change while it is a draft and lock once it is published, so everyone answers the same thing."
+        },
+        {
+          "title": "The right people",
+          "body": "Open a Campaign to every member, or on an identified Campaign to the roles you pick. Anonymous Campaigns stay open to all members so a small role cannot give someone away."
+        },
+        {
+          "title": "Elections with a secret ballot",
+          "body": "Races with one winner or several seats, candidates and optional parties. Members vote, or hand out one-time ballot codes to people without accounts. Results appear only after the election ends, and small groups are never shown."
+        },
+        {
+          "title": "Templates for each plan",
+          "body": "Start from a template made for what your plan is for, then edit anything."
+        },
+        {
+          "title": "Only for a few weeks?",
+          "body": "A Campaign pass gives you Hub features for a set time, starting at two weeks, with no subscription."
+        }
+      ],
+      "planRows": [
+        {
+          "label": "Campaigns active at once",
+          "key": "campaigns.max_active"
+        },
+        {
+          "label": "Of those, surveys active at once",
+          "key": "surveys.max_active"
+        },
+        {
+          "label": "Elections",
+          "key": "modes.election"
+        },
+        {
+          "label": "Schedule an opening and closing time",
+          "cells": [
+            false,
+            true,
+            true
+          ]
+        },
+        {
+          "label": "Aim at chosen roles",
+          "key": "campaigns.role_targeting"
+        },
+        {
+          "label": "Export released results",
+          "key": "analytics.export"
+        }
+      ],
+      "fits": "Campaigns live in a Hub and use the same feedback types as a Quick Survey. Post one to Discord with a command, or create and publish it through the API.",
+      "plans": [
+        "starter",
+        "team",
+        "campaign_starter",
+        "campaign_plus"
+      ],
+      "cta": "hub",
+      "demo": "lifecycle",
+      "related": [
+        "hubs",
+        "feedback",
+        "discord"
+      ]
+    },
+    {
+      "slug": "discord",
+      "name": "LunchVoice for Discord",
+      "icon": "join",
+      "line": "Discord is where your community talks. Decide here, post there.",
+      "title": "LunchVoice for Discord: polls and surveys in your server",
+      "description": "Connect a Discord server to your Hub, post Campaigns with one command, and give roles to members. Anonymous surveys are always answered in LunchVoice.",
+      "h1": "Discord is where your community talks. LunchVoice is where it decides.",
+      "lede": "If your community lives on Discord, keep it there. Connect your server to your Hub, post a Campaign into a channel, and let people answer without hunting for a link.",
+      "audience": [
+        "Server owners and moderators who run votes and feedback for their community",
+        "Communities that want a record of what was asked and decided, outside the chat scroll",
+        "Hubs whose members are already on Discord"
+      ],
+      "points": [
+        {
+          "title": "Connect in two steps",
+          "body": "A server admin runs /lunchvoice connect with your Hub's address, and a Hub manager confirms the link it posts. That is the whole setup."
+        },
+        {
+          "title": "Post with one command",
+          "body": "/lunchvoice post puts a Campaign card with an Answer button into the channel. Or turn on auto-post and every Campaign you publish appears on its own."
+        },
+        {
+          "title": "Anonymous stays anonymous",
+          "body": "Discord can see who clicks a button, so anonymous Campaigns always open in LunchVoice. Identified polls can be answered right in Discord."
+        },
+        {
+          "title": "Roles from real facts",
+          "body": "Give a Discord role to people who are members of your Hub. It applies only to people who linked their account and agreed to it."
+        }
+      ],
+      "planRows": [
+        {
+          "label": "Link your own Discord account",
+          "cells": [
+            true,
+            true,
+            true
+          ]
+        },
+        {
+          "label": "Connect a server to your Hub",
+          "cells": [
+            false,
+            true,
+            true
+          ]
+        },
+        {
+          "label": "Post Campaigns to a channel",
+          "cells": [
+            false,
+            true,
+            true
+          ]
+        },
+        {
+          "label": "Auto-post when you publish",
+          "cells": [
+            false,
+            true,
+            true
+          ]
+        },
+        {
+          "label": "Roles for Hub members",
+          "cells": [
+            false,
+            true,
+            true
+          ]
+        }
+      ],
+      "fits": "The bot is an official LunchVoice integration built on Discord's public tools. It posts Campaigns from your Hub; your Hub stays the place where results and decisions are kept.",
+      "plans": [
+        "starter",
+        "team"
+      ],
+      "cta": "hub",
+      "demo": "commands",
+      "related": [
+        "hubs",
+        "campaigns",
+        "developers"
+      ]
+    },
+    {
+      "slug": "developers",
+      "name": "Developers",
+      "icon": "settings",
+      "line": "An API and webhooks to run LunchVoice from your own tools.",
+      "title": "LunchVoice for developers: API and webhooks",
+      "description": "Create and publish Campaigns, make invites and read released results over a REST API. Signed webhooks tell your systems when something happens.",
+      "h1": "Run LunchVoice from the tools you already use",
+      "lede": "Team Hubs get API keys for their Hub. Create Campaigns from your own system, read the results that have been released, and receive a signed webhook when a Campaign opens, closes or reaches a milestone.",
+      "audience": [
+        "Teams that want feedback inside a product or an internal tool",
+        "Agencies and operators who run Hubs for more than one community",
+        "Anyone who wants results in a spreadsheet or a dashboard of their own"
+      ],
+      "points": [
+        {
+          "title": "Keys with scopes",
+          "body": "Each key gets only what it needs: read Campaigns, write Campaigns, make invites, read results or manage webhooks. Revoke one key without touching the others."
+        },
+        {
+          "title": "The same privacy rules",
+          "body": "The API returns released totals only. Withheld stays withheld, and no call returns an individual anonymous answer or who gave it."
+        },
+        {
+          "title": "Signed webhooks",
+          "body": "Every delivery is signed with your endpoint's secret and retried if your server is down. The delivery log shows what was sent and when."
+        },
+        {
+          "title": "Nothing lost if you pause",
+          "body": "If a Hub leaves the Team plan, keys and webhooks pause. They work again when the plan does."
+        }
+      ],
+      "planRows": [
+        {
+          "label": "API access",
+          "key": "api.enabled"
+        },
+        {
+          "label": "API keys per Hub",
+          "key": "api.max_keys"
+        },
+        {
+          "label": "Requests a minute per key",
+          "key": "api.rate_per_minute"
+        },
+        {
+          "label": "Webhook endpoints per Hub",
+          "key": "webhooks.max_endpoints"
+        }
+      ],
+      "fits": "The API acts for one Hub and follows the same permissions, plan limits and privacy rules as the app. The full reference, with examples, is on the Developers page.",
+      "plans": [
+        "team"
+      ],
+      "cta": "developers",
+      "demo": "curl",
+      "related": [
+        "campaigns",
+        "privacy",
+        "discord"
+      ]
+    },
+    {
+      "slug": "privacy",
+      "name": "Privacy",
+      "icon": "lock",
+      "line": "Anonymous means nobody can work out who said what.",
+      "title": "Privacy by design: anonymous answers that stay anonymous",
+      "description": "On LunchVoice, anonymous means the creator cannot work out who answered. Small groups are withheld, and a withheld result is never shown as zero.",
+      "h1": "Anonymous has to mean nobody can work out who said what",
+      "lede": "People only tell the truth when they are sure it cannot be traced back to them. Privacy on LunchVoice is not a setting you find later. It is how answers are stored and how every result is shown, on every plan.",
+      "audience": [
+        "Anyone asking a question people might be afraid to answer honestly",
+        "Workplaces, schools and clubs where a small group could give someone away",
+        "People answering, who deserve to know what the asker can and cannot see"
+      ],
+      "points": [
+        {
+          "title": "Who answered and what they said are kept apart",
+          "body": "The check that you are allowed to answer is stored separately from your answer. On an anonymous survey there is no screen, export or API call that puts them back together."
+        },
+        {
+          "title": "Withheld is not zero",
+          "body": "A result that would point at one person is shown as Withheld, with the reason. You always know the difference between nobody chose this and someone is being protected."
+        },
+        {
+          "title": "Small groups are merged",
+          "body": "Hidden answers are combined into one Withheld bucket, and averages that could give a group away are hidden too."
+        },
+        {
+          "title": "Guests stay guests",
+          "body": "Someone who answers without an account never becomes a member, never counts toward member totals, and is labelled as unverified in results."
+        }
+      ],
+      "planRows": [
+        {
+          "label": "Anonymous answers",
+          "cells": [
+            true,
+            true,
+            true
+          ]
+        },
+        {
+          "label": "Small groups withheld",
+          "cells": [
+            true,
+            true,
+            true
+          ]
+        },
+        {
+          "label": "Withheld shown as its own state, never zero",
+          "cells": [
+            true,
+            true,
+            true
+          ]
+        },
+        {
+          "label": "Results limited to people with the results permission",
+          "cells": [
+            false,
+            true,
+            true
+          ]
+        }
+      ],
+      "fits": "These rules are the same in the app, in exports, on Discord and in the API. The limits we know about are written down on the How it works page.",
+      "plans": [
+        "free",
+        "starter",
+        "team"
+      ],
+      "cta": "survey",
+      "demo": "withheld",
+      "related": [
+        "feedback",
+        "campaigns",
+        "developers"
+      ]
+    }
+  ]
+}

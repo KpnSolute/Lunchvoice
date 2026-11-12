@@ -3,15 +3,15 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { prerender, renderAppShell, renderPage, renderRootPage, robotsTxt, sitemapXml } from "./seo-prerender.mjs";
+import { loadSeo, missingOutputs, prerender, rewriteDestinations, renderAppShell, renderPage, renderRootPage, robotsTxt, sitemapXml } from "./seo-prerender.mjs";
 
-const seo = JSON.parse(readFileSync("src/config/seo.json", "utf8"));
+const seo = loadSeo(); // hand-written pages plus one per use case
 const routes = JSON.parse(readFileSync("src/config/routes.json", "utf8")).routes;
 const template = readFileSync("index.html", "utf8");
 
 test("every indexable page is a real public route", () => {
   for (const p of seo.pages) {
-    const r = routes.find((x) => x.path === p.path);
+    const r = routes.find((x) => x.path === p.path || (p.path.startsWith("/use-cases/") && x.path === "/use-cases/:slug") || (p.path.startsWith("/products/") && x.path === "/products/:slug"));
     assert.ok(r, `${p.path} is not in routes.json`);
     assert.equal(r.access, "public", `${p.path} must be public to be indexed`);
   }
@@ -80,7 +80,7 @@ test("prerender writes every file", () => {
   for (const f of ["app.html", "sitemap.xml", "robots.txt", "pricing/index.html", "how-it-works/index.html"]) {
     assert.ok(existsSync(join(dir, f)), f);
   }
-  assert.match(readFileSync(join(dir, "index.html"), "utf8"), /<h1>Every voice has a story/);
+  assert.match(readFileSync(join(dir, "index.html"), "utf8"), /<h1>Make every voice count/);
 });
 
 test("the root index.html is safe when a host serves it for every path", () => {
@@ -88,5 +88,44 @@ test("the root index.html is safe when a host serves it for every path", () => {
   assert.ok(!html.includes('rel="canonical"'), "a static canonical would mark every URL a copy of /");
   assert.ok(!html.includes('name="robots"'));
   assert.ok(!html.includes('property="og:url"'));
-  assert.match(html, /<h1>Every voice has a story/);
+  assert.match(html, /<h1>Make every voice count/);
+});
+
+test("every prerendered route and every render.yaml rewrite has an output file", () => {
+  const yaml = readFileSync("render.yaml", "utf8");
+  const dir = mkdtempSync(join(tmpdir(), "lv-seo-"));
+  writeFileSync(join(dir, "index.html"), template);
+  prerender(dir, seo, "2026-11-08");
+  assert.ok(rewriteDestinations(yaml).length > seo.useCases.length, "render.yaml rewrites were not parsed");
+  assert.deepEqual(missingOutputs(dir, seo, yaml), []);
+  // Each use case in useCases.json is a page with its own file and its own heading.
+  assert.ok(seo.useCases.length >= 10);
+  for (const u of seo.useCases) {
+    const html = readFileSync(join(dir, "use-cases", u.slug, "index.html"), "utf8");
+    assert.ok(html.includes("<h1>"), `${u.slug} has no content`);
+  }
+});
+
+test("a rewrite that points at a file the build does not write is reported", () => {
+  const dir = mkdtempSync(join(tmpdir(), "lv-seo-"));
+  writeFileSync(join(dir, "index.html"), template);
+  prerender(dir, seo, "2026-11-08");
+  const stale = "      - type: rewrite\n        source: /use-cases/gone\n        destination: /use-cases/gone/index.html\n";
+  assert.deepEqual(missingOutputs(dir, seo, stale), ["/use-cases/gone/index.html"]);
+  const dropped = { ...seo, pages: [...seo.pages, { path: "/not-built" }] };
+  assert.deepEqual(missingOutputs(dir, dropped, ""), ["/not-built/index.html"]);
+});
+
+test("a $ in page text never acts as a replacement pattern (the $13/month link-preview bug)", () => {
+  for (const page of seo.pages) {
+    const html = page.path === "/" ? renderRootPage(template, seo, page) : renderPage(template, seo, page);
+    const metas = html.match(/<meta [^>]*>/g) ?? [];
+    for (const m of metas) assert.ok(!/content="[^"]*</.test(m), `${page.path}: a tag inside a meta value: ${m.slice(0, 120)}`);
+    for (const key of ['name="description"', 'property="og:description"', 'name="twitter:description"']) {
+      if (!html.includes(key)) continue;
+      assert.ok(html.includes(`${key} content="${page.description.replace(/&/g, "&amp;").replace(/"/g, "&quot;")}"`), `${page.path} ${key}`);
+    }
+  }
+  const odd = { ...seo.pages[1], description: "Costs $13/month, $& and $1$2 and $$ stay as typed, here." };
+  assert.match(renderPage(template, seo, odd), /content="Costs \$13\/month, \$&amp; and \$1\$2 and \$\$ stay as typed, here\."/);
 });
