@@ -6,6 +6,47 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (native design skills for Claude Code and Codex, founder assignment 2026-11-12)
+
+- **Three project skills**, discovered natively by both agents: `design-system` (follow the system on every visible UI
+  change), `frontend-design` (polished new screens within the fixed identity; adapted from Anthropic's Apache-2.0
+  `frontend-design` skill, with `LICENSE.txt` and `NOTICE.md`), `design-element-authoring` (discover, evaluate,
+  specify, design, implement, register, test, document, approve, release; founder approval for new token values and
+  global rules). Canonical copies in `.agents/skills/` (Codex), byte-for-byte mirrors in `.claude/skills/`
+  (Claude Code); `.gitattributes` pins LF endings so Windows checkouts stay identical.
+- **Shared guidance** in `docs/frontend/design-system/`: `README.md` (source order with `tokens.css` first, identity,
+  token map, component map, known inconsistencies), `COMPONENT_STANDARDS.md` (rules and the new-component spec),
+  `DESIGN_EXTENSIONS.md` (lifecycle, approval table, proposal template, recorded extensions), `AGENT_WORKFLOW.md`
+  (invocation, maintenance, verification record).
+- **Checks:** `scripts/skills.mjs` (`npm run skills:sync`; validates metadata, references, licence and that both copies
+  match), `scripts/check-gallery.mjs` (every reusable component shown at `/__gallery` or exempted with a reason),
+  together `npm run check:design`, now part of `test:pr` and `test:light`. `scripts/verify-skills-live.mjs`
+  (`npm run skills:verify`) asks the installed CLIs what they discover. 11 script tests; e2e: the gallery renders every
+  section in light, dark and high contrast with no errors.
+- **Frontend Design Protocol** in `AGENTS.md` and `CLAUDE.md` (identical): when to use each skill, the checks before
+  finishing, approval for global changes, explicit invocation commands. UI-only; other tasks skip it.
+- **Gallery:** brand (`LvMark`), Hub identity (`HubProfile`, `HubCard`, `ShareHubDialog`), badges, results and charts
+  (`ResultBars`, `WithheldTag`, `TextAnswers`, `Bars`, `DistributionColumns`, `TrendLine`, `CountUp`), rows, QR, alerts
+  and the full icon set.
+- **Verified:** Claude Code 2.1.322 discovers all three (48 skills in the repo, 45 outside) and, in read-only runs with
+  prompts that did not name a skill, chose `design-system` for a Hub card, `design-element-authoring` for a progress
+  indicator (after checking existing components) and for a warning token (proposal, stopped for approval). Codex CLI
+  0.167.2 lists all three from `.agents/skills` in its model-visible prompt (`codex debug prompt-input`). Not verified:
+  Codex running the scenarios live (no OpenAI login here).
+
+### Changed
+
+- `.impeccable/config.json`: the font exemptions named Fraunces and Space Grotesk, a retired type system; now Space Mono
+  (the data typeface) and Arial (email), with the reason updated. Gallery and `FRONTEND.md` wording follows design
+  system 3. `src/ui/HubCover.tsx` removed (unused since the Hub profile header).
+
+### Found (recorded, not changed: needs a founder decision)
+
+- Warnings inside a Hub take the Hub's colour: the `warn` notice uses `--lv-accent`, which `.lv-hubscope` replaces.
+  A semantic warning token was proposed by the scenario C run; adopting it needs approval.
+- Two duration scales: `--lv-dur-*` in `tokens.css` and `--lv-d1/2/3` in `src/ui/motion.css`.
+- `src/index.css` keeps legacy aliases (including the old glossy `--cta-shadow`) for pre-shadcn classes.
+
 ### Changed (design system 3: UI element rebuild, Hub identity and sharing, founder direction 2026-11-12)
 
 - **Element rebuild** (tokens and `src/components/shadcn/`, so every page follows): solid surfaces with hairlines instead of

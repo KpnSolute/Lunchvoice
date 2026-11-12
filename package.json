@@ -25,7 +25,8 @@
     "test:e2e": "node --test --test-concurrency=1 e2e/*.test.mjs",
     "test:workers": "node --import tsx --test workers/*/*.test.ts",
     "check:design": "node scripts/skills.mjs check && node scripts/check-gallery.mjs",
-    "skills:sync": "node scripts/skills.mjs sync"
+    "skills:sync": "node scripts/skills.mjs sync",
+    "skills:verify": "node scripts/verify-skills-live.mjs"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",
