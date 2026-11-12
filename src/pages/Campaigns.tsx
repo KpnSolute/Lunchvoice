@@ -7,14 +7,14 @@ import { useLv } from "../lib/useLv";
 import { describeError } from "../lib/errors";
 import type { Anonymity, CampaignMode, HubInfo, HubMembership } from "../lib/lvApi";
 import { Icon } from "../components/Icon";
-import { campaignPhase, LinkButton, type Phase } from "../components/ui";
+import { campaignPhase, LinkButton, modeLabel, type Phase } from "../components/ui";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
 import { Input } from "@/components/shadcn/input";
 import { Badge } from "@/components/shadcn/badge";
 import { Switch } from "@/components/shadcn/switch";
 import { RadioCard, RadioGroup } from "@/components/shadcn/radio-group";
-import { EmptyState, Eyebrow, Field, LoadingRows, Notice, PageHeader, PhaseBadge, Segmented, ToggleRow } from "@/components/shadcn/blocks";
+import { EmptyState, Field, LoadingRows, Notice, PageHeader, PhaseBadge, Segmented, ToggleRow } from "@/components/shadcn/blocks";
 import { can, useHubCtx } from "./Hub";
 import { Player } from "./Player";
 import { StudioView } from "./Studio";
@@ -55,7 +55,7 @@ export function Campaigns() {
           label="Filter Campaigns"
           value={filter}
           onValueChange={setFilter}
-          options={[{ value: "all", label: "All" }, { value: "open", label: "Live" }, { value: "scheduled", label: "Scheduled" }, { value: "draft", label: "Drafts" }, { value: "closed", label: "Closed" }]}
+          options={[{ value: "all", label: "All" }, { value: "open", label: "Open" }, { value: "scheduled", label: "Scheduled" }, { value: "draft", label: "Drafts" }, { value: "closed", label: "Closed" }]}
         />
         {manage && <LinkButton to={`/${hub.slug}/campaigns/new`} variant="primary" icon="plus">New Campaign</LinkButton>}
       </div>
@@ -78,7 +78,7 @@ export function Campaigns() {
           {rows.map((c) => (
             <Link key={c.campaign_id} to={`/${hub.slug}/campaigns/${c.campaign_id}`} className="lv-campaign-card">
               <Card className="lv-campaign-card-inner">
-                <div className="ui-spread"><PhaseBadge phase={campaignPhase(c)} /><Eyebrow>{c.mode}</Eyebrow></div>
+                <div className="ui-spread"><PhaseBadge phase={campaignPhase(c)} /><span className="ui-muted lv-small">{modeLabel(c.mode)}</span></div>
                 <h3 className="lv-campaign-title">{c.title}</h3>
                 <div className="ui-row">
                   <Badge variant={c.anonymity === "anonymous" ? "ok" : "neutral"}>{c.anonymity}</Badge>
@@ -192,7 +192,7 @@ export function NewCampaign() {
             <legend className="lv-legend">Mode</legend>
             <RadioGroup value={mode} onValueChange={(v) => setMode(v as CampaignMode)} aria-label="Mode" className="ui-grid-2">
               {MODES.map((m) => <RadioCard key={m.key} value={m.key} title={m.label} description={m.body} />)}
-              <RadioCard value="election" title="Election" description="Ranked options with a ballot." disabled badge={<Badge>Coming with M2</Badge>} />
+              <RadioCard value="election" title="Election" description="Ranked options with a ballot." disabled badge={<Badge>Coming later</Badge>} />
             </RadioGroup>
           </fieldset>}
           {!tpl && mode === "poll" && (
@@ -247,7 +247,7 @@ export function CampaignDetail() {
     <div className="lv-stack-16">
       <div className="ui-spread">
         <div className="lv-stack-8">
-          <div className="ui-row"><PhaseBadge phase={phase} /><Badge variant={d.campaign.anonymity === "anonymous" ? "ok" : "neutral"}>{d.campaign.anonymity}</Badge><Eyebrow>{d.campaign.mode}</Eyebrow></div>
+          <div className="ui-row"><PhaseBadge phase={phase} /><Badge variant={d.campaign.anonymity === "anonymous" ? "ok" : "neutral"}>{d.campaign.anonymity === "anonymous" ? "Anonymous" : "Identified"}</Badge><span className="ui-muted lv-small">{modeLabel(d.campaign.mode)}</span></div>
           <h1 className="lv-detail-title">{d.campaign.title}</h1>
         </div>
         {d.can_manage && (

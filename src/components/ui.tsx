@@ -128,6 +128,11 @@ export function CopyField({ value, label }: { value: string; label?: string }) {
 
 /* ------------------------------------------------------------------ phase */
 
+/** A Campaign mode as people read it ("Survey", not "survey"); unknown modes pass through unchanged. */
+export function modeLabel(mode: string): string {
+  return ({ survey: "Survey", poll: "Poll", rating: "Rating", feedback: "Feedback" } as Record<string, string>)[mode] ?? mode;
+}
+
 export function campaignPhase(c: { status: string; opens_at: string | null; closes_at: string | null }, now = Date.now()): Phase {
   if (c.status === "draft") return "draft";
   if (c.status === "paused") return "paused";

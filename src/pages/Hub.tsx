@@ -11,7 +11,7 @@ import { PLANS } from "../config/pricing";
 import { useBillingReason } from "../lib/billingNotice";
 import { SUPPORT_EMAIL, supportMailto } from "../config/contact";
 import { ReportDialog } from "../components/ReportDialog";
-import { campaignPhase, LinkButton } from "../components/ui";
+import { campaignPhase, LinkButton, modeLabel } from "../components/ui";
 import { Icon, type IconName } from "../components/Icon";
 import { HubMark } from "../ui/HubMark";
 import { HubProfile } from "../ui/HubProfile";
@@ -334,7 +334,7 @@ export function HubOverview() {
           ) : (
             <RowList>
               {rows.slice(0, 6).map((c) => (
-                <RowItem key={c.campaign_id} asChild={<Link to={`/${hub.slug}/campaigns/${c.campaign_id}`} />} title={c.title} sub={`${c.mode} · ${c.question_count} questions`} trailing={<PhaseBadge phase={campaignPhase(c)} />} />
+                <RowItem key={c.campaign_id} asChild={<Link to={`/${hub.slug}/campaigns/${c.campaign_id}`} />} title={c.title} sub={`${modeLabel(c.mode)} · ${c.question_count} questions`} trailing={<PhaseBadge phase={campaignPhase(c)} />} />
               ))}
             </RowList>
           )}

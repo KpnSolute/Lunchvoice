@@ -93,7 +93,6 @@ export function SurveyList() {
             <Card>
               <h2 className="lv-share-h">Your free limits</h2>
               <QuotaMeter label="Active Quick Surveys" used={d.active} limit={d.limit} hint="Archiving a survey frees a slot." />
-              <p className="lv-m0"><strong>{d.active} of {d.limit ?? "–"} active</strong></p>
               <p className="ui-muted lv-m0">Up to 10 questions each: rating, single choice, multiple choice, yes/no and short text.</p>
             </Card>
             <Card variant="dashed">
@@ -110,6 +109,9 @@ export function SurveyList() {
 
 /* ------------------------------------------------------------------ /surveys/new */
 
+/** How many templates "All" lists before "Show all"; Blank is always first. */
+const TEMPLATES_AT_FIRST = 5;
+
 export function NewSurvey() {
   const { api } = useIdentity();
   const nav = useNavigate();
@@ -119,6 +121,7 @@ export function NewSurvey() {
   const [tplId, setTplId] = useState<string>(fromLink?.id ?? "blank");
   const tpl = templateById(tplId);
   const [cat, setCat] = useState<"All" | TemplateCategory>(fromLink?.category ?? "All");
+  const [showAll, setShowAll] = useState(false);
   const [title, setTitle] = useState(fromLink?.title ?? "");
   const [access, setAccess] = useState<SurveyAccess>(fromLink?.defaults?.access ?? "link");
   const [anonymity, setAnonymity] = useState<Anonymity>(fromLink?.defaults?.anonymity ?? "anonymous");
@@ -158,6 +161,14 @@ export function NewSurvey() {
     nav(`/surveys/${id}`);
   }
 
+  // "All" opens on a short list so the title and the privacy choices are on screen without scrolling past every
+  // template; a category, or "Show all", lists everything. The chosen template is always listed.
+  const matching = SURVEY_TEMPLATES.filter((t) => cat === "All" || t.category === cat);
+  const shortList = cat === "All" && !showAll ? matching.slice(0, TEMPLATES_AT_FIRST) : matching;
+  const chosen = SURVEY_TEMPLATES.find((t) => t.id === tplId);
+  const visibleTemplates = chosen && !shortList.includes(chosen) ? [...shortList, chosen] : shortList;
+  const hiddenCount = matching.length - shortList.length;
+
   return (
     <div className="ui-page lv-narrow-page">
       <PageHeader eyebrow="New Quick Survey" title="What do you want to ask?" sub="It starts as a draft. Nobody sees it until you publish." actions={<LinkButton to="/surveys" variant="quiet">Cancel</LinkButton>} />
@@ -174,10 +185,15 @@ export function NewSurvey() {
             <RadioGroup value={tplId} onValueChange={pickTemplate} aria-label="Start from" className="ui-grid-2">
               <RadioCard value="blank" title="Blank" description="Write your own questions." />
               {/* The chosen template stays visible when the filter changes, so the selection never disappears. */}
-              {SURVEY_TEMPLATES.filter((t) => cat === "All" || t.category === cat || t.id === tplId).map((t) => (
+              {visibleTemplates.map((t) => (
                 <RadioCard key={t.id} value={t.id} title={t.name} description={`${t.blurb} ${t.questions.length} questions.`} />
               ))}
             </RadioGroup>
+            {hiddenCount > 0 && (
+              <Button type="button" variant="quiet" size="sm" onClick={() => setShowAll(true)} data-testid="templates-more">
+                Show all {matching.length} templates <Icon name="chevron" size={14} />
+              </Button>
+            )}
           </fieldset>
 
           <Field label="Title" htmlFor="qs-title" counter={{ value: title.length, max: 120 }}>
