@@ -13,7 +13,8 @@ LunchVoice card.
 
 ## Privacy
 
-The Worker calls `lv_api.lv_hub_get` with the public anon key, as a signed-out visitor. Private and missing Hubs get the
+The Worker calls `lv_api.lv_hub_get` with the publishable key in the `apikey` header, as a signed-out visitor. (Supabase
+is retiring the legacy anon key; the Worker still accepts one as `SUPABASE_ANON_KEY` until then.) Private and missing Hubs get the
 same neutral card, with no name or count. It logs nothing and stores nothing.
 
 ## Deploy (founder, once)
@@ -21,7 +22,7 @@ same neutral card, with no name or count. It logs nothing and stores nothing.
 ```bash
 cd workers/hub-card
 npx wrangler@4 login
-npx wrangler@4 secret put SUPABASE_ANON_KEY   # paste the public anon key (the same value as VITE_SUPABASE_ANON_KEY)
+npx wrangler@4 secret put SUPABASE_PUBLISHABLE_KEY   # paste the publishable key (sb_publishable_...), never a secret key
 npx wrangler@4 deploy
 ```
 

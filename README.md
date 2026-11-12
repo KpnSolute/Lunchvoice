@@ -20,7 +20,7 @@ npm run dev
 
 | Variable | Purpose |
 | --- | --- |
-| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | the v2 `lv_api` backend. Without both, the in-memory mock is used |
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` | the v2 `lv_api` backend. Without both, the in-memory mock is used. `VITE_SUPABASE_ANON_KEY` (legacy, being retired by Supabase) is read only when the publishable key is empty |
 | `VITE_LV_MOCK=1` | force the mock even when the variables are set |
 | `VITE_KPNIDENTITY_ISSUER` | KpnIdentity issuer URL; enables the real sign-in flow when it exists |
 

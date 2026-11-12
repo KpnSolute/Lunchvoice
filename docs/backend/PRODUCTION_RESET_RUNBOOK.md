@@ -230,7 +230,23 @@ in chat, code, commits or this file; only their names appear here.
 | `EMAIL_DISPATCH_SECRET` (optional) | Edge Function secrets | `email-dispatch` | A second bearer for the cron job if the service-role key should not be stored in the cron command. |
 | `LV_APP_ORIGIN` (optional) | Edge Function secrets | `checkout`, `email-dispatch` | Default `https://lunchvoice.com`. |
 | `LV_ALLOWED_ORIGINS` | Edge Function secrets | `checkout` | Same value as for `session`. |
-| `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL` | provided by the platform | all three | Do not set by hand. |
+| `LV_PUBLISHABLE_KEY` | Edge Function secrets | `checkout` | The publishable key (`sb_publishable_...`). Needed once the legacy anon key is disabled; until then `SUPABASE_ANON_KEY` is used. Custom secrets may not start with `SUPABASE_`. |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SECRET_KEYS`, `SUPABASE_DB_URL` | provided by the platform | all | Do not set by hand. The dispatchers accept a key from `SUPABASE_SECRET_KEYS` (new) or the legacy service-role key. |
+
+### Retiring the legacy anon and service-role keys
+
+Supabase deprecates the JWT `anon` and `service_role` keys (target: end of 2026; they work until disabled in Settings >
+API Keys). The code accepts both generations (`supabase/functions/_shared/keys.ts`, `src/lib/apiKey.ts`) and never
+sends a key as `Authorization: Bearer`. Switch in this order, checking the site after each step:
+
+1. Create a publishable key and a secret key in Supabase > Settings > API Keys (if they are not there already).
+2. Render: set `VITE_SUPABASE_PUBLISHABLE_KEY` and redeploy. Sign in and load `/me` to confirm.
+3. Edge Function secrets: `supabase secrets set LV_PUBLISHABLE_KEY` (the publishable key).
+4. Anything that calls the dispatchers (pg_cron or another scheduler) sends a secret key (`sb_secret_...`) as `apikey`
+   or `Authorization: Bearer` instead of the service-role key; or use `EMAIL_DISPATCH_SECRET`.
+5. The share-preview Worker: `wrangler secret put SUPABASE_PUBLISHABLE_KEY` (`workers/hub-card/README.md`).
+6. Only then disable the legacy keys in Supabase, and check sign-in, a guest answer, checkout (once billing is open),
+   email dispatch and a Hub link preview.
 
 Commands (the founder runs them; never paste values into chat):
 `supabase secrets set STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET RESEND_API_KEY` (interactive or from a local env file

@@ -36,7 +36,7 @@ function database(url: string): WebhookDb {
 Deno.serve(async (req) => {
   if (req.method !== "POST") return reply(405, { ok: false, error: { code: "lv_method", message: "Use POST." } });
   const env = (n: string) => Deno.env.get(n);
-  if (!dispatchAuthorized(req.headers.get("authorization"), env)) {
+  if (!dispatchAuthorized(req.headers.get("authorization"), env, req.headers.get("apikey"))) {
     return reply(401, { ok: false, error: { code: "lv_unauthenticated", message: "Service role only." } });
   }
   const dbUrl = env("SUPABASE_DB_URL");

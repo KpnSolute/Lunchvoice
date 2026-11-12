@@ -124,6 +124,15 @@ test("dispatch: only the service role key (or the dispatch secret) may run it", 
   assert.equal(dispatchAuthorized("Bearer ", () => undefined), false, "an unset key never matches an empty bearer");
 });
 
+test("dispatch: the new Supabase secret keys work, by Bearer or apikey; publishable keys never do", () => {
+  const env: Record<string, string> = { SUPABASE_SECRET_KEYS: '{"default":"sb_secret_placeholder"}' };
+  const get = (n: string) => env[n];
+  assert.equal(dispatchAuthorized("Bearer sb_secret_placeholder", get), true);
+  assert.equal(dispatchAuthorized(null, get, "sb_secret_placeholder"), true, "apikey header, as Supabase recommends");
+  assert.equal(dispatchAuthorized(null, get, "sb_publishable_placeholder"), false);
+  assert.equal(dispatchAuthorized("Bearer sb_publishable_placeholder", get, "sb_publishable_placeholder"), false);
+});
+
 test("FB-05: an invite email says who sent it and how to report abuse", () => {
   const r = renderEmail("hub_invite", SAMPLES.hub_invite!)!;
   assert.match(r.text, /Dana of Harbor Book Circle sent this through LunchVoice/);

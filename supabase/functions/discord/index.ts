@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
   const appUrl = env("LUNCHVOICE_APP_URL") ?? "https://lunchvoice.com";
 
   if (new URL(req.url).pathname.endsWith("/dispatch")) {
-    if (!dispatchAuthorized(req.headers.get("authorization"), env)) return reply(401, { ok: false, error: { code: "lv_unauthenticated", message: "Service role only." } });
+    if (!dispatchAuthorized(req.headers.get("authorization"), env, req.headers.get("apikey"))) return reply(401, { ok: false, error: { code: "lv_unauthenticated", message: "Service role only." } });
     if (!dbUrl) return reply(503, { ok: false, error: { code: "lv_not_configured", message: "The database is not configured." } });
     try {
       return reply(200, await dispatch(db(dbUrl), token, appUrl));
@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
   // Service-role only: (re)register the slash commands with Discord using the bot token held in this function's secrets,
   // so the token never has to leave Supabase. Bulk overwrite, idempotent. Never echoes a secret.
   if (new URL(req.url).pathname.endsWith("/register")) {
-    if (!dispatchAuthorized(req.headers.get("authorization"), env)) return reply(401, { ok: false, error: { code: "lv_unauthenticated", message: "Service role only." } });
+    if (!dispatchAuthorized(req.headers.get("authorization"), env, req.headers.get("apikey"))) return reply(401, { ok: false, error: { code: "lv_unauthenticated", message: "Service role only." } });
     const app = env("DISCORD_APPLICATION_ID") ?? "";
     if (!token || !/^[0-9]{5,25}$/.test(app)) return reply(503, { ok: false, error: { code: "lv_not_configured", message: "DISCORD_APPLICATION_ID or DISCORD_BOT_TOKEN is missing." } });
     const res = await fetch(`${DISCORD_API}/applications/${app}/commands`, {
@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
   // Service-role only: set the bot's public profile (avatar, banner, description, links) with the bot token held in this
   // function's secrets. The images come from our own site. Reports each step's HTTP status and never echoes a secret.
   if (new URL(req.url).pathname.endsWith("/profile")) {
-    if (!dispatchAuthorized(req.headers.get("authorization"), env)) return reply(401, { ok: false, error: { code: "lv_unauthenticated", message: "Service role only." } });
+    if (!dispatchAuthorized(req.headers.get("authorization"), env, req.headers.get("apikey"))) return reply(401, { ok: false, error: { code: "lv_unauthenticated", message: "Service role only." } });
     if (!token) return reply(503, { ok: false, error: { code: "lv_not_configured", message: "DISCORD_BOT_TOKEN is missing." } });
     const origin = "https://lunchvoice.com";
     const image = async (path: string) => {

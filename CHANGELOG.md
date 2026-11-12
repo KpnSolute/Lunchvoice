@@ -36,6 +36,16 @@ categories and the repository's decimal `X.X.X` release policy.
   what is waiting on the founder; `docs/v2/handoffs/2026-11-12-ui-design-system-3.md` hands the general UI pass to a
   separate agent. New e2e gate: 8 main routes in light, dark and high contrast at 390, 768 and 1280 with no sideways
   scroll and no console errors. Badge tooltips stack the label over the meaning, left aligned, with an arrow.
+- **Ready for Supabase's new API keys** (founder note 2026-11-12: the legacy anon and service-role keys are retired in
+  early 2027). The app prefers `VITE_SUPABASE_PUBLISHABLE_KEY` (falls back to the anon key) and sends keys only in the
+  `apikey` header: `src/lib/apiKey.ts` strips the copy supabase-js puts in `Authorization: Bearer` when no one is signed
+  in, and the sign-in exchange and function calls send `Authorization` only with a person's token. Functions:
+  `supabase/functions/_shared/keys.ts` (publishable key from `LV_PUBLISHABLE_KEY`, `SUPABASE_PUBLISHABLE_KEYS` or the
+  legacy anon key; service secrets from `SUPABASE_SECRET_KEYS` or the legacy service-role key; no API key is ever taken
+  for a signed-in person). Checkout uses it; the email, webhook and Discord dispatchers accept the new secret keys by
+  Bearer or `apikey`. The share-preview Worker uses `SUPABASE_PUBLISHABLE_KEY`. Tests: 3 key tests, 2 header tests, new
+  checkout and dispatch cases. Switch-over steps: `docs/backend/PRODUCTION_RESET_RUNBOOK.md`, "Retiring the legacy anon
+  and service-role keys".
 - **LunchVoice's own Hub:** `COMMUNITY_HUB_SLUG = "kitchen"` in `src/config/contact.ts`. The home page shows a "Pull up a
   seat in the Kitchen" section with its card only while `lv_hub_get("kitchen")` returns a public Hub. The founder creates
   it through the normal flow; nothing is seeded or reserved.

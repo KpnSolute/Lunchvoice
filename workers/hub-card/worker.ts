@@ -1,9 +1,10 @@
 // Cloudflare Worker on the route lunchvoice.com/h/* (see README.md). Chat apps that unfurl a Hub's share link get a
 // card with the Hub's name, member count, how to join and its colour; everyone else is sent to lunchvoice.com/<slug>.
-// It reads the public lv_api.lv_hub_get with the public anon key, exactly as a signed-out visitor would.
+// It reads the public lv_api.lv_hub_get with the public publishable key (apikey header only), exactly as a signed-out visitor would.
 import { cardPage, factsFromHubGet, isPreviewBot, slugFromPath, SITE } from "./card";
 
-interface Env { SUPABASE_URL: string; SUPABASE_ANON_KEY: string }
+// SUPABASE_PUBLISHABLE_KEY (sb_publishable_...) replaces the legacy anon key, which Supabase retires; either is accepted.
+interface Env { SUPABASE_URL: string; SUPABASE_PUBLISHABLE_KEY?: string; SUPABASE_ANON_KEY?: string }
 
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
@@ -14,10 +15,11 @@ export default {
     if (!isPreviewBot(req.headers.get("user-agent"))) return Response.redirect(`${SITE}/${slug}`, 302);
 
     let facts = null;
-    try {
+    const key = env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY;
+    if (key) try {
       const r = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/lv_hub_get`, {
         method: "POST",
-        headers: { apikey: env.SUPABASE_ANON_KEY, authorization: `Bearer ${env.SUPABASE_ANON_KEY}`, "content-type": "application/json", "content-profile": "lv_api", "accept-profile": "lv_api" },
+        headers: { apikey: key, "content-type": "application/json", "content-profile": "lv_api", "accept-profile": "lv_api" },
         body: JSON.stringify({ p_slug: slug }),
         cf: { cacheTtl: 300, cacheEverything: false },
       } as RequestInit);
