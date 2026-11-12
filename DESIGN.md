@@ -6,8 +6,10 @@ Visual DNA: ink, amber, bone. The v1 cafeteria layouts are not a reference.
 ## Implementation status
 
 `src/ui/tokens.css` is the single source of truth for colour, type, radius, spacing and motion, in light, dark and
-high-contrast themes. This file and `brand/lv-package/README.txt` describe it; if they ever disagree, the tokens win
-and the documents are corrected. The reusable library lives in `src/ui/` and `src/components/shadcn/`, with a
+high-contrast themes. This file describes it; if they ever disagree, the tokens win and the documents are
+corrected. The logo, the tagline and every brand asset (icons, social, video, Canva, the guidelines PDF) are generated
+from one vector source, `scripts/brand/logo.mjs`, into `brand/lv-package/` by `npm run brand:build` and verified by
+`npm run check:brand`; start at `brand/lv-package/README.md`. The reusable library lives in `src/ui/` and `src/components/shadcn/`, with a
 component gallery at `/__gallery` (dev builds only). No page may carry bespoke CSS values for something the tokens or
 the library should own.
 
