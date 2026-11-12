@@ -16,7 +16,7 @@
     "check:names": "node scripts/check-customer-names.mjs",
     "check:routes": "node scripts/check-route-layouts.mjs",
     "test:scripts": "node --test scripts/*.test.mjs",
-    "test:pr": "npm run check:brain && npm run check:names && npm run check:routes && npm run check:design && npm run test:scripts && npm run test:unit && npm run test:workers && npm run test:functions && npm run build && npm run check:bundle",
+    "test:pr": "npm run check:brain && npm run check:names && npm run check:routes && npm run check:design && npm run check:brand && npm run test:scripts && npm run test:unit && npm run test:workers && npm run test:functions && npm run build && npm run check:bundle",
     "test:light": "npm run check:brain && npm run check:names && npm run check:routes && npm run check:design && npm run build",
     "test:heavy": "npm run test:light && npm audit --audit-level=high",
     "preview": "vite preview",
@@ -26,7 +26,9 @@
     "test:workers": "node --import tsx --test workers/*/*.test.ts",
     "check:design": "node scripts/skills.mjs check && node scripts/check-gallery.mjs",
     "skills:sync": "node scripts/skills.mjs sync",
-    "skills:verify": "node scripts/verify-skills-live.mjs"
+    "skills:verify": "node scripts/verify-skills-live.mjs",
+    "brand:build": "node scripts/brand/build.mjs",
+    "check:brand": "node scripts/check-brand.mjs"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",
