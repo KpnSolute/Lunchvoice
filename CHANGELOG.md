@@ -31,6 +31,11 @@ categories and the repository's decimal `X.X.X` release policy.
   (sprout, founding plan), Team Hub (star, active Team plan) and Listed on Discover (shield-check, approved listing). Shown
   only when the data says so. Roles in the member list show their own icon. Text badges remain for states that need words
   (an ended plan, Campaign phases).
+- **v2 docs brought up to date:** `docs/v2/LAUNCH_PLAN.md` definition of done ticked against evidence (two release items
+  wait on the founder); `docs/v2/V2_STATUS_2026-11-12.md` records the evidence for every launch and build-plan item and
+  what is waiting on the founder; `docs/v2/handoffs/2026-11-12-ui-design-system-3.md` hands the general UI pass to a
+  separate agent. New e2e gate: 8 main routes in light, dark and high contrast at 390, 768 and 1280 with no sideways
+  scroll and no console errors. Badge tooltips stack the label over the meaning, left aligned, with an arrow.
 - **LunchVoice's own Hub:** `COMMUNITY_HUB_SLUG = "kitchen"` in `src/config/contact.ts`. The home page shows a "Pull up a
   seat in the Kitchen" section with its card only while `lv_hub_get("kitchen")` returns a public Hub. The founder creates
   it through the normal flow; nothing is seeded or reserved.

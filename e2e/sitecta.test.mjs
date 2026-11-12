@@ -149,3 +149,19 @@ test("badges are icons with a meaning: the Owner crown and Discover listing expl
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+test("launch plan UI gate: light, dark and high contrast at 390, 768 and 1280 with no sideways scroll", async () => {
+  const routes = ["/", "/pricing", "/me", "/surveys", "/northside-running", "/northside-running/campaigns", "/northside-running/members", "/settings"];
+  for (const theme of ["light", "dark", "hc"]) {
+    for (const width of [390, 768, 1280]) {
+      const { page, go, ctx, errors } = await openPage(app, { width, height: 900, theme });
+      for (const r of routes) {
+        await go(r);
+        if (theme !== "light") assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), theme, `${theme} applied`);
+        assert.ok(await noHorizontalScroll(page), `${theme} ${width} ${r}`);
+      }
+      assert.deepEqual(errors, [], `${theme} ${width}`);
+      await ctx.close();
+    }
+  }
+});
