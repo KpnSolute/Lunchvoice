@@ -6,6 +6,7 @@ import { useLv } from "../lib/useLv";
 import { describeError } from "../lib/errors";
 import type { AnalyticsResult, ExportRow, LvError, Question, ResponseRow } from "../lib/lvApi";
 import { summarize } from "../ui/QuestionControls";
+import { ElectionNight } from "./ElectionResults";
 import { Icon } from "../components/Icon";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
@@ -49,6 +50,7 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
 
   return (
     <div className="lv-stack-16">
+      {detail.data?.campaign.mode !== "election" && (
       <Card variant="ink" aria-live="polite">
         <div className="ui-spread">
           <Eyebrow accent>Participation</Eyebrow>
@@ -71,11 +73,12 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
           </div>
         ) : null}
       </Card>
+      )}
 
       {detail.data?.campaign.anonymity === "identified" && <ResponsesCard campaignId={campaignId} questions={questions} />}
 
       <div className="ui-spread">
-        <SectionTitle>Questions</SectionTitle>
+        <SectionTitle>{detail.data?.campaign.mode === "election" ? "Races" : "Questions"}</SectionTitle>
         {exportBlocked ? (
           <DisabledAction variant="secondary" reason={exportBlocked}>Export CSV</DisabledAction>
         ) : (
@@ -85,7 +88,9 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
 
       {detail.loading && !detail.data && <LoadingRows rows={3} />}
       {detail.error && <Notice tone="error">{describeError(detail.error)}</Notice>}
-      {questions.map((q) => <QuestionResult key={q.question_id} campaignId={campaignId} q={q} />)}
+      {detail.data?.campaign.mode === "election"
+        ? <ElectionNight campaignId={campaignId} />
+        : questions.map((q) => <QuestionResult key={q.question_id} campaignId={campaignId} q={q} />)}
       {detail.data && questions.length === 0 && <Notice>This survey has no questions yet.</Notice>}
     </div>
   );

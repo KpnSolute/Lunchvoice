@@ -1,5 +1,6 @@
 import { LvMark } from "../components/LvMark";
 import { useEffect, useState } from "react";
+import { feedbackTypeLabel } from "../config/feedbackTypes";
 import { Link, NavLink, Outlet, useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
@@ -11,7 +12,7 @@ import { PLANS } from "../config/pricing";
 import { useBillingReason } from "../lib/billingNotice";
 import { SUPPORT_EMAIL, supportMailto } from "../config/contact";
 import { ReportDialog } from "../components/ReportDialog";
-import { campaignPhase, LinkButton, modeLabel } from "../components/ui";
+import { campaignPhase, LinkButton } from "../components/ui";
 import { Icon, type IconName } from "../components/Icon";
 import { HubMark } from "../ui/HubMark";
 import { HubProfile } from "../ui/HubProfile";
@@ -378,7 +379,7 @@ export function HubOverview() {
           ) : (
             <RowList>
               {rows.slice(0, 6).map((c) => (
-                <RowItem key={c.campaign_id} asChild={<Link to={`/${hub.slug}/campaigns/${c.campaign_id}`} />} title={c.title} sub={`${modeLabel(c.mode)} · ${c.question_count} questions`} trailing={<PhaseBadge phase={campaignPhase(c)} />} />
+                <RowItem key={c.campaign_id} asChild={<Link to={`/${hub.slug}/campaigns/${c.campaign_id}`} />} title={c.title} sub={`${feedbackTypeLabel(c.mode)} · ${c.question_count} questions`} trailing={<PhaseBadge phase={campaignPhase(c)} />} />
               ))}
             </RowList>
           )}

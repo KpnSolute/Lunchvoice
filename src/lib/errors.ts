@@ -39,6 +39,8 @@ const COPY: Record<string, string> = {
 
 export const GATE_REASONS: Record<string, string> = {
   no_questions: "Add at least one question.",
+  election_unavailable: "Elections are included with Starter and Team Hub plans. This Hub's plan doesn't include them right now.",
+  election_race_invalid: "Every race needs at least two candidates. A race with several winners needs its number of seats, fewer than the candidates.",
   survey_limit_reached: "This plan's active-survey limit is reached. Close a survey, or let one reach its participation threshold.",
   too_many_questions: "Quick Surveys have up to 10 questions. Remove one to publish.",
   kind_not_allowed: "A question uses a kind Quick Surveys don't support.",

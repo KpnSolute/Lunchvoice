@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import { describeError } from "../lib/errors";
-import type { Anonymity, CampaignDetailData, SurveyAccess } from "../lib/lvApi";
+import type { Anonymity, CampaignDetailData, CampaignMode, SurveyAccess } from "../lib/lvApi";
+import { ELECTION_TYPE, FEEDBACK_TYPES, SURVEY_TYPE, feedbackTypeLabel, freeFeedbackTypes } from "../config/feedbackTypes";
 import type { SaveTracker } from "./QuestionWorkbench";
 import { Icon } from "../components/Icon";
 import { campaignPhase, LinkButton } from "../components/ui";
@@ -80,7 +81,7 @@ export function SurveyList() {
                         key={s.campaign_id}
                         asChild={<Link to={`/surveys/${s.campaign_id}`} />}
                         title={s.title}
-                        sub={`${s.access === "invite" ? "Invite only" : "Anyone with the link"} · ${s.anonymity} · ${s.question_count} ${s.question_count === 1 ? "question" : "questions"}`}
+                        sub={`${feedbackTypeLabel(s.mode)} · ${s.access === "invite" ? "Invite only" : "Anyone with the link"} · ${s.anonymity} · ${s.question_count} ${s.question_count === 1 ? "question" : "questions"}`}
                         trailing={<PhaseBadge phase={campaignPhase(s)} />}
                       />
                     ))}
@@ -125,6 +126,9 @@ export function NewSurvey() {
   const [title, setTitle] = useState(fromLink?.title ?? "");
   const [access, setAccess] = useState<SurveyAccess>(fromLink?.defaults?.access ?? "link");
   const [anonymity, setAnonymity] = useState<Anonymity>(fromLink?.defaults?.anonymity ?? "anonymous");
+  const limits = useLv(() => api.planLimits(), [api]);
+  const allowed = freeFeedbackTypes(limits.data);
+  const [mode, setMode] = useState<CampaignMode>("survey");
   const [guests, setGuests] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -135,6 +139,8 @@ export function NewSurvey() {
     if (!title.trim() || title === tpl?.title) setTitle(next?.title ?? "");
     if (next?.defaults?.access) setAccess(next.defaults.access);
     if (next?.defaults?.anonymity) setAnonymity(next.defaults.anonymity);
+    // A template has several questions, so it is a Survey.
+    if (next) setMode("survey");
     setTplId(id);
   }
 
@@ -142,7 +148,7 @@ export function NewSurvey() {
     if (busy) return;
     setBusy(true);
     setError(null);
-    const r = await api.quickSurveyCreate(title.trim(), access, anonymity, access === "link" && guests);
+    const r = await api.quickSurveyCreate(title.trim(), access, anonymity, access === "link" && guests, tpl ? "survey" : mode);
     if (!r.ok) { setBusy(false); return setError(describeError(r.error)); }
     const id = r.campaign.campaign_id;
     // The draft exists now. Add the template's questions in order (positions start at 1); if one fails the creator
@@ -199,6 +205,15 @@ export function NewSurvey() {
           <Field label="Title" htmlFor="qs-title" counter={{ value: title.length, max: 120 }}>
             <Input id="qs-title" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} placeholder="Book club: next month’s pick" autoFocus />
           </Field>
+
+          <fieldset className="lv-fieldset">
+            <legend className="lv-legend">Feedback type</legend>
+            <RadioGroup value={mode} onValueChange={(v) => setMode(v as CampaignMode)} aria-label="Feedback type" className="ui-grid-2">
+              {FEEDBACK_TYPES.filter((t) => allowed.includes(t.key)).map((t) => <RadioCard key={t.key} value={t.key} title={t.label} description={t.body} />)}
+              <RadioCard value="survey" title={SURVEY_TYPE.label} description={SURVEY_TYPE.body} />
+              <RadioCard value="election" title={ELECTION_TYPE.label} description={ELECTION_TYPE.body} disabled badge={<Badge>Hub plans</Badge>} />
+            </RadioGroup>
+          </fieldset>
 
           <fieldset className="lv-fieldset">
             <legend className="lv-legend">Who can answer</legend>

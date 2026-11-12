@@ -20,7 +20,7 @@ test("a Starter template creates a draft with its question and lands on Review",
   assert.equal(await page.getByLabel("Title").inputValue(), "What should we do next?");
   const summary = page.getByTestId("campaign-template-summary");
   await summary.getByText("Poll").first().waitFor();
-  assert.equal(await page.getByRole("radiogroup", { name: "Mode" }).count(), 0, "a template fixes the mode");
+  assert.equal(await page.getByRole("radiogroup", { name: "Feedback type" }).count(), 0, "a template fixes the mode");
   await page.getByRole("button", { name: /Create draft/ }).click();
   await page.waitForURL(/\/studio\?section=review/);
   await tab(page, "Questions").click();
@@ -95,10 +95,10 @@ test("a shared link preselects an offered template and ignores one the plan does
   await c.ctx.close();
 });
 
-test("Blank still offers the mode and answers controls", async () => {
+test("Blank still offers the feedback type and answers controls", async () => {
   const { page, go, ctx } = await openPage(app);
   await go(NEW);
-  await page.getByRole("radiogroup", { name: "Mode" }).waitFor();
+  await page.getByRole("radiogroup", { name: "Feedback type" }).waitFor();
   await page.getByRole("radiogroup", { name: "Answers" }).waitFor();
   await ctx.close();
 });

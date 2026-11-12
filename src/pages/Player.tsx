@@ -32,8 +32,10 @@ function PoweredBy() {
 type View = "welcome" | "question" | "review";
 
 export function Player({ campaignId, guest, embedded = false }: { campaignId: string; guest?: { joinCode: string; guestKey: string }; embedded?: boolean }) {
-  const { api } = useIdentity();
+  const { api, session } = useIdentity();
   const detail = useLv(() => (guest ? api.guestCampaignGet(guest.joinCode) : api.campaignGet(campaignId)), [api, campaignId, guest?.joinCode]);
+  // 000037: an election from a join code can be voted with a one-time ballot code (no account needed).
+  const [ballotCode, setBallotCode] = useState("");
   const [view, setView] = useState<View>("welcome");
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
@@ -65,27 +67,39 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   }, []);
 
   useEffect(() => {
-    if (!questions.length) return;
+    if (!questions.length || detail.data?.campaign.mode === "election") return;
     try {
       const raw = localStorage.getItem(draftKey);
       if (raw) setAnswers(JSON.parse(raw));
     } catch { /* storage unavailable: drafts simply do not resume */ }
   }, [draftKey, questions.length]);
 
+  // An election never keeps a half-finished ballot on the device: school and event computers are shared (000037).
+  const keepDraft = detail.data?.campaign.mode !== "election";
   useEffect(() => {
+    if (!keepDraft) { try { localStorage.removeItem(draftKey); } catch { /* ignore */ } return; }
     try { localStorage.setItem(draftKey, JSON.stringify(answers)); } catch { /* ignore */ }
-  }, [answers, draftKey]);
+  }, [answers, draftKey, keepDraft]);
 
   async function submit() {
     if (busy) return;
     setBusy(true);
     setError(null);
     const payload: Answer[] = questions.map((qq) => ({ question_id: qq.question_id, value: answers[qq.question_id] ?? null }));
-    const r = guest ? await api.guestSubmit(guest.joinCode, guest.guestKey, payload, namesMode === "off" ? null : cleanName || null) : await api.submit(campaignId, payload);
+    const isElection = d?.campaign.mode === "election";
+    const viaBallot = Boolean(isElection && guest && ballotCode.trim());
+    const r = viaBallot
+      ? await api.ballotSubmit(guest!.joinCode, ballotCode.trim(), payload).then((x) => (x.ok ? { ...x, duplicate: false } : x))
+      : isElection && guest
+        ? await api.submit(d!.campaign.campaign_id, payload)
+        : guest ? await api.guestSubmit(guest.joinCode, guest.guestKey, payload, namesMode === "off" ? null : cleanName || null) : await api.submit(campaignId, payload);
     setBusy(false);
     if (r.ok) {
       setReceipt({ id: r.receipt_id, duplicate: r.duplicate });
       try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
+    } else if (viaBallot && (r.error.code === "lv_conflict" || r.error.code === "lv_not_found") && r.error.message) {
+      // The ballot messages are written for voters: "already used" and "not valid for this election".
+      setError(r.error.message);
     } else setError(describeError(r.error));
   }
 
@@ -133,6 +147,8 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
         <p className="lv-thanks-copy">
           {receipt?.duplicate || (!receipt && d.has_responded)
             ? "You had already answered, so we kept your original response and didn't store a second one."
+            : d.campaign.mode === "election"
+              ? "Your vote is in. It’s a secret ballot: nobody can see how you voted, and results appear after the election ends."
             : d.campaign.anonymity === "anonymous"
               ? "Your answers went in anonymously. The creator sees totals, never names."
               : guest && cleanName && namesMode !== "off"
@@ -147,7 +163,8 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
     );
   }
 
-  if (phase !== "open" || !d.can_respond) {
+  const election = d.campaign.mode === "election";
+  if (phase !== "open" || (!d.can_respond && !(election && guest))) {
     const kind = phase === "scheduled" ? "scheduled" : phase === "open" ? "ineligible" : "closed";
     return frame(
       <StateScreen
@@ -171,10 +188,15 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
     return v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0);
   };
   // Compliance LC-03: every question is required unless its config says optional; the promises must be true.
-  const optional = (i: number) => Boolean((questions[i]?.config as { optional?: boolean } | undefined)?.optional);
+  // In an election every race may be skipped, but a ballot must vote in at least one (000037).
+  const optional = (i: number) => election || Boolean((questions[i]?.config as { optional?: boolean } | undefined)?.optional);
   const anyOptional = questions.some((_, i) => optional(i));
+  const noVote = election && !questions.some((_, i) => answered(i));
   const missing = questions.map((_, i) => i).filter((i) => !optional(i) && !answered(i));
-  const privacyPromise = guest
+  const needsCode = election && Boolean(guest) && !session && !ballotCode.trim();
+  const privacyPromise = election
+    ? { title: "Secret ballot", body: "Your vote is never linked to you. Each person votes once, and results appear only after the election ends." }
+    : guest
     ? { title: "No account needed", body: anonymous ? "Guests answer without signing in. Your answers aren’t linked to you, and guests never count as members." : `Guests answer without signing in. The creator can see the answers you give${namesMode !== "off" ? " and the name you type" : ""}, and guests never count as members.` }
     : anonymous
       ? { title: "Anonymous", body: "Your answers are never linked to your name; you sign in only so we can count you once." }
@@ -184,15 +206,27 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
     return frame(
       <>
         <div className="lv-player-hero lv-enter" style={{ "--i": 0 } as React.CSSProperties}>
-          <span className="lv-eyebrow-mono" style={{ color: "var(--lv-accent)" }}>{guest ? "Open to guests" : "You're invited"}</span>
+          <span className="lv-eyebrow-mono" style={{ color: "var(--lv-accent)" }}>{election ? "Election" : guest ? "Open to guests" : "You're invited"}</span>
           <h1 className="lv-player-title">{d.campaign.title}</h1>
           <div className="lv-player-hero-foot">
-            <span className="lv-row-sub" style={{ color: "inherit", opacity: 0.8 }}>{total} {total === 1 ? "question" : "questions"} · ~{minutes} min</span>
-            <Button variant="primary" onClick={() => { setDir("fwd"); setStep(0); setView("question"); }} disabled={total === 0 || nameMissing} data-testid="player-start">
+            <span className="lv-row-sub" style={{ color: "inherit", opacity: 0.8 }}>{total} {election ? (total === 1 ? "race" : "races") : total === 1 ? "question" : "questions"} · ~{minutes} min</span>
+            <Button variant="primary" onClick={() => { setDir("fwd"); setStep(0); setView("question"); }} disabled={total === 0 || nameMissing || needsCode} data-testid="player-start">
               Start <Icon name="arrow" size={16} />
             </Button>
           </div>
         </div>
+        {election && guest && (
+          <div className="lv-guest-name lv-ballot-entry lv-enter" style={{ "--i": 1 } as React.CSSProperties} data-testid="ballot-entry">
+            <label htmlFor="ballot-code-input" className="lv-guest-name-label">
+              Ballot code {session && <span className="lv-row-sub">(if you were given one)</span>}
+            </label>
+            <Input id="ballot-code-input" value={ballotCode} maxLength={20} autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder="ABCDE-FGHJK"
+              onChange={(e) => setBallotCode(e.target.value.toUpperCase())} aria-describedby="ballot-code-help" />
+            <p id="ballot-code-help" className="lv-row-sub lv-m0">
+              {session ? "Members of the Hub vote without a code unless the organiser handed out codes." : "Type the one-time code the organiser gave you. It works once."}
+            </p>
+          </div>
+        )}
         {namesMode !== "off" && (
           <div className="lv-guest-name lv-enter" style={{ "--i": 1 } as React.CSSProperties} data-testid="guest-name">
             <label htmlFor="guest-name-input" className="lv-guest-name-label">
@@ -204,7 +238,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
         )}
         <ul className="lv-promises">
           <li className="lv-enter" style={{ "--i": 1 } as React.CSSProperties}><span><Icon name="lock" size={18} /></span><div><strong>{privacyPromise.title}</strong><p>{privacyPromise.body}</p></div></li>
-          <li className="lv-enter" style={{ "--i": 2 } as React.CSSProperties}><span><Icon name="check" size={18} /></span><div><strong>{anyOptional ? "Some questions are optional" : "Every question needs an answer"}</strong><p>{anyOptional ? "Optional questions are marked. Answer the rest to submit." : "You can go back and change answers before you submit."}</p></div></li>
+          <li className="lv-enter" style={{ "--i": 2 } as React.CSSProperties}><span><Icon name="check" size={18} /></span><div><strong>{election ? "Skip any race you like" : anyOptional ? "Some questions are optional" : "Every question needs an answer"}</strong><p>{election ? "Vote in at least one race. You can change your choices until you cast your vote; then it’s final." : anyOptional ? "Optional questions are marked. Answer the rest to submit." : "You can go back and change answers before you submit."}</p></div></li>
           <li className="lv-enter" style={{ "--i": 3 } as React.CSSProperties}><span><Icon name="clock" size={18} /></span><div><strong>About {minutes} {minutes === 1 ? "minute" : "minutes"}</strong><p>Mostly taps.</p></div></li>
         </ul>
         {report}
@@ -231,11 +265,12 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
         </ul>
         {offline && <p className="lv-banner" role="status">You're offline. Your answers are saved on this device; send them when you're back online.</p>}
         {missing.length > 0 && <p className="lv-banner" role="status">Answer {missing.length === 1 ? "question" : "questions"} {missing.map((i) => i + 1).join(", ")} to submit.</p>}
+        {noVote && <p className="lv-banner" role="status">Choose a candidate in at least one race to cast your vote.</p>}
         {error && <p className="lv-banner lv-banner-err" role="alert">{error}</p>}
         </div>
         <div className="lv-player-nav">
           <button type="button" className="lv-circle-btn" aria-label="Back to questions" onClick={() => { setDir("back"); setStep(total - 1); setView("question"); }}><Icon name="back" size={20} /></button>
-          <button type="button" className="lv-next" onClick={submit} disabled={busy || offline || missing.length > 0}>{busy ? "Sending…" : error ? "Try again" : "Submit"}</button>
+          <button type="button" className="lv-next" onClick={submit} disabled={busy || offline || missing.length > 0 || noVote}>{busy ? "Sending…" : error ? "Try again" : election ? "Cast vote" : "Submit"}</button>
         </div>
       </>,
     );

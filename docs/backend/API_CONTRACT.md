@@ -380,9 +380,11 @@ can always activate its first surveys, so it never deadlocks; a survey that meet
 
 ### Quick Surveys (personal space)
 
-- `lv_quick_survey_create(p_title, p_access "link"|"invite" = "link", p_anonymity = "anonymous", p_guests = true)`
-  → `{ ok, campaign: CampaignSummary }`. Guests only with `link` (silently off for `invite`). Throttled:
-  `lv_rate_limited` above 20 creations per hour.
+- `lv_quick_survey_create(p_title, p_access "link"|"invite" = "link", p_anonymity = "anonymous", p_guests = true,
+  p_mode = "survey")` → `{ ok, campaign: CampaignSummary }`. Guests only with `link` (silently off for `invite`). Throttled:
+  `lv_rate_limited` above 20 creations per hour. `p_mode` is the feedback type (000036): any value in the entitlement map's
+  `free.quick.modes` (`survey`, `poll`, `rating`, `feedback`, read it from `lv_plan_limits`), else `lv_invalid_input`.
+  `lv_campaign_update(p_mode)` on a Quick Survey follows the same list (it no longer refuses every non-survey type).
 - `lv_quick_survey_list()` → `{ ok, surveys: [CampaignSummary], active, limit, question_limit }` (history included).
 - `CampaignSummary = { campaign_id, title, mode, anonymity, status, phase, access, guests, opens_at, closes_at,
   created_at, blocked, question_count, join_code }`.
@@ -1126,3 +1128,52 @@ sends them, the UI shows nothing in their place; it never estimates them.
 No new error codes. The Worker calls `lv_hub_get` with the anon key and treats any `ok: false` or non-public Hub the
 same (a neutral card), so private Hubs stay indistinguishable from missing ones.
 
+## Feedback types and elections (000036, 000037)
+
+Vocabulary: **Poll, Rating, Yes/No, Open feedback and Election are feedback types; a Survey combines several questions.**
+They are stored as `campaigns.mode`: `poll`, `rating`, `yes_no`, `feedback`, `election`, `survey`.
+
+- Which types a plan may use lives only in the entitlement map: `free.quick.modes` (Quick Surveys: `survey`, `poll`,
+  `rating`, `yes_no`, `feedback`) and `modes.election` (`true` on `starter` and `team`, so Campaign Starter and Campaign
+  Plus too). Read them from `lv_plan_limits` / `lv_hub_limits`; never hardcode them in the UI.
+- `lv_campaign_create(p_mode 'election')`: `lv_entitlement_required` without the plan feature; `lv_invalid_input` for a
+  personal space or an identified election. An election is always anonymous and members-only (constraint
+  `campaigns_election_secret`): turning on guests or identified answers is refused.
+- **Races.** Each question of an election is a race: `single_choice` (one winner) or `multi_choice` with `config.max`
+  seats (2 or more, fewer than the candidates). The options are the candidates (2 to 10, as for every choice question).
+  Publish gate reasons: `election_unavailable` (plan) and `election_race_invalid`.
+- **Votes.** `lv_submit_response` and `lv_ballot_submit` validate strictly: real candidates, distinct, at most the seats.
+  A voter may skip a race but must vote in at least one (`lv_invalid_input` otherwise). Votes are final. Results follow
+  the anonymous rules: released after the end, small groups suppressed, never shown as zero.
+- **One voter list.** Either members vote, or ballot codes are used. Once codes exist, `lv_submit_response` answers
+  `lv_not_available`; codes cannot be issued after a member has voted.
+- `lv_election_ballot_codes_create(p_campaign, p_count 1..500)` (managers, Hub plan, not after the end, at most 5000 per
+  election) → `{ ok, codes: ["ABCDE-FGHJK", ...], issued }`. Codes are returned once and stored only as hashes.
+- `lv_election_ballot_status(p_campaign)` (managers) → `{ ok, issued, used, used_visible }`; `used` (turnout) is `null`
+  until the election has finished.
+- `lv_ballot_submit(p_join_code, p_ballot_code, p_answers)` (signed out or in; on the signed-out allow-list) →
+  `{ ok, receipt_id }`. Case and dashes in the code do not matter. `lv_not_found` (wrong join code or ballot code, both
+  counted by the join-code miss brake), `lv_conflict` (code already used), `lv_closed`, `lv_invalid_input`. A used code
+  is recorded as a guest participation keyed by the code's hash, so ballot votes appear as `guest_n` in
+  `participant_count`; nothing links a code to its submission.
+
+## Election night (000038)
+
+- **Parties.** A race's `config.parties` maps candidate → party, slate or team (≤ 40 characters; keys must be candidates).
+  Candidates without one are independent. At most 8 parties per election (gate reason `election_too_many_parties`), in
+  order of first appearance on the ballot; that order fixes each party's colour in the UI.
+- **Voter groups.** `lv_election_ballot_codes_create(p_campaign, p_count, p_group = null)` creates a batch for a group
+  ("Grade 9", ≤ 40 characters, at most 20 groups). A ballot vote records only its group (`submissions.ballot_group`),
+  never the code. `lv_election_ballot_status` adds `groups: [{label, issued}]`.
+- `lv_election_results(p_campaign)` (signed in, `analytics.read`, elections only, after the end like every anonymous
+  result) → `{ ok, min_cohort, parties, voting: "ballot_codes"|"members", turnout {voters, issued, turnout_pct,
+  participation}, groups [{label, issued, voted, turnout_pct, merged}], scoreboard [{party, seats}], seats_total,
+  races [{question_id, position, prompt, seats, votes, withheld, withheld_reason, some_withheld, candidates [{name, party,
+  votes, share}], winners, tie, tied, margin_pts, parties [{party, votes, share}], by_group, by_group_reason}] }`.
+- Rules (strict engine, `lv.safe_cells`): groups with fewer than `min_cohort` voters are merged into "Other groups" (at
+  least the cohort); a race's counts follow the engine (small counts merged, unanimity withholds the race); **winners**
+  are announced once the race has at least the cohort of votes, even when counts are withheld; `margin_pts` and party
+  shares only when every count is published (party share = share of votes cast, so multi-seat races sum to 100%); a race's
+  `by_group` table only when every cell of every group is safe, otherwise `null` with `by_group_reason`
+  (`no_groups`, `not_enough_groups`, `small_groups`). Group turnout is withheld at 100% or when non-voters are fewer
+  than the cohort. Withheld values are `null`, never `0`.

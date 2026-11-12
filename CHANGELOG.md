@@ -6,6 +6,36 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Merged (feedback types, elections and election night into `main`, founder approval 2026-11-12)
+
+- `claude/vigilant-feynman-npze3t` (000036 feedback types, 000037 elections and Yes/No, 000038 election night, minimum
+  age 13, product vocabulary) brought up to date with `main` and merged. Conflicts resolved so both sides keep working:
+  the new-survey form keeps the template list (short list and "Show all") and gains the feedback-type choice (picking
+  a template makes it a Survey); the new-Campaign form keeps Campaign templates and gains Yes/No and Election (shown
+  only without a template); `modeLabel` now reads the labels from `src/config/feedbackTypes.ts`.
+- **Product pages updated:** Feedback lists the five ways to ask (Poll, Rating, Yes/No, Open feedback, Survey) and
+  shows Elections as a Hub feature read from `modes.election`; Campaigns adds "Elections with a secret ballot" and an
+  Elections row.
+- **Production:** with the founder's approval, 000036, 000037, 000038 and 000039 are applied in order after the
+  canonical suite passed on the merged chain and on production's own chain (000001 to 000035 including 000029 to
+  000032 from PR #59). See the Operations entry for the verification.
+
+### Operations (2026-11-12, production, founder approval)
+
+- **Applied 000036, 000037, 000038, 000039 to production** (`qprfonxvthmaoxfixigk`), one at a time, each recorded in
+  `supabase_migrations.schema_migrations` under its canonical version with its SQL. Files fetched from commit `ae0babc`
+  and checked by SHA-256 against the tested files before apply. Backup before apply: `2244167446` (2026-11-12 10:45
+  UTC). Pre-checks: no Hub at `products`, all 10 Campaigns in existing modes.
+- **Verified after apply:** `lv_quick_survey_create` takes `p_mode` (defaults to `survey`, so the previous frontend
+  kept working); `free.quick.modes` = survey, poll, rating, yes_no, feedback; `modes.election` on starter and team;
+  `lv_ballot_submit` is the only new anon function (anon list otherwise unchanged); `lv_election_results` is not
+  anon-executable; `products` is reserved; the public `lv_plan_limits` returns the new keys.
+- **Local rehearsal of production's exact chain** (main + 000029 to 000032 from PR #59 + 000036 to 000039): 1411
+  checks, 3 failures, all pre-existing drift from PR #59 rather than these migrations: production has a second
+  signature of `lv_guest_submit` and `lv_report_abuse` (000029/000030) and no `guest.rate` policy, which `main`'s
+  tests do not expect, and 000030's staff report queue differs from 000033/000034. Merging PR #59 into `main` (or
+  closing it with its migrations ported) would remove the drift.
+
 ### Changed (survey creation and Campaign lists, founder assignment 2026-11-12, PR D)
 
 - **New Quick Survey opens on a short template list:** Blank and the first five templates, then "Show all N templates".
@@ -305,6 +335,80 @@ categories and the repository's decimal `X.X.X` release policy.
 - **Guard:** `scripts/seo-prerender.mjs` now fails the build when an indexable page or any `render.yaml` rewrite destination
   has no non-empty file in `dist/` (`missingOutputs`), and `scripts/seo-prerender.test.mjs` covers it, including one file with
   a heading per use case. A stale-branch revert of the whole feature still needs review to catch; see the handoff.
+
+### Changed (docs, 2026-11-12)
+
+- `docs/v2/PRODUCT_DIRECTION_2026-11-11.md` section 8: product vocabulary (feedback types, Survey as a combination,
+  election terms), elections as a Hub feature, schools and 13+, and the planned six-product site structure.
+  `docs/v2/PRODUCT_SPEC.md` records which parts of D-08 elections now settle. The founder's roadmap Google Doc gained an
+  addendum "What we built and decided (November 11–12, 2026)". Documentation only.
+
+### Added (000038 election night, built and tested, NOT yet applied to production)
+
+- **Election night: parties and voting demographics** (founder direction 2026-11-12: "Republicans vs Democrats, stuff
+  that makes voting interesting"). `supabase/migrations/000038_v2_election_results.sql` + rollback +
+  `supabase/tests/39_election_results.sql` (database suite 1408/0 with rollback rehearsal). Candidates can belong to a
+  party (`config.parties`, at most 8 per election); ballot codes can be issued per **voter group** (Grade 9, Homeroom 4B…)
+  and a vote keeps only its group; `lv_election_results` returns winners, ties, margins, party shares, a party seat
+  scoreboard, turnout by group and "how each group voted", all through the strict engine (small groups merged into
+  "Other groups", unanimity withheld, a group table only when every cell is safe, winners still announced).
+- UI: `src/pages/ElectionResults.tsx`. A scoreboard hero ("Blue Wave takes the majority", seat bar with majority marker),
+  race cards with winners, party-coloured bars, "Close race / Won by / Landslide" chips, "Votes cast by party", a group
+  map (tiles tinted by each group's leading party) with an accessible table, turnout by group, and a sealed-ballot state
+  before the end. Party colours: fixed order, validated for colour-blind separation and contrast in light and dark
+  (`src/config/partyColors.ts`, `--lv-party-*`). The Studio adds a party per candidate (with suggestions), the ballot
+  panel a voter group. The Results page shows election night instead of the generic counter for elections. Dev mock
+  mirrors it with a seeded finished election; e2e 94/94.
+
+### Added (000037 elections and Yes/No, built and tested, NOT yet applied to production)
+
+- **Product vocabulary** (founder direction 2026-11-11): Poll, Rating, Yes/No, Open feedback and Election are *feedback
+  types*; a Survey combines several of them. Both pickers now list the types, then "Survey: combine several of these".
+- **Yes/No** is a feedback type everywhere and free in Quick Surveys (`free.quick.modes`).
+- **Elections** (founder: Hub plans only, not free). `supabase/migrations/000037_v2_elections.sql` + rollback +
+  `supabase/tests/38_elections.sql` (database suite 1383/0 with rollback rehearsal). Entitlement key `modes.election` on
+  Starter and Team (so Campaign Starter and Campaign Plus); secret ballot enforced by a constraint (always anonymous, never
+  guests); races are choice questions (one winner, or `max` seats); strict vote validation (real candidates, distinct,
+  within seats; a race may be skipped, at least one vote); publish gate reasons `election_unavailable` and
+  `election_race_invalid`; one-time **ballot codes** for voters without accounts (`lv_election_ballot_codes_create`,
+  `lv_election_ballot_status`, `lv_ballot_submit`), shown once, stored as hashes, one voter list per election, turnout
+  only after the end. Test 14's signed-out allow-list now includes `lv_ballot_submit`; test 37's map check allows Yes/No.
+- UI: Election in the Hub picker (enabled from `lv_hub_limits`, otherwise "Starter and Team"); the Studio speaks of
+  races, candidates and seats and hides "Required" (voters may skip a race); a Ballot codes panel (create, copy, CSV,
+  issued/used); the player shows "Secret ballot", a ballot-code field for signed-out voters, "Cast vote", and never keeps
+  an election draft on the device; results label ballot votes. Dev mock mirrors it; e2e covers creating an election,
+  issuing codes, voting without an account and a reused code being refused (93/93).
+- `docs/backend/API_CONTRACT.md`: "Feedback types and elections (000036, 000037)". 000036's type error now reads
+  "Choose a feedback type your plan includes."
+
+### Added (000036 feedback types, built and tested, NOT yet applied to production)
+
+- **Feedback types for everyone** (founder direction 2026-11-11). A Campaign's mode is now shown as its *feedback type*:
+  Survey, Poll, Rating and Open feedback (the `feedback` mode). Free Quick Surveys may now be any of them, not only a
+  survey. `supabase/migrations/000036_v2_feedback_types.sql` + rollback + `supabase/tests/37_feedback_types.sql`
+  (database suite 1335/0 with rollback rehearsal): entitlement key `free.quick.modes` in `lv.plan_limits`,
+  `lv_quick_survey_create(..., p_mode = 'survey')` (old calls unchanged), and `lv_campaign_update` on a Quick Survey checks
+  the same list. Question kinds and the 10-question and 5-active limits are unchanged. Test 14's "a Quick Survey stays a
+  survey" check now asserts that a type outside the list is refused.
+- UI: `src/config/feedbackTypes.ts` (labels only; the allowed list comes from `lv_plan_limits`). New Quick Survey gets a
+  Feedback type picker; Hub "Mode" is renamed "Feedback type"; lists show "Poll", "Open feedback" and so on instead of
+  the raw mode. Election appears in both pickers as "Coming soon" (disabled) until its own model ships; it is never a
+  relabelled poll. e2e covers the picker and creating a free poll.
+
+### Changed (schools, founder direction 2026-11-11)
+
+- **Minimum age 13** (founder, 2026-11-11): Terms and Privacy on `src/pages/Marketing.tsx` now say LunchVoice is for people 13
+  and older and that schools, including high schools, can use it with students taking part without an account.
+- `docs/v2/LAUNCH_PLAN.md` F-11: anyone 13 and older; LunchVoice works for schools, including high schools (homecoming, class and
+  student-government elections). Replaces "no marketing to minors at launch". School use is to be built so students take
+  part without accounts or personal data; counsel review of COPPA, FERPA and state student-privacy law is still
+  recommended before school agreements. Documentation only.
+
+### Changed (product identity, founder direction 2026-11-11)
+
+- `docs/v2/PRODUCT_DIRECTION_2026-11-11.md` section 1 now leads with the core identity statement: **"LunchVoice is where
+  a community decides."** (Discord is where a community talks; LunchVoice is where it decides, with an equal, safe voice
+  and a record of what was asked, said, decided and changed.) Documentation only; no product behaviour changes.
 
 ### Added (000035 staff billing controls, built and tested, NOT yet applied to production)
 

@@ -5,6 +5,7 @@ import { Link, type LinkProps } from "react-router-dom";
 import { Icon, type IconName } from "./Icon";
 import type { LvError } from "../lib/lvApi";
 import { describeError } from "../lib/errors";
+import { feedbackTypeLabel } from "../config/feedbackTypes";
 import { Button } from "@/components/shadcn/button";
 import { Badge } from "@/components/shadcn/badge";
 import { Card as ShadCard } from "@/components/shadcn/card";
@@ -128,9 +129,9 @@ export function CopyField({ value, label }: { value: string; label?: string }) {
 
 /* ------------------------------------------------------------------ phase */
 
-/** A Campaign mode as people read it ("Survey", not "survey"); unknown modes pass through unchanged. */
+/** A Campaign mode as people read it ("Survey", not "survey"); the labels live in src/config/feedbackTypes.ts. */
 export function modeLabel(mode: string): string {
-  return ({ survey: "Survey", poll: "Poll", rating: "Rating", feedback: "Feedback" } as Record<string, string>)[mode] ?? mode;
+  return feedbackTypeLabel(mode);
 }
 
 export function campaignPhase(c: { status: string; opens_at: string | null; closes_at: string | null }, now = Date.now()): Phase {
