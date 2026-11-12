@@ -84,3 +84,28 @@ Feedback: the Hub colour and buttons feel wrong; wants a familiar Discord feel w
 4. Question types (ranking, NPS, slider), templates, branching.
 5. Live room and reactions.
 6. Image uploads for avatars and backgrounds (storage, size limits, moderation).
+
+## 8. Product vocabulary, feedback types and elections (founder, 2026-11-11/12)
+
+Use these words everywhere (site, app, docs, code comments):
+
+- **Feedback types:** Poll, Rating, Yes/No, Open feedback and Election (stored as `campaigns.mode`: `poll`, `rating`,
+  `yes_no`, `feedback`, `election`).
+- **Survey:** a combination of feedback types (`mode` `survey`, several questions).
+- **Campaign:** running feedback in a Hub (audience, schedule, results). **Quick Survey:** the free version, no Hub.
+- **Election terms:** a *race* is one question; *candidates* are its options; *seats* are the winners of a multi-seat race
+  (`config.max`); a *party* is an optional slate or team (`config.parties`); a *voter group* is a batch of ballot codes.
+
+Decisions:
+
+- Free Quick Surveys get the basic types (Survey, Poll, Rating, Yes/No, Open feedback). **Elections are a Hub feature**
+  (Starter and Team, so Campaign Starter and Campaign Plus too), never free. Both live only in the entitlement map
+  (`free.quick.modes`, `modes.election`).
+- Schools, including high schools, are a supported use case; minimum age 13 (`LAUNCH_PLAN.md` F-11).
+- Elections are always a secret ballot; voters without accounts use one-time ballot codes; election night shows parties,
+  winners, margins, turnout and how each voter group voted through the strict engine. Contracts: `docs/backend/API_CONTRACT.md`
+  ("Feedback types and elections", "Election night"). Built in 000036–000038, not yet applied to production.
+- Website structure (planned): six products with their own pages (Hubs, Feedback, Campaigns, LunchVoice for Discord,
+  Developers, Privacy), features by plan read from the entitlement map; the landing hero stays "Every voice has a
+  story. Hear it." Hub Pulse, goals and recaps are V2.x; the AI layer is V3. The founder's roadmap Google Doc carries the
+  full V2.x/V3 brainstorm.

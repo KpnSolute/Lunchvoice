@@ -6,6 +6,13 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (docs, 2026-11-12)
+
+- `docs/v2/PRODUCT_DIRECTION_2026-11-11.md` section 8: product vocabulary (feedback types, Survey as a combination,
+  election terms), elections as a Hub feature, schools and 13+, and the planned six-product site structure.
+  `docs/v2/PRODUCT_SPEC.md` records which parts of D-08 elections now settle. The founder's roadmap Google Doc gained an
+  addendum "What we built and decided (November 11–12, 2026)". Documentation only.
+
 ### Added (000038 election night, built and tested, NOT yet applied to production)
 
 - **Election night: parties and voting demographics** (founder direction 2026-11-12: "Republicans vs Democrats, stuff

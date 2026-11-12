@@ -168,6 +168,11 @@ or role, and analytics. Exact mode-by-tier availability, election procedures,
 vote editing, timing, and mode-specific data contracts remain D-08; never imply
 that a basic poll already satisfies election requirements.
 
+Elections are partly decided (founder, 2026-11-11/12; migrations 000037 and 000038): Hub plans only (Starter and
+Team families), always a secret ballot (anonymous, members or one-time ballot codes, never guests), votes final, races as
+choice questions with seats, results after the end through the strict engine, optional parties and voter groups. The
+rest of D-08 (seasonal timing, Plus extension pricing, other advanced modes) stays open.
+
 Anonymity and authentication are independent dimensions:
 
 | Participation context | Membership consequence | Identity disclosure |
