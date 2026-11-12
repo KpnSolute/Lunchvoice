@@ -121,6 +121,16 @@
   box-shadow: var(--lv-pressed-shadow);
   color: var(--lv-on-accent);
 }
+@utility surface-selected {
+  background: var(--lv-selected-bg);
+  box-shadow: var(--lv-selected-ring);
+  color: var(--lv-selected-ink);
+}
+@utility surface-field {
+  background: var(--lv-field-bg);
+  box-shadow: var(--lv-field-ring);
+  color: var(--lv-text);
+}
 @utility surface-ink {
   background: var(--lv-ink-bg);
   box-shadow: var(--lv-ink-shadow);

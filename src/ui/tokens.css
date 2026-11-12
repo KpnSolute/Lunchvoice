@@ -20,6 +20,13 @@
   --lv-scrim: rgba(20, 17, 15, 0.42);
   --lv-control-border: 0 solid transparent;
   --lv-header-bg: color-mix(in srgb, var(--lv-page) 86%, transparent);
+  /* Selected state for app controls (radio cards, segmented, tabs): a tint and an outline, not a solid fill. The solid
+     amber (--lv-pressed-*) stays for the respondent's answer choices and status badges. */
+  --lv-selected-bg: color-mix(in srgb, var(--lv-accent) 13%, var(--lv-surface));
+  --lv-selected-ring: inset 0 0 0 2px var(--lv-accent-deep);
+  --lv-selected-ink: var(--lv-text);
+  --lv-field-bg: var(--lv-surface);
+  --lv-field-ring: inset 0 0 0 1px color-mix(in srgb, var(--lv-line) 70%, var(--lv-subtle));
   /* page-level extras used by the app chrome */
   --lv-well-hover: #e4e2de;
   --lv-well-focus: #f3f2ef;
@@ -167,6 +174,9 @@
   --lv-well-focus: #ffffff;
   --lv-rim: #000000;
   --lv-header-bg: #ffffff;
+  --lv-selected-bg: #ffffff;
+  --lv-selected-ring: inset 0 0 0 3px #000000;
+  --lv-field-ring: inset 0 0 0 2px #000000;
   --lv-control-border: 2px solid #000000; /* selected controls: 3px solid #000 + a glyph change */
   color-scheme: light;
 }

@@ -8,7 +8,8 @@ import { Slot } from "radix-ui"
 // hover changes colour, never position; the springy press (tactile-press) is what keeps them lively.
 const buttonVariants = cva(
   "tactile-press tactile-focus inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[var(--lv-radius-control)] border-0 " +
-    "font-semibold whitespace-nowrap no-underline select-none disabled:cursor-not-allowed disabled:opacity-55 " +
+    "font-semibold whitespace-nowrap no-underline select-none disabled:cursor-not-allowed disabled:opacity-100 " +
+    "disabled:bg-[var(--lv-well)] disabled:text-[var(--lv-subtle)] disabled:shadow-none " +
     "aria-disabled:cursor-not-allowed aria-disabled:opacity-55 [&_svg]:pointer-events-none [&_svg]:shrink-0 " +
     "[&_svg:not([class*='size-'])]:size-4",
   {

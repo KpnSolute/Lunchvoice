@@ -36,7 +36,8 @@
   transition: transform var(--lv-dur-press) var(--lv-ease-spring), background var(--lv-dur-press) var(--lv-ease-out);
 }
 .lv-tab:active { transform: scale(0.94, 0.88); }
-.lv-tab[aria-current='page'] { background: var(--lv-pressed-bg); box-shadow: var(--lv-pressed-shadow); color: var(--lv-on-accent); }
+.lv-tab[aria-current='page'] { background: var(--lv-selected-bg); color: var(--lv-text); }
+.lv-tab[aria-current='page'] svg { color: var(--lv-accent-deep); }
 [data-theme='hc'] .lv-tab[aria-current='page'] { border: 3px solid #000; }
 .lv-tab:focus-visible { outline: 2px solid var(--lv-focus); outline-offset: 2px; }
 .lv-tab-glyph { display: grid; place-items: center; height: 24px; }

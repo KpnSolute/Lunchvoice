@@ -6,6 +6,30 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (design system 3: UI element rebuild, Hub identity and sharing, founder direction 2026-11-12)
+
+- **Element rebuild** (tokens and `src/components/shadcn/`, so every page follows): solid surfaces with hairlines instead of
+  gradients and glows; rounded-rectangle buttons (pill shape and hover lift gone, springy press kept); disabled buttons
+  neutral grey; white input fields with a clear focus ring; selected radio cards, segmented tabs and phone tabs use a tint
+  and outline (solid amber kept for answer choices in surveys and status badges); labels in the UI font, sentence case
+  (Space Mono only for codes and numbers); badges as small rounded tags at 12px (they were 10.5px); one full-width header
+  bar. Segmented filters scroll in one row on phones. `DESIGN.md` documents the rules.
+- **Hub profile header** (`src/ui/HubProfile.tsx`): a banner in the Hub's colour with its mark overlapping it, the name,
+  address, member count, how to join, visibility and a Share button. Replaces the coloured strip and title on member pages
+  and the cover on visitor pages. The visitor join card no longer repeats the about line or shows "public" as a number.
+- **Hub card** (`src/components/HubCard.tsx`): the Discord-style card used on Discover, in the share dialog and on the home
+  page. Online count, tags and "Est." date render only when the backend sends them (requested in `API_CONTRACT.md`).
+- **Share dialog** (`src/components/ShareHub.tsx`): card preview, the `lunchvoice.com/h/<slug>` share link, "Copy invite
+  message", the phone share sheet and a QR code. `/h/<slug>` forwards to the Hub in the app (route added, `h` reserved).
+- **Link previews per Hub** (`workers/hub-card`): a Cloudflare Worker for the route `lunchvoice.com/h/*` gives Discord,
+  Slack, X, WhatsApp and iMessage a card with the Hub's name, member count, how to join, about line and colour
+  (`theme-color`), and sends people on to the Hub. Supabase functions cannot serve HTML and Render cannot vary it per Hub;
+  the domain is on Cloudflare. Private and missing Hubs get the same neutral card. 6 tests (`npm run test:workers`, now in
+  `test:pr`). **Not deployed:** needs `wrangler deploy` from the founder's Cloudflare account (README in the folder).
+- **LunchVoice's own Hub:** `COMMUNITY_HUB_SLUG = "kitchen"` in `src/config/contact.ts`. The home page shows a "Pull up a
+  seat in the Kitchen" section with its card only while `lv_hub_get("kitchen")` returns a public Hub. The founder creates
+  it through the normal flow; nothing is seeded or reserved.
+
 ### Fixed (broken link previews, founder report 2026-11-12)
 
 - Every link preview of lunchvoice.com (Discord, Slack, iMessage) ended "Hubs for communities from <meta property=":
