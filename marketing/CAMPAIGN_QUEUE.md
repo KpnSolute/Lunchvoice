@@ -18,7 +18,7 @@ Initial campaign: **free-first prelaunch / early access**. This is a sequencing 
 - Recut longer footage into Shorts when doing so keeps all claims accurate.
 
 ## Source truth / checkpoints
-- `DESIGN.md`, `src/ui/tokens.css` and `brand/lv-package/README.txt`: approved colors, type and logo.
+- `DESIGN.md`, `src/ui/tokens.css` and `brand/lv-package/README.md`: approved colors, type, logo files and the brand guidelines PDF.
 - `docs/frontend/GO_TO_MARKET.md`: approved audience, positioning, offer and channels.
 - `docs/v2/LAUNCH_PLAN.md`: marketing restrictions and prelaunch waitlist decisions.
 - `VIDEO_PROMPTS.md`: ready-to-paste prompts for V01–V05.
