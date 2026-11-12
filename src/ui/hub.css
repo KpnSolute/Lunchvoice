@@ -107,3 +107,56 @@ a.lv-hcard:focus-visible { outline: 2px solid var(--lv-focus); outline-offset: 3
 .lv-ibadge-tip { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
 .lv-ibadge-tip strong { font: 600 13.5px/1.3 var(--lv-font-ui); }
 .lv-ibadge-tip span { font: 400 13px/1.4 var(--lv-font-ui); opacity: 0.85; }
+
+/* ---------- Hub overview: numbers across the top, then work and people ---------- */
+.lv-hub-overview { display: flex; flex-direction: column; gap: 22px; }
+.lv-hub-overview > .lv-tiles-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 520px) { .lv-hub-overview > .lv-tiles-3 { grid-template-columns: 1fr 1fr; } .lv-hub-overview > .lv-tiles-3 > :first-child { grid-column: 1 / -1; } }
+
+/* ---------- "Set up your Hub" checklist: ticks come from real data ---------- */
+.lv-setup-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--lv-space-3); }
+.lv-setup-count { font: 600 13px/1.3 var(--lv-font-mono); color: var(--lv-muted); white-space: nowrap; }
+.lv-setup { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.lv-setup li { display: flex; align-items: flex-start; gap: var(--lv-space-3); padding: var(--lv-space-3) 0; border-top: 1px solid var(--lv-line); }
+.lv-setup li[data-done] { padding-block: var(--lv-space-2); }
+.lv-setup li:first-child { border-top: 0; }
+.lv-setup-tick { flex: none; width: 22px; height: 22px; margin-top: 1px; border-radius: var(--lv-radius-pill); display: grid; place-items: center; border: 1.5px solid var(--lv-line); color: var(--lv-on-accent); }
+.lv-setup li[data-done] .lv-setup-tick { background: var(--lv-accent); border-color: var(--lv-accent); }
+.lv-setup-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; color: var(--lv-text); text-decoration: none; border-radius: var(--lv-radius-tag); }
+.lv-setup-text b { font-size: 15px; font-weight: 600; }
+.lv-setup-text span { font-size: 13.5px; line-height: 1.45; color: var(--lv-muted); }
+a.lv-setup-text b { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--lv-accent) 70%, transparent); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+a.lv-setup-text:hover b { text-decoration-color: var(--lv-accent); }
+a.lv-setup-text:focus-visible { outline: 2px solid var(--lv-focus); outline-offset: 3px; }
+.lv-setup li[data-done] .lv-setup-text b { color: var(--lv-muted); font-weight: 500; }
+
+/* ---------- Hub settings ---------- */
+.lv-settings-address { display: flex; flex-direction: column; gap: var(--lv-space-1); }
+.lv-settings-address-url { font: 400 15px/1.4 var(--lv-font-mono); overflow-wrap: anywhere; }
+.lv-settings-group { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--lv-space-2); }
+.lv-settings-group legend { padding: 0; margin-bottom: var(--lv-space-2); font: 600 14px/1.3 var(--lv-font-ui); }
+.lv-settings-modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--lv-space-3); }
+@media (max-width: 720px) { .lv-settings-modes { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- Hub settings: Discord, "Connected communities" ---------- */
+.lv-dc-empty { display: flex; flex-direction: column; gap: var(--lv-space-4); }
+.lv-dc-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--lv-space-4); counter-reset: dcstep; }
+.lv-dc-steps li { position: relative; padding-left: 40px; display: flex; flex-direction: column; gap: var(--lv-space-2); counter-increment: dcstep; }
+.lv-dc-steps li::before { content: counter(dcstep); position: absolute; left: 0; top: -2px; width: 26px; height: 26px; border-radius: var(--lv-radius-pill); display: grid; place-items: center; background: var(--lv-ink-bg); color: var(--lv-on-primary); font: 700 13px/1 var(--lv-font-mono); }
+.lv-dc-steps b { font-weight: 600; }
+.lv-dc-steps span { font-size: 14px; color: var(--lv-muted); }
+.lv-dc-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--lv-space-3); }
+.lv-dc-server { border: 1px solid var(--lv-line); border-radius: var(--lv-radius-field); padding: var(--lv-space-4); display: flex; flex-direction: column; gap: var(--lv-space-3); }
+.lv-dc-server-head { display: flex; align-items: center; gap: var(--lv-space-3); flex-wrap: wrap; }
+.lv-dc-server-mark { width: 40px; height: 40px; flex: none; border-radius: var(--lv-radius-control); display: grid; place-items: center; background: var(--lv-ink-bg); color: var(--lv-on-primary); font: 700 17px/1 var(--lv-font-ui); }
+.lv-dc-server-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lv-dc-server-name strong { font-size: 16px; overflow-wrap: anywhere; }
+.lv-dc-server-name span { font-size: 13px; color: var(--lv-muted); }
+.lv-dc-facts { margin: 0; display: flex; flex-direction: column; border-top: 1px solid var(--lv-line); }
+.lv-dc-facts > div { display: flex; flex-direction: column; gap: var(--lv-space-1); padding: var(--lv-space-3) 0; border-bottom: 1px solid var(--lv-line); }
+.lv-dc-facts dt { font-size: 14px; font-weight: 600; }
+.lv-dc-facts dd { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--lv-space-4); }
+.lv-dc-facts dd span { font-size: 14px; line-height: 1.45; color: var(--lv-muted); }
+.lv-dc-actions { display: flex; justify-content: flex-end; }
+.lv-dc-privacy { display: flex; gap: var(--lv-space-3); align-items: flex-start; }
+.lv-dc-privacy > svg { flex: none; margin-top: 2px; color: var(--lv-accent-text); }

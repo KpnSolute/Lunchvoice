@@ -6,6 +6,35 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (Hub workspace: setup checklist, plain settings, Connected communities; founder assignment 2026-11-12, PR C)
+
+- **Overview:** the three numbers (live Campaigns, members, plan) run across the top instead of stacking in a narrow
+  column. "Get your Hub going" (shown only with no Campaigns) is replaced by **"Set up your Hub"**: describe your Hub,
+  pick your Hub color, ask your first question, invite people, connect your Discord server. Every tick comes from
+  real state (about line, accent, Campaign count, member count, Discord connections); each open step links to the
+  place that does it; there is a progress bar and "N of M done"; it shows only the steps the viewer can act on and
+  disappears when they are all done. Discord connections are read only for settings managers. The Plan tile loses its
+  green left-edge bar (founder request 2026-11-12); the three tiles share one flat style.
+- **Settings:** grouped as "Name and description" and "Who can see it and join". The labels are "Hub name" and "What is
+  this Hub for?", and the help text says where the description shows. The address is shown, with a way to ask support
+  (owners cannot change it in the app yet; whether they should is a founder decision). Visibility and joining are radio
+  choices with one sentence each instead of selects (the joining select truncated "Approval: a manager admits
+  reque…"). A line says changing them never removes members (`lv_hub_update` touches no memberships). "Community
+  appearance" is now "Hub color" and the checklist links to it (`#appearance`). "Owner only" is now "Ownership and
+  deletion", with a line saying only the Owner sees it.
+- **Discord tab, "Connected communities":** when nothing is connected, three numbered steps (add the bot, run
+  `/lunchvoice connect hub:<slug>` with a copy button, confirm the link). When connected, one card per server with
+  its name and date, an auto-post switch with a sentence saying what it does (toast on change, disabled when staff
+  turned the server off), role rules in words, and Disconnect behind a confirmation that says nothing in the Hub is
+  deleted. A panel says what Discord can and cannot see: LunchVoice never reads server messages (the bot only posts
+  to channels), and anonymous Campaigns are answered in LunchVoice. No new API is used.
+- **Tests:** `e2e/hubsetup.test.mjs` (3): ticks from real state, Discord connection closes the checklist; plain
+  labels, radio choices, address; empty steps with the command, the server card, auto-post toast, disconnect
+  confirmation, 390px. The launch-plan UI gate adds Hub settings and its Discord tab.
+- **Needs the founder:** the bot's invite link. The repository has none, so step 1 cannot link to it. A decision on
+  letting owners change their Hub address (needs a backend function with the reserved-name and quarantine rules). The
+  Hub banner's gradient glow (from #66) disagrees with DESIGN.md's "solid surfaces"; left as it is.
+
 ### Changed (public site: the "less generated" pass, founder assignment 2026-11-12, PR B)
 
 - **Home page answers what, who, how and what next.** The approved hero is unchanged. The use cases now say who
@@ -671,6 +700,7 @@ categories and the repository's decimal `X.X.X` release policy.
 - #47 merged and deployed; 12 live routes (incl. /discover, /reserve) with zero CSP violations; sign-in reads
   "Continue with KpnSolute". Edge Functions `session` (LC-13), `billing-webhook`, `checkout`, `email-dispatch` await
   a CLI deploy by the founder (the Composio deploy tool cannot set `verify_jwt` or an import map).
+
 ### Fixed (SEO: public pages served a static noindex)
 
 - Production check: with the Render dashboard rule changed to `/* -> /app.html` but the per-page rules missing or
@@ -1081,7 +1111,6 @@ categories and the repository's decimal `X.X.X` release policy.
   placeholder until the real SVG and typeface are supplied (`--font-maker` token added in `src/styles/landing.css`).
 - Anchor targets carry `scroll-margin-top` so sections do not hide under the sticky header; hash links scroll on navigation.
 - Verified in the browser at 1280px and 390px: no console errors, no horizontal overflow at 390px.
-
 
 ### Fixed
 

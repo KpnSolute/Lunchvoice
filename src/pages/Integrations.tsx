@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
+import { Icon } from "../components/Icon";
 import { useLv } from "../lib/useLv";
 import { describeError } from "../lib/errors";
 import type { HubInfo, HubMembership } from "../lib/lvApi";
@@ -243,44 +244,84 @@ export function HubDiscordSettings({ hub, membership }: { hub: HubInfo; membersh
   const allowed = canManageHub(membership);
   const list = useLv(() => (allowed ? api.discordConnections(hub.hub_id) : Promise.resolve({ ok: true as const, connections: [] })), [api, hub.hub_id, allowed]);
   if (!allowed) return <Notice tone="info">Only Hub managers can connect Discord servers.</Notice>;
+  const connections = list.data?.connections ?? [];
+  const command = `/lunchvoice connect hub:${hub.slug}`;
   return (
     <div className="lv-stack-16" data-testid="discord-tab">
       <Card>
-        <SectionTitle>Discord servers</SectionTitle>
-        <p className="ui-muted lv-m0">
-          Add the LunchVoice bot to your server, then a server admin runs <code>/lunchvoice connect hub:{hub.slug}</code> and you confirm the link it posts.
-          Members can then use <code>/lunchvoice post</code> to share published Campaigns. Anonymous Campaigns are always answered in LunchVoice, never inside Discord.
-        </p>
-        {list.loading && !list.data ? <LoadingRows rows={2} /> : list.error ? <Notice tone="error">{describeError(list.error)}</Notice> : list.data!.connections.length === 0 ? (
-          <EmptyState title="No server connected">Connected servers show up here.</EmptyState>
+        <div className="lv-stack-8">
+          <SectionTitle>Connected communities</SectionTitle>
+          <p className="ui-muted lv-m0">
+            Discord is where your community talks; your Hub is where it decides. A connected server can post this Hub’s
+            published Campaigns into a channel and give Discord roles to people who are members here.
+          </p>
+        </div>
+        {list.loading && !list.data ? <LoadingRows rows={2} /> : list.error ? <Notice tone="error">{describeError(list.error)}</Notice> : connections.length === 0 ? (
+          <div className="lv-dc-empty" data-testid="discord-empty">
+            <p className="lv-m0"><strong>No server connected yet.</strong> A server admin connects it in three steps:</p>
+            <ol className="lv-dc-steps">
+              <li><b>Add the LunchVoice bot to your server.</b><span>A server admin does this once, from Discord.</span></li>
+              <li>
+                <b>Run the connect command in any channel.</b>
+                <CopyField label="Command to run in Discord" value={command} />
+              </li>
+              <li><b>Open the link the bot replies with and confirm.</b><span>You need to be a manager of this Hub. The server then shows up here.</span></li>
+            </ol>
+          </div>
         ) : (
-          <RowList>
-            {list.data!.connections.map((c) => (
-              <RowItem
-                key={c.connection_id}
-                title={<>{c.guild_name ?? "Discord server"} {c.disabled && <Badge variant="outline">Turned off by LunchVoice</Badge>}</>}
-                sub={`Connected ${new Date(c.confirmed_at).toLocaleDateString()} · ${c.role_rules} role rule${c.role_rules === 1 ? "" : "s"} for this Hub`}
-                trailing={
-                  <span className="ui-row">
-                    <label className="ui-row ui-help" htmlFor={`auto-${c.connection_id}`}>
-                      <Switch id={`auto-${c.connection_id}`} checked={c.auto_post} onCheckedChange={async (on) => {
+          <ul className="lv-dc-list">
+            {connections.map((c) => (
+              <li key={c.connection_id} className="lv-dc-server" data-testid="discord-server">
+                <div className="lv-dc-server-head">
+                  <span className="lv-dc-server-mark" aria-hidden="true">{(c.guild_name ?? "D").slice(0, 1).toUpperCase()}</span>
+                  <div className="lv-dc-server-name">
+                    <strong>{c.guild_name ?? "Discord server"}</strong>
+                    <span>Connected {new Date(c.confirmed_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}</span>
+                  </div>
+                  {c.disabled && <Badge variant="outline">Turned off by LunchVoice</Badge>}
+                </div>
+                <dl className="lv-dc-facts">
+                  <div>
+                    <dt><label htmlFor={`auto-${c.connection_id}`}>Auto-post on publish</label></dt>
+                    <dd>
+                      <span>When you publish a Campaign, the bot posts it with an Answer button.{c.auto_post ? "" : " Off: post one by hand with /lunchvoice post."}</span>
+                      <Switch id={`auto-${c.connection_id}`} checked={c.auto_post} disabled={c.disabled} onCheckedChange={async (on) => {
                         const r = await api.discordConnectionUpdate(c.connection_id, { auto_post: on });
-                        if (r.ok) list.reload(); else toast.error(describeError(r.error));
-                      }} />Auto-post on publish
-                    </label>
-                    <ConfirmAction
-                      trigger={<Button variant="quiet" size="sm">Disconnect</Button>}
-                      title="Disconnect this server?"
-                      body="The server can no longer post this Hub’s Campaigns, and its membership role rules for this Hub are removed."
-                      action="Disconnect"
-                      onConfirm={async () => { const r = await api.discordConnectionUpdate(c.connection_id, { remove: true }); if (r.ok) list.reload(); else toast.error(describeError(r.error)); }}
-                    />
-                  </span>
-                }
-              />
+                        if (r.ok) { toast.success(on ? "Auto-post is on" : "Auto-post is off"); list.reload(); } else toast.error(describeError(r.error));
+                      }} />
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Role rules</dt>
+                    <dd><span>{c.role_rules === 0 ? "None yet. A server admin adds them with /lunchvoice setup." : `${c.role_rules} rule${c.role_rules === 1 ? "" : "s"} give Discord roles to members of this Hub who linked their account and agreed.`}</span></dd>
+                  </div>
+                </dl>
+                <div className="lv-dc-actions">
+                  <ConfirmAction
+                    trigger={<Button variant="quiet" size="sm">Disconnect</Button>}
+                    title={`Disconnect ${c.guild_name ?? "this server"}?`}
+                    body="The server can no longer post this Hub’s Campaigns, and its role rules for this Hub are removed. Nothing in your Hub is deleted. A server admin can connect it again later."
+                    action="Disconnect"
+                    onConfirm={async () => { const r = await api.discordConnectionUpdate(c.connection_id, { remove: true }); if (r.ok) { toast.success("Server disconnected"); list.reload(); } else toast.error(describeError(r.error)); }}
+                  />
+                </div>
+              </li>
             ))}
-          </RowList>
+          </ul>
         )}
+      </Card>
+      <Card variant="well" data-testid="discord-privacy">
+        <div className="lv-dc-privacy">
+          <Icon name="lock" size={20} />
+          <div className="lv-stack-8">
+            <strong>What Discord can and cannot see</strong>
+            <p className="ui-muted lv-m0">
+              LunchVoice never reads your server’s messages. Discord can see who presses a button, so anonymous Campaigns
+              always open in LunchVoice and are answered there; only identified polls can be answered inside Discord. Answers
+              and results stay in your Hub.
+            </p>
+          </div>
+        </div>
       </Card>
     </div>
   );
