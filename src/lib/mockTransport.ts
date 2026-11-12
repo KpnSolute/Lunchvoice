@@ -768,6 +768,9 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
           return { ok: true, metric: "answer_distribution", question_id: q.question_id, cells: [], texts: t, texts_withheld: t === null };
         }
       }
+      // As in the real API (000016): an anonymous question with fewer than MIN_COHORT answers is withheld whole.
+      if (c.anonymity === "anonymous" && c.responses.length < MIN_COHORT)
+        return { ok: true, metric: "answer_distribution", question_id: a.p_question, cells: [], withheld: true };
       return { ok: true, metric: "answer_distribution", question_id: a.p_question, cells: distribution(c, String(a.p_question)) };
     }
     case "lv_analytics_export": {

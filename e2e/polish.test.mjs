@@ -206,6 +206,8 @@ test("Player: direction-aware question stage, gliding progress, rating word, Ent
   assert.equal(await thanks.locator(".lv-burst i").count(), 12);
   assert.ok((await page.evaluate(() => document.getAnimations().length)) > 0, "the thank-you animates");
   assert.equal(await thanks.getByText(/%|responses so far|others/i).count(), 0, "a respondent never sees results");
+  // Audit P6: every respondent is a potential creator, so the thank-you offers a next step.
+  assert.equal(await page.getByTestId("thanks-next").getByRole("link", { name: "Make your own survey, free" }).getAttribute("href"), "/surveys/new");
   assert.ok(await noHorizontalScroll(page));
   await ctx.close();
 });

@@ -8,7 +8,7 @@
 
 export function MakerMark({ size = 15 }: { size?: number }) {
   return (
-    <span className="maker-mark" style={{ fontSize: size }} aria-label="KpnSolute">
+    <span className="maker-mark" role="img" style={{ fontSize: size }} aria-label="KpnSolute">
       <span aria-hidden="true">KpnSolute</span>
     </span>
   );

@@ -301,7 +301,7 @@ export function SignIn() {
           </Notice>
         )}
         <p className="ui-muted lv-signin-sub" data-testid="signin-how">
-          Sign-in happens on auth.kpnsolute.com, run by KpnSolute, the company that makes LunchVoice. Use your Google account there and you come straight back here.
+          Sign in with Google or email on auth.kpnsolute.com, run by KpnSolute, the company that makes LunchVoice. You come straight back here afterwards.
         </p>
         {issuerConfigured ? (
           <Button
@@ -327,7 +327,7 @@ export function SignIn() {
         )}
         {error && <Notice tone="error">{error}</Notice>}
         <p className="ui-help lv-m0">One KpnSolute account works for every Hub. We keep your verified sign-in, never your email as your identity.</p>
-        <Button asChild variant="quiet" size="md">
+        <Button asChild variant="quiet" size="md" className="lv-signin-join">
           <Link to="/join">Have a join code? Answer without signing in</Link>
         </Button>
         {import.meta.env.DEV && canSimulate && (

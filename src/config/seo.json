@@ -4,7 +4,7 @@
   "siteName": "LunchVoice",
   "titleSuffix": " · LunchVoice",
   "defaultTitle": "LunchVoice: anonymous surveys and polls for any community",
-  "defaultDescription": "Build a survey in minutes, share it by QR code or a six-character code, and see anonymous, privacy-safe results live. Free Quick Surveys; Hubs for communities from $13/month.",
+  "defaultDescription": "Build a survey in minutes, share it by QR code or a six-character code, and see privacy-safe results as soon as it closes. Free Quick Surveys; Hubs for communities from $13/month.",
   "image": "/og-image.png?v=2",
   "imageAlt": "LunchVoice: make every voice count.",
   "locale": "en_US",
@@ -12,9 +12,9 @@
     {
       "path": "/",
       "title": "LunchVoice: anonymous surveys and polls for any community",
-      "description": "Build a survey in minutes, share it by QR code or a six-character code, and see anonymous, privacy-safe results live. Free Quick Surveys; Hubs for communities from $13/month.",
+      "description": "Build a survey in minutes, share it by QR code or a six-character code, and see privacy-safe results as soon as it closes. Free Quick Surveys; Hubs for communities from $13/month.",
       "h1": "Make every voice count.",
-      "body": "LunchVoice is a community feedback platform. Build a survey in minutes, share it with one QR code or a six-character code, and watch anonymous answers arrive while it is still happening. Every community gets its own Hub at lunchvoice.com/yourname, with members, roles, pages and Campaigns: surveys, polls, ratings and open feedback. Answering is always free.",
+      "body": "LunchVoice is a community feedback platform. Build a survey in minutes, share it with one QR code or a six-character code, and collect anonymous answers while it is still happening. Every community gets its own Hub at lunchvoice.com/yourname, with members, roles, pages and Campaigns: surveys, polls, ratings and open feedback. Answering is always free.",
       "changefreq": "weekly",
       "priority": 1.0
     },

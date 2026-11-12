@@ -425,3 +425,28 @@ test("Quick Survey stays the simple flow: Title, Questions, Who can respond, Pub
   assert.ok(await noHorizontalScroll(page));
   await ctx.close();
 });
+
+test("Audit P2/P4/P7: a closed anonymous survey under the minimum says Withheld with the number, never No answers yet", async () => {
+  const { page, go, ctx, errors } = await openPage(app, { width: 1280 });
+  await go("/surveys/new");
+  await page.getByLabel("Title").fill("Small group check");
+  await page.getByRole("button", { name: /Create draft/ }).click();
+  await page.getByTestId("quick-editor").waitFor();
+  await page.getByRole("textbox", { name: "Question", exact: true }).fill("Which book?");
+  await page.getByRole("textbox", { name: "Option 1" }).fill("Dune");
+  await page.getByRole("textbox", { name: "Option 2" }).fill("Emma");
+  await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
+  await page.getByTestId("publish").click();
+  await page.getByTestId("share").getByText("Join code").waitFor();
+  assert.equal(await page.locator("#publish-blockers").count(), 0, "no stale 'Ready to publish' once published");
+  await page.getByRole("button", { name: "Close", exact: true }).click();
+  const dialog = page.getByRole("alertdialog");
+  await dialog.getByText("Close this survey?").waitFor();
+  await dialog.getByText(/at least 5 answers/).waitFor();
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByRole("link", { name: "Results" }).first().click();
+  await page.getByTestId("question-withheld").getByText(/fewer than 5 answers/).waitFor();
+  assert.equal(await page.getByText("No answers yet.").count(), 0);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

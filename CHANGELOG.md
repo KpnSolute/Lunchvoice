@@ -6,6 +6,43 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed (pre-launch audit 2026-11-12, first batch: LunchVoice-side quick wins)
+
+Source: "LunchVoice.com Pre-Launch Audit — Results" and "KpnAuth Review" (2026-11-12). This batch covers the items that
+live in this repository and need no database change.
+
+- **P2, withheld shown as "No answers yet":** on a closed anonymous survey under the minimum, the API returns
+  `cells: []` with `withheld: true`; `Results.tsx` fell through to "No answers yet", so the creator thought the survey
+  failed. It now shows the Withheld bar and "Withheld: this question has fewer than 5 answers…". The dev mock now
+  returns the same shape as the real API (000016), which is why this was never caught.
+- **P4, the minimum is stated:** results, the withheld explainer, text answers and the Close dialog say "at least 5".
+  The number lives in `src/config/privacy.ts` (`ANON_MIN_ANSWERS`), mirroring policy `campaign.min_cohort` (000014);
+  the server still decides what is withheld.
+- **P1, live-results claim (copy side only):** live anonymous results stay blocked by design (000013: a live tally is
+  identity-linked). The homepage lede, "How a survey works" steps, `seo.json`/`index.html` descriptions and the event
+  use case no longer promise watching anonymous answers arrive; they say identified surveys fill in live and anonymous
+  results open on close with at least 5 answers. Whether to show a live response count is a founder decision.
+- **P6, thank-you next step:** "Make your own survey, free" (to `/surveys/new`) beside Done.
+- **P7/P9:** Quick Survey Close/Archive dialogs say "survey", the guest toggle no longer mentions Campaign access modes,
+  and the screen-reader "Ready to publish." line is gone once a survey is published.
+- **F3, invisible focus ring on dark sections (WCAG 2.4.7):** ink surfaces re-scope `--lv-focus` to the existing
+  `--lv-on-band` colour (no new token value). Checked on the hero CTA.
+- **F7/G6, F10:** `/signin` and the account page say "Google or email" (the auth page leads with email); the join-code
+  link wraps at 375px instead of overflowing; a missing join code no longer shows "We can't find that." twice;
+  Discover shows "Under 100 active members" instead of "0+ active members".
+- **F9:** `/assets/*` is served `Cache-Control: public, max-age=31536000, immutable` (fingerprinted files).
+- **F12:** HSTS adds `includeSubDomains` (every lunchvoice.com subdomain must be HTTPS; matches the planned
+  auth.lunchvoice.com); the maker mark span gets `role="img"` for its `aria-label`. The homepage's static canonical
+  stays omitted on purpose (`scripts/seo-prerender.mjs`: hosts may serve `index.html` for any path); `Seo.tsx` sets it.
+- **Tests:** `e2e/studio.test.mjs` (closed anonymous survey under the minimum: Withheld with the number, Close dialog
+  wording, no stale readiness line); `e2e/polish.test.mjs` (thank-you next step); `e2e/sitecta.test.mjs` (sign-in copy).
+- **Not in this batch:** F2 analytics (needs the founder to pick a tool; it also changes the CSP), F4/F5 per-Hub share
+  previews and public Hub activity, F6 build-before-sign-in, F8 real 404 status (Render static rewrites), F11 token
+  sprawl, P3 emails as display names (backend: `lv.ensure_account` falls back to the token `name` claim, which
+  can be an email; needs a migration plus a production data fix with owner approval), P5 a live Kitchen poll (content),
+  P8 deleting Quick Surveys, P10 name shown three ways. KpnAuth items K1–K16 and B1–B9 belong to the
+  auth.kpnsolute.com app and the KpnIdentity Supabase project, not this repository.
+
 ### Changed (survey creation and Campaign lists, founder assignment 2026-11-12, PR D)
 
 - **New Quick Survey opens on a short template list:** Blank and the first five templates, then "Show all N templates".

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ANON_MIN_ANSWERS } from "../config/privacy";
 import { Link, useNavigate } from "react-router-dom";
 import { Icon, type IconName } from "../components/Icon";
 import { USE_CASES } from "../config/useCases";
@@ -30,8 +31,8 @@ const BARS = [4, 9, 6, 3, 18, 34, 22, 8, 5, 12, 20, 9];
 const JOURNEY: { title: string; body: string }[] = [
   { title: "Create a survey", body: "Start blank or from a template. Ratings, choices, yes or no and short answers, made to tap on a phone." },
   { title: "Share it", body: "Send a link, print the QR code or read out a six-character code. Nobody installs an app." },
-  { title: "Collect responses", body: "Answers arrive while people are still answering. On an anonymous survey nobody, including you, sees who said what." },
-  { title: "Understand results", body: "A chart and a summary for every question, filled in as answers arrive. Close it when you have what you need." },
+  { title: "Collect responses", body: "People answer on their phones in about a minute. On an anonymous survey nobody, including you, sees who said what." },
+  { title: "Understand results", body: `A chart and a summary for every question. Identified surveys fill in live; anonymous results open when you close the survey, once at least ${ANON_MIN_ANSWERS} people have answered.` },
 ];
 const PROMISES: { title: string; body: string; icon: IconName }[] = [
   { title: "Anonymous means anonymous", body: "On an anonymous survey the creator sees totals, never your name.", icon: "lock" },
@@ -165,8 +166,8 @@ export function Landing() {
             <span className="lv-l-eyebrow"><i aria-hidden="true" />Surveys for any community</span>
             <h1 className="lv-l-h1">Make every voice <em>count.</em></h1>
             <p className="lv-l-lede">
-              Build a survey in minutes, share it with one QR code or a six-character code, and watch anonymous answers
-              arrive while it’s still happening. Every community gets its own Hub at <b>lunchvoice.com/yourname</b>.
+              Build a survey in minutes, share it with one QR code or a six-character code, and collect anonymous answers
+              while it’s still happening. Every community gets its own Hub at <b>lunchvoice.com/yourname</b>.
             </p>
             <div className="lv-l-actions" data-testid="hero-actions" data-billing={state.open ? "open" : "closed"}>
               <Button asChild variant="primary" size="lg" data-lv-cta="hero" className="lv-l-cta">

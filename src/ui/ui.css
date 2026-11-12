@@ -216,6 +216,8 @@ a.lv-row:hover .lv-row-title { text-decoration: underline; text-underline-offset
 .lv-thanks-title em { font-style: normal; color: var(--lv-accent); }
 .lv-thanks-copy { margin: 0; font: 400 17px/1.5 var(--lv-font-ui); opacity: 0.85; max-width: 44ch; }
 .lv-thanks-receipt { margin: 0; font: 700 12px/1 var(--lv-font-mono); letter-spacing: 0.08em; opacity: 0.6; }
+.lv-thanks-next { align-self: stretch; display: grid; gap: 10px; margin-top: 12px; }
+.lv-thanks-next > * { justify-content: center; }
 .lv-thanks-done { align-self: stretch; justify-content: center; margin-top: 12px; color: var(--lv-on-primary); border-color: color-mix(in srgb, var(--lv-on-primary) 40%, transparent); background: transparent; box-shadow: none; }
 
 /* ---------- State screens (L11) ---------- */

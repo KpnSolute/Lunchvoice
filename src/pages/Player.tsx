@@ -12,6 +12,7 @@ import { Icon } from "../components/Icon";
 import { describeError } from "../lib/errors";
 import { QuestionInput, summarize } from "../ui/QuestionControls";
 import { StateScreen } from "../ui/StateScreen";
+import { START_SURVEY } from "../lib/billingState";
 
 /**
  * The respondent player (L9): welcome, one question per screen, review, thanks.
@@ -109,7 +110,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
       <>
         <StateScreen
           kind={code === "lv_not_found" ? "notfound" : "error"}
-          detail={describeError(detail.error)}
+          detail={code === "lv_not_found" ? "Check the code or link and try again. It may also have been removed." : describeError(detail.error)}
           action={code === "lv_not_found" ? <LinkButton to="/join" variant="secondary">Try another code</LinkButton> : <Button variant="secondary" onClick={() => detail.reload()}>Try again</Button>}
         />
         {guest && code !== "lv_not_found" && <ReportSurvey joinCode={guest.joinCode} />}
@@ -140,7 +141,10 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
                 : "Your answers were recorded. The creator can see who answered."}
         </p>
         {(receipt?.id || d.receipt_id) && <p className="lv-thanks-receipt">Receipt {receipt?.id ?? d.receipt_id}</p>}
-        <LinkButton to="/" variant="secondary" className="lv-thanks-done">Done</LinkButton>
+        <div className="lv-thanks-next" data-testid="thanks-next">
+          <LinkButton to={START_SURVEY.to} variant="primary">Make your own survey, free</LinkButton>
+          <LinkButton to="/" variant="secondary" className="lv-thanks-done">Done</LinkButton>
+        </div>
         {report}
       </div>,
       "ink",
