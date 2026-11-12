@@ -3,7 +3,12 @@ name = "lunchvoice-hub-card"
 main = "worker.ts"
 compatibility_date = "2026-10-01"
 workers_dev = false
-routes = [{ pattern = "lunchvoice.com/h/*", zone_name = "lunchvoice.com" }]
+# hub.lunchvoice.com is a Custom Domain served by this Worker alone. The /h/* route on the apex stays for when the apex
+# becomes a proxied CNAME to Render (O2O); with today's A record Cloudflare skips zone Workers for it.
+routes = [
+  { pattern = "hub.lunchvoice.com", custom_domain = true },
+  { pattern = "lunchvoice.com/h/*", zone_name = "lunchvoice.com" },
+]
 
 [vars]
 SUPABASE_URL = "https://qprfonxvthmaoxfixigk.supabase.co"

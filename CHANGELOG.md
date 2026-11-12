@@ -21,6 +21,15 @@ categories and the repository's decimal `X.X.X` release policy.
   page. Online count, tags and "Est." date render only when the backend sends them (requested in `API_CONTRACT.md`).
 - **Share dialog** (`src/components/ShareHub.tsx`): card preview, the `lunchvoice.com/h/<slug>` share link, "Copy invite
   message", the phone share sheet and a QR code. `/h/<slug>` forwards to the Hub in the app (route added, `h` reserved).
+- **Share links live on `hub.lunchvoice.com/<slug>`** (deployed 2026-11-12 through the Cloudflare API via Composio).
+  lunchvoice.com points at Render with a proxied A record, and Cloudflare only runs a zone's Workers in front of a Render
+  site through a proxied CNAME (O2O), so the `lunchvoice.com/h/*` route never fired (checked: responses came straight
+  from Render's cache). The Worker now answers on its own Custom Domain: verified live, Discordbot gets "Kitchen on
+  LunchVoice", "3 members · Open to join", the about line and `theme-color` #1D4ED8; people get a 302 to
+  `lunchvoice.com/kitchen`; an unknown slug gets the neutral card; `/` goes to Discover. The Share dialog copies the
+  new link; `lunchvoice.com/h/<slug>` still forwards to the Hub. Bindings: `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`
+  (plain text; the old anon-key secret was dropped). Also set: Render `VITE_SUPABASE_PUBLISHABLE_KEY` on the Lunchvoice
+  static site and the Supabase Edge Function secret `LV_PUBLISHABLE_KEY`.
 - **Link previews per Hub** (`workers/hub-card`): a Cloudflare Worker for the route `lunchvoice.com/h/*` gives Discord,
   Slack, X, WhatsApp and iMessage a card with the Hub's name, member count, how to join, about line and colour
   (`theme-color`), and sends people on to the Hub. Supabase functions cannot serve HTML and Render cannot vary it per Hub;

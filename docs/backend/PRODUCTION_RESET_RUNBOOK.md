@@ -240,8 +240,8 @@ API Keys). The code accepts both generations (`supabase/functions/_shared/keys.t
 sends a key as `Authorization: Bearer`. Switch in this order, checking the site after each step:
 
 1. Create a publishable key and a secret key in Supabase > Settings > API Keys (if they are not there already).
-2. Render: set `VITE_SUPABASE_PUBLISHABLE_KEY` and redeploy. Sign in and load `/me` to confirm.
-3. Edge Function secrets: `supabase secrets set LV_PUBLISHABLE_KEY` (the publishable key).
+2. Render: set `VITE_SUPABASE_PUBLISHABLE_KEY` and redeploy. Sign in and load `/me` to confirm. (Set 2026-11-12.)
+3. Edge Function secrets: `supabase secrets set LV_PUBLISHABLE_KEY` (the publishable key). (Set 2026-11-12.)
 4. Anything that calls the dispatchers (pg_cron or another scheduler) sends a secret key (`sb_secret_...`) as `apikey`
    or `Authorization: Bearer` instead of the service-role key; or use `EMAIL_DISPATCH_SECRET`.
 5. The share-preview Worker: done; its publishable key is in `workers/hub-card/wrangler.toml`.

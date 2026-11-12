@@ -5,11 +5,14 @@
 // answers the same way there, so it answers the same way here: a neutral LunchVoice card, never a name or a count.
 
 export const SITE = "https://lunchvoice.com";
+/** The share host: a Worker Custom Domain. lunchvoice.com points at Render with an A record, which Cloudflare does not
+ *  route through this zone's Workers (O2O needs a CNAME), so share links live on their own subdomain. */
+export const SHARE_HOST = "https://hub.lunchvoice.com";
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
 
-/** `/h/<slug>` (any case, optional trailing slash) to the slug, or null. */
+/** `/<slug>` on the share host, or `/h/<slug>` on lunchvoice.com (any case, optional trailing slash), or null. */
 export function slugFromPath(pathname: string): string | null {
-  const m = /^\/h\/([^/]+)\/?$/.exec(pathname);
+  const m = /^\/(?:h\/)?([^/]+)\/?$/.exec(pathname);
   if (!m) return null;
   let raw: string;
   try { raw = decodeURIComponent(m[1]!).toLowerCase(); } catch { return null; }
@@ -87,7 +90,7 @@ export function cardPage(slug: string, hub: HubFacts | null): string {
 <meta property="og:site_name" content="LunchVoice" />
 <meta property="og:title" content="${e(title)}" />
 <meta property="og:description" content="${e(description)}" />
-<meta property="og:url" content="${e(`${SITE}/h/${slug}`)}" />
+<meta property="og:url" content="${e(`${SHARE_HOST}/${slug}`)}" />
 <meta property="og:image" content="${SITE}/og-image.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />

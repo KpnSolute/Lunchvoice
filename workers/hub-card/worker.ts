@@ -1,4 +1,4 @@
-// Cloudflare Worker on the route lunchvoice.com/h/* (see README.md). Chat apps that unfurl a Hub's share link get a
+// Cloudflare Worker on the Custom Domain hub.lunchvoice.com (and the route lunchvoice.com/h/*; see README.md). Chat apps that unfurl a Hub's share link get a
 // card with the Hub's name, member count, how to join and its colour; everyone else is sent to lunchvoice.com/<slug>.
 // It reads the public lv_api.lv_hub_get with the public publishable key (apikey header only), exactly as a signed-out visitor would.
 import { cardPage, factsFromHubGet, isPreviewBot, slugFromPath, SITE } from "./card";
@@ -11,7 +11,7 @@ export default {
     const url = new URL(req.url);
     const slug = slugFromPath(url.pathname);
     if (req.method !== "GET" && req.method !== "HEAD") return new Response("Method not allowed", { status: 405, headers: { allow: "GET, HEAD" } });
-    if (!slug) return Response.redirect(`${SITE}/`, 302);
+    if (!slug) return Response.redirect(url.pathname === "/" ? `${SITE}/discover` : `${SITE}/`, 302);
     if (!isPreviewBot(req.headers.get("user-agent"))) return Response.redirect(`${SITE}/${slug}`, 302);
 
     let facts = null;

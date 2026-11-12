@@ -74,7 +74,7 @@ export function ShareHubDialog({ hub, trigger }: { hub: HubInfo; trigger: React.
   );
 }
 
-/** `/h/<slug>`: the share link. The hub-card Worker answers chat-app crawlers; here, people go straight to the Hub. */
+/** `lunchvoice.com/h/<slug>`: an older form of the share link (now hub.lunchvoice.com/<slug>); it forwards to the Hub. */
 export function HubShareRedirect() {
   const { slug } = useParams();
   return <Navigate to={slug ? `/${slug.toLowerCase()}` : "/"} replace />;

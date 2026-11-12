@@ -8,10 +8,11 @@ const PUBLIC = {
   accents: [{ key: "teal", label: "Teal", hex: "#0F766E" }],
 };
 
-test("slugs: only /h/<valid slug>", () => {
+test("slugs: /<slug> on hub.lunchvoice.com and /h/<slug> on lunchvoice.com, nothing else", () => {
+  assert.equal(slugFromPath("/kitchen"), "kitchen");
   assert.equal(slugFromPath("/h/kitchen"), "kitchen");
-  assert.equal(slugFromPath("/h/KpnWorld/"), "kpnworld");
-  for (const p of ["/h/", "/h/a", "/h/../etc", "/h/x%2fy", "/h/%E0%A4%A", "/kitchen", "/h/kit/chen", "/h/-bad"]) assert.equal(slugFromPath(p), null, p);
+  assert.equal(slugFromPath("/KpnWorld/"), "kpnworld");
+  for (const p of ["/", "/h/", "/a", "/h/a", "/../etc", "/x%2fy", "/%E0%A4%A", "/kit/chen", "/h/kit/chen", "/-bad"]) assert.equal(slugFromPath(p), null, p);
 });
 
 test("preview bots get the card, people do not", () => {
@@ -45,6 +46,7 @@ test("the page escapes Hub text, forwards people and points at the Hub", () => {
   assert.match(html, /&quot;&gt;&lt;script&gt;/);
   assert.match(html, /<meta http-equiv="refresh" content="0; url=https:\/\/lunchvoice.com\/kitchen" \/>/);
   assert.match(html, /<link rel="canonical" href="https:\/\/lunchvoice.com\/kitchen" \/>/);
+  assert.match(html, /<meta property="og:url" content="https:\/\/hub.lunchvoice.com\/kitchen" \/>/);
   assert.match(html, /<meta name="theme-color" content="#0F766E" \/>/);
   assert.match(cardPage("kitchen", factsFromHubGet({ ...PUBLIC, hub: { ...PUBLIC.hub, about: "from $13/month $1" } })), /from \$13\/month \$1/);
 });

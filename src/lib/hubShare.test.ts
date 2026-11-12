@@ -3,11 +3,11 @@ import assert from "node:assert/strict";
 import { establishedLine, hubShareUrl, inviteMessage, memberLine } from "./hubShare";
 
 test("share links use the preview path", () => {
-  assert.equal(hubShareUrl("kpnworld"), "https://lunchvoice.com/h/kpnworld");
+  assert.equal(hubShareUrl("kitchen"), "https://hub.lunchvoice.com/kitchen");
 });
 
 test("the invite message follows how people get in", () => {
-  assert.equal(inviteMessage({ name: "Harbor Books", slug: "harbor", membership_mode: "open" }), "Join Harbor Books on LunchVoice: https://lunchvoice.com/h/harbor");
+  assert.equal(inviteMessage({ name: "Harbor Books", slug: "harbor", membership_mode: "open" }), "Join Harbor Books on LunchVoice: https://hub.lunchvoice.com/harbor");
   assert.match(inviteMessage({ name: "A", slug: "abc", membership_mode: "approval" }), /^Ask to join A/);
   assert.match(inviteMessage({ name: "A", slug: "abc", membership_mode: "invite_only" }), /^Take a look at A/);
 });

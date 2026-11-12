@@ -5,11 +5,12 @@ import type { MembershipMode } from "./lvApi";
 export const SITE = "https://lunchvoice.com";
 
 /**
- * The link people paste into Discord, Slack or a text. `/h/<slug>` is served by the hub-card function, which gives
- * chat apps a preview with the Hub's name, member count and colour, then sends people on to `/<slug>`. Until that
- * function is live the app itself forwards `/h/<slug>` to `/<slug>`, so the link always works.
+ * The link people paste into Discord, Slack or a text: `hub.lunchvoice.com/<slug>`, served by the hub-card Worker
+ * (workers/hub-card). Chat apps get a card with the Hub's name, member count and colour; people are sent on to
+ * `lunchvoice.com/<slug>`. (`lunchvoice.com/h/<slug>` also still works: the app forwards it to the Hub.)
  */
-export const hubShareUrl = (slug: string) => `${SITE}/h/${slug}`;
+export const SHARE_HOST = "https://hub.lunchvoice.com";
+export const hubShareUrl = (slug: string) => `${SHARE_HOST}/${slug}`;
 export const hubPageUrl = (slug: string) => `${SITE}/${slug}`;
 
 export const JOIN_LABEL: Record<MembershipMode, string> = {
