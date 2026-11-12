@@ -13,7 +13,8 @@ categories and the repository's decimal `X.X.X` release policy.
   pick your Hub color, ask your first question, invite people, connect your Discord server. Every tick comes from
   real state (about line, accent, Campaign count, member count, Discord connections); each open step links to the
   place that does it; there is a progress bar and "N of M done"; it shows only the steps the viewer can act on and
-  disappears when they are all done. Discord connections are read only for settings managers.
+  disappears when they are all done. Discord connections are read only for settings managers. The Plan tile loses its
+  green left-edge bar (founder request 2026-11-12); the three tiles share one flat style.
 - **Settings:** grouped as "Name and description" and "Who can see it and join". The labels are "Hub name" and "What is
   this Hub for?", and the help text says where the description shows. The address is shown, with a way to ask support
   (owners cannot change it in the app yet; whether they should is a founder decision). Visibility and joining are radio

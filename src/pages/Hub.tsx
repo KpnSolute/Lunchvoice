@@ -361,7 +361,6 @@ export function HubOverview() {
           <StatTile tone="ink" label="Live Campaigns" value={live} note={`${rows.length} in total`} />
           <StatTile label="Members" value={hub.member_count} note={waiting > 0 ? `${waiting} waiting on you` : hub.member_count <= 1 ? "Just you so far" : "No requests waiting"} />
           <StatTile
-            tone="edge"
             label="Plan"
             value={familyName(hub.plan?.family)}
             note={hub.plan?.state === "active" ? (hub.plan.ends_at ? `Until ${fmtDate(hub.plan.ends_at)}` : hub.plan.product === "founding" ? "Founding · active" : "Active") : "Premium actions locked"}
