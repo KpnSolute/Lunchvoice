@@ -6,6 +6,23 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (000038 election night, built and tested, NOT yet applied to production)
+
+- **Election night: parties and voting demographics** (founder direction 2026-11-12: "Republicans vs Democrats, stuff
+  that makes voting interesting"). `supabase/migrations/000038_v2_election_results.sql` + rollback +
+  `supabase/tests/39_election_results.sql` (database suite 1408/0 with rollback rehearsal). Candidates can belong to a
+  party (`config.parties`, at most 8 per election); ballot codes can be issued per **voter group** (Grade 9, Homeroom 4B…)
+  and a vote keeps only its group; `lv_election_results` returns winners, ties, margins, party shares, a party seat
+  scoreboard, turnout by group and "how each group voted", all through the strict engine (small groups merged into
+  "Other groups", unanimity withheld, a group table only when every cell is safe, winners still announced).
+- UI: `src/pages/ElectionResults.tsx`. A scoreboard hero ("Blue Wave takes the majority", seat bar with majority marker),
+  race cards with winners, party-coloured bars, "Close race / Won by / Landslide" chips, "Votes cast by party", a group
+  map (tiles tinted by each group's leading party) with an accessible table, turnout by group, and a sealed-ballot state
+  before the end. Party colours: fixed order, validated for colour-blind separation and contrast in light and dark
+  (`src/config/partyColors.ts`, `--lv-party-*`). The Studio adds a party per candidate (with suggestions), the ballot
+  panel a voter group. The Results page shows election night instead of the generic counter for elections. Dev mock
+  mirrors it with a seeded finished election; e2e 94/94.
+
 ### Added (000037 elections and Yes/No, built and tested, NOT yet applied to production)
 
 - **Product vocabulary** (founder direction 2026-11-11): Poll, Rating, Yes/No, Open feedback and Election are *feedback

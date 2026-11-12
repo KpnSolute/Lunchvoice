@@ -140,7 +140,7 @@ select t.check('ballot: a closed election takes no votes', t.code(lv_api.lv_ball
 select t.as_pg();
 select t.check('grants: anon may submit a ballot but not issue codes or read status',
   has_function_privilege('anon', 'lv_api.lv_ballot_submit(text, text, jsonb)', 'execute')
-  and not has_function_privilege('anon', 'lv_api.lv_election_ballot_codes_create(uuid, int)', 'execute')
+  and not has_function_privilege('anon', 'lv_api.lv_election_ballot_codes_create(uuid, int, text)', 'execute')
   and not has_function_privilege('anon', 'lv_api.lv_election_ballot_status(uuid)', 'execute'));
 select t.check('grants: nobody outside the database reads ballot hashes',
   not has_table_privilege('authenticated', 'lv.ballot_codes', 'select') and not has_table_privilege('anon', 'lv.ballot_codes', 'select'));

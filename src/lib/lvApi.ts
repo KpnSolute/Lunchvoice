@@ -201,6 +201,24 @@ export interface Role {
 
 /* ------------------------------------------------------------------ campaigns */
 
+/** lv_election_results (000038). Every number may be null: withheld to protect the secret ballot, never zero. */
+export interface ElectionCandidate { name: string; party: string | null; votes: number | null; share: number | null }
+export interface ElectionRace {
+  question_id: string; position: number; prompt: string; seats: number;
+  votes: number | null; withheld: boolean; withheld_reason: string | null; some_withheld: boolean;
+  candidates: ElectionCandidate[]; winners: string[] | null; tie: boolean; tied: string[] | null; margin_pts: number | null;
+  parties: { party: string; votes: number; share: number | null }[] | null;
+  by_group: { label: string | null; other: boolean; voters: number; candidates: { name: string; votes: number; share: number | null }[] }[] | null;
+  by_group_reason: "no_groups" | "not_enough_groups" | "small_groups" | null;
+}
+export interface ElectionResults {
+  min_cohort: number; parties: string[]; voting: "ballot_codes" | "members";
+  turnout: { voters: number | null; issued: number | null; turnout_pct: number | null; participation: { rate: number | null; suppressed?: boolean } | null };
+  groups: { label: string | null; issued: number; voted: number | null; turnout_pct: number | null; merged: boolean }[];
+  scoreboard: { party: string | null; seats: number }[]; seats_total: number;
+  races: ElectionRace[];
+}
+
 export type CampaignMode = "survey" | "poll" | "rating" | "yes_no" | "feedback" | "election";
 export type Anonymity = "anonymous" | "identified";
 export type CampaignStatus = "draft" | "active" | "paused" | "closed" | "archived";
@@ -231,6 +249,8 @@ export interface QuestionConfig {
   max?: number;
   /** A person may skip this question (backend honours it since 000017). */
   optional?: boolean;
+  /** Elections (000038): candidate name -> party, slate or team. Candidates without one are independent. */
+  parties?: Record<string, string>;
   [key: string]: unknown;
 }
 
@@ -550,11 +570,14 @@ export function createLvApi(transport: LvTransport) {
     ballotSubmit: (joinCode: string, ballotCode: string, answers: Answer[]) =>
       call<{ receipt_id: string }>("lv_ballot_submit", { p_join_code: joinCode, p_ballot_code: ballotCode, p_answers: answers }),
     // Codes are returned once and stored only as hashes.
-    electionBallotCodesCreate: (campaign: string, count: number) =>
-      call<{ codes: string[]; issued: number }>("lv_election_ballot_codes_create", { p_campaign: campaign, p_count: count }),
+    // 000038: a batch of codes may belong to a voter group ("Grade 9"); a vote keeps only its group.
+    electionBallotCodesCreate: (campaign: string, count: number, group: string | null = null) =>
+      call<{ codes: string[]; issued: number; group: string | null }>("lv_election_ballot_codes_create", { p_campaign: campaign, p_count: count, p_group: group }),
     // `used` (turnout) is null until the election has finished.
     electionBallotStatus: (campaign: string) =>
-      call<{ issued: number; used: number | null; used_visible: boolean }>("lv_election_ballot_status", { p_campaign: campaign }),
+      call<{ issued: number; used: number | null; used_visible: boolean; groups: { label: string | null; issued: number }[] }>("lv_election_ballot_status", { p_campaign: campaign }),
+    // 000038: election night. Same release rules as every anonymous result (after the end, strict engine).
+    electionResults: (campaign: string) => call<ElectionResults>("lv_election_results", { p_campaign: campaign }),
     campaignSetGuestNames: (campaign: string, mode: GuestNamesMode) =>
       call<{ guest_names: GuestNamesMode }>("lv_campaign_set_guest_names", { p_campaign: campaign, p_mode: mode }),
     campaignResponses: (campaign: string, limit = 50, before: string | null = null) =>

@@ -246,6 +246,7 @@ function BallotCodes({ campaignId, finished }: { campaignId: string; finished: b
   const { api } = useIdentity();
   const status = useLv(() => api.electionBallotStatus(campaignId), [api, campaignId]);
   const [count, setCount] = useState("30");
+  const [group, setGroup] = useState("");
   const [codes, setCodes] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -256,12 +257,12 @@ function BallotCodes({ campaignId, finished }: { campaignId: string; finished: b
     if (!valid || busy) return;
     setBusy(true);
     setError(null);
-    const r = await api.electionBallotCodesCreate(campaignId, n);
+    const r = await api.electionBallotCodesCreate(campaignId, n, group.trim() || null);
     setBusy(false);
     if (!r.ok) return setError(describeError(r.error));
     setCodes(r.codes);
     status.reload();
-    toast.success(`${r.codes.length} ballot codes created`);
+    toast.success(`${r.codes.length} ballot codes created${r.group ? ` for ${r.group}` : ""}`);
   }
   function download() {
     if (!codes) return;
@@ -285,10 +286,20 @@ function BallotCodes({ campaignId, finished }: { campaignId: string; finished: b
           <strong>{s.issued}</strong> issued{s.used_visible && s.used !== null ? <> · <strong>{s.used}</strong> used</> : " · turnout appears after the election ends"}
         </p>
       )}
+      {s && s.groups.some((g) => g.label) && (
+        <p className="ui-muted lv-m0" data-testid="ballot-groups">
+          {s.groups.map((g) => `${g.label ?? "No group"}: ${g.issued}`).join(" · ")}
+        </p>
+      )}
+      <p className="ui-help lv-m0">Groups power “How each group voted” on election night. A vote keeps only its group, never its code, and groups with too few voters are combined.</p>
       {!finished && (
         <div className="ui-row">
           <Field label="How many codes" htmlFor="ballot-count">
             <Input id="ballot-count" type="number" min={1} max={500} value={count} onChange={(e) => setCount(e.target.value)} className="lv-w-140" />
+          </Field>
+          <Field label="Voter group (optional)" htmlFor="ballot-group">
+            <Input id="ballot-group" value={group} maxLength={40} onChange={(e) => setGroup(e.target.value)} placeholder="Grade 9, Homeroom 4B…" list="lv-ballot-groups" />
+            <datalist id="lv-ballot-groups">{(s?.groups ?? []).filter((g) => g.label).map((g) => <option key={g.label!} value={g.label!} />)}</datalist>
           </Field>
           <Button variant="secondary" onClick={() => void create()} disabled={!valid || busy}>{busy ? "Creating…" : "Create codes"}</Button>
         </div>

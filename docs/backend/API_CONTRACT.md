@@ -1141,3 +1141,24 @@ They are stored as `campaigns.mode`: `poll`, `rating`, `yes_no`, `feedback`, `el
   counted by the join-code miss brake), `lv_conflict` (code already used), `lv_closed`, `lv_invalid_input`. A used code
   is recorded as a guest participation keyed by the code's hash, so ballot votes appear as `guest_n` in
   `participant_count`; nothing links a code to its submission.
+
+## Election night (000038)
+
+- **Parties.** A race's `config.parties` maps candidate → party, slate or team (≤ 40 characters; keys must be candidates).
+  Candidates without one are independent. At most 8 parties per election (gate reason `election_too_many_parties`), in
+  order of first appearance on the ballot; that order fixes each party's colour in the UI.
+- **Voter groups.** `lv_election_ballot_codes_create(p_campaign, p_count, p_group = null)` creates a batch for a group
+  ("Grade 9", ≤ 40 characters, at most 20 groups). A ballot vote records only its group (`submissions.ballot_group`),
+  never the code. `lv_election_ballot_status` adds `groups: [{label, issued}]`.
+- `lv_election_results(p_campaign)` (signed in, `analytics.read`, elections only, after the end like every anonymous
+  result) → `{ ok, min_cohort, parties, voting: "ballot_codes"|"members", turnout {voters, issued, turnout_pct,
+  participation}, groups [{label, issued, voted, turnout_pct, merged}], scoreboard [{party, seats}], seats_total,
+  races [{question_id, position, prompt, seats, votes, withheld, withheld_reason, some_withheld, candidates [{name, party,
+  votes, share}], winners, tie, tied, margin_pts, parties [{party, votes, share}], by_group, by_group_reason}] }`.
+- Rules (strict engine, `lv.safe_cells`): groups with fewer than `min_cohort` voters are merged into "Other groups" (at
+  least the cohort); a race's counts follow the engine (small counts merged, unanimity withholds the race); **winners**
+  are announced once the race has at least the cohort of votes, even when counts are withheld; `margin_pts` and party
+  shares only when every count is published (party share = share of votes cast, so multi-seat races sum to 100%); a race's
+  `by_group` table only when every cell of every group is safe, otherwise `null` with `by_group_reason`
+  (`no_groups`, `not_enough_groups`, `small_groups`). Group turnout is withheld at 100% or when non-voters are fewer
+  than the cohort. Withheld values are `null`, never `0`.

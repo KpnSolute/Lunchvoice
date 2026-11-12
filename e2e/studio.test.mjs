@@ -517,3 +517,24 @@ test("Free Quick Survey picker: basic types and Survey; Election is for Hub plan
   await types.getByText("Hub plans").waitFor();
   await ctx.close();
 });
+
+test("Election night: scoreboard, winners, party colours, and a group map that respects the secret ballot", async () => {
+  const { page, go, ctx, errors } = await openPage(app, { width: 1280 });
+  await go("/northside-running/campaigns/cmp-seed-election/results");
+  const night = page.getByTestId("election-night");
+  await night.waitFor();
+  await night.getByText(/Blue Wave/).first().waitFor();
+  await page.getByTestId("scoreboard").getByText("3 of 4 seats for a majority").waitFor();
+  const races = page.getByTestId("race");
+  assert.equal(await races.count(), 3);
+  await races.nth(0).getByTestId("winners").getByText("Hana Park").waitFor();
+  await races.nth(0).getByTestId("group-map").getByText("Other groups").first().waitFor(); // Staff (3 voters) is never shown alone
+  assert.equal(await races.nth(0).getByTestId("group-map").getByText("Staff").count(), 0);
+  await races.nth(1).getByText(/Votes cast by party/).waitFor();
+  await races.nth(2).getByText("Counts withheld").waitFor(); // unanimous mascot vote: winner only
+  await races.nth(2).getByTestId("winners").getByText("Owls").waitFor();
+  await page.getByTestId("turnout-groups").getByText("Staff").waitFor();
+  assert.equal(await page.getByText("Signed-in participants").count(), 0, "the generic counter is replaced by election night");
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

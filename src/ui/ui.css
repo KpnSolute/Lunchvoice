@@ -388,3 +388,63 @@ a.lv-row:hover .lv-row-title { text-decoration: underline; text-underline-offset
 .lv-ballot-codes { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px 16px; margin: 0; padding-left: 1.5em; }
 .lv-ballot-codes code { font-family: var(--font-mono, ui-monospace, monospace); letter-spacing: 0.04em; }
 .lv-ballot-entry { display: grid; gap: 6px; }
+
+/* 000038: party colours, validated light/dark (see src/config/partyColors.ts). */
+:root {
+  --lv-party-1: #2a78d6; --lv-party-2: #e34948; --lv-party-3: #6250d6; --lv-party-4: #008300;
+  --lv-party-5: #e87ba4; --lv-party-6: #eda100; --lv-party-7: #1baf7a; --lv-party-8: #eb6834;
+  --lv-party-none: #8a8984;
+}
+[data-theme='dark'] {
+  --lv-party-1: #3987e5; --lv-party-2: #e66767; --lv-party-3: #9085e9; --lv-party-4: #008300;
+  --lv-party-5: #d55181; --lv-party-6: #c98500; --lv-party-7: #199e70; --lv-party-8: #d95926;
+  --lv-party-none: #77766f;
+}
+.lv-party-input { max-width: 180px; }
+
+/* 000038: election night. Thin marks, 4px rounded ends, 2px surface gaps between segments; text stays in ink. */
+.lv-en-hero { display: grid; gap: var(--lv-space-4); }
+.lv-en-title { font-family: var(--lv-font-display); font-size: clamp(1.6rem, 4vw, 2.4rem); line-height: 1.05; margin: 0; }
+.lv-en-title em { font-style: normal; opacity: 0.75; }
+.lv-en-h2 { margin: 0; font-family: var(--lv-font-display); font-size: 1.35rem; }
+.lv-en-wait { display: grid; justify-items: start; gap: var(--lv-space-2); }
+.lv-en-ballot { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--lv-well); }
+.lv-en-score { display: grid; gap: var(--lv-space-3); }
+.lv-en-seatbar, .lv-en-splitbar { position: relative; display: flex; gap: 2px; height: 14px; border-radius: 4px; overflow: hidden; }
+.lv-en-seatbar { height: 22px; }
+.lv-en-seatbar i, .lv-en-splitbar i { display: block; min-width: 4px; border-radius: 4px; }
+.lv-en-seat-open { background: repeating-linear-gradient(45deg, var(--lv-line) 0 4px, transparent 4px 8px); }
+.lv-en-majority { position: absolute; top: -4px; bottom: -4px; width: 2px; background: currentColor; transform: translateX(-1px); }
+.lv-en-legend { display: flex; flex-wrap: wrap; gap: var(--lv-space-2) var(--lv-space-4); list-style: none; margin: 0; padding: 0; align-items: center; }
+.lv-en-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.lv-en-legend-note { opacity: 0.7; font-size: 0.85em; }
+.lv-en-legend-sm { font-size: 0.875rem; }
+.lv-en-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.lv-en-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--lv-space-3); }
+.lv-en-stat { display: grid; gap: 2px; }
+.lv-en-stat-v { font-size: 1.6rem; font-weight: 700; }
+.lv-en-stat-l { font-size: 0.85rem; opacity: 0.75; }
+.lv-en-stat-h { font-size: 0.75rem; opacity: 0.6; }
+.lv-en-race { display: grid; gap: var(--lv-space-3); }
+.lv-en-race-title { margin: 0; font-size: 1.2rem; }
+.lv-en-winners { display: flex; flex-wrap: wrap; gap: var(--lv-space-3); }
+.lv-en-winner { display: flex; gap: var(--lv-space-2); align-items: center; padding: var(--lv-space-2) var(--lv-space-3); border-radius: var(--lv-radius-field);
+  border: 1px solid var(--lv-line); border-left: 4px solid var(--party); background: var(--lv-surface); }
+.lv-en-crown { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: color-mix(in oklab, var(--party) 22%, var(--lv-surface)); color: var(--lv-text); }
+.lv-en-party { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--lv-muted); }
+.lv-en-cands { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--lv-space-3); }
+.lv-en-cand-head { display: flex; justify-content: space-between; gap: var(--lv-space-2); align-items: baseline; flex-wrap: wrap; }
+.lv-en-cand-name { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.lv-en-track { display: block; height: 10px; border-radius: 4px; background: var(--lv-well); margin-top: 4px; }
+.lv-en-track b { display: block; height: 100%; border-radius: 4px; transition: width var(--lv-dur-enter, 400ms) var(--lv-ease-out, ease-out); }
+.lv-en-split, .lv-en-groups { display: grid; gap: var(--lv-space-2); }
+.lv-en-split-l { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--lv-muted); }
+.lv-en-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+.lv-en-tile { display: grid; gap: 2px; padding: var(--lv-space-3); border-radius: var(--lv-radius-field); background: var(--tint); color: var(--lv-text);
+  border: 1px solid var(--lv-line); transition: transform var(--lv-dur-press, 120ms); }
+.lv-en-tile:hover { transform: translateY(-2px); }
+.lv-en-tile-l { font-size: 0.8rem; opacity: 0.8; }
+.lv-en-tile small { font-size: 0.75rem; opacity: 0.75; }
+.lv-en-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.lv-en-table th, .lv-en-table td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--lv-line); }
+.lv-en-privacy { display: flex; gap: 6px; align-items: flex-start; }
