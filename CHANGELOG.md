@@ -6,6 +6,19 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (survey creation and Campaign lists, founder assignment 2026-11-12, PR D)
+
+- **New Quick Survey opens on a short template list:** Blank and the first five templates, then "Show all N templates".
+  A category lists everything. The chosen template always stays listed. Before, 21 options came before the title, who
+  can answer and anonymity; on a 390px phone the title is now reached after six options.
+- **The free-limits card** no longer repeats "1 of 5 active" under the meter that already shows "1 / 5".
+- **Same words everywhere:** the Campaign list filter "Live" is now "Open", matching the phase badge. Modes read
+  "Survey", "Poll", "Rating" and "Feedback" instead of the code values (`modeLabel` in `src/components/ui.tsx`), on
+  Campaign cards, the Hub overview rows and the Campaign header, where anonymity also reads "Anonymous" or
+  "Identified". The disabled Election mode says "Coming later" instead of the internal "Coming with M2".
+- **Tests:** `e2e/surveyflow.test.mjs` (3): the short list and Show all at 390px, a template from the full list stays
+  selected, list labels.
+
 ### Changed (Hub workspace: setup checklist, plain settings, Connected communities; founder assignment 2026-11-12, PR C)
 
 - **Overview:** the three numbers (live Campaigns, members, plan) run across the top instead of stacking in a narrow
