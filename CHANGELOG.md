@@ -49,6 +49,33 @@ categories and the repository's decimal `X.X.X` release policy.
   Discord code or checkout intent pointed at the old address). `kpnworld` is free to claim again and has no redirect.
 - **PR #66 merged to `main`** (`e0d4247`) at the founder's request, 17 ahead and 0 behind with both checks green.
 
+### Brand identity system (2026-11-12, founder direction)
+
+- **One logo.** The sharp-cornered LV with the amber speech bubble and smile is the official mark (founder decision).
+  The second, rounded LV that the favicon and app icons used is deleted. Every logo, icon, social, video and Canva file
+  is now generated from one vector source, `scripts/brand/logo.mjs`, by `npm run brand:build`; the wordmark is
+  Bricolage Grotesque 800 converted to outlines. The shapes themselves were not redrawn.
+- **Icons are amber** (founder decision): the favicon, app icons and profile picture show the mark in white on an amber
+  tile. Under 48px the smile and dots are left off so the mark stays readable.
+- **Tagline: "Make every voice count."** (founder decision) replaces "Every voice has a story. Hear it." on the home
+  page hero, in the search metadata and on the link-preview image. "Smart feedback. Better cafeterias." is removed from
+  every file. The link-preview image address carries `?v=2` so Discord and others fetch the new one.
+- **Every version for every background:** horizontal, stacked, symbol, small-size symbol and wordmark, each for light
+  backgrounds, dark backgrounds, all ink and all white, all transparent. The old files had ink letters baked in and
+  vanished on dark.
+- **Kit contents** (`brand/lv-package/`): icons at 16 to 1024px plus ICO, square and maskable shapes; social frames for
+  Instagram, Reels, YouTube, Shorts, LinkedIn, Facebook and slides with crop guides; video outros, title card, lower
+  third, backgrounds and overlays; a Canva folder with setup steps; a 15-page guidelines PDF; a colour specification
+  computed from `src/ui/tokens.css` with measured contrast; typography; an audit of what was wrong. No colour or font
+  value changed.
+- **Site:** new favicon, Apple and Android icons, maskable icons added to `site.webmanifest`, new link-preview image and
+  public logo downloads. `LvMark` now uses a viewBox cropped to the artwork, so the header logo is centred in its box;
+  its drawn size is unchanged.
+- **`npm run check:brand`** (now part of `test:pr`) checks required files, PNG sizes against their names, transparency,
+  the ICO, SVG validity and palette, that `LvMark` matches the master geometry, and that no retired tagline returns.
+- Known, not changed: `public/brand/discord-banner.png` has no source and still reads "Ask your community. Hear every
+  voice."; the V's point dips below the L by design; details in `brand/lv-package/documentation/AUDIT.md`.
+
 ### Added (native design skills for Claude Code and Codex, founder assignment 2026-11-12)
 
 - **Three project skills**, discovered natively by both agents: `design-system` (follow the system on every visible UI

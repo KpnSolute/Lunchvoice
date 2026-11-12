@@ -151,7 +151,7 @@ export function Landing() {
         <header className="lv-l-hero">
           <div className="lv-l-hero-copy">
             <span className="lv-l-eyebrow"><i aria-hidden="true" />Surveys for any community</span>
-            <h1 className="lv-l-h1">Every voice has a story. <em>Hear it.</em></h1>
+            <h1 className="lv-l-h1">Make every voice <em>count.</em></h1>
             <p className="lv-l-lede">
               Build a survey in minutes, share it with one QR code or a six-character code, and watch anonymous answers
               arrive while it’s still happening. Every community gets its own Hub at <b>lunchvoice.com/yourname</b>.

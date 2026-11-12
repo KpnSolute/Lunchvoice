@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 338 318" width="338" height="318" role="img" aria-label="LunchVoice">
+  <title>LunchVoice</title>
+  <g transform="translate(-40,-4)">
+  <polygon points="40,40 112,40 112,232 262,232 262,304 40,304" fill="#14110F"/>
+  <polygon points="132,40 178,40 218,196 258,40 304,40 224,322 200,322" fill="#14110F"/>
+  <path d="M244,4 h108 a26,26 0 0 1 26,26 v34 a26,26 0 0 1 -26,26 h-64 l-26,26 l4,-26 h-22 a26,26 0 0 1 -26,-26 v-34 a26,26 0 0 1 26,-26 z" fill="#FF9A18"/>
+  </g>
+</svg>
