@@ -6,13 +6,15 @@ This directory is the source of truth for LunchVoice's outward-facing marketing 
 - Name: **LunchVoice** (one word).
 - Brand visual DNA: **ink, amber, bone**, NOT blue/purple. Ink `#14110F`; amber `#FF9A18`; bone `#F7F3EA`; page `#EEEDEA`; white `#FFFFFF`.
 - Display: Bricolage Grotesque; interface: Geist; data: Space Mono. Preserve accessibility and clear contrast.
-- Use actual graphics from this repository, never an AI-generated replacement:
-  - `brand/lv-package/logo/lunchvoice-wordmark_2000.png`
-  - `brand/lv-package/logo/lunchvoice-lockup-dark_2000.png`
-  - `brand/lv-package/logo/lunchvoice-lockup-light_2000.png`
-  - `brand/lv-package/logo/lunchvoice-mark_1024.png`
-  - `public/brand/lunchvoice-wordmark.svg`
-  - `public/brand/lunchvoice-mark.svg`
+- Tagline: **Make every voice count.** (the only one; "Every voice has a story. Hear it." and "Smart feedback. Better cafeterias." are retired). It sits beside or below the logo, never inside it.
+- Use actual graphics from the brand kit, never an AI-generated or redrawn replacement. Start with
+  `brand/lv-package/README.md`, which says which file to use where:
+  - Logos: `brand/lv-package/logo/` (transparent PNG) and `brand/lv-package/source-svg/` (vector). Use `on-light` on
+    light backgrounds and `on-dark` on dark ones or over video; `mono-light` (all white) for watermarks.
+  - Social frames at each platform's size: `brand/lv-package/social/`, with crop guides in `social/guides/`.
+  - Video outros, title card, lower third, backgrounds and overlays: `brand/lv-package/video/`.
+  - Canva: `brand/lv-package/canva/` and `canva/CANVA_SETUP.md`.
+- Rules for the logo, colour and type, with examples: `brand/lv-package/documentation/LunchVoice-Brand-Guidelines.pdf`.
 - Official site: https://lunchvoice.com
 
 ## Product and audience claims

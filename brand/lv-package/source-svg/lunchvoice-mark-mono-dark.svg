@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 338 373" width="338" height="373" role="img" aria-label="LunchVoice">
+  <title>LunchVoice</title>
+  <g transform="translate(-40,-4)">
+  <defs><mask id="lv-gap" maskUnits="userSpaceOnUse" x="0" y="0" width="400" height="430"><rect width="400" height="430" fill="#fff"/><path d="M244,4 h108 a26,26 0 0 1 26,26 v34 a26,26 0 0 1 -26,26 h-64 l-26,26 l4,-26 h-22 a26,26 0 0 1 -26,-26 v-34 a26,26 0 0 1 26,-26 z" fill="#000" stroke="#000" stroke-width="16" stroke-linejoin="round"/></mask></defs>
+  <g mask="url(#lv-gap)">
+  <polygon points="40,40 112,40 112,232 262,232 262,304 40,304" fill="#14110F"/>
+  <polygon points="132,40 178,40 218,196 258,40 304,40 224,322 200,322" fill="#14110F"/>
+  </g>
+  <path fill-rule="evenodd" d="M244,4 h108 a26,26 0 0 1 26,26 v34 a26,26 0 0 1 -26,26 h-64 l-26,26 l4,-26 h-22 a26,26 0 0 1 -26,-26 v-34 a26,26 0 0 1 26,-26 z M265.5,47 a6.5,6.5 0 1 0 13,0 a6.5,6.5 0 1 0 -13,0 z M291.5,47 a6.5,6.5 0 1 0 13,0 a6.5,6.5 0 1 0 -13,0 z M317.5,47 a6.5,6.5 0 1 0 13,0 a6.5,6.5 0 1 0 -13,0 z" fill="#14110F"/>
+  <path d="M78,344 Q200,410 322,344 L308,330 Q200,378 92,330 Z" fill="#14110F"/>
+  </g>
+</svg>

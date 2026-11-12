@@ -96,7 +96,7 @@ Utilities in `src/ui/shadcn.css` (usable only inside `src/components/shadcn/`, w
 | Overlays | `Dialog`, `Sheet`, `Popover`, `DropdownMenu`, `Tooltip` (`arrow` prop) | `shadcn/*` |
 | Navigation | `NavTabs`, `Tabs`, `BottomTabs` (phones), the Hub rail | `shadcn/blocks`, `shadcn/tabs.tsx`, `ui/BottomTabs.tsx`, `pages/Hub.tsx` |
 | Hub identity | `HubProfile`, `HubCard`, `HubMark`, `ShareHubDialog` | `ui/HubProfile.tsx`, `components/HubCard.tsx`, `ui/HubMark.tsx`, `components/ShareHub.tsx` |
-| Brand | `LvMark` (theme-aware logo), `MadeBy` | `components/LvMark.tsx`, `components/MakerMark.tsx` |
+| Brand | `LvMark` (theme-aware logo, same geometry as the brand kit's master), `MadeBy` | `components/LvMark.tsx`, `components/MakerMark.tsx`; exports and guidelines in `brand/lv-package/` |
 | Icons | `Icon` (one inline-SVG set, 24px grid, 1.75 stroke) | `components/Icon.tsx` |
 | Charts and results | result blocks, charts with an accessible table and a withheld state | `shadcn/blocks/results.tsx`, `components/charts.tsx` |
 | Survey controls | `QuestionInput` (rating, choice, yes/no, text) | `ui/QuestionControls.tsx` |

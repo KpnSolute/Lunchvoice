@@ -80,7 +80,7 @@ test("prerender writes every file", () => {
   for (const f of ["app.html", "sitemap.xml", "robots.txt", "pricing/index.html", "how-it-works/index.html"]) {
     assert.ok(existsSync(join(dir, f)), f);
   }
-  assert.match(readFileSync(join(dir, "index.html"), "utf8"), /<h1>Every voice has a story/);
+  assert.match(readFileSync(join(dir, "index.html"), "utf8"), /<h1>Make every voice count/);
 });
 
 test("the root index.html is safe when a host serves it for every path", () => {
@@ -88,7 +88,7 @@ test("the root index.html is safe when a host serves it for every path", () => {
   assert.ok(!html.includes('rel="canonical"'), "a static canonical would mark every URL a copy of /");
   assert.ok(!html.includes('name="robots"'));
   assert.ok(!html.includes('property="og:url"'));
-  assert.match(html, /<h1>Every voice has a story/);
+  assert.match(html, /<h1>Make every voice count/);
 });
 
 test("every prerendered route and every render.yaml rewrite has an output file", () => {
