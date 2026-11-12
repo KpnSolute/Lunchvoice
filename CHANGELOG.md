@@ -19,6 +19,101 @@ categories and the repository's decimal `X.X.X` release policy.
 - **Tests:** `e2e/surveyflow.test.mjs` (3): the short list and Show all at 390px, a template from the full list stays
   selected, list labels.
 
+### Changed (Hub workspace: setup checklist, plain settings, Connected communities; founder assignment 2026-11-12, PR C)
+
+- **Overview:** the three numbers (live Campaigns, members, plan) run across the top instead of stacking in a narrow
+  column. "Get your Hub going" (shown only with no Campaigns) is replaced by **"Set up your Hub"**: describe your Hub,
+  pick your Hub color, ask your first question, invite people, connect your Discord server. Every tick comes from
+  real state (about line, accent, Campaign count, member count, Discord connections); each open step links to the
+  place that does it; there is a progress bar and "N of M done"; it shows only the steps the viewer can act on and
+  disappears when they are all done. Discord connections are read only for settings managers. The Plan tile loses its
+  green left-edge bar (founder request 2026-11-12); the three tiles share one flat style.
+- **Settings:** grouped as "Name and description" and "Who can see it and join". The labels are "Hub name" and "What is
+  this Hub for?", and the help text says where the description shows. The address is shown, with a way to ask support
+  (owners cannot change it in the app yet; whether they should is a founder decision). Visibility and joining are radio
+  choices with one sentence each instead of selects (the joining select truncated "Approval: a manager admits
+  reque…"). A line says changing them never removes members (`lv_hub_update` touches no memberships). "Community
+  appearance" is now "Hub color" and the checklist links to it (`#appearance`). "Owner only" is now "Ownership and
+  deletion", with a line saying only the Owner sees it.
+- **Discord tab, "Connected communities":** when nothing is connected, three numbered steps (add the bot, run
+  `/lunchvoice connect hub:<slug>` with a copy button, confirm the link). When connected, one card per server with
+  its name and date, an auto-post switch with a sentence saying what it does (toast on change, disabled when staff
+  turned the server off), role rules in words, and Disconnect behind a confirmation that says nothing in the Hub is
+  deleted. A panel says what Discord can and cannot see: LunchVoice never reads server messages (the bot only posts
+  to channels), and anonymous Campaigns are answered in LunchVoice. No new API is used.
+- **Tests:** `e2e/hubsetup.test.mjs` (3): ticks from real state, Discord connection closes the checklist; plain
+  labels, radio choices, address; empty steps with the command, the server card, auto-post toast, disconnect
+  confirmation, 390px. The launch-plan UI gate adds Hub settings and its Discord tab.
+- **Needs the founder:** the bot's invite link. The repository has none, so step 1 cannot link to it. A decision on
+  letting owners change their Hub address (needs a backend function with the reserved-name and quarantine rules). The
+  Hub banner's gradient glow (from #66) disagrees with DESIGN.md's "solid surfaces"; left as it is.
+
+### Changed (public site: the "less generated" pass, founder assignment 2026-11-12, PR B)
+
+- **Home page answers what, who, how and what next.** The approved hero is unchanged. The use cases now say who
+  LunchVoice is for. "How it works" is one connected four-step sequence: create a survey, share it, collect responses,
+  understand results. It replaces three unrelated numbered cards in three fills and becomes a vertical timeline on
+  phones. A new "What you can do with LunchVoice" section is a ruled grid of the six products linking to their pages;
+  it replaces the "Your Hub" section, whose content now lives on `/products/hubs`. The participant band lists three
+  facts instead of an invented "example account" dashboard with made-up numbers.
+- **Fewer generated-page tells.** Eyebrows are kept only where they add a fact the heading does not (hero, For
+  participants, Founding seats, Built in the open); the four that repeated their heading are gone. Headings rewritten
+  as plain statements: "How a survey works", "What you can do with LunchVoice", "Answering is always free." and
+  "Free for surveys, from $13 a month for a Hub" (the price comes from `src/config/pricing.ts`). Two light sections in
+  a row share one gap instead of stacking two.
+- **`/how-it-works`:** the four points are not steps, so the numbers 01 to 04 and the identical cards are gone. They
+  are a two-by-two list with hairlines. The privacy questions sit in an open section that links to the Privacy
+  product page.
+- **Copy accuracy:** `seo.json` (home and use cases) and the use-cases lede no longer name "ideas", "idea boards" or
+  "elections", which `main` does not have. They say survey, poll, rating, open feedback and suggestion box.
+- **Not changed** (founder decision, recorded in the billing audit): the Team plan's "Enhanced Campaign modes" and
+  "Advanced targeting and analytics" lines on `/pricing`.
+- **Test:** the homepage shows the four steps, links all six products, keeps at most three section eyebrows and has
+  exactly one sample-data illustration.
+
+### Added (product website: six product pages, Products menu, footer; founder assignment 2026-11-12, PR A)
+
+- **Six product pages** at `/products/<slug>`: Hubs, Feedback, Campaigns, LunchVoice for Discord, Developers and Privacy,
+  plus the `/products` index (grouped by job: ask a question, run a community, connect your tools). Finished from the
+  `wip/product-pages` drafts. Content is `src/config/products.json` (one source for the pages, the menu, the footer, the
+  search metadata and the sitemap). Each page: headline and lede, who it is for, a demo drawn with real components
+  (labelled as an example), what you get, a "By plan" table read from `lv_plan_limits` (rows with no value in the map are
+  left out, never guessed), how it fits with links to related products, price and the billing-driven primary action
+  (`src/lib/billingState.ts`). On phones the plan table becomes a stacked list instead of scrolling sideways.
+- **Copy checked against `main` and production** (2026-11-12): Campaign modes `survey`, `poll`, `rating`, `feedback`;
+  question kinds rating, single and multiple choice, yes or no, short text; Discord commands link, unlink, verify,
+  connect, post and setup; production's public `lv_plan_limits` returns every key the pages read (API 10 keys, 60
+  requests a minute, 5 webhook endpoints, Team only; shop items 10 and 50; role targeting Team only), so `000024` is
+  live in production despite `V2_STATUS_2026-11-12.md` listing it as unapplied. Nothing planned (Pulse, goals, recaps,
+  missions, achievements, Trends, Creator plans, AI) or on the elections branch is described.
+- **Header:** Products menu (the six with icon and one line, then "All products"; existing `DropdownMenu`, works on the
+  ink home header), then Use cases, Pricing, Discover, How it works. The waitlist stays the amber header action. The
+  phone sheet lists the products under "Products", then the site links in two columns.
+- **Footer:** brand and contact, then four labelled columns: Products (the six), Use it for, Company, Legal. The legal
+  page is "Privacy policy" (`/privacy`) so it is not confused with the Privacy product page (`/products/privacy`).
+  KpnSolute attribution kept. Footer links are 44px on phones.
+- **Routes and search:** `products` and `products/:slug` before the Hub route (`src/main.tsx`, `routes.json`);
+  `/products` in `seo.json`; `scripts/seo-prerender.mjs` and `src/ui/Seo.tsx` add one page per product (title,
+  description, canonical, Open Graph, sitemap); seven rewrites in `render.yaml`. **The Render dashboard rules are not
+  synced from `render.yaml`:** until the founder adds the seven `/products` rewrites there, people get the app (it
+  routes) but crawlers get the home page's metadata.
+- **Reserved name `products`:** `src/lib/reservedSlugs.ts` and migration `000039_v2_reserve_products.sql` with its
+  rollback and test `39_reserve_products.sql` (000036 to 000038 belong to the elections branch). `guidelines` added to
+  the frontend list to match `000026`. **Not applied to production; needs founder approval.** Canonical suite: 1319
+  checks, 0 failed, rollbacks rehearsed.
+- **Mock:** `limitsOut` in `src/lib/mockTransport.ts` returns production's community, shop, export, role-targeting,
+  API and webhook keys so development shows the full plan tables.
+- **Tests:** `e2e/products.test.mjs` (8: index, every page's h1/table/prices/related/CTA/title/canonical, map-driven
+  rows, unknown slug, the menu on both headers, phone sheet, footer columns and every footer link, 360px in three
+  themes); the three new routes join the "launch plan UI gate"; the SEO script test accepts `/products/:slug`.
+
+### Operations (2026-11-11, founder request)
+
+- **The LunchVoice Hub moved to `lunchvoice.com/kitchen`.** In production, Hub `b3311357-89cc-4550-90e6-018ee35d40fa` had its
+  address changed from `kpnworld` to `kitchen` (one row in `lv.hubs`; `kitchen` was not reserved, held or quarantined, and no
+  Discord code or checkout intent pointed at the old address). `kpnworld` is free to claim again and has no redirect.
+- **PR #66 merged to `main`** (`e0d4247`) at the founder's request, 17 ahead and 0 behind with both checks green.
+
 ### Brand identity system (2026-11-12, founder direction)
 
 - **One logo.** The sharp-cornered LV with the amber speech bubble and smile is the official mark (founder decision).
@@ -1029,7 +1124,6 @@ categories and the repository's decimal `X.X.X` release policy.
   placeholder until the real SVG and typeface are supplied (`--font-maker` token added in `src/styles/landing.css`).
 - Anchor targets carry `scroll-margin-top` so sections do not hide under the sticky header; hash links scroll on navigation.
 - Verified in the browser at 1280px and 390px: no console errors, no horizontal overflow at 390px.
-
 
 ### Fixed
 

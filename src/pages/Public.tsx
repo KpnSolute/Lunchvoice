@@ -3,7 +3,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
 import { MadeBy } from "../components/MakerMark";
-import { Icon } from "../components/Icon";
+import { Icon, type IconName } from "../components/Icon";
+import { PRODUCTS } from "../config/products";
 import { BottomTabs } from "../ui/BottomTabs";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO, supportMailto } from "../config/contact";
 import { safeReturnTo } from "../lib/kpnIdentity";
@@ -29,8 +30,9 @@ import { headerCta } from "../lib/billingState";
 // In-product routes keep the compact header so Hub chrome stays the focus.
 const MARKETING_ROUTES = new Set([
   "/", "/how-it-works", "/use-cases", "/pricing", "/beta", "/about", "/waitlist",
-  "/status", "/terms", "/guidelines", "/privacy", "/support", "/discover",
+  "/status", "/terms", "/guidelines", "/privacy", "/support", "/discover", "/products",
 ]);
+const isMarketingRoute = (p: string) => MARKETING_ROUTES.has(p) || p.startsWith("/use-cases/") || p.startsWith("/products/");
 
 // Account routes get the account shell: header pills on desktop, bottom tabs on phones.
 const isAccountRoute = (p: string) => ["/me", "/join", "/settings", "/create"].includes(p) || p === "/surveys" || p.startsWith("/surveys/");
@@ -40,13 +42,42 @@ const ACCOUNT_TABS = [
   { to: "/join", label: "Join", icon: "join" as const, end: true },
   { to: "/settings", label: "Settings", icon: "settings" as const, end: true },
 ];
+// After the Products menu. The waitlist is the amber header action, so it is not repeated here.
 const MARKETING_LINKS = [
-  { to: "/how-it-works", label: "How it works" },
   { to: "/use-cases", label: "Use cases" },
   { to: "/pricing", label: "Pricing" },
-  { to: "/waitlist", label: "Waitlist" },
   { to: "/discover", label: "Discover" },
+  { to: "/how-it-works", label: "How it works" },
 ];
+
+/** The Products menu: the six product pages from src/config/products.json, then the index. */
+function ProductsMenu() {
+  const { pathname } = useLocation();
+  const current = pathname === "/products" || pathname.startsWith("/products/");
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button type="button" className="lv-nav-menu" data-current={current ? "" : undefined} data-testid="nav-products">
+          Products <Icon name="chevron" size={14} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="lv-prodmenu" data-testid="products-menu">
+        {PRODUCTS.map((p) => (
+          <DropdownMenuItem key={p.slug} asChild>
+            <Link to={`/products/${p.slug}`}>
+              <Icon name={p.icon as IconName} size={18} />
+              <span><strong>{p.name}</strong>{p.line}</span>
+            </Link>
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/products" className="lv-prodmenu-all">All products <Icon name="arrow" size={16} /></Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 function Brand() {
   return (
@@ -86,7 +117,7 @@ function AccountMenu() {
 
 function MarketingMenu({ signedIn }: { signedIn: boolean }) {
   const [open, setOpen] = useState(false);
-  const links = signedIn ? MARKETING_LINKS : [...MARKETING_LINKS, { to: "/signin", label: "Sign in" }];
+  const close = () => setOpen(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
@@ -98,11 +129,28 @@ function MarketingMenu({ signedIn }: { signedIn: boolean }) {
         <SheetTitle>Menu</SheetTitle>
         <SheetDescription className="sr-only">Site sections</SheetDescription>
         <nav className="lv-sheet-nav" aria-label="Main">
-          {links.map((l) => (
-            <Button key={l.to} asChild variant="secondary" block size="lg" onClick={() => setOpen(false)}>
-              <Link to={l.to}>{l.label}</Link>
+          <h3>Products</h3>
+          <ul className="lv-sheet-products">
+            {PRODUCTS.map((p) => (
+              <li key={p.slug}>
+                <Link to={`/products/${p.slug}`} onClick={close}>
+                  <Icon name={p.icon as IconName} size={18} />
+                  <span><strong>{p.name}</strong>{p.line}</span>
+                </Link>
+              </li>
+            ))}
+            <li><Link to="/products" onClick={close} className="lv-sheet-all">All products <Icon name="arrow" size={16} /></Link></li>
+          </ul>
+          <h3>LunchVoice</h3>
+          <ul className="lv-sheet-links">
+            {MARKETING_LINKS.map((l) => <li key={l.to}><Link to={l.to} onClick={close}>{l.label}</Link></li>)}
+            <li><Link to="/waitlist" onClick={close}>Waitlist</Link></li>
+          </ul>
+          {!signedIn && (
+            <Button asChild variant="secondary" block size="lg" onClick={close}>
+              <Link to="/signin">Sign in</Link>
             </Button>
-          ))}
+          )}
         </nav>
       </SheetContent>
     </Sheet>
@@ -129,7 +177,7 @@ export function Shell() {
 function ShellInner() {
   const { session } = useIdentity();
   const { pathname } = useLocation();
-  const marketing = MARKETING_ROUTES.has(pathname) || pathname.startsWith("/use-cases/");
+  const marketing = isMarketingRoute(pathname);
   const account = Boolean(session) && isAccountRoute(pathname);
   const bare = pathname.startsWith("/c/") || pathname.startsWith("/s/");
   const ink = pathname === "/";
@@ -155,6 +203,7 @@ function ShellInner() {
 
         {marketing && (
           <nav className="lv-nav" aria-label="Main">
+            <ProductsMenu />
             {MARKETING_LINKS.map((l) => <NavLink key={l.to} to={l.to}>{l.label}</NavLink>)}
           </nav>
         )}
@@ -188,27 +237,33 @@ function ShellInner() {
   );
 }
 
+const FOOTER_COLUMNS: { title: string; links: { to: string; label: string }[] }[] = [
+  { title: "Products", links: PRODUCTS.map((p) => ({ to: `/products/${p.slug}`, label: p.name })) },
+  { title: "Use it for", links: [{ to: "/use-cases", label: "Use cases" }, { to: "/discover", label: "Discover" }, { to: "/how-it-works", label: "How it works" }] },
+  { title: "Company", links: [{ to: "/about", label: "About" }, { to: "/pricing", label: "Pricing" }, { to: "/waitlist", label: "Waitlist" }, { to: "/support", label: "Support" }, { to: "/status", label: "Status" }] },
+  // "Privacy policy", not "Privacy": /products/privacy is the product page about how answers are protected.
+  { title: "Legal", links: [{ to: "/privacy", label: "Privacy policy" }, { to: "/terms", label: "Terms" }, { to: "/guidelines", label: "Community guidelines" }] },
+];
+
 function Footer() {
   return (
     <footer className="lv-footer">
       <div className="lv-footer-inner">
-        <span className="lv-footer-brand">
-          <LvMark size={26} />
-          <strong>LunchVoice</strong>
-        </span>
-        <nav className="lv-footer-nav" aria-label="Footer">
-          <Link to="/how-it-works">Product</Link>
-          <Link to="/use-cases">Use cases</Link>
-          <Link to="/pricing">Pricing</Link>
-          <Link to="/waitlist">Waitlist</Link>
-          <Link to="/discover">Discover</Link>
-          <Link to="/about">About</Link>
-          <Link to="/privacy">Privacy</Link>
-          <Link to="/terms">Terms</Link>
-          <Link to="/guidelines">Guidelines</Link>
-          <Link to="/support">Support</Link>
-          <Link to="/status">Status</Link>
+        <div className="lv-footer-about">
+          <span className="lv-footer-brand">
+            <LvMark size={26} />
+            <strong>LunchVoice</strong>
+          </span>
+          <p>Surveys, polls and decisions for communities.</p>
           <a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a>
+        </div>
+        <nav className="lv-footer-cols" aria-label="Footer">
+          {FOOTER_COLUMNS.map((c) => (
+            <div key={c.title}>
+              <h2>{c.title}</h2>
+              <ul>{c.links.map((l) => <li key={l.to}><Link to={l.to}>{l.label}</Link></li>)}</ul>
+            </div>
+          ))}
         </nav>
         <div className="lv-footer-end">
           <MadeBy />

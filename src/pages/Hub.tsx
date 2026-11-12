@@ -38,6 +38,8 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { ConfirmAction } from "./Studio";
 /* ---- track D: api + discord ---- */
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shadcn/tabs";
+import { Progress } from "@/components/shadcn/progress";
+import { RadioCard, RadioGroup } from "@/components/shadcn/radio-group";
 import { HubApiSettings, HubDiscordSettings } from "./Integrations";
 /* ---- end track D ---- */
 import { QrCode } from "@/components/shadcn/blocks/qr";
@@ -253,6 +255,41 @@ function HubReportMenu({ hub }: { hub: HubInfo }) {
 
 /* ------------------------------------------------------------------ overview */
 
+type SetupStep = { key: string; title: string; body: string; to: string; done: boolean };
+
+/**
+ * "Set up your Hub" for the people who can act on it. Every tick comes from real state (the Hub's about line and
+ * colour, its Campaigns, its member count, its Discord connections); nothing is ticked because it was clicked.
+ * It disappears once every step it shows is done.
+ */
+function HubSetupChecklist({ steps }: { steps: SetupStep[] }) {
+  const done = steps.filter((x) => x.done).length;
+  if (steps.length === 0 || done === steps.length) return null;
+  return (
+    <Card data-testid="getting-started">
+      <div className="lv-setup-head">
+        <SectionTitle>Set up your Hub</SectionTitle>
+        <span className="lv-setup-count" data-testid="setup-progress">{done} of {steps.length} done</span>
+      </div>
+      <Progress value={(done / steps.length) * 100} aria-label={`${done} of ${steps.length} setup steps done`} />
+      <ol className="lv-setup">
+        {steps.map((x) => (
+          <li key={x.key} data-done={x.done || undefined} data-testid={`setup-${x.key}`}>
+            <span className="lv-setup-tick" aria-hidden="true">{x.done && <Icon name="check" size={14} />}</span>
+            {x.done ? (
+              <span className="lv-setup-text"><b>{x.title}</b></span>
+            ) : (
+              <Link to={x.to} className="lv-setup-text"><b>{x.title}</b><span>{x.body}</span></Link>
+            )}
+            <span className="sr-only">{x.done ? "(done)" : "(to do)"}</span>
+          </li>
+        ))}
+      </ol>
+    </Card>
+  );
+}
+
+
 export function HubOverview() {
   const { hub, membership } = useHubCtx();
   const { api, session } = useIdentity();
@@ -265,6 +302,8 @@ export function HubOverview() {
     () => (can(membership, "admin.members.admit") || can(membership, "admin.members.remove") ? api.memberList(hub.hub_id) : Promise.resolve(denied)),
     [api, hub.hub_id, Boolean(membership)],
   );
+  const settingsManager = Boolean(membership?.is_owner || can(membership, "hub.settings.manage"));
+  const discord = useLv(() => (settingsManager ? api.discordConnections(hub.hub_id) : Promise.resolve(denied)), [api, hub.hub_id, settingsManager]);
 
   async function join() {
     setBusy(true);
@@ -301,30 +340,35 @@ export function HubOverview() {
   const accepted = people.data?.members.filter((m) => m.status === "accepted") ?? [];
   const waiting = people.data?.members.filter((m) => m.status === "pending").length ?? 0;
   const manager = can(membership, "campaign.manage");
+  const steps: SetupStep[] = [];
+  if (settingsManager) {
+    steps.push({ key: "about", title: "Describe your Hub", body: "Add an about line so visitors know what it is for.", to: `/${hub.slug}/settings`, done: Boolean(hub.about?.trim()) });
+    steps.push({ key: "colour", title: "Pick your Hub color", body: "It shows on your banner, icon and Campaign cards.", to: `/${hub.slug}/settings#appearance`, done: Boolean(hub.accent) });
+  }
+  if (manager && campaigns.data) {
+    steps.push({ key: "campaign", title: "Ask your first question", body: "A quick poll takes a minute.", to: `/${hub.slug}/campaigns/new`, done: rows.length > 0 });
+  }
+  if (can(membership, "admin.members.admit")) {
+    steps.push({ key: "invite", title: "Invite people", body: "Share a code or send it by email.", to: `/${hub.slug}/invites`, done: hub.member_count > 1 });
+  }
+  if (settingsManager && discord.data) {
+    steps.push({ key: "discord", title: "Connect your Discord server", body: "Optional: post Campaigns where your community already talks.", to: `/${hub.slug}/settings?tab=discord`, done: discord.data.connections.length > 0 });
+  }
 
   return (
-    <div className="lv-dash">
-      <div className="lv-stack">
+    <div className="lv-hub-overview">
         <div className="lv-tiles lv-tiles-3" data-testid="hub-stats">
           <StatTile tone="ink" label="Live Campaigns" value={live} note={`${rows.length} in total`} />
           <StatTile label="Members" value={hub.member_count} note={waiting > 0 ? `${waiting} waiting on you` : hub.member_count <= 1 ? "Just you so far" : "No requests waiting"} />
           <StatTile
-            tone="edge"
             label="Plan"
             value={familyName(hub.plan?.family)}
             note={hub.plan?.state === "active" ? (hub.plan.ends_at ? `Until ${fmtDate(hub.plan.ends_at)}` : hub.plan.product === "founding" ? "Founding · active" : "Active") : "Premium actions locked"}
           />
         </div>
-        {manager && campaigns.data && rows.length === 0 && (
-          <Card variant="ink" data-testid="getting-started">
-            <Eyebrow accent>Get your Hub going</Eyebrow>
-            <ol className="lv-getting-started">
-              <li><Link to={`/${hub.slug}/campaigns/new`}><b>Ask your first question</b><span>A quick poll takes a minute.</span></Link></li>
-              {can(membership, "admin.members.admit") && <li><Link to={`/${hub.slug}/invites`}><b>Invite people</b><span>Share a code or send it by email.</span></Link></li>}
-              {can(membership, "hub.settings.manage") && <li><Link to={`/${hub.slug}/settings`}><b>Make it yours</b><span>Add an about line and a Hub color.</span></Link></li>}
-            </ol>
-          </Card>
-        )}
+    <div className="lv-dash">
+      <div className="lv-stack">
+        <HubSetupChecklist steps={steps} />
         <Card>
           <SectionTitle action={manager ? <LinkButton to={`/${hub.slug}/campaigns/new`} variant="ink" size="sm" icon="plus">New Campaign</LinkButton> : undefined}>Campaigns</SectionTitle>
           {campaigns.loading && !campaigns.data ? (
@@ -354,6 +398,7 @@ export function HubOverview() {
         )}
         <HubShareCard hub={hub} canInvite={can(membership, "admin.members.admit")} />
       </aside>
+    </div>
     </div>
   );
 }
@@ -827,33 +872,38 @@ function HubGeneralSettings() {
   return (
     <div className="lv-stack-16">
       <Card>
-        <SectionTitle>Hub details</SectionTitle>
         <form className="lv-stack-16" onSubmit={(e) => { e.preventDefault(); void save(); }}>
-          <Field label="Name" htmlFor="h-name" counter={{ value: name.length, max: 60 }}>
+          <SectionTitle>Name and description</SectionTitle>
+          <Field label="Hub name" htmlFor="h-name" counter={{ value: name.length, max: 60 }}>
             <Input id="h-name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
           </Field>
-          <Field label="About" htmlFor="h-about" help="Shown on the Hub’s landing page." counter={{ value: about.length, max: 500 }}>
-            <Textarea id="h-about" value={about} maxLength={500} onChange={(e) => setAbout(e.target.value)} aria-describedby="h-about-help" />
+          <Field label="What is this Hub for?" htmlFor="h-about" help="One or two sentences. Shown on your Hub’s page, its share card and Discover." counter={{ value: about.length, max: 500 }}>
+            <Textarea id="h-about" value={about} maxLength={500} onChange={(e) => setAbout(e.target.value)} aria-describedby="h-about-help" placeholder="Weekly long runs, a monthly social, and a say in the route." />
           </Field>
-          <div className="ui-grid-2">
-            <Field label="Visibility" htmlFor="h-vis" help={visibility === "private" ? "Only members can see it. To everyone else it looks like it doesn’t exist." : "Anyone with the address can see the landing page."}>
-              <Select value={visibility} onValueChange={(v) => setVisibility(v as Visibility)}>
-                <SelectTrigger id="h-vis"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="public">Public</SelectItem><SelectItem value="private">Private</SelectItem></SelectContent>
-              </Select>
-            </Field>
-            <Field label="Joining" htmlFor="h-mode">
-              <Select value={mode} onValueChange={(v) => setMode(v as MembershipMode)}>
-                <SelectTrigger id="h-mode"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="open">Open: anyone signed in can join</SelectItem>
-                  <SelectItem value="approval">Approval: a manager admits requests</SelectItem>
-                  <SelectItem value="invite_only">Invite only: invite codes</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
+          <div className="lv-settings-address" data-testid="settings-address">
+            <span className="ui-help">Address</span>
+            <span className="lv-settings-address-url">lunchvoice.com/<b>{hub.slug}</b></span>
+            <span className="ui-help">Addresses cannot be changed in the app yet. <a className="lv-inline-link" href={supportMailto(`Change the address of ${hub.slug}`)}>Ask support</a> if you need a different one.</span>
           </div>
-          <div className="ui-row">
+          <Separator />
+          <SectionTitle>Who can see it and join</SectionTitle>
+          <fieldset className="lv-settings-group">
+            <legend>Who can see this Hub</legend>
+            <RadioGroup value={visibility} onValueChange={(v) => setVisibility(v as Visibility)} aria-label="Who can see this Hub" className="ui-grid-2">
+              <RadioCard value="public" title="Public" description="Anyone with the address sees the Hub’s page. Campaigns and results stay for members." />
+              <RadioCard value="private" title="Private" description="Only members can see it. To everyone else the address looks like it doesn’t exist." />
+            </RadioGroup>
+          </fieldset>
+          <fieldset className="lv-settings-group">
+            <legend>How people join</legend>
+            <RadioGroup value={mode} onValueChange={(v) => setMode(v as MembershipMode)} aria-label="How people join" className="lv-settings-modes">
+              <RadioCard value="open" title="Open" description="Anyone signed in can join straight away." />
+              <RadioCard value="approval" title="By approval" description="People ask to join and a manager admits them." />
+              <RadioCard value="invite_only" title="Invite only" description="Only people with an invite code can join." />
+            </RadioGroup>
+          </fieldset>
+          <p className="ui-help lv-m0">Changing these never removes anyone who is already a member.</p>
+          <div className="ui-row lv-settings-save">
             <Button type="submit" variant="ink" disabled={!dirty || saving || !name.trim()}>{saving ? "Saving…" : "Save settings"}</Button>
             <span className="lv-save" role="status" aria-live="polite" data-status={saving ? "saving" : dirty ? "dirty" : savedOnce ? "saved" : "idle"} data-testid="settings-save-state">
               <span className="lv-save-dot" aria-hidden="true" />
@@ -866,7 +916,8 @@ function HubGeneralSettings() {
 
       {owner && (
         <Card>
-          <SectionTitle>Owner only</SectionTitle>
+          <SectionTitle>Ownership and deletion</SectionTitle>
+          <p className="ui-help lv-m0">Only you, the Owner, see this section.</p>
           {dangerError && <Notice tone="error">{dangerError}</Notice>}
           <div className="lv-stack-16">
             <div className="lv-stack-8">
