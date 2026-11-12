@@ -123,3 +123,17 @@ test("product pages have no sideways scroll at 360 in every theme, and footer li
     await ctx.close();
   }
 });
+
+test("the homepage explains the journey in four steps and links to all six products", async () => {
+  const { page, go, ctx, errors } = await openPage(app, { signedIn: false });
+  await go("/");
+  assert.deepEqual(await page.getByTestId("landing-journey").locator("b").allInnerTexts(), ["Create a survey", "Share it", "Collect responses", "Understand results"]);
+  const links = page.getByTestId("landing-products").locator("a");
+  assert.equal(await links.count(), 6);
+  for (const p of products) assert.equal(await page.getByTestId("landing-products").locator(`a[href='/products/${p.slug}']`).count(), 1, p.slug);
+  // Eyebrows stay only where they add a fact: the hero, participants, Founding seats and the Kitchen.
+  assert.ok(await page.locator(".lv-l-section .lv-l-eyebrow, .lv-l-band .lv-l-eyebrow").count() <= 3);
+  assert.equal(await page.getByText("Sample data").count(), 1, "only the results illustration uses sample numbers");
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
