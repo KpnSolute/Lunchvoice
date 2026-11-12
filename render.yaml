@@ -46,6 +46,27 @@ services:
         source: /use-cases
         destination: /use-cases/index.html
       - type: rewrite
+        source: /products
+        destination: /products/index.html
+      - type: rewrite
+        source: /products/hubs
+        destination: /products/hubs/index.html
+      - type: rewrite
+        source: /products/feedback
+        destination: /products/feedback/index.html
+      - type: rewrite
+        source: /products/campaigns
+        destination: /products/campaigns/index.html
+      - type: rewrite
+        source: /products/discord
+        destination: /products/discord/index.html
+      - type: rewrite
+        source: /products/developers
+        destination: /products/developers/index.html
+      - type: rewrite
+        source: /products/privacy
+        destination: /products/privacy/index.html
+      - type: rewrite
         source: /pricing
         destination: /pricing/index.html
       - type: rewrite

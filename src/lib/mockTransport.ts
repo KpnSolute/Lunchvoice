@@ -44,6 +44,12 @@ function limitsOut(fam: "free" | "starter" | "team") {
     "campaigns.max_active": fam === "free" ? null : l.active_campaigns,
     "surveys.max_active": fam === "free" ? null : l.active_surveys,
     ...(fam === "team" ? { "discover.min_members": l.discover_min_members } : {}),
+    // Production's values (lv_plan_limits, read 2026-11-12) so product pages show every row in development.
+    ...(fam === "free" ? {} : {
+      "community.newsroom": true, "community.comments": true, "community.leaderboard": true, "community.shop": true,
+      "shop.max_items": fam === "team" ? 50 : 10, "analytics.export": true, "campaigns.role_targeting": fam === "team",
+    }),
+    ...(fam === "team" ? { "api.enabled": true, "api.max_keys": 10, "api.rate_per_minute": 60, "webhooks.max_endpoints": 5 } : {}),
   };
 }
 // Same shape as lv.accent_palette() (000015): objects; hubs store the key.
