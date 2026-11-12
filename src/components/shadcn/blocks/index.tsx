@@ -101,7 +101,7 @@ export function Field({
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor={htmlFor}>{label}</Label>
         {counter && (
-          <span className={cn("font-[family-name:var(--lv-font-mono)] text-[11.5px]", counter.value > counter.max ? "text-[var(--lv-danger)]" : "text-[var(--lv-subtle)]")}>
+          <span className={cn("font-[family-name:var(--lv-font-mono)] text-[12px]", counter.value > counter.max ? "text-[var(--lv-danger)]" : "text-[var(--lv-subtle)]")}>
             {counter.value}/{counter.max}
           </span>
         )}

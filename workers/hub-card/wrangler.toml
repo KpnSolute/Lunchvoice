@@ -1,0 +1,10 @@
+# Cloudflare Worker for Hub share-link previews. Deploy steps: workers/hub-card/README.md.
+name = "lunchvoice-hub-card"
+main = "worker.ts"
+compatibility_date = "2026-10-01"
+workers_dev = false
+routes = [{ pattern = "lunchvoice.com/h/*", zone_name = "lunchvoice.com" }]
+
+[vars]
+SUPABASE_URL = "https://qprfonxvthmaoxfixigk.supabase.co"
+# SUPABASE_ANON_KEY is set with `wrangler secret put SUPABASE_ANON_KEY` (the public anon key, never service_role).

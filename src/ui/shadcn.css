@@ -157,13 +157,13 @@
     outline-offset: 3px;
   }
 }
+/* Labels (design system 3): the UI font in sentence case. Space Mono is for codes and numbers only. */
 @utility tactile-label {
-  font-family: var(--lv-font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  line-height: 1.2;
+  font-family: var(--lv-font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  line-height: 1.25;
 }
 @utility tactile-pop-in {
   transform-origin: var(--radix-popover-content-transform-origin, var(--radix-dropdown-menu-content-transform-origin, var(--radix-select-content-transform-origin, center)));

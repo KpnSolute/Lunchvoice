@@ -5,6 +5,8 @@ import { USE_CASES } from "../config/useCases";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import { useBilling } from "../lib/useBilling";
+import { COMMUNITY_HUB_SLUG } from "../config/contact";
+import { HubCard } from "../components/HubCard";
 import { PLANS } from "../config/pricing";
 import { Button } from "@/components/shadcn/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/shadcn/input-otp";
@@ -108,6 +110,31 @@ function WaitlistBand() {
           {s && <Progress value={(s.seats_taken / s.seats_total) * 100} aria-label={`${s.seats_taken} of ${s.seats_total} seats taken`} />}
           {s && !s.open && <span className="lv-l-seats-note">All Founding seats are taken. You can still join and wait for billing to open.</span>}
         </div>
+      </div>
+    </section>
+  );
+}
+
+function KitchenBand() {
+  const { api } = useIdentity();
+  const q = useLv(() => api.hubGet(COMMUNITY_HUB_SLUG), [api]);
+  const hub = q.data?.hub;
+  // Shown only while LunchVoice's own Hub exists and is public. Nothing is shown in its place.
+  if (!hub || hub.visibility !== "public") return null;
+  return (
+    <section id="kitchen" className="lv-l-section" aria-labelledby="kitchen-h" data-testid="kitchen-band">
+      <div className="lv-l-kitchen">
+        <div className="lv-l-waitlist-copy">
+          <span className="lv-l-eyebrow lv-l-eyebrow-accent">Built in the open</span>
+          <h2 id="kitchen-h" className="lv-l-h2">Pull up a seat in the Kitchen.</h2>
+          <p>We’re building LunchVoice in the open. The Kitchen is our own Hub: vote on what we make next, rate what just shipped and see the results, the same way your community will.</p>
+        </div>
+        <HubCard
+          hub={hub}
+          to={`/${hub.slug}`}
+          testId="kitchen-card"
+          action={<span className="lv-hcard-fakebtn" aria-hidden="true">Visit the Kitchen</span>}
+        />
       </div>
     </section>
   );
@@ -267,6 +294,8 @@ export function Landing() {
       </section>
 
       <WaitlistBand />
+
+      <KitchenBand />
 
       {/* ---------------- pricing ---------------- */}
       <section id="pricing" className="lv-l-section" aria-labelledby="price-h">

@@ -14,7 +14,8 @@ import { ReportDialog } from "../components/ReportDialog";
 import { campaignPhase, LinkButton } from "../components/ui";
 import { Icon, type IconName } from "../components/Icon";
 import { HubMark } from "../ui/HubMark";
-import { HubCover } from "../ui/HubCover";
+import { HubProfile } from "../ui/HubProfile";
+import { ShareHubDialog } from "../components/ShareHub";
 import { accentVars, onAccent } from "../lib/accent";
 import { HubAppearance } from "./HubAppearance";
 import { StateScreen } from "../ui/StateScreen";
@@ -46,7 +47,6 @@ import {
   Eyebrow,
   Field,
   LoadingRows,
-  Metric,
   Notice,
   PhaseBadge,
   QuotaMeter,
@@ -112,12 +112,14 @@ export function HubLayout() {
   if (!membership || ADDON_PAGE.test(pathname)) {
     return (
       <div className="lv-l10 lv-hubscope" style={accentVars(hub.accent_hex ?? null)}>
-        <HubCover
-          name={hub.name}
-          slug={hub.slug}
-          accent={hub.accent_hex}
-          pills={<span className="lv-cover-pill">{hub.visibility === "public" ? "Public" : "Private"} · {hub.membership_mode.replace("_", " ")}</span>}
-          action={!session ? <LinkButton to="/signin" state={{ from: base }} variant="secondary">Sign in</LinkButton> : membership ? <LinkButton to={base} variant="secondary">Open workspace</LinkButton> : undefined}
+        <HubProfile
+          hub={hub}
+          actions={
+            <>
+              <ShareHubDialog hub={hub} trigger={<Button variant="secondary" data-testid="hub-share-open"><Icon name="join" size={16} />Share</Button>} />
+              {membership && <LinkButton to={base} variant="primary">Open workspace</LinkButton>}
+            </>
+          }
         />
         <div className="lv-l10-body"><CommunityNav slug={hub.slug} hubId={hub.hub_id} /><Outlet context={ctx} /></div>
         <p className="lv-powered">Powered by <LvMark size={16} /> <strong>LunchVoice</strong></p>
@@ -150,26 +152,18 @@ export function HubLayout() {
 
   return (
     <div className="ui-page lv-hubscope" style={accentVars(hub.accent_hex ?? null)} data-accent={hub.accent ?? undefined}>
-      {hub.accent_hex && <div className="lv-hub-banner" aria-hidden="true" />}
-      <div className="lv-hubhead">
-        <div className="lv-hubhead-main">
-          <span className="lv-hubmark-wrap"><HubMark name={hub.name} size={64} /></span>
-          <div>
-            <Eyebrow accent>Hub</Eyebrow>
-            <h1>{hub.name}</h1>
-            <div className="ui-row">
-              <Badge>{hub.visibility}</Badge>
-              <Badge>{hub.membership_mode.replace("_", " ")}</Badge>
-              <span className="ui-muted ui-mono lv-small">/{hub.slug}</span>
-            </div>
-          </div>
-        </div>
-        <div className="ui-row">
-          {plan && <Badge variant={plan.state === "active" ? "ok" : plan.state === "expired" ? "danger" : "neutral"}>{familyName(plan.family)}{plan.state === "expired" ? " · expired" : ""}</Badge>}
-          {owner && <Badge variant="ink">Owner</Badge>}
-          {!owner && session && <HubReportMenu hub={hub} />}
-        </div>
-      </div>
+      <HubProfile
+        hub={hub}
+        compact
+        actions={
+          <>
+            {plan && <Badge variant={plan.state === "active" ? "ok" : plan.state === "expired" ? "danger" : "neutral"}>{familyName(plan.family)}{plan.state === "expired" ? " · expired" : ""}</Badge>}
+            {owner && <Badge variant="ink">Owner</Badge>}
+            <ShareHubDialog hub={hub} trigger={<Button variant="secondary" size="md" data-testid="hub-share-open"><Icon name="join" size={16} />Share</Button>} />
+            {!owner && session && <HubReportMenu hub={hub} />}
+          </>
+        }
+      />
       {/* ---- staff panel: Hub suspension ---- */}
       {hub.suspension?.suspended && (
         <Notice tone="error" title="This Hub is suspended" className="lv-suspended-notice">
@@ -281,29 +275,23 @@ export function HubOverview() {
 
   if (!membership) {
     return (
-      <div className="ui-grid-2">
-        <Card>
-          <Eyebrow>Membership</Eyebrow>
-          <h2 className="lv-detail-title">
-            {hub.membership_mode === "open" ? "This Hub is open to join." : hub.membership_mode === "approval" ? "Join requests are reviewed by a manager." : "This Hub is invite only."}
-          </h2>
-          {hub.about && <p className="lv-m0">{hub.about}</p>}
-          <p className="ui-muted lv-m0">Campaigns, members and results stay private until you’re a member.</p>
-          {error && <Notice tone="error">{error}</Notice>}
-          {pending && <Notice tone="ok">Request sent. A manager will review it.</Notice>}
+      <Card className="lv-hub-joincard" data-testid="hub-join">
+        <h2 className="lv-detail-title">
+          {hub.membership_mode === "open" ? "This Hub is open to join." : hub.membership_mode === "approval" ? "Join requests are reviewed by a manager." : "This Hub is invite only."}
+        </h2>
+        <p className="ui-muted lv-m0">Campaigns, members and results stay private until you’re a member. Answering is always free.</p>
+        {error && <Notice tone="error">{error}</Notice>}
+        {pending && <Notice tone="ok">Request sent. A manager will review it.</Notice>}
+        <div className="ui-row">
           {!session ? (
-            <LinkButton to="/signin" state={{ from: `/${hub.slug}` }} variant="primary">Sign in to join</LinkButton>
+            <LinkButton to="/signin" state={{ from: `/${hub.slug}` }} variant="primary" size="lg">Sign in to join</LinkButton>
           ) : hub.membership_mode === "invite_only" ? (
-            <LinkButton to="/join" variant="secondary">Use an invite code</LinkButton>
+            <LinkButton to="/join" variant="secondary" size="lg">Use an invite code</LinkButton>
           ) : (
-            <Button variant="primary" onClick={join} disabled={busy || pending}>{busy ? "Working…" : hub.membership_mode === "open" ? "Join this Hub" : "Request to join"}</Button>
+            <Button variant="primary" size="lg" onClick={join} disabled={busy || pending}>{busy ? "Working…" : hub.membership_mode === "open" ? "Join this Hub" : "Request to join"}</Button>
           )}
-        </Card>
-        <Card variant="well">
-          <Eyebrow>About this Hub</Eyebrow>
-          <div className="ui-grid-2"><Metric value={hub.member_count} label="Members" hint="Guests never count." /><Metric value={hub.visibility} label="Visibility" /></div>
-        </Card>
-      </div>
+        </div>
+      </Card>
     );
   }
 
