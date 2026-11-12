@@ -6,6 +6,19 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (2026-11-11, founder request)
+
+- **The LunchVoice Hub moved to `lunchvoice.com/kitchen`.** In production, Hub `b3311357-89cc-4550-90e6-018ee35d40fa` had its
+  address changed from `kpnworld` to `kitchen` (one row in `lv.hubs`; `kitchen` was not reserved, held or quarantined, and no
+  Discord code or checkout intent pointed at the old address). `kpnworld` is free to claim again and has no redirect.
+- **PR #66 merged to `main`** (`e0d4247`) at the founder's request, 17 ahead and 0 behind with both checks green.
+
+### Work in progress on `wip/product-pages` (not routed, not deployed)
+
+- Drafts for the six product pages (`src/config/products.json`, `src/config/products.ts`, `src/pages/Products.tsx`, styles at the
+  end of `src/styles/landing.css`, 3 unit tests) and a never-run draft of the Hub identity migration
+  (`docs/v2/handoffs/drafts/`). What is left, in detail: `docs/v2/handoffs/2026-11-12-site-and-hub-identity-prompt.md`.
+
 ### Added (native design skills for Claude Code and Codex, founder assignment 2026-11-12)
 
 - **Three project skills**, discovered natively by both agents: `design-system` (follow the system on every visible UI
