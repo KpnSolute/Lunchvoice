@@ -26,7 +26,8 @@ test("plan rows come from the entitlement map and are never guessed", () => {
   assert.equal(rows.find((r) => r.label === "Shop items"), undefined, "a key the map lacks is left out");
 });
 
+// Elections shipped with 000037/000038 (production 2026-11-12); the rest is V2.x or V3 (docs/v3/ROADMAP.md).
 test("nothing planned is sold as available", () => {
   const text = JSON.stringify(PRODUCTS).toLowerCase();
-  for (const word of ["elections?", "hub pulse", "missions?", "recaps?", "ai", "trends?", "achievements?"]) assert.ok(!new RegExp(`\\b${word}\\b`).test(text), word);
+  for (const word of ["hub pulse", "missions?", "recaps?", "ai", "trends?", "achievements?"]) assert.ok(!new RegExp(`\\b${word}\\b`).test(text), word);
 });

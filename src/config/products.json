@@ -98,7 +98,7 @@
       "icon": "survey",
       "line": "Polls, ratings, yes/no, open feedback and surveys. Free to start.",
       "title": "Feedback: free polls, ratings, yes/no and surveys",
-      "description": "Ask with a poll, a rating, a yes/no question, open feedback or a full survey. Quick Surveys are free: share a link, a QR code or a six-character code and read anonymous totals.",
+      "description": "Ask with a poll, a rating, a yes/no question, open feedback or a survey. Quick Surveys are free: share a link, QR code or six-character code.",
       "h1": "Ask a question today and have answers by this afternoon",
       "lede": "Feedback is every way of asking on LunchVoice. Poll, Rating, Yes/No and Open feedback each ask one thing well; a Survey combines several of them. A Quick Survey is the free version, and you do not need a Hub to use it. Elections are a Hub feature.",
       "audience": [
@@ -200,7 +200,7 @@
       "icon": "voice",
       "line": "Feedback run inside your Hub: who, when, and the results.",
       "title": "Campaigns: scheduled surveys and polls for your members",
-      "description": "Run surveys, polls, ratings, yes/no questions, open feedback and elections inside your Hub. Schedule them, choose who answers, and close them when you have what you need.",
+      "description": "Run surveys, polls, ratings, yes/no questions, open feedback and elections in your Hub. Schedule them, choose who answers, close them on time.",
       "h1": "Ask your members properly: scheduled, aimed and closed on time",
       "lede": "A Campaign is feedback running in a Hub. It has an audience, a beginning and an end. Draft it, schedule it, open it to your members, and close it when you have what you need.",
       "audience": [
@@ -220,10 +220,6 @@
         {
           "title": "Elections with a secret ballot",
           "body": "Races with one winner or several seats, candidates and optional parties. Members vote, or hand out one-time ballot codes to people without accounts. Results appear only after the election ends, and small groups are never shown."
-        },
-        {
-          "title": "Templates for each plan",
-          "body": "Start from a template made for what your plan is for, then edit anything."
         },
         {
           "title": "Only for a few weeks?",
