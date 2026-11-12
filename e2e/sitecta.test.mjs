@@ -165,3 +165,18 @@ test("launch plan UI gate: light, dark and high contrast at 390, 768 and 1280 wi
     }
   }
 });
+
+test("the component gallery renders every section in light, dark and high contrast with no errors", async () => {
+  for (const theme of ["light", "dark", "hc"]) {
+    const { page, go, ctx, errors } = await openPage(app, { theme, width: 1280 });
+    await go("/__gallery");
+    for (const section of ["Buttons", "Brand", "Hub identity", "Badges with a meaning", "Results and charts", "Rows, QR and alerts"]) {
+      await page.getByRole("region", { name: section }).waitFor();
+    }
+    assert.ok(await page.getByTestId("hub-profile").count() >= 2);
+    assert.ok(await page.locator("[data-badge]").count() >= 6);
+    assert.ok(await noHorizontalScroll(page), theme);
+    assert.deepEqual(errors, [], theme);
+    await ctx.close();
+  }
+});

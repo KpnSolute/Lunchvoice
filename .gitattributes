@@ -1,0 +1,4 @@
+# Agent skills are mirrored byte for byte between .agents/skills (Codex) and .claude/skills (Claude Code);
+# fixed line endings keep both copies identical on Windows checkouts too (scripts/skills.mjs checks it).
+.agents/skills/** text eol=lf
+.claude/skills/** text eol=lf
