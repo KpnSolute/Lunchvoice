@@ -1,3 +1,4 @@
+import { LvMark } from "../components/LvMark";
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -119,7 +120,7 @@ export function HubLayout() {
           action={!session ? <LinkButton to="/signin" state={{ from: base }} variant="secondary">Sign in</LinkButton> : membership ? <LinkButton to={base} variant="secondary">Open workspace</LinkButton> : undefined}
         />
         <div className="lv-l10-body"><CommunityNav slug={hub.slug} hubId={hub.hub_id} /><Outlet context={ctx} /></div>
-        <p className="lv-powered">Powered by <img src="/brand/lunchvoice-mark.svg" alt="" height={16} width={16} /> <strong>LunchVoice</strong></p>
+        <p className="lv-powered">Powered by <LvMark size={16} /> <strong>LunchVoice</strong></p>
       </div>
     );
   }

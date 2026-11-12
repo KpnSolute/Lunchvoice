@@ -6,6 +6,21 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed (logo invisible on dark surfaces, founder report 2026-11-12)
+
+- The LunchVoice mark was an `<img>` of a file with ink-coloured letters, so on a dark surface (the survey player's
+  "Powered by" line, the dark theme header, sign-in card and Hub footer) only the amber bubble showed. New
+  `src/components/LvMark.tsx` draws it inline: the L and V take the text colour of the surface, the bubble and bowl stay
+  amber. It replaces the image in the header, footer, sign-in card, Hub "Powered by" and the player, and the CSS colour
+  filters that patched the homepage header and footer are removed. `e2e/sitecta.test.mjs` checks the letters contrast
+  with their background in light and dark and that no fixed-colour logo image is rendered.
+
+### Changed (waitlist action back in the brand amber, founder feedback 2026-11-11)
+
+- The Hub action ("Join the waitlist" before billing, "Create your Hub" after) is the amber primary button again in the
+  header on every page, in the homepage waitlist band and on the Starter Hub card. In the hero it stays outlined beside
+  "Start a free survey", which is the primary action there.
+
 ### Changed (UI and interaction review, 2026-11-11 handoff)
 
 - **One billing state drives every call to action.** `src/lib/billingState.ts` (pure, 9 unit tests) and

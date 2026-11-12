@@ -1,3 +1,4 @@
+import { LvMark } from "../components/LvMark";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
@@ -50,7 +51,7 @@ const MARKETING_LINKS = [
 function Brand() {
   return (
     <Link to="/" className="lv-brand" aria-label="LunchVoice home">
-      <img src="/brand/lunchvoice-mark.svg" alt="" height={28} width={28} />
+      <LvMark size={28} />
       <span>LunchVoice</span>
     </Link>
   );
@@ -109,14 +110,13 @@ function MarketingMenu({ signedIn }: { signedIn: boolean }) {
 }
 
 /** The pinned header action: the waitlist before billing opens, the purchase path after (src/lib/billingState.ts). */
-function HeaderCta({ ink }: { ink: boolean }) {
+function HeaderCta() {
   const { state } = useBilling();
   const { pathname } = useLocation();
   const cta = headerCta(state, pathname);
   if (!cta) return null;
-  // On the homepage the hero holds the one primary action, so this one is outlined there.
   return (
-    <Button asChild variant={ink ? "quiet" : "primary"} size="md" className={ink ? "lv-header-signin" : undefined} data-lv-cta="header">
+    <Button asChild variant="primary" size="md" data-lv-cta="header">
       <Link to={cta.to}>{cta.label}</Link>
     </Button>
   );
@@ -169,7 +169,7 @@ function ShellInner() {
                   <Link to="/signin">Sign in</Link>
                 </Button>
               )}
-              <HeaderCta ink={ink} />
+              <HeaderCta />
             </>
           )}
           {marketing && <MarketingMenu signedIn={Boolean(session)} />}
@@ -193,7 +193,7 @@ function Footer() {
     <footer className="lv-footer">
       <div className="lv-footer-inner">
         <span className="lv-footer-brand">
-          <img src="/brand/lunchvoice-mark.svg" alt="" height={26} width={26} />
+          <LvMark size={26} />
           <strong>LunchVoice</strong>
         </span>
         <nav className="lv-footer-nav" aria-label="Footer">
@@ -238,7 +238,7 @@ export function SignIn() {
   return (
     <div className="lv-narrow">
       <Card className="lv-signin">
-        <img src="/brand/lunchvoice-mark.svg" alt="" height={44} width={44} />
+        <LvMark size={44} />
         <h1 className="lv-signin-title">Sign in to LunchVoice</h1>
         {ended && (
           <Notice tone="info" title="You were signed out">

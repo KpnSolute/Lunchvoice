@@ -98,7 +98,7 @@ function WaitlistBand() {
             </p>
           )}
           <div className="lv-l-actions">
-            <Button asChild variant="secondary" size="lg" data-lv-cta="waitlist-band"><Link to={ctas.hub.to}>{ctas.hub.label}</Link></Button>
+            <Button asChild variant="primary" size="lg" data-lv-cta="waitlist-band"><Link to={ctas.hub.to}>{ctas.hub.label}</Link></Button>
           </div>
         </div>
         <div className="lv-l-seats" aria-live="polite">
@@ -281,7 +281,7 @@ export function Landing() {
               <div className="lv-l-plan-price"><strong>{p.priceLabel}</strong><span>{p.cadence}</span></div>
               <ul>{p.features.slice(0, 5).map((f) => <li key={f}><Icon name="check" size={16} />{f}</li>)}</ul>
               {p.id === "free" && <Button asChild variant="secondary" size="lg" block><Link to={ctas.primary.to}>{ctas.primary.label}</Link></Button>}
-              {p.id === "starter" && <Button asChild variant="secondary" size="lg" block data-lv-cta="plan-starter"><Link to={ctas.hub.to}>{ctas.hub.label}</Link></Button>}
+              {p.id === "starter" && <Button asChild variant="primary" size="lg" block data-lv-cta="plan-starter"><Link to={ctas.hub.to}>{ctas.hub.label}</Link></Button>}
               {p.id === "team" && <Button asChild variant="secondary" size="lg" block><Link to="/pricing">See every plan</Link></Button>}
             </div>
           ))}

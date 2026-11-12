@@ -112,3 +112,25 @@ test("touch targets and type size on the homepage (phone)", async () => {
   await page.getByText("Type the six-character code first.").waitFor();
   await ctx.close();
 });
+
+test("the LunchVoice mark follows the surface: light letters on dark, dark letters on light", async () => {
+  const lum = (rgb) => { const [r, g, b] = rgb.match(/\d+/g).map(Number); return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; };
+  for (const theme of ["light", "dark"]) {
+    const { page, go, ctx } = await open({ signedIn: false, theme }, false);
+    for (const path of ["/", "/pricing", "/signin"]) {
+      await go(path);
+      assert.equal(await page.locator('img[src*="lunchvoice-mark"]').count(), 0, `${theme} ${path}: a fixed-colour logo image`);
+      const marks = await page.locator("svg[data-lv-mark]").evaluateAll((els) => els.map((el) => {
+        let bg = "rgba(0, 0, 0, 0)";
+        for (let n = el.parentElement; n && /rgba\(0, 0, 0, 0\)|transparent/.test(bg); n = n.parentElement) {
+          const cs = getComputedStyle(n);
+          bg = cs.backgroundImage !== "none" ? (cs.backgroundImage.match(/rgba?\([^)]+\)/) ?? [bg])[0] : cs.backgroundColor;
+        }
+        return { fill: getComputedStyle(el.querySelector("polygon")).fill, bg };
+      }));
+      assert.ok(marks.length >= 1, `${theme} ${path}: no mark`);
+      for (const m of marks) assert.ok(Math.abs(lum(m.fill) - lum(m.bg)) > 0.5, `${theme} ${path}: letters ${m.fill} on ${m.bg}`);
+    }
+    await ctx.close();
+  }
+});
