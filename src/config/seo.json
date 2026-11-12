@@ -2,7 +2,7 @@
   "note": "Search metadata. The single source for the runtime <Seo/> component (src/ui/Seo.tsx) and the build-time prerender (scripts/seo-prerender.mjs), which writes per-page HTML, sitemap.xml and robots.txt into dist/. Only paths listed under pages are indexable; every other route is served noindex. Hubs are never indexed here: a customer's Hub is its own, and listing is the Discover feature's job.",
   "siteUrl": "https://lunchvoice.com",
   "siteName": "LunchVoice",
-  "titleSuffix": " \u00b7 LunchVoice",
+  "titleSuffix": " · LunchVoice",
   "defaultTitle": "LunchVoice: anonymous surveys and polls for any community",
   "defaultDescription": "Build a survey in minutes, share it by QR code or a six-character code, and see anonymous, privacy-safe results live. Free Quick Surveys; Hubs for communities from $13/month.",
   "image": "/og-image.png",
@@ -24,6 +24,15 @@
       "description": "Ask with a free Quick Survey or give your community a Hub. Campaigns move from draft to scheduled to open to closed, and results show totals only, with small groups withheld.",
       "h1": "How LunchVoice works",
       "body": "Ask with a Quick Survey: up to 5 active surveys of up to 10 questions, shared by link, QR code, a six-character code or invite links. Or give your community a Hub with members, roles, pages and Campaigns. Results show totals only; a group too small to stay anonymous is withheld, and a withheld value is never shown as zero.",
+      "changefreq": "monthly",
+      "priority": 0.8
+    },
+    {
+      "path": "/products",
+      "title": "LunchVoice products: feedback, Hubs, Discord and API",
+      "description": "Everything LunchVoice does, in six parts: free feedback tools, Hubs for your community, Campaigns for your members, Discord, an API, and privacy built into every answer.",
+      "h1": "LunchVoice products",
+      "body": "Ask with free surveys, polls, ratings and open feedback. Give your community a Hub at its own address, run Campaigns for your members, post them to Discord, run it all from the API, and keep anonymous answers anonymous.",
       "changefreq": "monthly",
       "priority": 0.8
     },

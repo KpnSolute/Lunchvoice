@@ -151,7 +151,7 @@ test("badges are icons with a meaning: the Owner crown and Discover listing expl
 });
 
 test("launch plan UI gate: light, dark and high contrast at 390, 768 and 1280 with no sideways scroll", async () => {
-  const routes = ["/", "/pricing", "/me", "/surveys", "/northside-running", "/northside-running/campaigns", "/northside-running/members", "/settings"];
+  const routes = ["/", "/pricing", "/products", "/products/hubs", "/products/developers", "/me", "/surveys", "/northside-running", "/northside-running/campaigns", "/northside-running/members", "/settings"];
   for (const theme of ["light", "dark", "hc"]) {
     for (const width of [390, 768, 1280]) {
       const { page, go, ctx, errors } = await openPage(app, { width, height: 900, theme });

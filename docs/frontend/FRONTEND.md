@@ -22,6 +22,7 @@ route without an entry. Launch routes:
 | `/` | landing, 1:1 from the design handoff, with the Founding waitlist band |
 | `/waitlist` (`/whitelist` redirects) | Founding seats: seat counter, sign-in-then-join, optional email with consent |
 | `/pricing` | founder's capability table from `src/config/pricing.ts`; checkout disabled with a reason |
+| `/products`, `/products/:slug` | the six product pages from `src/config/products.json`; "By plan" rows read from `lv_plan_limits` |
 | `/signin`, `/auth/callback` | KpnIdentity sign-in (unchanged flow) |
 | `/me` | dashboard: Hubs, Hub credits, Quick Surveys (N/5), plan and waitlist state |
 | `/surveys`, `/surveys/new`, `/surveys/:id`, `/surveys/:id/results` | Quick Surveys on the shared Studio and results |
