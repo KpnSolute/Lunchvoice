@@ -20,9 +20,9 @@ same neutral card, with no name or count. It logs nothing and stores nothing.
 
 ```bash
 cd workers/hub-card
-npx wrangler login
-npx wrangler secret put SUPABASE_ANON_KEY   # paste the public anon key (the same value as VITE_SUPABASE_ANON_KEY)
-npx wrangler deploy
+npx wrangler@4 login
+npx wrangler@4 secret put SUPABASE_ANON_KEY   # paste the public anon key (the same value as VITE_SUPABASE_ANON_KEY)
+npx wrangler@4 deploy
 ```
 
 Check: `curl -s -A Discordbot https://lunchvoice.com/h/<a public hub> | grep og:title`, then paste the link in Discord.

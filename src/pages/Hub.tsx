@@ -16,6 +16,7 @@ import { Icon, type IconName } from "../components/Icon";
 import { HubMark } from "../ui/HubMark";
 import { HubProfile } from "../ui/HubProfile";
 import { ShareHubDialog } from "../components/ShareHub";
+import { IconBadge } from "../components/IconBadge";
 import { accentVars, onAccent } from "../lib/accent";
 import { HubAppearance } from "./HubAppearance";
 import { StateScreen } from "../ui/StateScreen";
@@ -154,11 +155,11 @@ export function HubLayout() {
     <div className="ui-page lv-hubscope" style={accentVars(hub.accent_hex ?? null)} data-accent={hub.accent ?? undefined}>
       <HubProfile
         hub={hub}
+        owner={owner}
         compact
         actions={
           <>
-            {plan && <Badge variant={plan.state === "active" ? "ok" : plan.state === "expired" ? "danger" : "neutral"}>{familyName(plan.family)}{plan.state === "expired" ? " · expired" : ""}</Badge>}
-            {owner && <Badge variant="ink">Owner</Badge>}
+            {plan?.state === "expired" && <Badge variant="danger">{familyName(plan.family)} · ended</Badge>}
             <ShareHubDialog hub={hub} trigger={<Button variant="secondary" size="md" data-testid="hub-share-open"><Icon name="join" size={16} />Share</Button>} />
             {!owner && session && <HubReportMenu hub={hub} />}
           </>
@@ -345,7 +346,7 @@ export function HubOverview() {
             <SectionTitle action={waiting > 0 ? <LinkButton to={`/${hub.slug}/members`} variant="quiet" size="sm">{waiting} waiting</LinkButton> : undefined}>People</SectionTitle>
             <RowList>
               {accepted.slice(0, 4).map((m) => (
-                <RowItem key={m.membership_id} leading={<HubMark name={m.display_name ?? "Member"} size={34} />} title={m.display_name ?? "Member"} trailing={<span className="ui-muted lv-small">{m.is_owner ? "Owner" : m.roles[0]?.name ?? "Member"}</span>} />
+                <RowItem key={m.membership_id} leading={<HubMark name={m.display_name ?? "Member"} size={34} />} title={m.display_name ?? "Member"} trailing={m.is_owner ? <span className="ui-row"><IconBadge kind="owner" /><span className="ui-muted lv-small">Owner</span></span> : <span className="ui-muted lv-small">{m.roles[0]?.name ?? "Member"}</span>} />
               ))}
             </RowList>
             <LinkButton to={`/${hub.slug}/members`} variant="quiet" size="sm" icon="arrow">All members</LinkButton>
@@ -462,8 +463,11 @@ export function Members() {
             <TableBody>
               {accepted.map((m) => (
                 <TableRow key={m.membership_id}>
-                  <TableCell><span className="lv-member-name">{m.display_name ?? "Member"} {m.is_owner && <Badge variant="ink">Owner</Badge>}</span></TableCell>
-                  <TableCell><div className="ui-row">{m.roles.length === 0 ? <span className="ui-muted">—</span> : m.roles.map((r) => <Badge key={r.key}>{r.name}</Badge>)}</div></TableCell>
+                  <TableCell><span className="lv-member-name">{m.display_name ?? "Member"} {m.is_owner && <IconBadge kind="owner" />}</span></TableCell>
+                  <TableCell><div className="ui-row">{m.roles.length === 0 ? <span className="ui-muted">—</span> : m.roles.map((r) => {
+                    const icon = roles.data?.roles.find((x) => x.key === r.key)?.icon;
+                    return <span key={r.key} className="lv-role-pill"><Icon name={(icon && ROLE_ICONS.includes(icon as IconName) ? icon : "star") as IconName} size={14} />{r.name}</span>;
+                  })}</div></TableCell>
                   <TableCell>
                     <div className="lv-member-actions">
                       {can(membership, "admin.roles.manage") && !m.is_owner && (roles.data?.roles.length ?? 0) > 0 && (

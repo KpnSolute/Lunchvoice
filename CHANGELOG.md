@@ -26,6 +26,11 @@ categories and the repository's decimal `X.X.X` release policy.
   (`theme-color`), and sends people on to the Hub. Supabase functions cannot serve HTML and Render cannot vary it per Hub;
   the domain is on Cloudflare. Private and missing Hubs get the same neutral card. 6 tests (`npm run test:workers`, now in
   `test:pr`). **Not deployed:** needs `wrangler deploy` from the founder's Cloudflare account (README in the folder).
+- **Badges are icons with a meaning** (Discord-style, founder direction 2026-11-12): `src/config/badges.ts` and
+  `IconBadge`. A small coloured icon after a name, each with a tooltip and an accessible label: Owner (crown), Founding Hub
+  (sprout, founding plan), Team Hub (star, active Team plan) and Listed on Discover (shield-check, approved listing). Shown
+  only when the data says so. Roles in the member list show their own icon. Text badges remain for states that need words
+  (an ended plan, Campaign phases).
 - **LunchVoice's own Hub:** `COMMUNITY_HUB_SLUG = "kitchen"` in `src/config/contact.ts`. The home page shows a "Pull up a
   seat in the Kitchen" section with its card only while `lv_hub_get("kitchen")` returns a public Hub. The founder creates
   it through the normal flow; nothing is seeded or reserved.

@@ -7,6 +7,7 @@ import type { HubInfo } from "../lib/lvApi";
 import { hubShareUrl, inviteMessage } from "../lib/hubShare";
 import { Icon } from "./Icon";
 import { HubCard } from "./HubCard";
+import { hubBadges } from "../config/badges";
 import { Button } from "@/components/shadcn/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/shadcn/dialog";
 import { QrCode } from "@/components/shadcn/blocks/qr";
@@ -48,7 +49,7 @@ export function ShareHubDialog({ hub, trigger }: { hub: HubInfo; trigger: React.
           </div>
         ) : (
           <>
-            <HubCard hub={hub} compact action={<span className="lv-hcard-fakebtn" aria-hidden="true">{hub.membership_mode === "open" ? "Join" : "View Hub"}</span>} testId="share-preview" />
+            <HubCard hub={hub} compact badges={hubBadges(hub)} action={<span className="lv-hcard-fakebtn" aria-hidden="true">{hub.membership_mode === "open" ? "Join" : "View Hub"}</span>} testId="share-preview" />
             <div className="lv-share-link">
               <code data-testid="share-url">{url.replace("https://", "")}</code>
               <Button variant="primary" size="md" onClick={async () => { if (await copy(url, "Link")) flash("link"); }} data-testid="share-copy">

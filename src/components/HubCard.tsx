@@ -7,6 +7,8 @@ import type { MembershipMode } from "../lib/lvApi";
 import { onAccent } from "../lib/accent";
 import { HubMark } from "../ui/HubMark";
 import { JOIN_LABEL, establishedLine, memberLine } from "../lib/hubShare";
+import { BadgeRow } from "./IconBadge";
+import type { BadgeKey } from "../config/badges";
 
 export interface HubCardData {
   name: string;
@@ -25,7 +27,7 @@ export interface HubCardData {
 }
 
 /** `to` makes the whole card one link (Discover, the home page); otherwise it is a plain card with an optional action. */
-export function HubCard({ hub, action, compact, to, testId }: { hub: HubCardData; action?: ReactNode; compact?: boolean; to?: string; testId?: string }) {
+export function HubCard({ hub, action, compact, to, testId, badges = [] }: { hub: HubCardData; action?: ReactNode; compact?: boolean; to?: string; testId?: string; badges?: BadgeKey[] }) {
   const accent = hub.accent_hex ?? null;
   const est = establishedLine(hub.created_at);
   const props = {
@@ -40,7 +42,7 @@ export function HubCard({ hub, action, compact, to, testId }: { hub: HubCardData
       <div className="lv-hcard-body">
         <span className="lv-hcard-mark"><HubMark name={hub.name} size={compact ? 56 : 68} /></span>
         <div className="lv-hcard-id">
-          <strong className="lv-hcard-name">{hub.name}</strong>
+          <strong className="lv-hcard-name">{hub.name}<BadgeRow kinds={badges} size={20} /></strong>
           <span className="lv-hcard-slug">lunchvoice.com/{hub.slug}</span>
         </div>
         <ul className="lv-hcard-stats" aria-label="About this Hub">

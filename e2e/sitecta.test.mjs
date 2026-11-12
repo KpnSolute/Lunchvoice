@@ -134,3 +134,18 @@ test("the LunchVoice mark follows the surface: light letters on dark, dark lette
     await ctx.close();
   }
 });
+
+test("badges are icons with a meaning: the Owner crown and Discover listing explain themselves", async () => {
+  const { page, go, ctx, errors } = await openPage(app);
+  await go("/northside-running/members");
+  const crown = page.locator('[data-badge="owner"]').first();
+  await crown.waitFor();
+  assert.match(await crown.getAttribute("aria-label"), /^Owner\. Created this Hub/);
+  await crown.focus();
+  await page.getByRole("tooltip").filter({ hasText: "The Owner is protected" }).waitFor();
+  // The Hub header carries the founding badge for the seeded founding Hub, and the crown for its Owner.
+  const header = page.getByTestId("hub-profile");
+  assert.equal(await header.locator('[data-badge="owner"]').count(), 1);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

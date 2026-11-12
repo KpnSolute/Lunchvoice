@@ -609,6 +609,7 @@ export function DiscoverDirectory() {
                 <HubCard
                   to={`/${h.slug}`}
                   testId="discover-hub"
+                  badges={["discover"]}
                   hub={{ name: h.name, slug: h.slug, accent_hex: accentHex(h.accent), about: h.about, membership_mode: h.membership_mode as MembershipMode, category: label(h.category) ?? null, members_label: `${h.members_rounded.toLocaleString("en-US")}+ active members` }}
                   action={<span className="lv-hcard-fakebtn" aria-hidden="true">{h.membership_mode === "open" ? "Join" : "View Hub"}</span>}
                 />
