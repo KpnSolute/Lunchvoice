@@ -35,6 +35,22 @@
       "milestone": "M2"
     },
     {
+      "path": "/products",
+      "name": "Products (the six product pages)",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M2"
+    },
+    {
+      "path": "/products/:slug",
+      "name": "Product page (who it is for, by plan, how it fits, price)",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M2"
+    },
+    {
       "path": "/pricing",
       "name": "Pricing",
       "layout": "L1",

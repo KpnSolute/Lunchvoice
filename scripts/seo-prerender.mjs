@@ -20,8 +20,8 @@ const FALLBACK_MARK = "<!--lv:seo-fallback-->";
 export const DISALLOW = ["/auth/", "/signin$", "/me$", "/settings$", "/create$", "/join$", "/j/", "/c/", "/s/", "/surveys$", "/surveys/", "/reserve$", "/admin$"];
 
 /**
- * Indexable pages = the hand-written ones in seo.json plus one page per use case in useCases.json (which is also the
- * source of the /use-cases/<slug> page itself). Everything downstream reads seo.pages, so this is the one merge point.
+ * Indexable pages = the hand-written ones in seo.json (including /products), one page per product in products.json
+ * and one per use case in useCases.json (each file is also the source of its page). Everything downstream reads seo.pages, so this is the one merge point.
  */
 export function useCasePage(u, template) {
   const questions = (template?.questions ?? []).map((q) => q.prompt).join(" ");
@@ -36,10 +36,24 @@ export function useCasePage(u, template) {
   };
 }
 
+/** One indexable page per product in products.json (the same file the /products/<slug> page renders). */
+export function productPage(p) {
+  return {
+    path: `/products/${p.slug}`,
+    title: p.title,
+    description: p.description,
+    h1: p.h1,
+    body: `${p.lede} ${p.points.map((x) => `${x.title}. ${x.body}`).join(" ")}`,
+    changefreq: "monthly",
+    priority: 0.8,
+  };
+}
+
 export function loadSeo(root = ".") {
   const seo = JSON.parse(readFileSync(join(root, "src/config/seo.json"), "utf8"));
   const { useCases } = JSON.parse(readFileSync(join(root, "src/config/useCases.json"), "utf8"));
-  return { ...seo, pages: [...seo.pages, ...useCases.map((u) => useCasePage(u, null))], useCases };
+  const { products } = JSON.parse(readFileSync(join(root, "src/config/products.json"), "utf8"));
+  return { ...seo, pages: [...seo.pages, ...products.map(productPage), ...useCases.map((u) => useCasePage(u, null))], useCases, products };
 }
 
 export function escapeHtml(s) {

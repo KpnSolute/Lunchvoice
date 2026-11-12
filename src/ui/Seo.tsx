@@ -2,12 +2,16 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import seo from "../config/seo.json";
 import useCaseData from "../config/useCases.json";
+import productData from "../config/products.json";
 
 export type SeoPage = (typeof seo.pages)[number];
 
-/** Hand-written pages plus one per use case (the same merge scripts/seo-prerender.mjs does for the build). */
+/** Hand-written pages plus one per product and one per use case (the same merge scripts/seo-prerender.mjs does for the build). */
 const PAGES: SeoPage[] = [
   ...seo.pages,
+  ...productData.products.map((p) => ({
+    path: `/products/${p.slug}`, title: p.title, description: p.description, h1: p.h1, body: p.lede, changefreq: "monthly", priority: 0.8,
+  })),
   ...useCaseData.useCases.map((u) => ({
     path: `/use-cases/${u.slug}`, title: u.title, description: u.description, h1: u.h1, body: u.lede, changefreq: "monthly", priority: 0.7,
   })),
