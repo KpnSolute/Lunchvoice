@@ -533,7 +533,7 @@ export function Settings() {
         <Card>
           <SectionTitle>Profile</SectionTitle>
           <form className="lv-stack-16" onSubmit={(e) => { e.preventDefault(); void saveName(); }}>
-            <Field label="Display name" htmlFor="display-name" help="Shown to Hub managers on identified Campaigns and member lists. Never on anonymous answers." counter={{ value: current.length, max: 60 }}>
+            <Field label="Display name" htmlFor="display-name" help="Shown to Hub managers on identified Campaigns and member lists. Never on anonymous answers, and never an email address." counter={{ value: current.length, max: 60 }}>
               <Input id="display-name" value={current} maxLength={60} onChange={(e) => setName(e.target.value)} aria-describedby="display-name-help" />
             </Field>
             <div className="ui-row"><Button type="submit" variant="ink" disabled={saving || !current.trim()}>{saving ? "Saving…" : "Save name"}</Button></div>

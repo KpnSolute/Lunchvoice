@@ -6,6 +6,23 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed (audit P3, founder decision 2026-11-12: a display name is never an email address)
+
+- **Migration `000040_v2_display_name_never_email`:** `lv.safe_display_name(name, email)` keeps a name without "@";
+  otherwise it uses the part before the @ with leading and trailing digits trimmed, and "Member" when nothing is left.
+  `lv.ensure_account` creates accounts through it and no longer caches an "@" token name in
+  `account_identities.display_name` (KpnIdentity sends the email as `name` for email/password sign-ups, which is how
+  emails reached member lists). `lv_profile_update` refuses a name containing "@". `lv.accounts` gets
+  `CHECK (no "@")`, added `NOT VALID` so the migration applies over the existing rows; new and updated rows are
+  checked at once. Rollback: `supabase/rollbacks/000040_…down.sql` (it never puts an email back).
+- **Data fix, approval only:** `scripts/data-fixes/2026-11-12_p3_display_names.sql` previews, rewrites the old rows in
+  one transaction, refuses to commit when the count differs from the preview, validates the check and writes one
+  audit event. Not a migration and not run anywhere. Production preview (read only, 2026-11-12): 2 of 5 accounts
+  and 2 cached identity names would change.
+- **Tests:** `supabase/tests/40_display_name_never_email.sql` (helper cases, new account from an email-shaped token,
+  profile editor, table check). `scripts/db-test-canonical.sh`: 1329 checks, 0 failed; rollback rehearsal passes.
+  The dev mock and the Account help text match the rule.
+
 ### Fixed (pre-launch audit 2026-11-12, first batch: LunchVoice-side quick wins)
 
 Source: "LunchVoice.com Pre-Launch Audit — Results" and "KpnAuth Review" (2026-11-12). This batch covers the items that

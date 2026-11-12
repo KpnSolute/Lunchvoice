@@ -350,7 +350,8 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
     /* ---------------- account ---------------- */
     case "lv_profile_update": {
       const name = String(a.p_display_name ?? "").trim();
-      if (name.length < 1 || name.length > 60) return err("lv_invalid_input", "Display name must be 1 to 60 characters");
+      if (name.length < 1 || name.length > 80) return err("lv_invalid_input", "A display name is 1 to 80 characters.");
+      if (name.includes("@")) return err("lv_invalid_input", "A display name can’t contain @, so it never shows an email address."); // 000040
       s.me.display_name = name;
       for (const h of s.hubs) for (const m of h.members) if (m.account_id === "mock-account") m.display_name = name;
       return { ok: true, account: { account_id: "mock-account", display_name: name } };
