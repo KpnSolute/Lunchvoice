@@ -2,13 +2,11 @@
   "version": 1,
   "ignoreValues": {
     "overused-font": [
-      "Fraunces",
-      "Space Grotesk",
       "Space Mono",
       "Arial"
     ]
   },
-  "reason": "Fraunces/Space Grotesk/Space Mono are the project's intentional receipt-ticket type system, carried over from the provided template and confirmed by the user. Arial is a web-safe fallback required for HTML email.",
+  "reason": "Space Mono is LunchVoice's data typeface (codes, addresses, numbers; --lv-font-mono in src/ui/tokens.css), an intentional part of the type system with Bricolage Grotesque (display) and Geist (UI). Arial is a web-safe fallback required for HTML email. Corrected 2026-11-12: the earlier entries for Fraunces and Space Grotesk described a retired type system that the product no longer uses, so they are no longer exempt.",
   "detector": {
     "ignoreRules": [],
     "ignoreFiles": [],

@@ -2,9 +2,12 @@ import { createClient } from "@supabase/supabase-js";
 import { createLvApi, type LvApi, type LvTransport } from "./lvApi";
 import { createMockTransport } from "./mockTransport";
 import { rpcFailure, SESSION_ENDED_MESSAGE } from "./authFailure";
+import { keyOnlyInApikey } from "./apiKey";
 
 const url = import.meta.env.VITE_SUPABASE_URL;
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// The publishable key (sb_publishable_...) replaces the legacy anon key, which Supabase retires; either works until then.
+const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
+
 
 // Real transport: all data operations are lv_api functions, authenticated with
 // the KpnIdentity token. No table access.
@@ -12,6 +15,7 @@ function realTransport(getToken: () => string | null, onAuthFailure?: () => void
   const client = createClient(url as string, key as string, {
     db: { schema: "lv_api" },
     auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: keyOnlyInApikey(key as string) },
     accessToken: async () => getToken(),
   });
   return {
@@ -27,7 +31,7 @@ function realTransport(getToken: () => string | null, onAuthFailure?: () => void
       const token = getToken();
       const res = await fetch(`${String(url).replace(/\/+$/, "")}/functions/v1/${fn}`, {
         method: "POST",
-        headers: { "content-type": "application/json", apikey: key as string, authorization: `Bearer ${token ?? key}` },
+        headers: { "content-type": "application/json", apikey: key as string, ...(token ? { authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify(body),
       });
       if (res.status === 401 && token) {

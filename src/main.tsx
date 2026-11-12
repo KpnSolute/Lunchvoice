@@ -1,3 +1,4 @@
+import { HubShareRedirect } from "./components/ShareHub";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
@@ -27,6 +28,7 @@ import "./ui/shadcn.css";
 import "./index.css";
 import "./ui/ui.css";
 import "./ui/app.css";
+import "./ui/hub.css";
 import "./ui/motion.css";
 import "./styles/system.css";
 import "./styles/landing.css";
@@ -67,6 +69,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="auth/callback" element={<AuthCallback />} />
             <Route path="join" element={<Join />} />
             <Route path="j/:code" element={<RedeemInvite />} />
+            <Route path="h/:slug" element={<HubShareRedirect />} />
             <Route path="me" element={<RequireSignIn><Me /></RequireSignIn>} />
             <Route path="create" element={<RequireSignIn><CreateHub /></RequireSignIn>} />
             <Route path="settings" element={<RequireSignIn><Settings /></RequireSignIn>} />

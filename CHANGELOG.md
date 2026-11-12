@@ -6,6 +6,108 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (native design skills for Claude Code and Codex, founder assignment 2026-11-12)
+
+- **Three project skills**, discovered natively by both agents: `design-system` (follow the system on every visible UI
+  change), `frontend-design` (polished new screens within the fixed identity; adapted from Anthropic's Apache-2.0
+  `frontend-design` skill, with `LICENSE.txt` and `NOTICE.md`), `design-element-authoring` (discover, evaluate,
+  specify, design, implement, register, test, document, approve, release; founder approval for new token values and
+  global rules). Canonical copies in `.agents/skills/` (Codex), byte-for-byte mirrors in `.claude/skills/`
+  (Claude Code); `.gitattributes` pins LF endings so Windows checkouts stay identical.
+- **Shared guidance** in `docs/frontend/design-system/`: `README.md` (source order with `tokens.css` first, identity,
+  token map, component map, known inconsistencies), `COMPONENT_STANDARDS.md` (rules and the new-component spec),
+  `DESIGN_EXTENSIONS.md` (lifecycle, approval table, proposal template, recorded extensions), `AGENT_WORKFLOW.md`
+  (invocation, maintenance, verification record).
+- **Checks:** `scripts/skills.mjs` (`npm run skills:sync`; validates metadata, references, licence and that both copies
+  match), `scripts/check-gallery.mjs` (every reusable component shown at `/__gallery` or exempted with a reason),
+  together `npm run check:design`, now part of `test:pr` and `test:light`. `scripts/verify-skills-live.mjs`
+  (`npm run skills:verify`) asks the installed CLIs what they discover. 11 script tests; e2e: the gallery renders every
+  section in light, dark and high contrast with no errors.
+- **Frontend Design Protocol** in `AGENTS.md` and `CLAUDE.md` (identical): when to use each skill, the checks before
+  finishing, approval for global changes, explicit invocation commands. UI-only; other tasks skip it.
+- **Gallery:** brand (`LvMark`), Hub identity (`HubProfile`, `HubCard`, `ShareHubDialog`), badges, results and charts
+  (`ResultBars`, `WithheldTag`, `TextAnswers`, `Bars`, `DistributionColumns`, `TrendLine`, `CountUp`), rows, QR, alerts
+  and the full icon set.
+- **Verified:** Claude Code 2.1.322 discovers all three (48 skills in the repo, 45 outside) and, in read-only runs with
+  prompts that did not name a skill, chose `design-system` for a Hub card, `design-element-authoring` for a progress
+  indicator (after checking existing components) and for a warning token (proposal, stopped for approval). Codex CLI
+  0.167.2 lists all three from `.agents/skills` in its model-visible prompt (`codex debug prompt-input`). Not verified:
+  Codex running the scenarios live (no OpenAI login here).
+
+### Changed
+
+- `.impeccable/config.json`: the font exemptions named Fraunces and Space Grotesk, a retired type system; now Space Mono
+  (the data typeface) and Arial (email), with the reason updated. Gallery and `FRONTEND.md` wording follows design
+  system 3. `src/ui/HubCover.tsx` removed (unused since the Hub profile header).
+
+### Found (recorded, not changed: needs a founder decision)
+
+- Warnings inside a Hub take the Hub's colour: the `warn` notice uses `--lv-accent`, which `.lv-hubscope` replaces.
+  A semantic warning token was proposed by the scenario C run; adopting it needs approval.
+- Two duration scales: `--lv-dur-*` in `tokens.css` and `--lv-d1/2/3` in `src/ui/motion.css`.
+- `src/index.css` keeps legacy aliases (including the old glossy `--cta-shadow`) for pre-shadcn classes.
+
+### Changed (design system 3: UI element rebuild, Hub identity and sharing, founder direction 2026-11-12)
+
+- **Element rebuild** (tokens and `src/components/shadcn/`, so every page follows): solid surfaces with hairlines instead of
+  gradients and glows; rounded-rectangle buttons (pill shape and hover lift gone, springy press kept); disabled buttons
+  neutral grey; white input fields with a clear focus ring; selected radio cards, segmented tabs and phone tabs use a tint
+  and outline (solid amber kept for answer choices in surveys and status badges); labels in the UI font, sentence case
+  (Space Mono only for codes and numbers); badges as small rounded tags at 12px (they were 10.5px); one full-width header
+  bar. Segmented filters scroll in one row on phones. `DESIGN.md` documents the rules.
+- **Hub profile header** (`src/ui/HubProfile.tsx`): a banner in the Hub's colour with its mark overlapping it, the name,
+  address, member count, how to join, visibility and a Share button. Replaces the coloured strip and title on member pages
+  and the cover on visitor pages. The visitor join card no longer repeats the about line or shows "public" as a number.
+- **Hub card** (`src/components/HubCard.tsx`): the Discord-style card used on Discover, in the share dialog and on the home
+  page. Online count, tags and "Est." date render only when the backend sends them (requested in `API_CONTRACT.md`).
+- **Share dialog** (`src/components/ShareHub.tsx`): card preview, the `lunchvoice.com/h/<slug>` share link, "Copy invite
+  message", the phone share sheet and a QR code. `/h/<slug>` forwards to the Hub in the app (route added, `h` reserved).
+- **Share links live on `hub.lunchvoice.com/<slug>`** (deployed 2026-11-12 through the Cloudflare API via Composio).
+  lunchvoice.com points at Render with a proxied A record, and Cloudflare only runs a zone's Workers in front of a Render
+  site through a proxied CNAME (O2O), so the `lunchvoice.com/h/*` route never fired (checked: responses came straight
+  from Render's cache). The Worker now answers on its own Custom Domain: verified live, Discordbot gets "Kitchen on
+  LunchVoice", "3 members · Open to join", the about line and `theme-color` #1D4ED8; people get a 302 to
+  `lunchvoice.com/kitchen`; an unknown slug gets the neutral card; `/` goes to Discover. The Share dialog copies the
+  new link; `lunchvoice.com/h/<slug>` still forwards to the Hub. Bindings: `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`
+  (plain text; the old anon-key secret was dropped). Also set: Render `VITE_SUPABASE_PUBLISHABLE_KEY` on the Lunchvoice
+  static site and the Supabase Edge Function secret `LV_PUBLISHABLE_KEY`.
+- **Link previews per Hub** (`workers/hub-card`): a Cloudflare Worker for the route `lunchvoice.com/h/*` gives Discord,
+  Slack, X, WhatsApp and iMessage a card with the Hub's name, member count, how to join, about line and colour
+  (`theme-color`), and sends people on to the Hub. Supabase functions cannot serve HTML and Render cannot vary it per Hub;
+  the domain is on Cloudflare. Private and missing Hubs get the same neutral card. 6 tests (`npm run test:workers`, now in
+  `test:pr`). **Not deployed:** needs `wrangler deploy` from the founder's Cloudflare account (README in the folder).
+- **Badges are icons with a meaning** (Discord-style, founder direction 2026-11-12): `src/config/badges.ts` and
+  `IconBadge`. A small coloured icon after a name, each with a tooltip and an accessible label: Owner (crown), Founding Hub
+  (sprout, founding plan), Team Hub (star, active Team plan) and Listed on Discover (shield-check, approved listing). Shown
+  only when the data says so. Roles in the member list show their own icon. Text badges remain for states that need words
+  (an ended plan, Campaign phases).
+- **v2 docs brought up to date:** `docs/v2/LAUNCH_PLAN.md` definition of done ticked against evidence (two release items
+  wait on the founder); `docs/v2/V2_STATUS_2026-11-12.md` records the evidence for every launch and build-plan item and
+  what is waiting on the founder; `docs/v2/handoffs/2026-11-12-ui-design-system-3.md` hands the general UI pass to a
+  separate agent. New e2e gate: 8 main routes in light, dark and high contrast at 390, 768 and 1280 with no sideways
+  scroll and no console errors. Badge tooltips stack the label over the meaning, left aligned, with an arrow.
+- **Ready for Supabase's new API keys** (founder note 2026-11-12: the legacy anon and service-role keys are retired in
+  early 2027). The app prefers `VITE_SUPABASE_PUBLISHABLE_KEY` (falls back to the anon key) and sends keys only in the
+  `apikey` header: `src/lib/apiKey.ts` strips the copy supabase-js puts in `Authorization: Bearer` when no one is signed
+  in, and the sign-in exchange and function calls send `Authorization` only with a person's token. Functions:
+  `supabase/functions/_shared/keys.ts` (publishable key from `LV_PUBLISHABLE_KEY`, `SUPABASE_PUBLISHABLE_KEYS` or the
+  legacy anon key; service secrets from `SUPABASE_SECRET_KEYS` or the legacy service-role key; no API key is ever taken
+  for a signed-in person). Checkout uses it; the email, webhook and Discord dispatchers accept the new secret keys by
+  Bearer or `apikey`. The share-preview Worker uses `SUPABASE_PUBLISHABLE_KEY`, set in `workers/hub-card/wrangler.toml` (public by design;
+  verified against production: `lv_plan_limits` answers 200 with the key in `apikey` only). Tests: 3 key tests, 2 header tests, new
+  checkout and dispatch cases. Switch-over steps: `docs/backend/PRODUCTION_RESET_RUNBOOK.md`, "Retiring the legacy anon
+  and service-role keys".
+- **LunchVoice's own Hub:** `COMMUNITY_HUB_SLUG = "kitchen"` in `src/config/contact.ts`. The home page shows a "Pull up a
+  seat in the Kitchen" section with its card only while `lv_hub_get("kitchen")` returns a public Hub. The founder creates
+  it through the normal flow; nothing is seeded or reserved.
+
+### Fixed (broken link previews, founder report 2026-11-12)
+
+- Every link preview of lunchvoice.com (Discord, Slack, iMessage) ended "Hubs for communities from <meta property=":
+  `scripts/seo-prerender.mjs` passed page text to `String.replace` as a replacement string, where "$1" means "group 1",
+  so "$13/month" became group 1 plus "3/month" and broke the tag. All replacements are now functions. New test: no tag
+  ever appears inside a meta value, and "$13", "$&", "$1$2" and "$$" render as typed.
+
 ### Fixed (logo invisible on dark surfaces, founder report 2026-11-12)
 
 - The LunchVoice mark was an `<img>` of a file with ink-coloured letters, so on a dark surface (the survey player's

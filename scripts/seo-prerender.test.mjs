@@ -115,3 +115,17 @@ test("a rewrite that points at a file the build does not write is reported", () 
   const dropped = { ...seo, pages: [...seo.pages, { path: "/not-built" }] };
   assert.deepEqual(missingOutputs(dir, dropped, ""), ["/not-built/index.html"]);
 });
+
+test("a $ in page text never acts as a replacement pattern (the $13/month link-preview bug)", () => {
+  for (const page of seo.pages) {
+    const html = page.path === "/" ? renderRootPage(template, seo, page) : renderPage(template, seo, page);
+    const metas = html.match(/<meta [^>]*>/g) ?? [];
+    for (const m of metas) assert.ok(!/content="[^"]*</.test(m), `${page.path}: a tag inside a meta value: ${m.slice(0, 120)}`);
+    for (const key of ['name="description"', 'property="og:description"', 'name="twitter:description"']) {
+      if (!html.includes(key)) continue;
+      assert.ok(html.includes(`${key} content="${page.description.replace(/&/g, "&amp;").replace(/"/g, "&quot;")}"`), `${page.path} ${key}`);
+    }
+  }
+  const odd = { ...seo.pages[1], description: "Costs $13/month, $& and $1$2 and $$ stay as typed, here." };
+  assert.match(renderPage(template, seo, odd), /content="Costs \$13\/month, \$&amp; and \$1\$2 and \$\$ stay as typed, here\."/);
+});

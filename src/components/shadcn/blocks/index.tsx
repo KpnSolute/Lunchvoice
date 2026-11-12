@@ -101,7 +101,7 @@ export function Field({
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor={htmlFor}>{label}</Label>
         {counter && (
-          <span className={cn("font-[family-name:var(--lv-font-mono)] text-[11.5px]", counter.value > counter.max ? "text-[var(--lv-danger)]" : "text-[var(--lv-subtle)]")}>
+          <span className={cn("font-[family-name:var(--lv-font-mono)] text-[12px]", counter.value > counter.max ? "text-[var(--lv-danger)]" : "text-[var(--lv-subtle)]")}>
             {counter.value}/{counter.max}
           </span>
         )}
@@ -163,7 +163,7 @@ export function Segmented<T extends string>({
       disabled={disabled}
       onValueChange={(v) => onValueChange(v as T)}
       orientation="horizontal"
-      className={cn("surface-well inline-flex max-w-full flex-wrap gap-1.5 rounded-full p-1.5", className)}
+      className={cn("surface-well inline-flex max-w-full flex-nowrap gap-1.5 overflow-x-auto rounded-full p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", className)}
     >
       {options.map((o) => (
         <RadioGroupPrimitive.Item
@@ -171,8 +171,8 @@ export function Segmented<T extends string>({
           value={o.value}
           disabled={o.disabled}
           className={
-            "tactile-press tactile-focus surface-raised min-h-[40px] cursor-pointer rounded-full px-4 text-[14px] font-medium " +
-            "disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:surface-pressed data-[state=checked]:font-semibold"
+            "tactile-press tactile-focus shrink-0 min-h-[40px] cursor-pointer rounded-full bg-transparent px-4 text-[14px] font-medium text-[var(--lv-muted)] " +
+            "hover:text-[var(--lv-text)] disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:surface-raised data-[state=checked]:text-[var(--lv-text)] data-[state=checked]:font-semibold"
           }
         >
           {o.label}

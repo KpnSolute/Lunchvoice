@@ -2,7 +2,7 @@
    Layout and placement only; every surface and control comes from src/components/shadcn. */
 
 .lv-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.lv-legend { padding: 0; margin-bottom: 4px; font: 700 12px/1.2 var(--lv-font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--lv-muted); }
+.lv-legend { padding: 0; margin-bottom: 4px; font: 600 13px/1.25 var(--lv-font-ui); letter-spacing: 0.005em; text-transform: none; color: var(--lv-muted); }
 
 /* Studio */
 .lv-studio-page { max-width: 1240px; }
@@ -195,6 +195,7 @@
   --lv-pressed-bg: var(--hub-accent); --lv-pressed-shadow: none;
   --lv-accent-cta-bg: var(--hub-accent); --lv-cta-shadow: none; --lv-on-accent: var(--hub-on-accent);
   --lv-radius-field: 10px; --lv-radius-card: 14px; --lv-radius-hero: 16px;
+  --lv-selected-bg: color-mix(in srgb, var(--hub-accent) 13%, var(--lv-surface)); --lv-selected-ring: inset 0 0 0 2px var(--hub-accent);
   max-width: 1180px;
 }
 .lv-hubscope [data-slot='button'], .lv-hubscope [data-slot='nav-tab'] { border-radius: 10px; transform: none; }
@@ -213,7 +214,7 @@
 .lv-hubshell-editor { display: block; }
 .lv-hubrail { position: sticky; top: 88px; display: flex; flex-direction: column; gap: 18px; padding-top: 2px; }
 .lv-rail-group { display: flex; flex-direction: column; gap: 2px; }
-.lv-rail-heading { margin: 0 0 4px 12px; font: 700 12px/1 var(--lv-font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--lv-subtle); }
+.lv-rail-heading { margin: 0 0 4px 12px; font: 600 13px/1.25 var(--lv-font-ui); letter-spacing: 0.005em; text-transform: none; color: var(--lv-subtle); }
 .lv-rail-link {
   position: relative; display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 12px; border-radius: 8px;
   font: 500 14.5px/1 var(--lv-font-ui); color: var(--lv-muted); text-decoration: none; white-space: nowrap;

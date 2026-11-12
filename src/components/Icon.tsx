@@ -5,10 +5,14 @@ export type IconName =
   | "home" | "star" | "star-fill" | "fork" | "menu" | "survey" | "voice"
   | "store" | "orders" | "roster" | "dashboard" | "logout" | "check"
   | "chevron" | "arrow" | "coin" | "flame" | "bulb" | "plus" | "lock" | "sparkle"
-  | "settings" | "join" | "more" | "back" | "globe" | "clock" | "close";
+  | "settings" | "join" | "more" | "back" | "globe" | "clock" | "close"
+  | "crown" | "shield-check" | "sprout";
 
 const paths: Record<IconName, React.ReactNode> = {
   settings: <path d="M4 7h9m4 0h3M4 17h3m4 0h9M15 4.5v5m-6 5v5" />,
+  crown: <path d="M4 8.5 8 12l4-6.5 4 6.5 4-3.5-1.6 9.5H5.6L4 8.5zM6 20h12" />,
+  "shield-check": <path d="M12 3.2 19 6v5.2c0 4.3-2.9 8-7 9.6-4.1-1.6-7-5.3-7-9.6V6l7-2.8zM8.8 12.1l2.2 2.2 4.3-4.5" />,
+  sprout: <path d="M12 20.5V12.5M12 12.5C12 8.6 9.2 6.2 5 6.2c0 3.9 2.8 6.3 7 6.3zM12 10.8c0-3.4 2.5-5.6 6.5-5.6 0 3.4-2.5 5.6-6.5 5.6z" />,
   join: <path d="M15 7h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-3M10 8l-4 4 4 4M6 12h9" />,
   more: <path d="M6 12h.01M12 12h.01M18 12h.01" />,
   back: <path d="M19 12H5M11 6l-6 6 6 6" />,

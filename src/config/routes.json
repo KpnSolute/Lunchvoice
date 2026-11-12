@@ -147,6 +147,15 @@
       "milestone": "M1"
     },
     {
+      "path": "/h/:slug",
+      "name": "Hub share link",
+      "layout": "L2",
+      "shell": "none",
+      "access": "public",
+      "milestone": "M1",
+      "note": "Forwards to /:slug. In production the hub-card Worker (workers/hub-card) answers link-preview bots first."
+    },
+    {
       "path": "/j/:code",
       "name": "Invite preview",
       "layout": "L2",

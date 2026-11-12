@@ -134,3 +134,49 @@ test("the LunchVoice mark follows the surface: light letters on dark, dark lette
     await ctx.close();
   }
 });
+
+test("badges are icons with a meaning: the Owner crown and Discover listing explain themselves", async () => {
+  const { page, go, ctx, errors } = await openPage(app);
+  await go("/northside-running/members");
+  const crown = page.locator('[data-badge="owner"]').first();
+  await crown.waitFor();
+  assert.match(await crown.getAttribute("aria-label"), /^Owner\. Created this Hub/);
+  await crown.focus();
+  await page.getByRole("tooltip").filter({ hasText: "The Owner is protected" }).waitFor();
+  // The Hub header carries the founding badge for the seeded founding Hub, and the crown for its Owner.
+  const header = page.getByTestId("hub-profile");
+  assert.equal(await header.locator('[data-badge="owner"]').count(), 1);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test("launch plan UI gate: light, dark and high contrast at 390, 768 and 1280 with no sideways scroll", async () => {
+  const routes = ["/", "/pricing", "/me", "/surveys", "/northside-running", "/northside-running/campaigns", "/northside-running/members", "/settings"];
+  for (const theme of ["light", "dark", "hc"]) {
+    for (const width of [390, 768, 1280]) {
+      const { page, go, ctx, errors } = await openPage(app, { width, height: 900, theme });
+      for (const r of routes) {
+        await go(r);
+        if (theme !== "light") assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), theme, `${theme} applied`);
+        assert.ok(await noHorizontalScroll(page), `${theme} ${width} ${r}`);
+      }
+      assert.deepEqual(errors, [], `${theme} ${width}`);
+      await ctx.close();
+    }
+  }
+});
+
+test("the component gallery renders every section in light, dark and high contrast with no errors", async () => {
+  for (const theme of ["light", "dark", "hc"]) {
+    const { page, go, ctx, errors } = await openPage(app, { theme, width: 1280 });
+    await go("/__gallery");
+    for (const section of ["Buttons", "Brand", "Hub identity", "Badges with a meaning", "Results and charts", "Rows, QR and alerts"]) {
+      await page.getByRole("region", { name: section }).waitFor();
+    }
+    assert.ok(await page.getByTestId("hub-profile").count() >= 2);
+    assert.ok(await page.locator("[data-badge]").count() >= 6);
+    assert.ok(await noHorizontalScroll(page), theme);
+    assert.deepEqual(errors, [], theme);
+    await ctx.close();
+  }
+});

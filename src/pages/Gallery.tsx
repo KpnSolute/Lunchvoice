@@ -7,7 +7,19 @@ import { ThemeControl } from "../ui/ThemeControl";
 import { QuestionInput } from "../ui/QuestionControls";
 import { StateScreen, type StateKind } from "../ui/StateScreen";
 import { HubMark } from "../ui/HubMark";
-import type { Question } from "../lib/lvApi";
+import { HubProfile } from "../ui/HubProfile";
+import { CountUp } from "../ui/motion";
+import { LvMark } from "../components/LvMark";
+import { HubCard } from "../components/HubCard";
+import { ShareHubDialog } from "../components/ShareHub";
+import { BadgeRow, IconBadge } from "../components/IconBadge";
+import { BADGES, type BadgeKey } from "../config/badges";
+import { Bars, DistributionColumns, TrendLine } from "../components/charts";
+import { Alert, AlertDescription, AlertTitle } from "@/components/shadcn/alert";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/shadcn/alert-dialog";
+import { QrCode } from "@/components/shadcn/blocks/qr";
+import { ResultBars, TextAnswers, WithheldTag } from "@/components/shadcn/blocks/results";
+import type { HubInfo, Question } from "../lib/lvApi";
 import { Button } from "@/components/shadcn/button";
 import { Input } from "@/components/shadcn/input";
 import { Textarea } from "@/components/shadcn/textarea";
@@ -45,6 +57,9 @@ import {
   PageHeader,
   PhaseBadge,
   QuotaMeter,
+  RowItem,
+  RowList,
+  SectionTitle,
   Segmented,
   StatTile,
   ToggleRow,
@@ -52,7 +67,7 @@ import {
   type Phase,
 } from "@/components/shadcn/blocks";
 
-const ICONS: IconName[] = ["home", "star", "survey", "voice", "roster", "dashboard", "bulb", "flame", "sparkle", "lock", "check", "arrow", "plus", "settings", "join", "globe", "clock", "coin"];
+const ICONS: IconName[] = ["home", "star", "star-fill", "survey", "voice", "roster", "dashboard", "bulb", "flame", "sparkle", "lock", "check", "arrow", "plus", "settings", "join", "globe", "clock", "coin", "crown", "shield-check", "sprout", "menu", "more", "back", "close", "chevron", "logout", "store", "orders", "fork"];
 const PHASES: Phase[] = ["draft", "scheduled", "open", "ended", "paused", "closed", "archived"];
 const STATES: StateKind[] = ["notfound", "closed", "scheduled", "offline"];
 const SAMPLE_QS: Question[] = [
@@ -61,8 +76,15 @@ const SAMPLE_QS: Question[] = [
   { question_id: "g3", position: 2, kind: "yes_no", prompt: "Bring a friend?", config: {} },
 ];
 
-// Development-only: every component of the shadcn layer, restyled to the tactile system, in each state.
-// Toggle the theme at the top to check light, dark and high contrast.
+// Development-only: every reusable component (design system 3), in its main states. Not routed in production.
+// Toggle the theme at the top to check light, dark and high contrast. `npm run check:design` fails when a reusable
+// component is missing from this page (scripts/check-gallery.mjs); register new components here.
+const SAMPLE_HUB: HubInfo = {
+  hub_id: "gallery-hub", slug: "harbor-books", name: "Harbor Book Circle", visibility: "public", membership_mode: "open",
+  member_count: 42, about: "Monthly picks, honest reviews and a vote on what we read next.", accent: "teal", accent_hex: "#0F766E",
+  plan: { family: "starter", product: "founding", ends_at: null, state: "active" },
+};
+const BADGE_KINDS = Object.keys(BADGES) as BadgeKey[];
 export function Gallery() {
   const [seg, setSeg] = useState("link");
   const [radio, setRadio] = useState("anonymous");
@@ -72,7 +94,7 @@ export function Gallery() {
 
   return (
     <div className="ui-page lv-gallery">
-      <PageHeader eyebrow="Dev only" title="Component gallery" sub="The one component system: shadcn/ui restyled to the tactile design. Not routed in production." actions={<ThemeControl />} />
+      <PageHeader eyebrow="Dev only" title="Component gallery" sub="The one component system (design system 3): shadcn/ui on LunchVoice tokens. Not routed in production." actions={<ThemeControl />} />
 
       <Section title="Type roles">
         <h1 className="ui-display ui-display-xl" style={{ margin: 0 }}>Display XL</h1>
@@ -293,6 +315,54 @@ export function Gallery() {
           <Card variant="ink"><CardHeader><CardTitle>Ink</CardTitle><CardDescription>The featured card.</CardDescription></CardHeader><CardContent><Button variant="primary" size="sm">Continue</Button></CardContent></Card>
           <Card variant="dashed"><CardHeader><CardTitle>Dashed</CardTitle><CardDescription>An invitation to add something.</CardDescription></CardHeader></Card>
         </div>
+      </Section>
+
+      <Section title="Brand">
+        <Row><LvMark size={20} /><LvMark size={32} /><LvMark size={48} /><span className="ui-muted">LvMark follows the text colour; the bubble and bowl stay amber.</span></Row>
+      </Section>
+
+      <Section title="Hub identity">
+        <HubProfile hub={SAMPLE_HUB} actions={<Button variant="secondary">Share</Button>} />
+        <HubProfile hub={SAMPLE_HUB} compact owner />
+        <div className="lv-hcard-grid">
+          <HubCard hub={SAMPLE_HUB} badges={["founding"]} action={<span className="lv-hcard-fakebtn" aria-hidden="true">Join</span>} />
+          <HubCard hub={{ name: "Northside Running Club", slug: "northside-running", members_label: "700+ active members", membership_mode: "approval", category: "Sports and fitness" }} badges={["discover"]} compact />
+        </div>
+        <Row><ShareHubDialog hub={SAMPLE_HUB} trigger={<Button variant="secondary">Open the share dialog</Button>} /></Row>
+      </Section>
+
+      <Section title="Badges with a meaning">
+        <Row>{BADGE_KINDS.map((k) => <span key={k} className="ui-row"><IconBadge kind={k} />{BADGES[k].label}</span>)}</Row>
+        <Row><strong>Harbor Book Circle</strong><BadgeRow kinds={["founding", "team", "owner"]} /></Row>
+      </Section>
+
+      <Section title="Results and charts">
+        <ResultBars caption="Which night works?" cells={[{ key: "tue", label: "Tuesday", n: 14, suppressed: false }, { key: "thu", label: "Thursday", n: 9, suppressed: false }, { key: "sat", label: "Saturday", n: null, suppressed: true }]} />
+        <Row><WithheldTag /><span className="ui-muted">A withheld value is its own state, never zero.</span></Row>
+        <TextAnswers texts={["More evening runs, please.", "The new route was great."]} />
+        <Bars items={[{ label: "Rating 5", value: 18 }, { label: "Rating 4", value: 11 }, { label: "Rating 3", value: 4 }]} />
+        <DistributionColumns buckets={[2, 4, 9, 14, 7]} labels={["1", "2", "3", "4", "5"]} />
+        <TrendLine points={[{ label: "Mon", value: 3 }, { label: "Tue", value: 7 }, { label: "Wed", value: 5 }, { label: "Thu", value: 12 }]} />
+        <Row><strong className="ui-display"><CountUp value={128} /></strong><span className="ui-muted">CountUp respects reduced motion.</span></Row>
+      </Section>
+
+      <Section title="Rows, QR and alerts">
+        <Card>
+          <SectionTitle action={<Button variant="quiet" size="sm">All</Button>}>Section title</SectionTitle>
+          <RowList>
+            <RowItem leading={<HubMark name="Dana Reyes" size={34} />} title="Dana Reyes" sub="Owner" trailing={<IconBadge kind="owner" />} />
+            <RowItem leading={<HubMark name="Sam Okafor" size={34} />} title="Sam Okafor" sub="Coach" />
+          </RowList>
+        </Card>
+        <Row><QrCode value="https://hub.lunchvoice.com/harbor-books" label="QR code for the sample Hub" size={160} /></Row>
+        <Alert><AlertTitle>Alert</AlertTitle><AlertDescription>The primitive behind Notice; prefer Notice in pages.</AlertDescription></Alert>
+        <AlertDialog>
+          <AlertDialogTrigger asChild><Button variant="danger">Alert dialog</Button></AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader><AlertDialogTitle>Close this Campaign?</AlertDialogTitle><AlertDialogDescription>People can no longer answer. Results stay.</AlertDialogDescription></AlertDialogHeader>
+            <AlertDialogFooter><AlertDialogCancel>Keep it open</AlertDialogCancel><AlertDialogAction>Close Campaign</AlertDialogAction></AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </Section>
 
       <Section title="Accordion, separator, scroll area">

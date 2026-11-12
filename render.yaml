@@ -107,5 +107,9 @@ services:
         value: 22.12.0
       - key: VITE_SUPABASE_URL
         sync: false
+      # Preferred: the publishable key (sb_publishable_...). The legacy anon key below is used only when it is empty and
+      # stops working once the legacy keys are disabled in Supabase.
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        sync: false
       - key: VITE_SUPABASE_ANON_KEY
         sync: false

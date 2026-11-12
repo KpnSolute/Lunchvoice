@@ -3,22 +3,30 @@
    prefers-contrast: more and forced-colors fall back to the high-contrast border rules.
    This is the single source of tokens: index.css maps its older names onto these. */
 :root {
-  /* surfaces (light) */
-  --lv-raised-bg: linear-gradient(180deg, #ffffff 0%, #f2f1ee 100%);
-  --lv-raised-shadow: 0 1px 0 #fff inset, 0 8px 18px rgba(20, 17, 15, 0.1), 0 2px 4px rgba(20, 17, 15, 0.08);
-  --lv-pressed-bg: linear-gradient(180deg, #e98207 0%, #ff9a18 45%, #ffb347 100%);
-  --lv-pressed-shadow: inset 0 3px 7px rgba(110, 50, 0, 0.45), inset 0 -2px 3px rgba(255, 255, 255, 0.35),
-    0 0 0 4px #fff, 0 6px 14px rgba(20, 17, 15, 0.14);
-  --lv-well-shadow: inset 0 2px 5px rgba(20, 17, 15, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.9);
-  --lv-card-shadow: 0 1px 0 #fff inset, 0 18px 40px rgba(20, 17, 15, 0.08), 0 2px 6px rgba(20, 17, 15, 0.05);
-  --lv-popover-shadow: 0 1px 0 #fff inset, 0 22px 48px rgba(20, 17, 15, 0.18), 0 4px 10px rgba(20, 17, 15, 0.08);
-  --lv-ink-bg: linear-gradient(180deg, #2e2a25 0%, #14110f 100%);
-  --lv-ink-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset, 0 10px 24px rgba(20, 17, 15, 0.3);
-  --lv-accent-cta-bg: linear-gradient(180deg, #ffbe5c 0%, #ff9a18 55%, #f58c0c 100%);
-  --lv-cta-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), inset 0 -3px 6px rgba(160, 80, 0, 0.18), 0 8px 22px rgba(255, 154, 24, 0.4);
+  /* Surfaces (light). Design system 3 (2026-11-12): solid fills and hairline borders; shadows only on what floats.
+     The gradients and glows of the tactile set are gone; the press (tactile-press) stays, so the UI still feels alive. */
+  --lv-raised-bg: var(--lv-surface);
+  --lv-raised-shadow: 0 0 0 1px var(--lv-line), 0 1px 2px rgba(20, 17, 15, 0.06);
+  --lv-pressed-bg: var(--lv-accent);
+  --lv-pressed-shadow: inset 0 -2px 0 rgba(20, 17, 15, 0.14);
+  --lv-well-shadow: inset 0 0 0 1px var(--lv-line);
+  --lv-card-shadow: 0 0 0 1px var(--lv-line), 0 1px 3px rgba(20, 17, 15, 0.05);
+  --lv-popover-shadow: 0 0 0 1px var(--lv-line), 0 18px 40px rgba(20, 17, 15, 0.16), 0 2px 6px rgba(20, 17, 15, 0.06);
+  --lv-ink-bg: #14110f;
+  --lv-ink-shadow: none;
+  --lv-accent-cta-bg: var(--lv-accent);
+  --lv-cta-shadow: inset 0 -2px 0 rgba(120, 60, 0, 0.18), 0 6px 18px -8px rgba(233, 130, 7, 0.75);
   --lv-danger-bg: color-mix(in srgb, var(--lv-danger) 14%, transparent);
   --lv-scrim: rgba(20, 17, 15, 0.42);
   --lv-control-border: 0 solid transparent;
+  --lv-header-bg: color-mix(in srgb, var(--lv-page) 86%, transparent);
+  /* Selected state for app controls (radio cards, segmented, tabs): a tint and an outline, not a solid fill. The solid
+     amber (--lv-pressed-*) stays for the respondent's answer choices and status badges. */
+  --lv-selected-bg: color-mix(in srgb, var(--lv-accent) 13%, var(--lv-surface));
+  --lv-selected-ring: inset 0 0 0 2px var(--lv-accent-deep);
+  --lv-selected-ink: var(--lv-text);
+  --lv-field-bg: var(--lv-surface);
+  --lv-field-ring: inset 0 0 0 1px color-mix(in srgb, var(--lv-line) 70%, var(--lv-subtle));
   /* page-level extras used by the app chrome */
   --lv-well-hover: #e4e2de;
   --lv-well-focus: #f3f2ef;
@@ -28,10 +36,12 @@
   --lv-font-ui: 'Geist', system-ui, sans-serif;
   --lv-font-mono: 'Space Mono', ui-monospace, monospace;
   /* radius */
-  --lv-radius-field: 16px;
-  --lv-radius-card: 24px;
-  --lv-radius-hero: 28px;
-  --lv-radius-pill: 999px;
+  --lv-radius-control: 12px; /* buttons */
+  --lv-radius-field: 12px;   /* inputs, menus, notices */
+  --lv-radius-card: 18px;
+  --lv-radius-hero: 22px;
+  --lv-radius-tag: 8px;      /* badges and tags */
+  --lv-radius-pill: 999px;   /* switches, segmented tabs, chips */
   /* space (4px base) */
   --lv-space-1: 4px;
   --lv-space-2: 8px;
@@ -57,7 +67,7 @@
   --lv-text-min: 12px;
   /* targets */
   --lv-target-min: 44px;
-  --lv-header-clear: 76px; /* height the pinned header covers; sticky content sits below it */
+  --lv-header-clear: 72px; /* height the pinned header covers; sticky content sits below it */
   --lv-circle-control: 58px;
 }
 :root,
@@ -88,14 +98,14 @@
 }
 [data-theme='dark'] {
   --lv-page: #17140f;
-  --lv-surface: #34302a;
-  --lv-surface2: #2a2620;
+  --lv-surface: #221e19;
+  --lv-surface2: #2b2621;
   --lv-popover: #2e2a25;
   --lv-well: #0f0d0a;
   --lv-text: #f7f3ea;
   --lv-muted: #c9c3ba;
   --lv-subtle: #a39d94;
-  --lv-line: #3a352f;
+  --lv-line: #3a342d;
   --lv-control-off: #8a847b;
   --lv-primary: #f7f3ea;
   --lv-on-primary: #14110f;
@@ -109,19 +119,20 @@
   --lv-success: #5cc98a;
   --lv-success-ink: #8ee0b0;
   --lv-focus: #ffb347;
-  --lv-raised-bg: linear-gradient(180deg, #34302a 0%, #2a2620 100%);
-  --lv-raised-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 8px 18px rgba(0, 0, 0, 0.4);
-  --lv-pressed-shadow: inset 0 3px 7px rgba(110, 50, 0, 0.55), 0 0 0 4px #17140f, 0 6px 14px rgba(0, 0, 0, 0.4);
-  --lv-well-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6);
-  --lv-card-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 18px 40px rgba(0, 0, 0, 0.4);
-  --lv-popover-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 22px 48px rgba(0, 0, 0, 0.5);
-  --lv-ink-bg: linear-gradient(180deg, #f7f3ea 0%, #e4ded3 100%);
-  --lv-ink-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 10px 24px rgba(0, 0, 0, 0.4);
-  --lv-well-hover: #1a1713;
+  --lv-raised-bg: var(--lv-surface2);
+  --lv-raised-shadow: 0 0 0 1px var(--lv-line), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --lv-pressed-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25);
+  --lv-well-shadow: inset 0 0 0 1px var(--lv-line);
+  --lv-card-shadow: 0 0 0 1px var(--lv-line);
+  --lv-popover-shadow: 0 0 0 1px var(--lv-line), 0 22px 48px rgba(0, 0, 0, 0.55);
+  --lv-ink-bg: #f7f3ea;
+  --lv-ink-shadow: none;
+  --lv-well-hover: #1d1a15;
   --lv-well-focus: #14110d;
   --lv-rim: rgba(255, 255, 255, 0.06);
-  --lv-cta-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 8px 22px rgba(255, 154, 24, 0.22);
+  --lv-cta-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.22), 0 6px 18px -8px rgba(255, 154, 24, 0.5);
   --lv-scrim: rgba(0, 0, 0, 0.6);
+  --lv-header-bg: color-mix(in srgb, var(--lv-page) 86%, transparent);
   color-scheme: dark;
 }
 [data-theme='hc'] {
@@ -162,6 +173,10 @@
   --lv-well-hover: #ffffff;
   --lv-well-focus: #ffffff;
   --lv-rim: #000000;
+  --lv-header-bg: #ffffff;
+  --lv-selected-bg: #ffffff;
+  --lv-selected-ring: inset 0 0 0 3px #000000;
+  --lv-field-ring: inset 0 0 0 2px #000000;
   --lv-control-border: 2px solid #000000; /* selected controls: 3px solid #000 + a glyph change */
   color-scheme: light;
 }
