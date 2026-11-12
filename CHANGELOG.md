@@ -6,6 +6,29 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (public site: the "less generated" pass, founder assignment 2026-11-12, PR B)
+
+- **Home page answers what, who, how and what next.** The approved hero is unchanged. The use cases now say who
+  LunchVoice is for. "How it works" is one connected four-step sequence: create a survey, share it, collect responses,
+  understand results. It replaces three unrelated numbered cards in three fills and becomes a vertical timeline on
+  phones. A new "What you can do with LunchVoice" section is a ruled grid of the six products linking to their pages;
+  it replaces the "Your Hub" section, whose content now lives on `/products/hubs`. The participant band lists three
+  facts instead of an invented "example account" dashboard with made-up numbers.
+- **Fewer generated-page tells.** Eyebrows are kept only where they add a fact the heading does not (hero, For
+  participants, Founding seats, Built in the open); the four that repeated their heading are gone. Headings rewritten
+  as plain statements: "How a survey works", "What you can do with LunchVoice", "Answering is always free." and
+  "Free for surveys, from $13 a month for a Hub" (the price comes from `src/config/pricing.ts`). Two light sections in
+  a row share one gap instead of stacking two.
+- **`/how-it-works`:** the four points are not steps, so the numbers 01 to 04 and the identical cards are gone. They
+  are a two-by-two list with hairlines. The privacy questions sit in an open section that links to the Privacy
+  product page.
+- **Copy accuracy:** `seo.json` (home and use cases) and the use-cases lede no longer name "ideas", "idea boards" or
+  "elections", which `main` does not have. They say survey, poll, rating, open feedback and suggestion box.
+- **Not changed** (founder decision, recorded in the billing audit): the Team plan's "Enhanced Campaign modes" and
+  "Advanced targeting and analytics" lines on `/pricing`.
+- **Test:** the homepage shows the four steps, links all six products, keeps at most three section eyebrows and has
+  exactly one sample-data illustration.
+
 ### Added (product website: six product pages, Products menu, footer; founder assignment 2026-11-12, PR A)
 
 - **Six product pages** at `/products/<slug>`: Hubs, Feedback, Campaigns, LunchVoice for Discord, Developers and Privacy,

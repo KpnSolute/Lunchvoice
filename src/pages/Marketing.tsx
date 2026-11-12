@@ -55,21 +55,21 @@ export function HowItWorks() {
   return (
     <div className="lv-mk">
       <Head eyebrow="How it works" title="From a question to a decision, without exposing anyone." sub="Quick Surveys for one-off questions, Hubs for communities, and a privacy floor that holds even when someone asks for the raw data." />
-      <div className="lv-mk-grid">
-        {LOOP.map((s, i) => (
-          <Card key={s.title}>
-            <div className="ui-spread"><span className="lv-mk-icon"><Icon name={s.icon} size={22} /></span><Eyebrow>{String(i + 1).padStart(2, "0")}</Eyebrow></div>
-            <h2 className="lv-mk-card-title">{s.title}</h2>
-            <p className="lv-mk-card-body">{s.body}</p>
-          </Card>
+      <dl className="lv-pd-points" data-testid="how-points">
+        {LOOP.map((s) => (
+          <div key={s.title}>
+            <dt className="lv-hiw-term"><Icon name={s.icon} size={20} />{s.title}</dt>
+            <dd>{s.body}</dd>
+          </div>
         ))}
-      </div>
-      <Card>
-        <h2 className="lv-mk-card-title">Questions about privacy</h2>
-        <Accordion type="single" collapsible>
+      </dl>
+      <section className="lv-pd-section" aria-labelledby="hiw-faq">
+        <h2 id="hiw-faq">Questions about privacy</h2>
+        <Accordion type="single" collapsible className="lv-hiw-faq">
           {FAQ.map(([q, a]) => <AccordionItem key={q} value={q}><AccordionTrigger>{q}</AccordionTrigger><AccordionContent><p>{a}</p></AccordionContent></AccordionItem>)}
         </Accordion>
-      </Card>
+        <p className="ui-help lv-m0">More on how answers are protected: <Link className="lv-inline-link" to="/products/privacy">Privacy</Link>.</p>
+      </section>
       <div className="ui-row">
         <LinkButton to={ctas.primary.to} variant="primary" size="lg" icon="arrow">{ctas.primary.label}</LinkButton>
         <LinkButton to={ctas.hub.to} variant="secondary" size="lg">{ctas.hub.label}</LinkButton>
@@ -86,7 +86,7 @@ export function UseCases() {
       <Head
         eyebrow="Use cases"
         title="The name has lunch in it. The product doesn’t."
-        sub="Anything a group needs to ask, answer and settle: votes, questionnaires, feedback, ideas, schedules. The answer matters, and the respondent shouldn’t be exposed."
+        sub="Anything a group needs to ask, answer and settle: votes, questionnaires, feedback, suggestions, schedules. The answer matters, and the respondent shouldn’t be exposed."
       />
       <div className="lv-mk-grid" data-testid="use-case-grid">
         {USE_CASES.map((c) => (
