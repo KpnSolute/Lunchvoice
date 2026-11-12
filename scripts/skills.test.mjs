@@ -9,7 +9,7 @@ import { checkSkills, parseFrontmatter, referencedPaths, REQUIRED, syncSkills } 
 function sandbox() {
   const root = mkdtempSync(join(tmpdir(), "lv-skills-"));
   for (const p of [".agents/skills", ".claude/skills", "docs/frontend/design-system", "src/ui/tokens.css", "src/ui/app.css", "src/ui/hub.css", "src/ui/ui.css",
-    "src/styles/landing.css", "src/components", "src/pages/Gallery.tsx", "src/ui/shadcn.css", "e2e/sitecta.test.mjs", "src/lib"]) {
+    "src/styles/landing.css", "src/components", "src/pages/Gallery.tsx", "src/ui/shadcn.css", "e2e/sitecta.test.mjs", "src/lib", "scripts/brand"]) {
     cpSync(p, join(root, p), { recursive: true });
   }
   return root;
