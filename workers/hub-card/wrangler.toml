@@ -7,5 +7,7 @@ routes = [{ pattern = "lunchvoice.com/h/*", zone_name = "lunchvoice.com" }]
 
 [vars]
 SUPABASE_URL = "https://qprfonxvthmaoxfixigk.supabase.co"
-# SUPABASE_PUBLISHABLE_KEY is set with `wrangler secret put SUPABASE_PUBLISHABLE_KEY` (sb_publishable_..., never a
-# secret key). The legacy SUPABASE_ANON_KEY is still accepted, but Supabase is retiring it.
+# The project's publishable key (founder, 2026-11-12). Publishable keys are public by design: the same value ships in
+# the website's JavaScript, and it only grants what the signed-out (anon) role may do. Never put a secret key
+# (sb_secret_...) or the legacy service_role key in this file.
+SUPABASE_PUBLISHABLE_KEY = "sb_publishable_oOxIXO_QzvdjX2zDmiRRyQ_AEBqCvzk"

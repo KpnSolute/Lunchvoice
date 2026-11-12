@@ -43,7 +43,8 @@ categories and the repository's decimal `X.X.X` release policy.
   `supabase/functions/_shared/keys.ts` (publishable key from `LV_PUBLISHABLE_KEY`, `SUPABASE_PUBLISHABLE_KEYS` or the
   legacy anon key; service secrets from `SUPABASE_SECRET_KEYS` or the legacy service-role key; no API key is ever taken
   for a signed-in person). Checkout uses it; the email, webhook and Discord dispatchers accept the new secret keys by
-  Bearer or `apikey`. The share-preview Worker uses `SUPABASE_PUBLISHABLE_KEY`. Tests: 3 key tests, 2 header tests, new
+  Bearer or `apikey`. The share-preview Worker uses `SUPABASE_PUBLISHABLE_KEY`, set in `workers/hub-card/wrangler.toml` (public by design;
+  verified against production: `lv_plan_limits` answers 200 with the key in `apikey` only). Tests: 3 key tests, 2 header tests, new
   checkout and dispatch cases. Switch-over steps: `docs/backend/PRODUCTION_RESET_RUNBOOK.md`, "Retiring the legacy anon
   and service-role keys".
 - **LunchVoice's own Hub:** `COMMUNITY_HUB_SLUG = "kitchen"` in `src/config/contact.ts`. The home page shows a "Pull up a

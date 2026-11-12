@@ -244,7 +244,7 @@ sends a key as `Authorization: Bearer`. Switch in this order, checking the site 
 3. Edge Function secrets: `supabase secrets set LV_PUBLISHABLE_KEY` (the publishable key).
 4. Anything that calls the dispatchers (pg_cron or another scheduler) sends a secret key (`sb_secret_...`) as `apikey`
    or `Authorization: Bearer` instead of the service-role key; or use `EMAIL_DISPATCH_SECRET`.
-5. The share-preview Worker: `wrangler secret put SUPABASE_PUBLISHABLE_KEY` (`workers/hub-card/README.md`).
+5. The share-preview Worker: done; its publishable key is in `workers/hub-card/wrangler.toml`.
 6. Only then disable the legacy keys in Supabase, and check sign-in, a guest answer, checkout (once billing is open),
    email dispatch and a Hub link preview.
 
