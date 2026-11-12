@@ -6,6 +6,13 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed (broken link previews, founder report 2026-11-12)
+
+- Every link preview of lunchvoice.com (Discord, Slack, iMessage) ended "Hubs for communities from <meta property=":
+  `scripts/seo-prerender.mjs` passed page text to `String.replace` as a replacement string, where "$1" means "group 1",
+  so "$13/month" became group 1 plus "3/month" and broke the tag. All replacements are now functions. New test: no tag
+  ever appears inside a meta value, and "$13", "$&", "$1$2" and "$$" render as typed.
+
 ### Fixed (logo invisible on dark surfaces, founder report 2026-11-12)
 
 - The LunchVoice mark was an `<img>` of a file with ink-coloured letters, so on a dark surface (the survey player's

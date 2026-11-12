@@ -54,14 +54,16 @@ export function pageUrl(seo, path) {
   return seo.siteUrl + (path === "/" ? "/" : path);
 }
 
+// Replacements are functions, never strings: in a replacement string "$1" means "group 1", so a description such as
+// "from $13/month" became group 1 plus "3/month" and broke every link preview (live until 2026-11-12).
 function replaceTag(html, pattern, replacement) {
   if (!pattern.test(html)) throw new Error(`seo-prerender: index.html has no tag matching ${pattern}`);
-  return html.replace(pattern, replacement);
+  return html.replace(pattern, typeof replacement === "function" ? replacement : () => replacement);
 }
 
 function setMetaContent(html, attr, key, value) {
   const re = new RegExp(`(<meta ${attr}="${key.replace(/[:.]/g, "\\$&")}" content=")[^"]*(")`);
-  return replaceTag(html, re, `$1${escapeHtml(value)}$2`);
+  return replaceTag(html, re, (_m, open, close) => `${open}${escapeHtml(value)}${close}`);
 }
 
 /** Static content for crawlers that do not run JavaScript: the page's heading, a summary and site links. */
@@ -83,7 +85,7 @@ export function renderPage(template, seo, page) {
   const url = pageUrl(seo, page.path);
   let html = template;
   html = replaceTag(html, /<title>[^<]*<\/title>/, `<title>${escapeHtml(title)}</title>`);
-  html = replaceTag(html, /(<link rel="canonical" href=")[^"]*(")/, `$1${escapeHtml(url)}$2`);
+  html = replaceTag(html, /(<link rel="canonical" href=")[^"]*(")/, (_m, open, close) => `${open}${escapeHtml(url)}${close}`);
   html = setMetaContent(html, "name", "description", page.description);
   html = setMetaContent(html, "name", "robots", "index, follow, max-image-preview:large");
   html = setMetaContent(html, "property", "og:title", title);
@@ -92,7 +94,7 @@ export function renderPage(template, seo, page) {
   html = setMetaContent(html, "name", "twitter:title", title);
   html = setMetaContent(html, "name", "twitter:description", page.description);
   if (!html.includes(FALLBACK_MARK)) throw new Error("seo-prerender: index.html has no fallback marker in #root");
-  return html.replace(FALLBACK_MARK, fallbackHtml(seo, page));
+  return html.replace(FALLBACK_MARK, () => fallbackHtml(seo, page));
 }
 
 /**
