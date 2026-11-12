@@ -24,7 +24,7 @@ rebuild. The hand-written documents live in `scripts/brand/docs/`.
 ## The five things to remember
 
 1. The name is one word: **LunchVoice**.
-2. The tagline is **Make every voice count.** It goes beside the logo, never inside it.
+2. The tagline is **Make every voice count.** It goes beside the logo, never inside it. (The home page headline alternates it with "Every voice has a story. Hear it."; that line is for the home page only.)
 3. Light background: the `on-light` logo. Dark background: the `on-dark` logo. Never the other way round.
 4. Amber `#FF9A18` is the accent, ink `#14110F` is the anchor. Amber is never text on a light background.
 5. Bricolage Grotesque for headlines, Geist for everything you read, Space Mono for codes and addresses.

@@ -8,7 +8,7 @@ import { join, relative, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inflateSync } from "node:zlib";
 import { COLOR, GEOMETRY } from "./brand/logo.mjs";
-import { TAGLINE, RETIRED_LINES, SOCIAL } from "./brand/palette.mjs";
+import { TAGLINE, HOME_LINES, RETIRED_LINES, SOCIAL } from "./brand/palette.mjs";
 
 const root = join(fileURLToPath(import.meta.url), "..", "..");
 const PKG = join(root, "brand", "lv-package");
@@ -161,6 +161,13 @@ for (const n of ["lunchvoice-lockup-dark.svg", "lunchvoice-wordmark.svg", "lunch
   }
   const seo = readFileSync(join(root, "src", "config", "seo.json"), "utf8");
   if (!seo.includes(TAGLINE)) fail(`src/config/seo.json does not use the tagline "${TAGLINE}"`);
+  // The home page headline rotates between the approved lines; the second line is used nowhere else that ships.
+  const hero = readFileSync(join(root, "src", "lib", "heroLine.ts"), "utf8").replace(/",\s*accent:\s*"/g, " ");
+  for (const line of HOME_LINES) if (!hero.includes(line)) fail(`src/lib/heroLine.ts is missing the home line "${line}"`);
+  const homeOnly = HOME_LINES.filter((l) => l !== TAGLINE);
+  const shipped = [join(root, "index.html"), join(root, "src", "config", "seo.json"),
+    ...files.filter((x) => /\.svg$/.test(x)), ...readdirSync(join(root, "public", "brand")).filter((n) => n.endsWith(".svg")).map((n) => join(root, "public", "brand", n))];
+  for (const f of shipped) for (const line of homeOnly) if (readFileSync(f, "utf8").includes(line)) fail(`${rel(f)} uses the home-page-only line "${line}"`);
 }
 
 // 7. The manifest lists the maskable icons.

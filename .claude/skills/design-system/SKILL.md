@@ -35,7 +35,7 @@ the product: same tokens, same components, same states, in light, dark and high 
 - Inside a Hub, the Hub's colour arrives through `.lv-hubscope`; never hard-code a Hub colour.
 - Icons from `src/components/Icon.tsx` only; the logo is `LvMark`; no emoji as UI; no generic blue or purple SaaS look.
 - Brand assets outside the interface (favicons, link preview, social, video, Canva) come from `brand/lv-package/`,
-  generated from `scripts/brand/logo.mjs`; never edit an export by hand. The tagline is "Make every voice count.".
+  generated from `scripts/brand/logo.mjs`; never edit an export by hand. The tagline is "Make every voice count."; the home hero alternates it per device with "Every voice has a story. Hear it." (`src/lib/heroLine.ts`).
 
 ## Never without founder approval
 
