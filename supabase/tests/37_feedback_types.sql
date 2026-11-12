@@ -6,8 +6,9 @@ select t.trust_test_issuer();
 select t.as_kpn(1, null, true, 'Asker'); select lv_api.lv_my_context();
 
 -- the entitlement map publishes the list the UI reads
-select t.check('map: lv_plan_limits lists the free feedback types',
-  (lv_api.lv_plan_limits() #> '{families,free,quick.modes}') = '["survey","poll","rating","feedback"]'::jsonb);
+select t.check('map: lv_plan_limits lists the free feedback types (000037 adds yes_no)',
+  (lv_api.lv_plan_limits() #> '{families,free,quick.modes}') ?& array['survey', 'poll', 'rating', 'feedback']
+  and not ((lv_api.lv_plan_limits() #> '{families,free,quick.modes}') ? 'election'));
 
 -- creation
 select t.check('create: the old four-argument call still makes a survey',

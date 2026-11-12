@@ -382,3 +382,9 @@ a.lv-row:hover .lv-row-title { text-decoration: underline; text-underline-offset
 .lv-checklist svg { flex: none; margin-top: 2px; color: var(--lv-accent-deep); }
 .lv-code-input { font-family: var(--lv-font-mono) !important; letter-spacing: 0.14em; text-transform: uppercase; font-size: 18px !important; }
 @media (max-width: 520px) { .lv-slug { flex-direction: column; align-items: stretch; } }
+
+/* 000037: ballot codes, shown once to the organiser. */
+.lv-w-140 { width: 140px; }
+.lv-ballot-codes { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px 16px; margin: 0; padding-left: 1.5em; }
+.lv-ballot-codes code { font-family: var(--font-mono, ui-monospace, monospace); letter-spacing: 0.04em; }
+.lv-ballot-entry { display: grid; gap: 6px; }

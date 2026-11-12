@@ -39,12 +39,13 @@ function limitsOut(fam: "free" | "starter" | "team") {
   return {
     "quick.max_active": l.quick_surveys_active ?? null,
     "quick.max_questions": l.quick_survey_questions ?? null,
-    ...(fam === "free" ? { "quick.modes": ["survey", "poll", "rating", "feedback"] } : {}),
+    ...(fam === "free" ? { "quick.modes": ["survey", "poll", "rating", "yes_no", "feedback"] } : {}),
     "roles.max_custom": fam === "free" ? null : l.custom_roles,
     "pages.max_custom": fam === "free" ? null : l.custom_pages,
     "campaigns.max_active": fam === "free" ? null : l.active_campaigns,
     "surveys.max_active": fam === "free" ? null : l.active_surveys,
     ...(fam === "team" ? { "discover.min_members": l.discover_min_members } : {}),
+    ...(fam === "free" ? {} : { "modes.election": true }),
   };
 }
 // Same shape as lv.accent_palette() (000015): objects; hubs store the key.
@@ -156,12 +157,21 @@ function answersProblem(c: C, answers: unknown): string | null {
   for (const q of c.questions) {
     const v = (answers as { question_id: string; value: unknown }[]).find((x) => x.question_id === q.question_id)?.value;
     if (v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0)) {
-      if ((q.config as { optional?: boolean }).optional) continue;
+      if (c.mode === "election" || (q.config as { optional?: boolean }).optional) continue;
       return `missing answer for question ${q.position}`;
+    }
+    if (c.mode === "election") {
+      // 000037: a vote must name real candidates, distinct, no more than the seats.
+      const opts = ((q.config as { options?: string[] }).options ?? []);
+      const picks = Array.isArray(v) ? v : [v];
+      if (q.kind === "single_choice" && (Array.isArray(v) || !opts.includes(String(v)))) return `choose a candidate in race ${q.position}`;
+      if (q.kind === "multi_choice" && (!Array.isArray(v) || v.length > ((q.config as { max?: number }).max ?? 1) || new Set(v).size !== v.length || v.some((x) => !opts.includes(String(x)))))
+        return `choose a candidate in race ${q.position}`;
+      if (!picks.length) continue;
     }
     seen++;
   }
-  return seen === 0 ? "answer at least one question" : null;
+  return seen === 0 ? (c.mode === "election" ? "vote in at least one race" : "answer at least one question") : null;
 }
 const isActive = (c: C) => c.status === "active" && (!c.closes_at || new Date(c.closes_at).getTime() > Date.now());
 const personal = (s: State) => s.hubs.find((h) => h.kind === "personal");
@@ -504,7 +514,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       const access = String(a.p_access);
       if (access !== "link" && access !== "invite") return err("lv_invalid_input", "Access must be link or invite");
       const qmode = String(a.p_mode ?? "survey");
-      if (!["survey", "poll", "rating", "feedback"].includes(qmode)) return err("lv_invalid_input", "Choose a feedback type: survey, poll, rating or open feedback.");
+      if (!["survey", "poll", "rating", "yes_no", "feedback"].includes(qmode)) return err("lv_invalid_input", "Choose a feedback type your plan includes.");
       let space = personal(s);
       if (!space) {
         space = { hub_id: id("space"), slug: null, name: "Personal space", kind: "personal", about: "", accent: null, visibility: "private", membership_mode: "invite_only", members: [], pages: [] };
@@ -668,6 +678,11 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (!c) return err("lv_not_found", "Campaign not found");
       if (c.status !== "draft") return err("lv_lifecycle_invalid", "Only a draft can be published");
       if (!c.questions.length) return err("lv_gate_blocked", "no_questions", { reasons: ["no_questions"] });
+      if (c.mode === "election" && c.questions.some((q) => {
+        const n = ((q.config as { options?: string[] }).options ?? []).length;
+        const max = (q.config as { max?: number }).max;
+        return !["single_choice", "multi_choice"].includes(q.kind) || n < 2 || (q.kind === "multi_choice" && (typeof max !== "number" || max < 2 || max >= n));
+      })) return err("lv_gate_blocked", "election_race_invalid", { reasons: ["election_race_invalid"] });
       if (isPersonal(s, c)) {
         if (qsActive() >= LIMITS.free.quick_surveys_active)
           return err("lv_limit_reached", "You have 5 active Quick Surveys", { limit: LIMITS.free.quick_surveys_active, used: qsActive() });
@@ -722,6 +737,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (!c) return err("lv_not_found", "Campaign not found");
       if (!isActive(c)) return err("lv_closed", "This Campaign is not accepting responses");
       if (c.mine_answered) return { ok: true, receipt_id: `r-${c.campaign_id}-me`, duplicate: true };
+      if ((c as C & { ballots?: unknown[] }).ballots?.length) return err("lv_not_available", "This election uses ballot codes. Vote with the code you were given.");
       { const bad = answersProblem(c, a.p_answers); if (bad) return err("lv_invalid_input", bad); }
       c.mine_answered = true;
       c.responses.push({ receipt: `r-${c.campaign_id}-me`, answers: a.p_answers as Resp["answers"], at: iso(Date.now()), guest: false });
@@ -922,7 +938,7 @@ function texts(c: C, questionId: string): string[] | null {
 // handler: pre-checks and the new operations here, the unchanged behaviour in `handle`.
 // Dev helper: localStorage["lv.mock.family"] = "team" runs every community Hub on the Team family.
 
-type CA = C & { description?: string | null; audience_scope?: "all_members" | "roles"; audience_roles?: string[]; link_token?: string; guest_names?: "off" | "optional" | "required" };
+type CA = C & { ballots?: { code: string; used: boolean }[]; description?: string | null; audience_scope?: "all_members" | "roles"; audience_roles?: string[]; link_token?: string; guest_names?: "off" | "optional" | "required" };
 type Offer = { offer_id: string; hub_id: string; membership_id: string; created_at: string; expires_at: string; state: string };
 
 const hex = (bytes: number) => Array.from(crypto.getRandomValues(new Uint8Array(bytes)), (b) => b.toString(16).padStart(2, "0")).join("");
@@ -962,7 +978,51 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
       const r = base() as Record<string, unknown>;
       return r.ok ? { ...r, owner_transfer_offers: [] } : r;
     }
+    /* ---------------- elections (000037) ---------------- */
+    case "lv_election_ballot_codes_create":
+    case "lv_election_ballot_status": {
+      const c = camp(a.p_campaign) as CA | undefined;
+      const g = handle(s, "lv_campaign_get", { p_campaign: a.p_campaign }, authed) as { ok: boolean; can_manage?: boolean };
+      if (!c || !g.ok || !g.can_manage) return err("lv_not_found", "Campaign not found");
+      if (c.mode !== "election") return err("lv_invalid_input", "Ballot codes are only for elections.");
+      const finished = c.status === "closed" || c.status === "archived" || (c.closes_at !== null && new Date(c.closes_at).getTime() <= Date.now());
+      c.ballots ??= [];
+      if (fn === "lv_election_ballot_status")
+        return { ok: true, issued: c.ballots.length, used: finished ? c.ballots.filter((b) => b.used).length : null, used_visible: finished };
+      if (finished) return err("lv_lifecycle_invalid", "This election is finished.");
+      const n = Number(a.p_count);
+      if (!Number.isInteger(n) || n < 1 || n > 500) return err("lv_invalid_input", "Create between 1 and 500 ballot codes at a time.");
+      if (c.responses.some((r) => !r.guest)) return err("lv_not_available", "Members have already voted, so this election cannot switch to ballot codes.");
+      const alpha = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      const codes = Array.from({ length: n }, () => {
+        const raw = Array.from({ length: 10 }, () => alpha[Math.floor(Math.random() * 32)]).join("");
+        return `${raw.slice(0, 5)}-${raw.slice(5)}`;
+      });
+      c.ballots.push(...codes.map((code) => ({ code: code.replace("-", ""), used: false })));
+      return { ok: true, codes, issued: c.ballots.length };
+    }
+    case "lv_ballot_submit": {
+      const c = (s.campaigns as CA[]).find((x) => x.join_code === String(a.p_join_code).toUpperCase() && x.mode === "election" && x.status === "active");
+      if (!c) return err("lv_not_found", "No such election.");
+      if (!isActive(c)) return err("lv_closed", "This election is not accepting votes.");
+      const norm = String(a.p_ballot_code ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const b = (c.ballots ?? []).find((x) => x.code === norm);
+      if (!b) return err("lv_not_found", "That ballot code is not valid for this election. Check it and try again.");
+      if (b.used) return err("lv_conflict", "This ballot code has already been used.");
+      const bad = answersProblem(c, a.p_answers);
+      if (bad) return err("lv_invalid_input", bad);
+      b.used = true;
+      const receipt = `rcpt-${hex(8)}`;
+      c.responses.push({ receipt, answers: a.p_answers as Resp["answers"], at: iso(Date.now()), guest: true });
+      return { ok: true, receipt_id: receipt };
+    }
     case "lv_campaign_create": {
+      if (a.p_mode === "election") {
+        const h = s.hubs.find((x) => x.hub_id === a.p_hub);
+        if (h?.kind === "personal") return err("lv_invalid_input", "Elections are part of Hub plans, not Quick Surveys.");
+        if (h && activeFamily(s, h.hub_id) === "free") return err("lv_entitlement_required", "Elections are included with Starter and Team Hub plans.", { product: "starter_hub" });
+        if (a.p_anonymity === "identified") return err("lv_invalid_input", "An election is always a secret ballot. Make the Campaign anonymous first.");
+      }
       const bad = descProblem(a.p_description);
       if (bad) return err("lv_invalid_input", bad);
       const r = base() as { ok: boolean; campaign_id?: string };
@@ -1067,6 +1127,15 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
       const viaToken = byToken(a.p_join_code);
       const code = viaToken ? viaToken.join_code : a.p_join_code;
       const cc = (s.campaigns as CA[]).find((x) => x.join_code === String(code).toUpperCase());
+      // 000037: an election's join code shows the ballot to anyone (voting needs membership or a ballot code).
+      if (fn === "lv_guest_campaign_get" && cc && cc.mode === "election" && cc.status !== "draft") {
+        const h = s.hubs.find((x) => x.hub_id === cc.hub_id)!;
+        return {
+          ok: true, join_code: cc.join_code,
+          campaign: { campaign_id: cc.campaign_id, title: cc.title, description: cc.description ?? null, mode: cc.mode, anonymity: cc.anonymity, phase: isActive(cc) ? "open" : cc.status, opens_at: cc.opens_at, closes_at: cc.closes_at, access: cc.access ?? null, guests_allowed: false, guest_names: "off" },
+          hub: { name: h.name }, questions: cc.questions, signed_in: authed, can_respond: false,
+        };
+      }
       // 000028: a guest's optional name (identified Campaigns only, creator's choice).
       let name: string | null = null;
       if (fn === "lv_guest_submit") {

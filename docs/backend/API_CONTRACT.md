@@ -1112,3 +1112,32 @@ role removals and auto-posts.
   identified Campaigns only and people with `analytics.read` (`lv_not_available` for anonymous ones). Rows:
   `{response_id, kind: member|guest, verified, name, at, answers[{question_id, prompt, kind, value}]}`; guests are
   `verified: false`. Opening the first page is audited as `campaign.responses_viewed`.
+
+## Feedback types and elections (000036, 000037)
+
+Vocabulary: **Poll, Rating, Yes/No, Open feedback and Election are feedback types; a Survey combines several questions.**
+They are stored as `campaigns.mode`: `poll`, `rating`, `yes_no`, `feedback`, `election`, `survey`.
+
+- Which types a plan may use lives only in the entitlement map: `free.quick.modes` (Quick Surveys: `survey`, `poll`,
+  `rating`, `yes_no`, `feedback`) and `modes.election` (`true` on `starter` and `team`, so Campaign Starter and Campaign
+  Plus too). Read them from `lv_plan_limits` / `lv_hub_limits`; never hardcode them in the UI.
+- `lv_campaign_create(p_mode 'election')`: `lv_entitlement_required` without the plan feature; `lv_invalid_input` for a
+  personal space or an identified election. An election is always anonymous and members-only (constraint
+  `campaigns_election_secret`): turning on guests or identified answers is refused.
+- **Races.** Each question of an election is a race: `single_choice` (one winner) or `multi_choice` with `config.max`
+  seats (2 or more, fewer than the candidates). The options are the candidates (2 to 10, as for every choice question).
+  Publish gate reasons: `election_unavailable` (plan) and `election_race_invalid`.
+- **Votes.** `lv_submit_response` and `lv_ballot_submit` validate strictly: real candidates, distinct, at most the seats.
+  A voter may skip a race but must vote in at least one (`lv_invalid_input` otherwise). Votes are final. Results follow
+  the anonymous rules: released after the end, small groups suppressed, never shown as zero.
+- **One voter list.** Either members vote, or ballot codes are used. Once codes exist, `lv_submit_response` answers
+  `lv_not_available`; codes cannot be issued after a member has voted.
+- `lv_election_ballot_codes_create(p_campaign, p_count 1..500)` (managers, Hub plan, not after the end, at most 5000 per
+  election) → `{ ok, codes: ["ABCDE-FGHJK", ...], issued }`. Codes are returned once and stored only as hashes.
+- `lv_election_ballot_status(p_campaign)` (managers) → `{ ok, issued, used, used_visible }`; `used` (turnout) is `null`
+  until the election has finished.
+- `lv_ballot_submit(p_join_code, p_ballot_code, p_answers)` (signed out or in; on the signed-out allow-list) →
+  `{ ok, receipt_id }`. Case and dashes in the code do not matter. `lv_not_found` (wrong join code or ballot code, both
+  counted by the join-code miss brake), `lv_conflict` (code already used), `lv_closed`, `lv_invalid_input`. A used code
+  is recorded as a guest participation keyed by the code's hash, so ballot votes appear as `guest_n` in
+  `participant_count`; nothing links a code to its submission.

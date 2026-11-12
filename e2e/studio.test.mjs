@@ -443,3 +443,77 @@ test("Quick Survey: every free feedback type can be picked; election is shown as
   await page.getByText(/^Poll · /).first().waitFor();
   await ctx.close();
 });
+
+test("Election: a Hub creates a secret-ballot race, hands out ballot codes, and a voter without an account votes once", async () => {
+  let { page } = await openPage(app, { width: 1280 }).then((o) => (Object.assign(globalThis, { __e: o }), o));
+  const { go, ctx } = globalThis.__e;
+  await go("/northside-running/campaigns/new");
+  await page.getByLabel("Title").fill("Homecoming court");
+  const types = page.getByRole("radiogroup", { name: "Feedback type" });
+  await types.getByRole("radio", { name: /^Election/ }).click();
+  assert.equal(await page.getByRole("radiogroup", { name: "Answers" }).count(), 0, "an election has no anonymous/identified choice: it is always a secret ballot");
+  await page.getByRole("button", { name: /Create election/ }).click();
+  await page.getByTestId("studio").waitFor();
+  await page.getByText(/^Race 01/).first().waitFor();
+  await page.getByText("Candidates", { exact: true }).first().waitFor();
+  await page.getByRole("textbox", { name: /^Race/ }).fill("Homecoming King");
+  await page.getByRole("textbox", { name: "Option 1" }).fill("Avery");
+  await page.getByRole("textbox", { name: "Option 2" }).fill("Blake");
+  await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
+  await page.getByTestId("publish").click();
+  await page.getByRole("button", { name: "Pause" }).first().waitFor();
+  // The join code, read from the dev mock (the Hub Studio shows it on its Review step).
+  const code = await page.evaluate(() => JSON.parse(localStorage.getItem("lv.mock.state")).campaigns.find((c) => c.title === "Homecoming court").join_code);
+
+  // The organiser creates ballot codes; they are shown once.
+  const url = new URL(page.url());
+  await go(url.pathname.replace(/\/studio$/, ""));
+  const panel = page.getByTestId("ballot-codes");
+  await panel.getByLabel("How many codes").fill("3");
+  await panel.getByRole("button", { name: "Create codes" }).click();
+  const list = page.getByTestId("ballot-code-list");
+  await list.waitFor();
+  const codes = (await list.locator("code").allInnerTexts()).map((c) => c.trim());
+  assert.equal(codes.length, 3);
+  assert.ok(codes.every((c) => /^[A-HJ-NP-Z2-9]{5}-[A-HJ-NP-Z2-9]{5}$/.test(c)), "codes avoid look-alike letters");
+  await page.getByTestId("ballot-status").getByText(/turnout appears after the election ends/).waitFor();
+
+  // A voter with no account (a separate signed-out browser holding the same dev data) votes with a ballot code.
+  const state = await page.evaluate(() => localStorage.getItem("lv.mock.state"));
+  await ctx.close();
+  const voter = await openPage(app, { width: 390, signedIn: false });
+  await voter.ctx.addInitScript((st) => { if (!sessionStorage.getItem("voter")) { localStorage.setItem("lv.mock.state", st); sessionStorage.setItem("voter", "1"); } }, state);
+  ({ page } = voter);
+  const go2 = voter.go;
+  await go2(`/c/${code}`);
+  await page.getByText("Secret ballot").waitFor();
+  assert.equal(await page.getByTestId("player-start").isDisabled(), true, "a signed-out voter needs a ballot code");
+  await page.getByLabel(/Ballot code/).fill(codes[0].toLowerCase());
+  await page.getByTestId("player-start").click();
+  await page.getByRole("radio", { name: /Blake/ }).click();
+  await page.getByRole("button", { name: "Review" }).click();
+  await page.getByRole("button", { name: "Cast vote" }).click();
+  await page.getByTestId("player-thanks").getByText(/secret ballot/).waitFor();
+
+  // The same code cannot vote twice.
+  await go2(`/c/${code}`);
+  await page.getByLabel(/Ballot code/).fill(codes[0]);
+  await page.getByTestId("player-start").click();
+  await page.getByRole("radio", { name: /Avery/ }).click();
+  await page.getByRole("button", { name: "Review" }).click();
+  await page.getByRole("button", { name: "Cast vote" }).click();
+  await page.getByRole("alert").getByText(/already been used/).waitFor();
+  await voter.ctx.close();
+});
+
+test("Free Quick Survey picker: basic types and Survey; Election is for Hub plans", async () => {
+  const { page, go, ctx } = await openPage(app, { width: 1280 });
+  await go("/surveys/new");
+  const types = page.getByRole("radiogroup", { name: "Feedback type" });
+  for (const name of ["Poll", "Rating", "Yes/No", "Open feedback", "Survey"]) {
+    assert.equal(await types.getByRole("radio", { name: new RegExp(`^${name.replace("/", "\\/")}`) }).isEnabled(), true, `${name} is free`);
+  }
+  assert.equal(await types.getByRole("radio", { name: /^Election/ }).isDisabled(), true);
+  await types.getByText("Hub plans").waitFor();
+  await ctx.close();
+});

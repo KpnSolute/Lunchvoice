@@ -64,8 +64,10 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
             {(c.guest_n ?? 0) > 0 || c.guest_suppressed ? (
               <Metric
                 value={c.guest_suppressed || c.guest_n == null ? null : <CountUp value={c.guest_n} />}
-                label="Guest responses"
-                hint={c.guest_suppressed ? "Includes some unverified guest responses; the count is withheld." : `Includes ${c.guest_n} unverified guest responses.`}
+                label={detail.data?.campaign.mode === "election" ? "Ballot-code votes" : "Guest responses"}
+                hint={detail.data?.campaign.mode === "election"
+                  ? (c.guest_suppressed ? "Votes cast with one-time ballot codes; the count is withheld." : "Votes cast with one-time ballot codes. Each code works once.")
+                  : c.guest_suppressed ? "Includes some unverified guest responses; the count is withheld." : `Includes ${c.guest_n} unverified guest responses.`}
               />
             ) : null}
           </div>

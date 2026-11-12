@@ -201,7 +201,7 @@ export interface Role {
 
 /* ------------------------------------------------------------------ campaigns */
 
-export type CampaignMode = "survey" | "poll" | "rating" | "feedback";
+export type CampaignMode = "survey" | "poll" | "rating" | "yes_no" | "feedback" | "election";
 export type Anonymity = "anonymous" | "identified";
 export type CampaignStatus = "draft" | "active" | "paused" | "closed" | "archived";
 export type QuestionKind = "rating" | "single_choice" | "multi_choice" | "yes_no" | "text";
@@ -545,6 +545,16 @@ export function createLvApi(transport: LvTransport) {
     // 000028: always the four-argument call; the name is null unless the creator asked for one.
     guestSubmit: (joinCode: string, guestKey: string, answers: Answer[], guestName: string | null = null) =>
       call<SubmitReceipt>("lv_guest_submit", { p_join_code: joinCode, p_guest_key: guestKey, p_answers: answers, p_guest_name: guestName }),
+    /* ---- Elections (000037) ---- */
+    // Vote with a one-time ballot code: no account. lv_not_found = wrong code, lv_conflict = code already used.
+    ballotSubmit: (joinCode: string, ballotCode: string, answers: Answer[]) =>
+      call<{ receipt_id: string }>("lv_ballot_submit", { p_join_code: joinCode, p_ballot_code: ballotCode, p_answers: answers }),
+    // Codes are returned once and stored only as hashes.
+    electionBallotCodesCreate: (campaign: string, count: number) =>
+      call<{ codes: string[]; issued: number }>("lv_election_ballot_codes_create", { p_campaign: campaign, p_count: count }),
+    // `used` (turnout) is null until the election has finished.
+    electionBallotStatus: (campaign: string) =>
+      call<{ issued: number; used: number | null; used_visible: boolean }>("lv_election_ballot_status", { p_campaign: campaign }),
     campaignSetGuestNames: (campaign: string, mode: GuestNamesMode) =>
       call<{ guest_names: GuestNamesMode }>("lv_campaign_set_guest_names", { p_campaign: campaign, p_mode: mode }),
     campaignResponses: (campaign: string, limit = 50, before: string | null = null) =>

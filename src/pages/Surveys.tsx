@@ -5,7 +5,7 @@ import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import { describeError } from "../lib/errors";
 import type { Anonymity, CampaignDetailData, CampaignMode, SurveyAccess } from "../lib/lvApi";
-import { ELECTION_PREVIEW, FEEDBACK_TYPES, feedbackTypeLabel, freeFeedbackTypes } from "../config/feedbackTypes";
+import { ELECTION_TYPE, FEEDBACK_TYPES, SURVEY_TYPE, feedbackTypeLabel, freeFeedbackTypes } from "../config/feedbackTypes";
 import type { SaveTracker } from "./QuestionWorkbench";
 import { Icon } from "../components/Icon";
 import { campaignPhase, LinkButton } from "../components/ui";
@@ -146,7 +146,8 @@ export function NewSurvey() {
             <legend className="lv-legend">Feedback type</legend>
             <RadioGroup value={mode} onValueChange={(v) => setMode(v as CampaignMode)} aria-label="Feedback type" className="ui-grid-2">
               {FEEDBACK_TYPES.filter((t) => allowed.includes(t.key)).map((t) => <RadioCard key={t.key} value={t.key} title={t.label} description={t.body} />)}
-              <RadioCard value="election" title={ELECTION_PREVIEW.label} description={ELECTION_PREVIEW.body} disabled badge={<Badge>Coming soon</Badge>} />
+              <RadioCard value="survey" title={SURVEY_TYPE.label} description={SURVEY_TYPE.body} />
+              <RadioCard value="election" title={ELECTION_TYPE.label} description={ELECTION_TYPE.body} disabled badge={<Badge>Hub plans</Badge>} />
             </RadioGroup>
           </fieldset>
 

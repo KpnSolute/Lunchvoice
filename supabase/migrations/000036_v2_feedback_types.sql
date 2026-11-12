@@ -41,7 +41,7 @@ begin
     return lv.err('lv_invalid_input', 'Anonymity is anonymous or identified.');
   end if;
   if not lv.quick_mode_allowed(v_mode) then
-    return lv.err('lv_invalid_input', 'Choose a feedback type: survey, poll, rating or open feedback.');
+    return lv.err('lv_invalid_input', 'Choose a feedback type your plan includes.');
   end if;
   v_hub := lv.ensure_personal_space(v_account);
   perform pg_advisory_xact_lock(hashtextextended('lv_quick_create:' || v_account::text, 0));
@@ -78,7 +78,7 @@ declare
   v_out jsonb;
 begin
   if p_mode is not null and lv.hub_kind(v_hub) = 'personal' and not lv.quick_mode_allowed(p_mode) then
-    return lv.err('lv_invalid_input', 'Choose a feedback type: survey, poll, rating or open feedback.');
+    return lv.err('lv_invalid_input', 'Choose a feedback type your plan includes.');
   end if;
   if p_description is not null and length(btrim(p_description)) > 2000 then
     return lv.err('lv_invalid_input', 'Keep the description to 2000 characters.');

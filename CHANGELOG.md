@@ -6,6 +6,27 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (000037 elections and Yes/No, built and tested, NOT yet applied to production)
+
+- **Product vocabulary** (founder direction 2026-11-11): Poll, Rating, Yes/No, Open feedback and Election are *feedback
+  types*; a Survey combines several of them. Both pickers now list the types, then "Survey: combine several of these".
+- **Yes/No** is a feedback type everywhere and free in Quick Surveys (`free.quick.modes`).
+- **Elections** (founder: Hub plans only, not free). `supabase/migrations/000037_v2_elections.sql` + rollback +
+  `supabase/tests/38_elections.sql` (database suite 1383/0 with rollback rehearsal). Entitlement key `modes.election` on
+  Starter and Team (so Campaign Starter and Campaign Plus); secret ballot enforced by a constraint (always anonymous, never
+  guests); races are choice questions (one winner, or `max` seats); strict vote validation (real candidates, distinct,
+  within seats; a race may be skipped, at least one vote); publish gate reasons `election_unavailable` and
+  `election_race_invalid`; one-time **ballot codes** for voters without accounts (`lv_election_ballot_codes_create`,
+  `lv_election_ballot_status`, `lv_ballot_submit`), shown once, stored as hashes, one voter list per election, turnout
+  only after the end. Test 14's signed-out allow-list now includes `lv_ballot_submit`; test 37's map check allows Yes/No.
+- UI: Election in the Hub picker (enabled from `lv_hub_limits`, otherwise "Starter and Team"); the Studio speaks of
+  races, candidates and seats and hides "Required" (voters may skip a race); a Ballot codes panel (create, copy, CSV,
+  issued/used); the player shows "Secret ballot", a ballot-code field for signed-out voters, "Cast vote", and never keeps
+  an election draft on the device; results label ballot votes. Dev mock mirrors it; e2e covers creating an election,
+  issuing codes, voting without an account and a reused code being refused (93/93).
+- `docs/backend/API_CONTRACT.md`: "Feedback types and elections (000036, 000037)". 000036's type error now reads
+  "Choose a feedback type your plan includes."
+
 ### Added (000036 feedback types, built and tested, NOT yet applied to production)
 
 - **Feedback types for everyone** (founder direction 2026-11-11). A Campaign's mode is now shown as its *feedback type*:

@@ -39,6 +39,11 @@ export const KINDS: { key: QuestionKind; label: string }[] = [
   { key: "text", label: "Short text" },
 ];
 export const kindLabel = (k: string) => KINDS.find((x) => x.key === k)?.label ?? k;
+/** Race types in an election: the server accepts only these two (000037). */
+export const RACE_KINDS: { key: QuestionKind; label: string }[] = [
+  { key: "single_choice", label: "One winner" },
+  { key: "multi_choice", label: "Several winners" },
+];
 const TEXT_WARNING = "Text answers can identify people. We only show them once enough people have answered.";
 
 export interface SaveTracker {
@@ -155,12 +160,12 @@ export function QuestionWorkbench({
       <section className="lv-qw-editor" aria-label="Question editor">
         {locked && <Notice>Published questions can’t change. Close it to stop answers.</Notice>}
         {current ? (
-          <QuestionEditor key={aliases.current[current.question_id] ?? current.question_id} q={current} n={index + 1} locked={locked} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} />
+          <QuestionEditor election={d.campaign.mode === "election"} key={aliases.current[current.question_id] ?? current.question_id} q={current} n={index + 1} locked={locked} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} />
         ) : effectiveSel === "new" && !locked ? (
           atLimit ? (
             <Notice tone="warn" title={`This survey has ${qs.length} of ${limit} questions`}>Remove a question to add another.</Notice>
           ) : (
-            <QuestionEditor key={`new-${newKey}`} q={null} initialKind={initialKind} n={qs.length + 1} locked={false} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} />
+            <QuestionEditor election={d.campaign.mode === "election"} key={`new-${newKey}`} q={null} initialKind={d.campaign.mode === "election" && initialKind !== "multi_choice" ? "single_choice" : initialKind} n={qs.length + 1} locked={false} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} />
           )
         ) : (
           <Card variant="well"><p className="lv-m0">{qs.length ? "Pick a question to see it." : "This survey has no questions."}</p></Card>
@@ -273,6 +278,7 @@ function QuestionEditor({
   campaignId,
   nextPos,
   onCreated,
+  election = false,
 }: {
   q: Question | null;
   n: number;
@@ -283,6 +289,8 @@ function QuestionEditor({
   nextPos: number;
   onCreated: (id: string) => void;
   initialKind?: QuestionKind;
+  /** 000037: in an election every question is a race (one or several winners) and its options are the candidates. */
+  election?: boolean;
 }) {
   const { api } = useIdentity();
   const [draft, setDraft] = useState<Draft>(() => fromQuestion(q, initialKind));
@@ -360,20 +368,20 @@ function QuestionEditor({
     <div className="lv-qw-edit">
       <Card>
         <div className="ui-spread">
-          <Eyebrow>Question {String(n).padStart(2, "0")}{q ? "" : " · new"}</Eyebrow>
-          <Badge variant={draft.optional ? "neutral" : "ink"}>{draft.optional ? "Optional" : "Required"}</Badge>
+          <Eyebrow>{election ? "Race" : "Question"} {String(n).padStart(2, "0")}{q ? "" : " · new"}</Eyebrow>
+          {election ? <Badge variant="neutral">Voters may skip a race</Badge> : <Badge variant={draft.optional ? "neutral" : "ink"}>{draft.optional ? "Optional" : "Required"}</Badge>}
         </div>
-        <Field label="Type" htmlFor={`kind-${n}`}>
+        <Field label={election ? "Race type" : "Type"} htmlFor={`kind-${n}`}>
           <Select value={draft.kind} onValueChange={(v) => changeKind(v as QuestionKind)} disabled={locked}>
             <SelectTrigger id={`kind-${n}`}><SelectValue /></SelectTrigger>
-            <SelectContent>{KINDS.map((k) => <SelectItem key={k.key} value={k.key}>{k.label}</SelectItem>)}</SelectContent>
+            <SelectContent>{(election ? RACE_KINDS : KINDS).map((k) => <SelectItem key={k.key} value={k.key}>{k.label}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
         {/* A new question saves only once it has question text. Say so on the field as soon as anything else has been
             filled in (founder bug report: options were typed, the example placeholder looked like a question, and nothing
             saved). The placeholder no longer reads like a real question. */}
         <Field
-          label="Question"
+          label={election ? "Race (what voters are choosing)" : "Question"}
           htmlFor={`prompt-${n}`}
           counter={{ value: draft.prompt.length, max: 200 }}
           error={
@@ -387,7 +395,7 @@ function QuestionEditor({
 
         {isChoice(draft.kind) && (
           <fieldset className="lv-fieldset" aria-describedby={`opts-${n}-note`}>
-            <legend className="lv-legend">Options</legend>
+            <legend className="lv-legend">{election ? "Candidates" : "Options"}</legend>
             <ol className="lv-options-edit" data-testid="option-rows">
               {draft.options.map((o, i) => (
                 <li
@@ -437,12 +445,13 @@ function QuestionEditor({
         )}
 
         {draft.kind === "multi_choice" && (
-          <Field label="Most choices a person can pick" htmlFor={`max-${n}`}>
-            <Select value={draft.max === null ? "any" : String(draft.max)} onValueChange={(v) => schedule({ ...draft, max: v === "any" ? null : Number(v) }, 0)} disabled={locked}>
-              <SelectTrigger id={`max-${n}`}><SelectValue /></SelectTrigger>
+          <Field label={election ? "Seats (how many winners)" : "Most choices a person can pick"} htmlFor={`max-${n}`}
+            error={election && (draft.max === null || draft.max < 2) ? "Choose how many winners this race has (2 or more, fewer than the candidates)." : undefined}>
+            <Select value={draft.max === null ? (election ? "" : "any") : String(draft.max)} onValueChange={(v) => schedule({ ...draft, max: v === "any" ? null : Number(v) }, 0)} disabled={locked}>
+              <SelectTrigger id={`max-${n}`}><SelectValue placeholder={election ? "Choose seats" : undefined} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="any">Any number</SelectItem>
-                {Array.from({ length: Math.max(0, filled - 1) }, (_, i) => i + 1).map((k) => <SelectItem key={k} value={String(k)}>{k}</SelectItem>)}
+                {!election && <SelectItem value="any">Any number</SelectItem>}
+                {Array.from({ length: Math.max(0, filled - 1) }, (_, i) => i + 1).filter((k) => !election || k >= 2).map((k) => <SelectItem key={k} value={String(k)}>{k}</SelectItem>)}
               </SelectContent>
             </Select>
           </Field>
@@ -450,11 +459,13 @@ function QuestionEditor({
 
         {draft.kind === "text" && <Notice tone="warn">{TEXT_WARNING}</Notice>}
 
+        {!election && (
         <ToggleRow
           title="Required"
           description={draft.optional ? "People can skip this question." : "People must answer this question to submit."}
           control={<Switch checked={!draft.optional} disabled={locked} aria-label="Required" onCheckedChange={(on) => schedule({ ...draft, optional: !on }, 0)} />}
         />
+        )}
 
         {!locked && q && (
           <div className="ui-row">
@@ -464,10 +475,10 @@ function QuestionEditor({
       </Card>
 
       <Card variant="well" className="lv-qw-preview" aria-label="Respondent preview">
-        <Eyebrow>What people see</Eyebrow>
+        <Eyebrow>{election ? "What voters see" : "What people see"}</Eyebrow>
         <h2 className="lv-q-title lv-q-title-preview">{draft.prompt || "Your question"}</h2>
         <QuestionInput q={previewQ} value={preview} onChange={setPreview} />
-        <p className="ui-help lv-m0">{draft.optional ? "Optional: people can skip it." : "Required: people answer it to submit."}</p>
+        <p className="ui-help lv-m0">{election ? "Voters may skip a race, but must vote in at least one." : draft.optional ? "Optional: people can skip it." : "Required: people answer it to submit."}</p>
       </Card>
 
       <AlertDialog open={pendingKind !== null} onOpenChange={(o) => !o && setPendingKind(null)}>
