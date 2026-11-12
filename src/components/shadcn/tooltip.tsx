@@ -30,9 +30,10 @@ function TooltipTrigger({
 function TooltipContent({
   className,
   sideOffset = 0,
+  arrow = false,
   children,
   ...props
-}: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+}: React.ComponentProps<typeof TooltipPrimitive.Content> & { arrow?: boolean }) {
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Content
@@ -45,7 +46,7 @@ function TooltipContent({
         {...props}
       >
         {children}
-        <TooltipPrimitive.Arrow className="hidden" />
+        <TooltipPrimitive.Arrow className={arrow ? "fill-[var(--lv-ink-bg)]" : "hidden"} width={12} height={6} />
       </TooltipPrimitive.Content>
     </TooltipPrimitive.Portal>
   )

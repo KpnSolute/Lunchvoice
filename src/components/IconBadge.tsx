@@ -13,7 +13,7 @@ export function IconBadge({ kind, size = 20 }: { kind: BadgeKey; size?: number }
           <Icon name={b.icon} size={Math.round(size * 0.72)} />
         </span>
       </TooltipTrigger>
-      <TooltipContent><span className="lv-ibadge-tip"><strong>{b.label}</strong><span>{b.meaning}</span></span></TooltipContent>
+      <TooltipContent side="top" align="center" sideOffset={6} arrow collisionPadding={12} className="block px-3 py-2.5 text-left" style={{ maxWidth: 248, width: "max-content" }}><span className="lv-ibadge-tip"><strong>{b.label}</strong><span>{b.meaning}</span></span></TooltipContent>
     </Tooltip>
   );
 }
