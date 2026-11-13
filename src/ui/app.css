@@ -13,6 +13,8 @@
 .lv-outline-section { display: grid; gap: var(--lv-space-1); padding: var(--lv-space-3) var(--lv-space-2) var(--lv-space-1); margin-top: var(--lv-space-2); border-top: 1px solid var(--lv-line); list-style: none; }
 .lv-outline-section-title { font: 700 13px/1.3 var(--lv-font-ui); color: var(--lv-text); }
 .lv-outline-section small { font: 500 var(--lv-text-min)/1.35 var(--lv-font-ui); color: var(--lv-muted); }
+.lv-logic-cond { display: grid; gap: var(--lv-space-2); padding: var(--lv-space-3); border: 1px solid var(--lv-line); border-radius: var(--lv-radius-md); }
+.lv-outline-rule { color: var(--lv-accent-ink, var(--lv-muted)); }
 .lv-rule-options { display: flex; flex-wrap: wrap; gap: var(--lv-space-2) var(--lv-space-4); padding-top: var(--lv-space-1); }
 .lv-outline-li > .lv-outline-item { flex: 1; min-width: 0; }
 .lv-outline-move { display: flex; flex-direction: column; gap: 2px; }

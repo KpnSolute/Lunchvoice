@@ -8,6 +8,8 @@ import { Icon } from "../components/Icon";
 import { QuestionInput } from "../ui/QuestionControls";
 import { describeRule } from "../lib/sections";
 import { SectionPanel } from "./SectionPanel";
+import { LogicPanel } from "./LogicPanel";
+import { describeLogicRule, pathLengths } from "../lib/logic";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
 import { Input } from "@/components/shadcn/input";
@@ -169,9 +171,22 @@ export function QuestionWorkbench({
         )}
         {/* A sibling, not a wrapper: wrapping the editor would remount it when a new question is created (save race). */}
         {current && <SectionPanel key={`sec-${current.question_id}`} q={current} n={index + 1} qs={qs} locked={locked} allowed={d.features?.branching ?? false} save={save} reload={reload} />}
+        {/* 000042 Linked Questions: show-only-if and end-survey, a sibling like the section panel. */}
+        {current && <LogicPanel key={`logic-${current.question_id}`} q={current} qs={qs} locked={locked} allowed={d.features?.branching ?? false} save={save} reload={reload} />}
+        {qs.some((x) => x.config.show_if || x.config.jumps?.length || x.config.section?.show_if) && <PathSummary qs={qs} />}
       </section>
     </div>
     </div>
+  );
+}
+
+/** How many questions one person answers: the shortest and longest path through the rules. */
+function PathSummary({ qs }: { qs: Question[] }) {
+  const p = pathLengths(qs);
+  return (
+    <Card variant="well" data-testid="path-summary">
+      <p className="lv-m0">{p.min === p.max ? `Everyone answers ${p.max} questions.` : `People answer between ${p.min} and ${p.max} questions, depending on their answers.`}{p.exact ? "" : " (estimated)"}</p>
+    </Card>
   );
 }
 
@@ -229,6 +244,8 @@ function OutlineList({
               <span className="lv-outline-text">
                 <span>{q.prompt}</span>
                 <small>{kindLabel(q.kind)}{q.config.optional ? " · optional" : ""}</small>
+                {q.config.show_if && <small className="lv-outline-rule" data-testid="outline-rule">{describeLogicRule(q.config.show_if, qs)}</small>}
+                {q.config.jumps?.some((j) => j.to === "end") && <small className="lv-outline-rule">Ends the survey on {q.config.jumps.filter((j) => j.to === "end").map((j) => (q.kind === "yes_no" ? (j.when === "true" ? "Yes" : "No") : j.when)).join(", ")}</small>}
               </span>
             </button>
             {!locked && (
