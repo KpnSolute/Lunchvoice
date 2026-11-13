@@ -14,20 +14,32 @@ export interface ThemeState {
   theme: PlayerTheme | null;
   logoUrl: string | null;
   coverUrl: string | null;
-  frameProps: { className: string; style?: CSSProperties; "data-buttons"?: string };
+  /** Spread `attrs` on the player root: data-buttons, data-pt-banner, data-pt-pattern, data-pt-glow, data-pt-progress. */
+  frameProps: { className: string; style?: CSSProperties; attrs: Record<string, string> };
   hideFooter: boolean;
 }
 
-export const NO_THEME: ThemeState = { theme: null, logoUrl: null, coverUrl: null, frameProps: { className: "" }, hideFooter: false };
+export const NO_THEME: ThemeState = { theme: null, logoUrl: null, coverUrl: null, frameProps: { className: "", attrs: {} }, hideFooter: false };
 
 export function themeState(theme: PlayerTheme | null, logoUrl: string | null, coverUrl: string | null): ThemeState {
-  const vars = theme ? themeVars(theme.color) : undefined;
+  const vars = theme ? themeVars(theme.color, { color2: theme.style === "gradient" ? theme.color2 : null, angle: theme.gradient_angle }) : undefined;
   if (!theme) return NO_THEME;
   return {
     theme,
     logoUrl,
     coverUrl,
-    frameProps: { className: vars ? " lv-ptheme" : "", style: vars as CSSProperties | undefined, "data-buttons": theme.button_style },
+    frameProps: {
+      className: vars ? " lv-ptheme" : "",
+      style: vars as CSSProperties | undefined,
+      attrs: {
+        "data-buttons": theme.button_style,
+        "data-pt-banner": theme.banner_style ?? "fill",
+        "data-pt-pattern": theme.banner_style === "pattern" ? theme.cosmetics?.pattern ?? "dots" : "none",
+        "data-pt-glow": theme.cosmetics?.glow ? "on" : "off",
+        "data-pt-progress": theme.cosmetics?.progress_tint ? "on" : "off",
+        "data-pt-logo-shadow": theme.cosmetics?.logo_shadow ? "on" : "off",
+      },
+    },
     hideFooter: theme.hide_footer,
   };
 }
@@ -72,4 +84,10 @@ export function BrandMedia({ t, cover = true }: { t: ThemeState; cover?: boolean
       {t.logoUrl && <img className="lv-pt-logo" src={t.logoUrl} alt="Logo" data-testid="brand-logo" />}
     </>
   );
+}
+
+/** The thank-you screen's logo (the screen itself is the banner: color, gradient or pattern; logo-only keeps LunchVoice ink). */
+export function BrandBanner({ t }: { t: ThemeState }) {
+  if (!t.theme || !t.logoUrl) return null;
+  return <img className="lv-pt-logo lv-pt-logo-only" src={t.logoUrl} alt="Logo" data-testid="brand-logo" />;
 }

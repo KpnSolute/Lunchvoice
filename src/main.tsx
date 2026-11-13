@@ -22,6 +22,7 @@ import { Gallery } from "./pages/Gallery";
 import { initTheme } from "./ui/theme";
 import { Seo } from "./ui/Seo";
 import { Toaster } from "@/components/shadcn/sonner";
+import { ChunkErrorBoundary, UpdateNotice } from "@/components/UpdateNotice";
 import { TooltipProvider } from "@/components/shadcn/tooltip";
 import "./ui/fonts.css";
 import "./ui/tokens.css";
@@ -46,6 +47,7 @@ createRoot(document.getElementById("root")!).render(
       <Seo />
       <IdentityProvider>
         <TooltipProvider delayDuration={300}>
+        <ChunkErrorBoundary>
         <Routes>
           <Route element={<Shell />}>
             {/* public */}
@@ -80,7 +82,7 @@ createRoot(document.getElementById("root")!).render(
 
             {/* Quick Surveys (personal space) */}
             <Route path="surveys" element={<RequireSignIn><SurveyList /></RequireSignIn>} />
-            <Route path="surveys/new" element={<RequireSignIn><NewSurvey /></RequireSignIn>} />
+            <Route path="surveys/new" element={<NewSurvey />} />
             <Route path="surveys/:id" element={<RequireSignIn><SurveyStudio /></RequireSignIn>} />
             <Route path="surveys/:id/results" element={<RequireSignIn><SurveyResults /></RequireSignIn>} />
 
@@ -131,7 +133,9 @@ createRoot(document.getElementById("root")!).render(
             {import.meta.env.DEV && <Route path="__gallery" element={<Gallery />} />}
           </Route>
         </Routes>
+        </ChunkErrorBoundary>
         <Toaster />
+        <UpdateNotice />
         </TooltipProvider>
       </IdentityProvider>
     </BrowserRouter>

@@ -149,6 +149,16 @@ Anonymous versus identified is a Campaign setting (`campaign.anonymity`), not an
 Campaign the submission stores no account and the Hub can never see who answered. Show this to respondents
 before they submit.
 
+### `lv_submit_response(p_campaign, p_answers, p_display_name)` (000052)
+Overload for a signed-in respondent who wants a different name on their answers ("Maurice from Corporate"). Send
+`p_display_name` only when you have one; the two-argument call is unchanged. The name is cleaned the same way for
+everyone: runs of spaces collapse, the ends are trimmed, 1 to 40 characters; control characters or more than 40
+characters are `lv_invalid_input`; a blank name means "use my account name" and stores nothing. It is stored in
+`lv.submissions.guest_name` (the column 000028 protects) and `is_guest` says whose it is. **Anonymous Campaigns
+ignore it entirely** (no error, nothing stored). It is only a label: identity stays the `(issuer, subject)` pair, one
+answer per account is decided by participation, and authorization never reads it. `lv_campaign_responses` returns it as
+`name` with `kind: "member"` (shown as **Account**) or `kind: "guest"` (shown as **Guest, unverified**).
+
 ## Analytics
 
 ### `lv_analytics_query(p_campaign, p_metric, p_question?)`
@@ -1209,6 +1219,16 @@ questions, answers or anonymity.
   `<campaign uuid>/<logo|cover>-<hex>.<png|jpg|webp>`. Write: Hub managers (owner of a personal space) with `survey.branding`;
   read: managers, or anyone for an image referenced by a published survey's active theme. The app loads images through
   the authenticated client as `blob:` URLs, so CSP needs no new origin.
+
+### Survey branding v2: gradients and cosmetics (000048)
+
+Additive to 000043; every rule above still holds (theme per survey, no Hub needed, `follow_hub` explicit, plan on save,
+lapse falls back, player visibility rules, table closed to API roles). New `SurveyBranding` / `theme` fields:
+
+- `style`: `solid` | `gradient` (default `solid`); `color2` (`#rrggbb`, kept only for a gradient); `gradient_angle`: `90` horizontal | `135` diagonal | `180` vertical.
+- `banner_style`: `fill` (the color or gradient) | `pattern` | `logo` (logo only, LunchVoice ink behind it).
+- `cosmetics`: `{ pattern: none|dots|grid|waves, progress_tint: bool, glow: bool }`. Corner style is the existing `button_style`.
+- Save rules: text on a gradient is white, so BOTH colors must reach 4.5:1 on white (`lv_invalid_input` otherwise); a gradient needs `color2` and a first color (or `follow_hub`); unknown angle, banner, pattern or style are refused; a solid theme drops `color2`.
 
 ## Results analytics and Trends (000044)
 

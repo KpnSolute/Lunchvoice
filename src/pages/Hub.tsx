@@ -22,6 +22,7 @@ import { HubAppearance } from "./HubAppearance";
 import { StateScreen } from "../ui/StateScreen";
 import { BottomTabs, type TabItem } from "../ui/BottomTabs";
 import { NotFoundPage } from "./Marketing";
+import { useHubHead } from "../ui/Seo";
 import { CommunityNav, CommunityPage, PageEditor } from "./Community";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
@@ -84,6 +85,8 @@ export function HubLayout() {
     () => (reserved ? Promise.resolve({ ok: false as const, error: { code: "lv_not_found" as const, message: "" } }) : api.hubGet(slug)),
     [api, slug, reserved],
   );
+
+  useHubHead(q.data && !q.data.hub.suspension?.suspended ? { name: q.data.hub.name, about: q.data.hub.about, member_count: q.data.hub.member_count } : null);
 
   if (reserved) return <NotFoundPage />;
   if (q.loading && !q.data) return <div className="ui-page"><LoadingRows rows={3} label="Loading Hub" /></div>;
@@ -315,6 +318,8 @@ export function HubOverview() {
 
   if (!membership) {
     return (
+      <>
+      <PublicPollCard slug={hub.slug} />
       <Card className="lv-hub-joincard" data-testid="hub-join">
         <h2 className="lv-detail-title">
           {hub.membership_mode === "open" ? "This Hub is open to join." : hub.membership_mode === "approval" ? "Join requests are reviewed by a manager." : "This Hub is invite only."}
@@ -332,6 +337,7 @@ export function HubOverview() {
           )}
         </div>
       </Card>
+      </>
     );
   }
 
@@ -400,6 +406,29 @@ export function HubOverview() {
       </aside>
     </div>
     </div>
+  );
+}
+
+/** F5: a public Hub's latest open poll, answerable by anyone with no sign-in. Shows the question set's size, never results. */
+function PublicPollCard({ slug }: { slug: string }) {
+  const { api } = useIdentity();
+  const q = useLv(() => api.hubPublicPoll(slug), [api, slug]);
+  const poll = q.data?.poll;
+  if (!poll) return null;
+  const closes = poll.closes_at ? ` · closes ${fmtDate(poll.closes_at)}` : "";
+  return (
+    <Card className="lv-hub-poll" data-testid="hub-public-poll">
+      <Eyebrow accent>Open now</Eyebrow>
+      <h2 className="lv-detail-title">{poll.title}</h2>
+      {poll.description && <p className="ui-muted lv-m0">{poll.description}</p>}
+      <p className="ui-help lv-m0">
+        {modeLabel(poll.mode)} · {poll.question_count === 1 ? "1 question" : `${poll.question_count} questions`}
+        {poll.anonymity === "anonymous" ? " · anonymous" : ""}{closes}
+      </p>
+      <div className="ui-row">
+        <LinkButton to={`/c/${poll.link_token}`} variant="primary" size="lg" data-testid="hub-public-poll-answer">Answer this poll</LinkButton>
+      </div>
+    </Card>
   );
 }
 

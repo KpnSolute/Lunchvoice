@@ -30,17 +30,17 @@
 /* Start and thank-you screens: the survey color is the surface; text and the main button flip to the readable ink or
    white (contrast is symmetric, so the 4.5:1 the editor enforces holds both ways). */
 :root:not([data-theme='hc']) .lv-ptheme .lv-pt-hero,
-:root:not([data-theme='hc']) .lv-ptheme.lv-player-ink {
-  --lv-ink-bg: var(--pt-accent);
+:root:not([data-theme='hc']) .lv-ptheme:not([data-pt-banner='logo']).lv-player-ink {
+  --lv-ink-bg: var(--pt-hero, var(--pt-accent));
   --lv-ink-shadow: none;
   --lv-on-primary: var(--pt-on);
   --lv-accent: var(--pt-on);
   --lv-accent-cta-bg: var(--pt-on);
-  --lv-on-accent: var(--pt-accent);
+  --lv-on-accent: var(--pt-accent); /* the CTA sits on --pt-on, so its label uses the hero color */
   --lv-accent-light: color-mix(in srgb, var(--pt-on) 88%, var(--pt-accent));
   --lv-focus: var(--pt-on);
 }
-:root:not([data-theme='hc']) .lv-ptheme.lv-player-ink { border-top-color: var(--pt-on); }
+:root:not([data-theme='hc']) .lv-ptheme:not([data-pt-banner='logo']).lv-player-ink { border-top-color: var(--pt-on); }
 
 /* Cover image: full-bleed across the top of the start card. */
 .lv-pt-hero { overflow: hidden; }
@@ -48,14 +48,52 @@
   display: block; width: calc(100% + 2 * var(--lv-space-6)); max-width: none; aspect-ratio: 3 / 1; object-fit: cover;
   margin: calc(-1 * var(--lv-space-6)) calc(-1 * var(--lv-space-6)) 0;
 }
-/* Logo: on a light tile so transparent and dark logos both stay visible on any survey color. */
-.lv-pt-logo {
-  display: block; height: 48px; width: auto; max-width: 160px; object-fit: contain; padding: var(--lv-space-1);
-  border-radius: var(--lv-radius-tag); background: var(--lv-surface); box-shadow: var(--lv-card-shadow);
-}
+/* Logo: the image itself, on the banner. No tile, border or padding box; its own transparency is honored. The creator
+   may switch on a very subtle drop-shadow (cosmetics.logo_shadow, default off) for a dark logo on a dark color. */
+.lv-pt-logo { display: block; height: 56px; width: auto; max-width: 200px; object-fit: contain; }
+.lv-ptheme[data-pt-logo-shadow='on'] .lv-pt-logo { filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4)); }
 .lv-pt-cover + .lv-pt-logo { margin-top: calc(-1 * var(--lv-space-8)); position: relative; }
 .lv-pt-subtitle { margin: 0; font: 600 16px/1.35 var(--lv-font-ui); opacity: 0.9; }
 .lv-pt-message { margin: 0; font: 600 19px/1.45 var(--lv-font-ui); max-width: 44ch; white-space: pre-line; overflow-wrap: anywhere; }
+
+
+/* Subtle patterns over the hero and the strip: the on-color at a low alpha, so text contrast is unchanged. */
+.lv-ptheme[data-pt-pattern='dots'] .lv-pt-hero,
+.lv-ptheme[data-pt-pattern='dots'].lv-player-ink {
+  background-image: radial-gradient(color-mix(in srgb, var(--pt-on) 16%, transparent) 1.5px, transparent 1.6px), var(--pt-hero, var(--pt-accent));
+  background-size: 18px 18px, auto;
+}
+.lv-ptheme[data-pt-pattern='grid'] .lv-pt-hero,
+.lv-ptheme[data-pt-pattern='grid'].lv-player-ink {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--pt-on) 11%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--pt-on) 11%, transparent) 1px, transparent 1px),
+    var(--pt-hero, var(--pt-accent));
+  background-size: 24px 24px, 24px 24px, auto;
+}
+.lv-ptheme[data-pt-pattern='waves'] .lv-pt-hero,
+.lv-ptheme[data-pt-pattern='waves'].lv-player-ink {
+  background-image: repeating-radial-gradient(circle at 0 100%, transparent 0 14px, color-mix(in srgb, var(--pt-on) 12%, transparent) 14px 16px), var(--pt-hero, var(--pt-accent));
+}
+
+/* Glow: a soft colored halo on the welcome card, and a one-time shine unless motion is reduced. */
+.lv-ptheme[data-pt-glow='on'] .lv-pt-hero {
+  position: relative;
+  box-shadow: 0 14px 44px -14px color-mix(in srgb, var(--pt-accent) 70%, transparent), inset 0 1px 0 color-mix(in srgb, var(--pt-on) 28%, transparent);
+}
+.lv-ptheme[data-pt-glow='on'] .lv-pt-hero::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+  background: linear-gradient(115deg, transparent 35%, color-mix(in srgb, var(--pt-on) 22%, transparent) 50%, transparent 65%);
+  background-size: 250% 100%; background-position: 100% 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lv-ptheme[data-pt-glow='on'] .lv-pt-hero::after { animation: lv-pt-shine 1.6s var(--lv-ease-out) 0.4s 1 both; }
+}
+@keyframes lv-pt-shine { from { background-position: 100% 0; opacity: 0.9; } to { background-position: 0 0; opacity: 0; } }
+
+/* Progress tint: the track takes a wash of the survey color, the fill carries the gradient (light mode). */
+.lv-ptheme[data-pt-progress='on'] .lv-glide { background: color-mix(in srgb, var(--pt-accent) 16%, var(--lv-well)); }
+:root:not([data-theme='dark']) .lv-ptheme[data-pt-progress='on'] .lv-glide > b { background: var(--pt-hero, var(--pt-accent)); }
 
 /* Button style: rounded (the control radius) or pill. */
 .lv-ptheme[data-buttons='rounded'] .lv-next,
@@ -66,14 +104,33 @@
 /* ---- Builder panel (src/pages/SurveyBranding.tsx): layout only, LunchVoice tokens ---- */
 .lv-branding-head { justify-content: space-between; }
 .lv-branding-grid { display: grid; gap: var(--lv-space-6); align-items: start; }
-@media (min-width: 1000px) { .lv-branding-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.lv-branding-controls { display: flex; flex-direction: column; gap: var(--lv-space-6); min-width: 0; }
+/* Phone: preview on top. Desktop: controls left, live preview right and sticky. */
+@media (min-width: 1000px) {
+  .lv-branding-grid { grid-template-columns: minmax(0, 1fr) minmax(320px, 440px); }
+  .lv-branding-preview { order: 2; position: sticky; top: var(--lv-space-4); }
+  .lv-branding-controls { order: 1; }
+}
+.lv-bgroup { border: 0; margin: 0; padding: 0 0 var(--lv-space-5); border-bottom: 1px solid var(--lv-line); display: flex; flex-direction: column; gap: var(--lv-space-3); min-width: 0; }
+.lv-bgroup-h { padding: 0; margin-bottom: var(--lv-space-1); font: 700 13px/1.2 var(--lv-font-ui); letter-spacing: 0.04em; text-transform: uppercase; color: var(--lv-muted); }
+.lv-swatches-row { display: flex; flex-wrap: wrap; gap: var(--lv-space-6); padding: var(--lv-space-2) var(--lv-space-2) 0 0; }
+.lv-gradient-presets { display: flex; flex-wrap: wrap; gap: var(--lv-space-2); }
+.lv-gradient-chip { width: 56px; height: 32px; border: 0; padding: 0; cursor: pointer; border-radius: var(--lv-radius-pill); box-shadow: var(--lv-card-shadow); }
+.lv-gradient-chip:focus-visible { outline: 3px solid var(--lv-focus); outline-offset: 2px; }
+.lv-gradient-chip:disabled { cursor: not-allowed; opacity: 0.5; }
 .lv-branding-color { flex-wrap: wrap; }
-.lv-color-input { width: 44px; height: 44px; padding: 0; border: 1px solid var(--lv-border); border-radius: var(--lv-radius-control); background: var(--lv-surface); cursor: pointer; }
+.lv-color-input { width: 44px; height: 44px; padding: 0; border: 1px solid var(--lv-line); border-radius: var(--lv-radius-control); background: var(--lv-surface); cursor: pointer; }
 .lv-color-input:disabled { cursor: not-allowed; opacity: 0.5; }
 .lv-switch-row { align-items: flex-start; gap: var(--lv-space-3); }
-.lv-brand-thumb { display: block; object-fit: contain; border-radius: var(--lv-radius-tag); background: var(--lv-surface); border: 1px solid var(--lv-border); }
+.lv-brand-thumb { display: block; object-fit: contain; }
 .lv-brand-thumb-logo { height: 40px; max-width: 120px; }
-.lv-brand-thumb-cover { height: 40px; width: 120px; object-fit: cover; }
+.lv-brand-thumb-cover { height: 40px; width: 120px; object-fit: cover; border-radius: var(--lv-radius-tag); border: 1px solid var(--lv-line); }
 .lv-brand-frame { display: flex; flex-direction: column; gap: var(--lv-space-3); min-width: 0; }
 .lv-brand-frame-phone { max-width: 375px; }
-.lv-brand-screen { border: 1px solid var(--lv-border); border-radius: var(--lv-radius-card); padding: var(--lv-space-4); overflow: hidden; }
+.lv-brand-screen { border: 1px solid var(--lv-line); border-radius: var(--lv-radius-card); padding: var(--lv-space-4); overflow: hidden; }
+.lv-stack-12 { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+.lv-pt-logo-only { margin-bottom: var(--lv-space-2); }
+.lv-switch-row { flex-wrap: nowrap; }
+.lv-switch-row > span { flex: 1; min-width: 0; }
+.lv-switch-row > button { flex: none; }

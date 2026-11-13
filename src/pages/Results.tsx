@@ -17,6 +17,7 @@ import { answerLabel, dataTable, findingTitle, percent, TIME_BUCKET, toData } fr
 import { ResultsPremium } from "./ResultsPremium";
 import { TrendPanel } from "./TrendPanel";
 import { ANON_MIN_ANSWERS } from "../config/privacy";
+import { PresentMode } from "../ui/PresentMode";
 
 // Shared results for Hub Campaigns and Quick Surveys. Aggregates only; withheld is its own state, never zero.
 
@@ -34,6 +35,7 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
   const detail = useLv(() => api.campaignGet(campaignId), [api, campaignId]);
   const count = useLv(() => api.analytics(campaignId, "participant_count"), [api, campaignId]);
   const [exporting, setExporting] = useState(false);
+  const [presenting, setPresenting] = useState(false);
   const c = count.data as Extract<AnalyticsResult, { metric: "participant_count" }> | null;
   const questions = detail.data?.questions ?? [];
   // 000042: on a survey where people take different paths, each question also says how many saw it.
@@ -81,12 +83,20 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
 
       <div className="ui-spread">
         <SectionTitle>Questions</SectionTitle>
+        <div className="lv-btn-row">
+        {detail.data && questions.length > 0 && (
+          <Button variant="primary" onClick={() => setPresenting(true)} data-testid="present"><Icon name="arrow" size={16} />Present</Button>
+        )}
         {exportBlocked ? (
           <DisabledAction variant="secondary" reason={exportBlocked}>Export CSV</DisabledAction>
         ) : (
           <Button variant="secondary" onClick={exportCsv} disabled={exporting}><Icon name="arrow" size={16} />{exporting ? "Exporting…" : "Export CSV"}</Button>
         )}
+        </div>
       </div>
+      {presenting && detail.data && (
+        <PresentMode campaignId={campaignId} title={detail.data.campaign.title} anonymity={detail.data.campaign.anonymity} joinCode={detail.data.join_code ?? null} questions={questions} onClose={() => setPresenting(false)} />
+      )}
 
       {detail.loading && !detail.data && <LoadingRows rows={3} />}
       {detail.error && <Notice tone="error">{describeError(detail.error)}</Notice>}
@@ -155,8 +165,8 @@ function ResponsesCard({ campaignId, questions }: { campaignId: string; question
         {rows.map((r) => (
           <li key={r.response_id} className="lv-resp" data-testid="response-row">
             <div className="lv-resp-head">
-              <strong>{r.name ?? (r.kind === "guest" ? "Guest (no name given)" : "Member")}</strong>
-              <Badge variant={r.verified ? "ok" : "outline"}>{r.verified ? "Member" : "Guest, unverified"}</Badge>
+              <strong>{r.name ?? (r.kind === "guest" ? "Guest (no name given)" : "Account")}</strong>
+              <Badge variant={r.verified ? "ok" : "outline"}>{r.verified ? "Account" : "Guest, unverified"}</Badge>
               <span className="ui-muted lv-small">{new Date(r.at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
             </div>
             <dl className="lv-resp-answers">
