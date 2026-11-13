@@ -8,6 +8,9 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added (live results and individual responses by plan, 000053; not applied to production)
 
+- **Security (review 2026-11-13):** elections never take the live path (`lv.results_instant` is false for
+  `mode = 'election'`), so a secret ballot's tally is never shown vote by vote; production's election results code calls
+  `lv.analytics_core`.
 - Founder decision 2026-11-13: pro users see individual results from guests and signed-in people, and nothing is held
   back for 4 or fewer answers. New entitlement `results.instant` (`team` = Team Hub and Campaign Plus, `creator_plus`,
   `creator_pro`), resolved per survey on the server: the Hub's plan or the creator's own Creator plan. Free Quick Survey,

@@ -42,7 +42,10 @@ insert into lv.plan_limits (family, key, value, note) values
 create function lv.results_instant(p_campaign uuid) returns boolean
 language sql stable security definer set search_path = ''
 as $$
-  select coalesce((select lv.feature_allowed(c.hub_id, coalesce(c.created_by, h.owner_account_id), 'results.instant')
+  -- Elections (secret ballots; 000036-000038 in production call lv.analytics_core) never take the live path: a live
+  -- tally would reveal votes as they are cast. Review 2026-11-13.
+  select coalesce((select c.mode::text <> 'election'
+                          and lv.feature_allowed(c.hub_id, coalesce(c.created_by, h.owner_account_id), 'results.instant')
                      from lv.campaigns c join lv.hubs h on h.id = c.hub_id where c.id = p_campaign), false)
 $$;
 
