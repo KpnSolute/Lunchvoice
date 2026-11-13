@@ -19,6 +19,9 @@ export const EXEMPT = {
   sonner: "the toast host is mounted once in src/main.tsx; the gallery shows toasts with the Toast button",
   // product pieces bound to live data or a signed-in role
   BrandMedia: "player-only decoration that needs a loaded survey theme; covered by e2e/branding.test.mjs",
+  BrandBanner: "the thank-you logo; needs a loaded survey theme, covered by e2e/branding.test.mjs",
+  ColorPicker: "needs the Popover or Sheet host; covered by e2e/branding.test.mjs (keyboard and phone sheet)",
+  ColorSwatch: "entry point of ColorPicker; covered by e2e/branding.test.mjs",
   CheckoutButton: "needs billing config and a session; covered by e2e/commerce.test.mjs",
   CheckoutReturnNotice: "reads the Stripe return query string",
   PricingAction: "a CheckoutButton with a weeks field; covered by e2e/commerce.test.mjs",
@@ -27,7 +30,10 @@ export const EXEMPT = {
   StaffMenuItem: "staff-only menu entry",
   AccountSuspendedNotice: "shown only for a suspended account",
   TemplateQuestions: "renders a template's questions on use-case pages",
-  HubShareRedirect: "a route, not a visual component",
+  PresentMode: "full-screen projector view that needs a live survey and polls the API; covered by e2e/present.test.mjs",
+  UpdateNotice: "headless poller that raises a toast on a new deploy; covered by e2e/update.test.mjs",
+  ChunkErrorBoundary: "error boundary shown only when a route chunk vanished; covered by e2e/update.test.mjs",
+  HubShareRedirect:"a route, not a visual component",
   MakerMark: "shown through MadeBy",
   // app chrome and plumbing
   Seo: "document head only",

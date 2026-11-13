@@ -334,6 +334,18 @@ export interface CampaignDetailData {
   audience?: CampaignAudience;
 }
 
+/** A public Hub's open guest Campaign, as lv_hub_public_poll returns it (000046). Never results or counts. */
+export interface PublicPoll {
+  title: string;
+  description: string | null;
+  mode: CampaignMode;
+  anonymity: Anonymity;
+  closes_at: string | null;
+  question_count: number;
+  /** Opens the guest player at /c/<link_token>. */
+  link_token: string;
+}
+
 export interface CampaignInvite {
   /** Shown once, only in the lv_campaign_invite_create result (000018, NEW-05). */
   token?: string;
@@ -466,6 +478,9 @@ export function createLvApi(transport: LvTransport) {
         const hub: HubInfo = { ...r.hub, accent_palette: palette, accent_hex: accentHex(r.hub.accent, palette), plan: r.hub.plan ?? r.membership?.plan };
         return { ...r, hub };
       }),
+    // lv_hub_public_poll(p_slug) (000046), signed out allowed: a public Hub's latest open Campaign that guests may
+    // answer, or null. Private, missing and suspended Hubs answer null too.
+    hubPublicPoll: (slug: string) => call<{ poll: PublicPoll | null }>("lv_hub_public_poll", { p_slug: slug }),
     hubUpdate: (
       hub: string,
       patch: { display_name?: string; visibility?: Visibility; membership_mode?: MembershipMode; about?: string; accent?: string },
@@ -563,6 +578,9 @@ export function createLvApi(transport: LvTransport) {
         p_guests: access === "link" ? guests : false,
       }),
     quickSurveyList: () => call<{ surveys: CampaignRow[]; active: number; limit: number | null }>("lv_quick_survey_list"),
+    // lv_quick_survey_delete(p_campaign) (000045): the creator deletes a Quick Survey and every answer to it. Refused
+    // (lv_locked) while staff review it; anything not the caller's Quick Survey is lv_not_found.
+    quickSurveyDelete: (campaign: string) => call<{ deleted: true }>("lv_quick_survey_delete", { p_campaign: campaign }),
     campaignInviteCreate: (campaign: string, maxUses?: number | null, expiresAt?: string | null) =>
       call<{ invite: CampaignInvite }>("lv_campaign_invite_create", { p_campaign: campaign, p_max_uses: maxUses ?? null, p_expires_at: expiresAt ?? null }),
     campaignInviteList: (campaign: string) => call<{ invites: CampaignInvite[] }>("lv_campaign_invite_list", { p_campaign: campaign }),
@@ -570,8 +588,11 @@ export function createLvApi(transport: LvTransport) {
     campaignInviteRedeem: (token: string) => call<{ campaign_id: string; join_code: string | null }>("lv_campaign_invite_redeem", { p_token: token }),
 
     /* ---- respond ---- */
-    submit: (campaign: string, answers: Answer[]) =>
-      call<SubmitReceipt>("lv_submit_response", { p_campaign: campaign, p_answers: answers }),
+    /** 000052: `displayName` is the label a signed-in person chose; ignored by the server on anonymous surveys. */
+    submit: (campaign: string, answers: Answer[], displayName: string | null = null) =>
+      call<SubmitReceipt>("lv_submit_response", displayName
+        ? { p_campaign: campaign, p_answers: answers, p_display_name: displayName }
+        : { p_campaign: campaign, p_answers: answers }),
     // The guest read returns `phase` (not `status`) and no member fields; map it onto the member shape.
     guestCampaignGet: (joinCode: string) =>
       call<CampaignDetailData & { campaign: { phase?: string; guests_allowed?: boolean } }>("lv_guest_campaign_get", { p_join_code: joinCode }).then((r) => {
@@ -587,6 +608,8 @@ export function createLvApi(transport: LvTransport) {
           join_code: r.join_code ?? joinCode,
         } as LvResult<CampaignDetailData>;
       }),
+    // 000050: a signed-in person on a survey link answers with their account. Only eligible people get the id.
+    campaignByCode: (joinCode: string) => call<{ campaign_id: string }>("lv_campaign_by_code", { p_join_code: joinCode }),
     // 000028: always the four-argument call; the name is null unless the creator asked for one.
     guestSubmit: (joinCode: string, guestKey: string, answers: Answer[], guestName: string | null = null) =>
       call<SubmitReceipt>("lv_guest_submit", { p_join_code: joinCode, p_guest_key: guestKey, p_answers: answers, p_guest_name: guestName }),

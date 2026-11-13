@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useNotFoundHead } from "../ui/Seo";
 import { useBilling } from "../lib/useBilling";
 import { Link } from "react-router-dom";
 import { Icon, type IconName } from "../components/Icon";
@@ -299,6 +300,7 @@ export function Discover() {
 /* ------------------------------------------------------------------ not found */
 
 export function NotFoundPage() {
+  useNotFoundHead();
   return (
     <StateScreen
       kind="notfound"

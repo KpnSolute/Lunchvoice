@@ -99,3 +99,50 @@ export function Seo() {
   }, [pathname]);
   return null;
 }
+
+const clipText = (s: string, max: number) => {
+  const t = s.replace(/\s+/g, " ").trim();
+  return t.length <= max ? t : `${t.slice(0, max - 1).trimEnd()}…`;
+};
+
+/** What a Hub's own page says about itself (audit F4). Pure so it is unit-tested; mirrors workers/hub-card/card.ts. */
+export function hubHeadText(hub: { name: string; about?: string | null; member_count?: number }): { title: string; description: string } {
+  const n = hub.member_count;
+  const facts = typeof n === "number" ? `${n === 1 ? "1 member" : `${n.toLocaleString("en-US")} members`}. ` : "";
+  return {
+    title: clipText(`${hub.name} on LunchVoice`, 70),
+    description: clipText(hub.about ? `${facts}${hub.about}` : `${facts}Surveys, polls and results that never single anyone out.`, 200),
+  };
+}
+
+/**
+ * F4: a Hub's pages get the Hub's own title and description (and matching Open Graph / Twitter tags) instead of the
+ * generic site ones. Hubs stay noindex (Seo above). The share image stays the LunchVoice card: per-Hub images are
+ * not generated. Pass null while loading or when the Hub is not shown (private, missing).
+ */
+export function useHubHead(hub: { name: string; about?: string | null; member_count?: number } | null) {
+  const { pathname } = useLocation();
+  const name = hub?.name;
+  const about = hub?.about;
+  const count = hub?.member_count;
+  useEffect(() => {
+    if (!name) return;
+    const t = hubHeadText({ name, about, member_count: count });
+    document.title = t.title;
+    setMeta("name", "description", t.description);
+    setMeta("property", "og:title", t.title);
+    setMeta("property", "og:description", t.description);
+    setMeta("name", "twitter:title", t.title);
+    setMeta("name", "twitter:description", t.description);
+  }, [pathname, name, about, count]);
+}
+
+/** F8: a missing page says so in its title and is never indexed, whatever the route. */
+export function useNotFoundHead() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    document.title = `Page not found${seo.titleSuffix}`;
+    setMeta("name", "robots", "noindex");
+    setCanonical(null);
+  }, [pathname]);
+}

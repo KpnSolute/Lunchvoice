@@ -36,6 +36,10 @@ services:
       - path: /assets/*
         name: Cache-Control
         value: public, max-age=31536000, immutable
+      # The deploy marker the open app polls for its "new version available" notice: it must never be cached.
+      - path: /version.json
+        name: Cache-Control
+        value: no-store
     # SEO (src/config/seo.json, scripts/seo-prerender.mjs): each indexable public page has its own prerendered
     # HTML with its title, description, canonical and a static content fallback. Rules apply in order, so these
     # come before the catch-all. Every other client-side route (/signin, /{hubSlug}, /c/:joinCode) gets the

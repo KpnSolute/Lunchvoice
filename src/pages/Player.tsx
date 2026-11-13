@@ -1,6 +1,6 @@
 import { LvMark } from "../components/LvMark";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import type { Answer, GuestNamesMode } from "../lib/lvApi";
@@ -10,12 +10,13 @@ import { Input } from "@/components/shadcn/input";
 import { ReportSurvey } from "./ReportSurvey";
 import { Icon } from "../components/Icon";
 import { describeError } from "../lib/errors";
+import { useBusy } from "../lib/busy";
 import { QuestionInput, summarize } from "../ui/QuestionControls";
 import { answerValueProblem, CORE_KINDS, IDENTIFIED_ONLY } from "../lib/questionKinds"; // v2 question types (000047)
 import { StateScreen } from "../ui/StateScreen";
 import { hasSections, longestPath, sectionsOf, visibleQuestions } from "../lib/sections";
 import { START_SURVEY } from "../lib/billingState";
-import { BrandMedia, usePlayerTheme } from "../ui/PlayerTheme"; // survey branding (000043)
+import { BrandBanner, BrandMedia, usePlayerTheme } from "../ui/PlayerTheme"; // survey branding (000043)
 
 /**
  * The respondent player (L9): welcome, one question per screen, review, thanks.
@@ -36,7 +37,7 @@ function PoweredBy() {
 type View = "welcome" | "question" | "review";
 
 export function Player({ campaignId, guest, embedded = false }: { campaignId: string; guest?: { joinCode: string; guestKey: string }; embedded?: boolean }) {
-  const { api } = useIdentity();
+  const { api, session } = useIdentity();
   const detail = useLv(() => (guest ? api.guestCampaignGet(guest.joinCode) : api.campaignGet(campaignId)), [api, campaignId, guest?.joinCode]);
   const [view, setView] = useState<View>("welcome");
   const [step, setStep] = useState(0);
@@ -47,11 +48,20 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   const [busy, setBusy] = useState(false);
   // Direction of the last move, so the question stage slides the right way (Back slides from the left).
   const [dir, setDir] = useState<"fwd" | "back">("fwd");
+  useBusy("player", true); // keeps the "new version" notice from appearing while someone is answering
   const draftKey = `lv-draft-${guest?.joinCode ?? campaignId}`;
   // 000028: an identified survey may ask guests for a name (optional or required). Kept on this device between visits.
   const nameKey = `lv-guest-name-${guest?.joinCode ?? campaignId}`;
   const [guestName, setGuestName] = useState<string>(() => { try { return localStorage.getItem(nameKey) ?? ""; } catch { return ""; } });
   useEffect(() => { try { localStorage.setItem(nameKey, guestName); } catch { /* ignore */ } }, [guestName, nameKey]);
+  // 000052: a signed-in person may answer under a name of their choice (a preferred name, "Maurice from Corporate").
+  // Empty means "use my account name". Kept on this device per survey; only a label, never an identity.
+  const accountNameKey = `lv-account-name-${campaignId}`;
+  const [accountName, setAccountName] = useState<string>(() => { try { return localStorage.getItem(accountNameKey) ?? ""; } catch { return ""; } });
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  useEffect(() => { try { localStorage.setItem(accountNameKey, accountName); } catch { /* ignore */ } }, [accountName, accountNameKey]);
+  const cleanAccountName = accountName.replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim();
 
   const d = detail.data;
   // Survey branding (000043): the survey's own theme, or none. Never changes questions, answers or anonymity.
@@ -94,7 +104,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
     setBusy(true);
     setError(null);
     const payload: Answer[] = questions.map((qq) => { const v = answers[qq.question_id] ?? null; return { question_id: qq.question_id, value: v !== null && !(CORE_KINDS as readonly string[]).includes(qq.kind) && answerValueProblem(qq.kind, qq.config, v) ? null : v }; });
-    const r = guest ? await api.guestSubmit(guest.joinCode, guest.guestKey, payload, namesMode === "off" ? null : cleanName || null) : await api.submit(campaignId, payload);
+    const r = guest ? await api.guestSubmit(guest.joinCode, guest.guestKey, payload, namesMode === "off" ? null : cleanName || null) : await api.submit(campaignId, payload, d?.campaign.anonymity === "identified" && session ? cleanAccountName || null : null);
     setBusy(false);
     if (r.ok) {
       setReceipt({ id: r.receipt_id, duplicate: r.duplicate });
@@ -103,7 +113,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   }
 
   const frame = (children: React.ReactNode, tone: "light" | "ink" = "light") => (
-    <div className={`lv-player lv-player-${tone}${embedded ? " lv-player-embedded" : ""}${pt.frameProps.className}`} style={pt.frameProps.style} data-buttons={pt.frameProps["data-buttons"]}>
+    <div className={`lv-player lv-player-${tone}${embedded ? " lv-player-embedded" : ""}${pt.frameProps.className}`} style={pt.frameProps.style} {...pt.frameProps.attrs}>
       <div className="lv-player-body">{children}</div>
       {!pt.hideFooter && <PoweredBy />}
     </div>
@@ -137,7 +147,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
     return frame(
       <div className="lv-thanks" data-testid="player-thanks">
         {/* survey branding (000043): the logo above the check */}
-        {pt.logoUrl && <BrandMedia t={pt} cover={false} />}
+        <BrandBanner t={pt} />
         <span className="lv-thanks-mark" aria-hidden="true">
           <span className="lv-burst">{Array.from({ length: 12 }, (_, i) => <i key={i} style={{ "--a": `${i * 30}deg`, "--d": `${i % 3}` } as React.CSSProperties} />)}</span>
           <span className="lv-thanks-check">
@@ -153,6 +163,8 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
               ? "Your answers went in anonymously. The creator sees totals, never names."
               : guest && cleanName && namesMode !== "off"
                 ? `Your answers were recorded under the name “${cleanName}”. The creator can see them.`
+                : !guest && session && cleanAccountName
+                  ? `Your answers were recorded under the name “${cleanAccountName}”. The creator can see them.`
                 : "Your answers were recorded. The creator can see who answered."}
         </p>
         {(receipt?.id || d.receipt_id) && <p className="lv-thanks-receipt">Receipt {receipt?.id ?? d.receipt_id}</p>}
@@ -207,7 +219,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   if (view === "welcome") {
     return frame(
       <>
-        <div className={`lv-player-hero lv-enter${pt.theme ? " lv-pt-hero" : ""}`} style={{ "--i": 0 } as React.CSSProperties} data-testid="player-hero">
+        <div className={`lv-player-hero lv-enter${pt.theme && pt.theme.banner_style !== "logo" ? " lv-pt-hero" : ""}`} style={{ "--i": 0 } as React.CSSProperties} data-testid="player-hero">
           <BrandMedia t={pt} />
           <span className="lv-eyebrow-mono" style={{ color: "var(--lv-accent)" }}>{guest ? "Open to guests" : "You're invited"}</span>
           <h1 className="lv-player-title">{pt.theme?.welcome_headline || d.campaign.title}</h1>
@@ -227,6 +239,42 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
             <Input id="guest-name-input" value={guestName} maxLength={40} autoComplete="nickname" placeholder="First name or a nickname" onChange={(e) => setGuestName(e.target.value)} aria-describedby="guest-name-help" />
             <p id="guest-name-help" className="lv-row-sub lv-m0">{namesMode === "required" ? "The creator needs a name to see who answered. " : "The creator sees this next to your answers. "}It isn’t verified.</p>
           </div>
+        )}
+        {/* Who is answering (founder request 2026-11-13): guests can sign in instead; signed-in people see their name. */}
+        {guest && !session && (
+          <div className="lv-identity-choice lv-enter" style={{ "--i": 1 } as React.CSSProperties} data-testid="guest-signin">
+            <div>
+              <strong>Have a LunchVoice account?</strong>
+              <p className="lv-row-sub lv-m0">{anonymous ? "Sign in so you’re counted once. Your answers still aren’t linked to you." : "Sign in to answer as yourself instead of typing a name."}</p>
+            </div>
+            <Button asChild variant="secondary"><Link to="/signin" state={{ from: `/c/${guest.joinCode}` }}>Sign in</Link></Button>
+          </div>
+        )}
+        {!guest && session && !anonymous && (
+          <div className="lv-identity-chip-wrap lv-enter" style={{ "--i": 1 } as React.CSSProperties}>
+            <p className="lv-identity-chip" data-testid="answering-as">
+              <Icon name="check" size={16} /> Answering as <strong>{cleanAccountName || session.name || "you"}</strong>
+              {!editingName && (
+                <button type="button" className="lv-linklike" data-testid="change-name" onClick={() => { setNameDraft(cleanAccountName || session.name || ""); setEditingName(true); }}>Change</button>
+              )}
+            </p>
+            {editingName && (
+              <form className="lv-guest-name" data-testid="change-name-form" onSubmit={(e) => { e.preventDefault(); const next = nameDraft.replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim(); setAccountName(next === (session.name ?? "") ? "" : next); setEditingName(false); }}>
+                <label htmlFor="account-name-input" className="lv-guest-name-label">Name on your answers</label>
+                <Input id="account-name-input" value={nameDraft} maxLength={40} autoComplete="nickname" autoFocus onChange={(e) => setNameDraft(e.target.value)} aria-describedby="account-name-help" />
+                <p id="account-name-help" className="lv-row-sub lv-m0">The creator sees this next to your answers, tagged as an account. Your account stays the same.</p>
+                <div className="lv-btn-row">
+                  <Button type="submit" variant="primary">Use this name</Button>
+                  <Button type="button" variant="secondary" onClick={() => setEditingName(false)}>Cancel</Button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+        {!guest && session && anonymous && (
+          <p className="lv-identity-chip lv-enter" style={{ "--i": 1 } as React.CSSProperties} data-testid="anonymous-note">
+            <Icon name="lock" size={16} /> Your answers are anonymous
+          </p>
         )}
         <ul className="lv-promises">
           <li className="lv-enter" style={{ "--i": 1 } as React.CSSProperties}><span><Icon name="lock" size={18} /></span><div><strong>{privacyPromise.title}</strong><p>{privacyPromise.body}</p></div></li>
@@ -312,6 +360,23 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
 
 export function GuestCampaign() {
   const { joinCode = "" } = useParams();
+  const { session } = useIdentity();
+  // Signed in: answer with the account (members and link-open surveys), not as a guest.
+  if (session) return <SignedInByCode joinCode={joinCode} />;
+  return <GuestByCode joinCode={joinCode} />;
+}
+
+function SignedInByCode({ joinCode }: { joinCode: string }) {
+  const { api } = useIdentity();
+  const found = useLv(() => api.campaignByCode(joinCode), [api, joinCode]);
+  if (found.loading) return <div className="lv-player lv-player-light"><div className="lv-player-body"><Loading rows={2} /></div></div>;
+  const id = found.data?.campaign_id;
+  // Not eligible with this account (or the lookup is not deployed yet): the guest player explains it or lets them answer.
+  if (!id) return <GuestByCode joinCode={joinCode} />;
+  return <Player campaignId={id} />;
+}
+
+function GuestByCode({ joinCode }: { joinCode: string }) {
   const storageKey = `lv-guest-key-${joinCode}`;
   const [guestKey, setGuestKey] = useState<string | null>(null);
 

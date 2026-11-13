@@ -1,10 +1,10 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { describeError } from "../lib/errors";
 import { questionConfigProblem, type CampaignDetailData, type LvResult, type Question, type QuestionConfig, type QuestionKind } from "../lib/lvApi";
 import { hasOptions, MAX_OPTIONS, MIN_OPTIONS } from "../lib/readiness";
-import { defaultConfig, IDENTIFIED_ONLY, KIND_INFO, kindPlan, PLAN_LABEL, PLAN_UNLOCK, tierAllows, type PlanTier } from "../lib/questionKinds";
+import { CORE_KINDS, defaultConfig, IDENTIFIED_ONLY, KIND_INFO, kindPlan, PLAN_LABEL, PLAN_UNLOCK, tierAllows, type PlanTier } from "../lib/questionKinds";
 import { useLv } from "../lib/useLv";
 import { KindSettings, QuizSettings } from "./KindSettings";
 import { Link } from "react-router-dom";
@@ -19,7 +19,10 @@ import { Card } from "@/components/shadcn/card";
 import { Input } from "@/components/shadcn/input";
 import { Switch } from "@/components/shadcn/switch";
 import { Badge } from "@/components/shadcn/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/shadcn/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/shadcn/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shadcn/tabs";
+import { AnswerTile, StudioRail } from "../ui/StudioRail";
+import { duplicateConfig, duplicatePrompt } from "../lib/studio";
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/shadcn/sheet";
 import {
   AlertDialog,
@@ -57,6 +60,8 @@ export function QuestionWorkbench({
   limit,
   save,
   reload,
+  layout,
+  themePanel,
 }: {
   d: CampaignDetailData;
   locked: boolean;
@@ -65,6 +70,10 @@ export function QuestionWorkbench({
   reload: () => void;
   /** The kind a brand-new question starts as (poll quick-create: single choice; feedback: text). */
   initialKind?: QuestionKind;
+  /** "pro": the Creator studio (rail, canvas, properties). Anything else is the simple outline editor. */
+  layout?: "pro";
+  /** Pro only: the survey's Theme tab content (the existing branding panel). */
+  themePanel?: ReactNode;
 }) {
   const { api } = useIdentity();
   const qs = d.questions;
@@ -100,10 +109,12 @@ export function QuestionWorkbench({
   // Reorder without colliding with the unique position: park one question, then swap.
   async function swap(a: Question, b: Question) {
     const park = nextPosition(qs) + 1000;
+    const pa = a.position; // read once: the objects may change as each update lands
+    const pb = b.position;
     for (const step of [
       () => api.questionUpdate(a.question_id, { position: park }),
-      () => api.questionUpdate(b.question_id, { position: a.position }),
-      () => api.questionUpdate(a.question_id, { position: b.position }),
+      () => api.questionUpdate(b.question_id, { position: pa }),
+      () => api.questionUpdate(a.question_id, { position: pb }),
     ]) {
       const r = await save.run(step());
       if (!r.ok) { toast.error(describeError(r.error)); break; }
@@ -125,6 +136,20 @@ export function QuestionWorkbench({
     setPendingId(id);
   }
 
+  async function duplicate(q: Question) {
+    const r = await save.run(api.questionAdd(d.campaign.campaign_id, nextPosition(qs), q.kind, duplicatePrompt(q.prompt), duplicateConfig(q)));
+    if (!r.ok) return void toast.error(describeError(r.error));
+    setPendingId(r.question_id);
+    setSel("new");
+    reload();
+    toast.success("Question duplicated");
+  }
+  async function remove(q: Question) {
+    const r = await save.run(api.questionRemove(q.question_id));
+    if (r.ok) { toast.success("Question removed"); reload(); } else toast.error(describeError(r.error));
+  }
+  const [panelSheet, setPanelSheet] = useState(false);
+
   const outline = (
     <OutlineList
       qs={qs}
@@ -137,6 +162,59 @@ export function QuestionWorkbench({
       onMove={moveTo}
     />
   );
+
+  if (layout === "pro") {
+    const rail = (
+      <StudioRail
+        qs={qs} sel={effectiveSel} locked={locked} atLimit={atLimit} limit={limit}
+        onSelect={(id) => { setSel(id); setSheet(false); }}
+        onAdd={() => { setNewKey((k) => k + 1); setSel("new"); setSheet(false); }}
+        onMove={moveTo} onDuplicate={duplicate} onDelete={remove}
+      />
+    );
+    const hasRules = qs.some((x) => x.config.show_if || x.config.jumps?.length || x.config.section?.show_if);
+    const properties = (
+      <>
+        {current && <SectionPanel key={`sec-${current.question_id}`} q={current} n={index + 1} qs={qs} locked={locked} allowed={d.features?.branching ?? false} save={save} reload={reload} />}
+        {current && <LogicPanel key={`logic-${current.question_id}`} q={current} qs={qs} locked={locked} allowed={d.features?.branching ?? false} save={save} reload={reload} />}
+        {hasRules && <PathSummary qs={qs} />}
+      </>
+    );
+    return (
+      <div className="lv-qw-host">
+        <div className="lv-qw lv-qw-pro" data-testid="question-workbench" data-layout="pro">
+          <div className="lv-rail-wrap">{rail}</div>
+          <section className="lv-qw-editor lv-qw-pro-editor" aria-label="Question editor">
+            {locked && <Notice>Published questions can’t change. Close it to stop answers.</Notice>}
+            {current ? (
+              <QuestionEditor pro key={aliases.current[current.question_id] ?? current.question_id} q={current} n={index + 1} locked={locked} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} tier={tier} anonymity={d.campaign.anonymity} />
+            ) : effectiveSel === "new" && !locked ? (
+              atLimit ? (
+                <Notice tone="warn" title={`This survey has ${qs.length} of ${limit} questions`}>Remove a question to add another.</Notice>
+              ) : (
+                <QuestionEditor pro key={`new-${newKey}`} q={null} initialKind={initialKind} n={qs.length + 1} locked={false} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} tier={tier} anonymity={d.campaign.anonymity} />
+              )
+            ) : (
+              <Card variant="well"><p className="lv-m0">{qs.length ? "Pick a question to see it." : "This survey has no questions."}</p></Card>
+            )}
+          </section>
+          <aside className="lv-pro-panel" aria-label="Properties">
+            <div className="lv-pro-panel-trigger">
+              <Button variant="secondary" block onClick={() => setPanelSheet(true)} data-testid="open-properties"><Icon name="settings" size={16} /> Question properties</Button>
+            </div>
+            <Sheet open={panelSheet} onOpenChange={setPanelSheet}>
+              <SheetContent side="bottom" className="lv-pro-sheet">
+                <SheetTitle>Question properties</SheetTitle>
+                <SheetDescription className="sr-only">Logic, sections and the survey theme.</SheetDescription>
+                <ProPanelTabs properties={properties} themePanel={themePanel} />
+              </SheetContent>
+            </Sheet>
+            <div className="lv-pro-panel-wide"><ProPanelTabs properties={properties} themePanel={themePanel} /></div>
+          </aside>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="lv-qw-host">
@@ -178,6 +256,19 @@ export function QuestionWorkbench({
       </section>
     </div>
     </div>
+  );
+}
+
+function ProPanelTabs({ properties, themePanel }: { properties: ReactNode; themePanel?: ReactNode }) {
+  return (
+    <Tabs defaultValue="question" className="lv-pro-tabs">
+      <TabsList aria-label="Studio panel">
+        <TabsTrigger value="question">Question</TabsTrigger>
+        {themePanel && <TabsTrigger value="theme">Theme</TabsTrigger>}
+      </TabsList>
+      <TabsContent value="question"><div className="lv-stack-16">{properties}</div></TabsContent>
+      {themePanel && <TabsContent value="theme">{themePanel}</TabsContent>}
+    </Tabs>
   );
 }
 
@@ -312,9 +403,11 @@ function QuestionEditor({
   onCreated,
   tier,
   anonymity,
+  pro,
 }: {
   tier: PlanTier;
   anonymity: "anonymous" | "identified";
+  pro?: boolean;
   q: Question | null;
   n: number;
   locked: boolean;
@@ -407,6 +500,178 @@ function QuestionEditor({
     () => ({ question_id: q?.question_id ?? "preview", position: n - 1, kind: draft.kind, prompt: draft.prompt, config: toConfig(q?.config, { ...draft, options: draft.options.filter((o) => o.trim()) }) }),
     [draft, q, n],
   );
+
+  const kindExtras = (
+    <>
+      <KindSettings kind={draft.kind} n={n} cfg={draft.cfg} set={(cfg) => schedule({ ...draft, cfg })} locked={locked} />
+      {settingsProblem && !locksKind && <p className="lv-field-error lv-m0" role="status" data-testid="settings-problem">{settingsProblem}</p>}
+      {(draft.kind === "single_choice" || draft.kind === "multi_choice") && (
+        <QuizSettings kind={draft.kind} n={n} options={draft.options.map((o) => o.trim()).filter(Boolean)} cfg={draft.cfg} locked={locked} allowed={tierAllows(tier, "pro")} set={(cfg) => schedule({ ...draft, cfg })} />
+      )}
+      {locksKind && (
+        <Notice tone="warn" title={`${PLAN_LABEL[needs]} question type: preview only`}>
+          <span data-testid="kind-locked">{kindLabel(draft.kind)} is a {PLAN_LABEL[needs]} type. {PLAN_UNLOCK[needs]} You can try it out below; it will not be saved.</span>{" "}
+          <Link to="/pricing" className="lv-link">See plans</Link>
+        </Notice>
+      )}
+      {wrongSurvey && !locksKind && (
+        <Notice tone="warn" title="Needs an identified survey"><span data-testid="kind-identified">{kindLabel(draft.kind)} collects who someone is, so it only works when the survey is identified. Change who can see answers in the survey details.</span></Notice>
+      )}
+    </>
+  );
+
+  if (pro) {
+    const typeGroups: { label: string; kinds: QuestionKind[] }[] = [
+      { label: "Choose", kinds: ["single_choice", "multi_choice", "yes_no", "dropdown", "image_choice", "ranking"] },
+      { label: "Rate", kinds: ["rating", "face_scale", "nps", "agree_scale", "slider", "agree_grid", "before_after"] },
+      { label: "Write and enter", kinds: ["text", "number", "date", "price_ladder"] },
+      { label: "People and files", kinds: ["contact", "consent", "signature", "file_upload"] },
+    ];
+    const promptInvalid = !draft.prompt.trim() && (Boolean(q) || draft.options.some((o) => o.trim()));
+    return (
+      <div className="lv-qw-edit lv-qw-edit-pro">
+        <Card className="lv-canvas" data-testid="canvas">
+          <div className="lv-canvas-bar">
+            <Eyebrow>Question {String(n).padStart(2, "0")}{q ? "" : " · new"}</Eyebrow>
+            <div className="lv-canvas-controls">
+              <Select value={draft.kind} onValueChange={(v) => changeKind(v as QuestionKind)} disabled={locked}>
+                <SelectTrigger aria-label="Question type" data-testid="type-picker"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {typeGroups.map((g) => (
+                    <SelectGroup key={g.label}>
+                      <SelectLabel>{g.label}</SelectLabel>
+                      {g.kinds.map((k) => <SelectItem key={k} value={k}>{kindLabel(k)}{kindPlan(k) !== "free" && !tierAllows(tier, kindPlan(k)) ? ` · ${PLAN_LABEL[kindPlan(k)]}` : ""}</SelectItem>)}
+                    </SelectGroup>
+                  ))}
+                </SelectContent>
+              </Select>
+              <label className="lv-canvas-req">
+                <Switch checked={!draft.optional} disabled={locked} aria-label="Required" onCheckedChange={(on) => schedule({ ...draft, optional: !on }, 0)} />
+                <span>{draft.optional ? "Optional" : "Required"}</span>
+              </label>
+            </div>
+          </div>
+          <Field
+            label="Question"
+            htmlFor={`prompt-${n}`}
+            counter={{ value: draft.prompt.length, max: 200 }}
+            error={promptInvalid ? (q ? "A question needs a question text." : "Type the question text to save this question.") : undefined}
+          >
+            <Input className="lv-canvas-prompt" id={`prompt-${n}`} value={draft.prompt} maxLength={200} disabled={locked} onChange={(e) => schedule({ ...draft, prompt: e.target.value })} placeholder="Type your question" aria-invalid={promptInvalid || undefined} autoFocus={!q} />
+          </Field>
+
+          {hasOptions(draft.kind) && (
+            <fieldset className="lv-fieldset" aria-describedby={`opts-${n}-note`}>
+              <legend className="lv-legend">Answers</legend>
+              <ol className="lv-ans-list" data-testid="option-rows">
+                {draft.options.map((o, i) => (
+                  <li
+                    key={i}
+                    draggable={!locked}
+                    onDragStart={(e) => { e.dataTransfer.setData("text/plain", String(i)); e.dataTransfer.effectAllowed = "move"; }}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => { e.preventDefault(); moveOption(Number(e.dataTransfer.getData("text/plain")), i); }}
+                  >
+                    <AnswerTile index={i}>
+                      <Input
+                        value={o}
+                        aria-label={`Option ${i + 1}`}
+                        maxLength={80}
+                        disabled={locked}
+                        aria-invalid={!o.trim() || undefined}
+                        onChange={(e) => setOption(i, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.altKey && e.key === "ArrowUp") { e.preventDefault(); moveOption(i, i - 1); }
+                          if (e.altKey && e.key === "ArrowDown") { e.preventDefault(); moveOption(i, i + 1); }
+                        }}
+                        placeholder={`Answer ${i + 1}`}
+                      />
+                      {!locked && (
+                        <span className="lv-option-tools">
+                          <Button variant="quiet" size="icon-sm" aria-label={`Move option ${i + 1} up`} disabled={i === 0} onClick={() => moveOption(i, i - 1)}><Icon name="chevron" size={14} className="lv-rot180" /></Button>
+                          <Button variant="quiet" size="icon-sm" aria-label={`Move option ${i + 1} down`} disabled={i === draft.options.length - 1} onClick={() => moveOption(i, i + 1)}><Icon name="chevron" size={14} /></Button>
+                          <Button variant="quiet" size="icon-sm" aria-label={`Remove option ${i + 1}`} onClick={() => schedule({ ...draft, options: draft.options.filter((_, j) => j !== i) }, 300)}>✕</Button>
+                        </span>
+                      )}
+                    </AnswerTile>
+                  </li>
+                ))}
+              </ol>
+              {!locked && (
+                <div className="lv-btn-row">
+                  <Button variant="secondary" size="sm" disabled={draft.options.length >= MAX_OPTIONS} onClick={() => schedule({ ...draft, options: [...draft.options, ""] }, 600)} data-testid="add-option">
+                    <Icon name="plus" size={14} />Add more answers
+                  </Button>
+                </div>
+              )}
+              <p id={`opts-${n}-note`} className={filled < MIN_OPTIONS ? "lv-field-error lv-m0" : "ui-help lv-m0"} role={filled < MIN_OPTIONS ? "status" : undefined}>
+                {filled < MIN_OPTIONS ? "Add at least two answers." : `${filled} answers · up to ${MAX_OPTIONS}. Reorder by dragging, or Alt with the arrow keys.`}
+              </p>
+              {optionProblem && <p className="lv-field-error lv-m0" role="status" data-testid="option-problem">{optionProblem}</p>}
+              {(filled < MIN_OPTIONS || optionProblem) && !locked && <p className="ui-help lv-m0">Changes to this question save once the answers are valid.</p>}
+            </fieldset>
+          )}
+
+          {draft.kind === "multi_choice" && (
+            <Field label="Most choices a person can pick" htmlFor={`max-${n}`}>
+              <Select value={draft.max === null ? "any" : String(draft.max)} onValueChange={(v) => schedule({ ...draft, max: v === "any" ? null : Number(v) }, 0)} disabled={locked}>
+                <SelectTrigger id={`max-${n}`}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="any">Any number</SelectItem>
+                  {Array.from({ length: Math.max(0, filled - 1) }, (_, i) => i + 1).map((k) => <SelectItem key={k} value={String(k)}>{k}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+
+          {draft.kind === "yes_no" && (
+            <div className="lv-ans-list lv-ans-list-fixed" aria-label="Answers people pick from">
+              <AnswerTile index={0}><span>Yes</span></AnswerTile>
+              <AnswerTile index={1}><span>No</span></AnswerTile>
+            </div>
+          )}
+          {draft.kind === "rating" && (
+            <div className="lv-ans-list lv-ans-list-fixed lv-ans-list-rating" aria-label="Answers people pick from">
+              {[1, 2, 3, 4, 5].map((k, i) => <AnswerTile key={k} index={i}><span>{k} ★</span></AnswerTile>)}
+            </div>
+          )}
+          {draft.kind === "text" && (
+            <>
+              <div className="lv-canvas-textbox" aria-hidden="true">People type their answer here.</div>
+              <Notice tone="warn">{TEXT_WARNING}</Notice>
+            </>
+          )}
+
+          {kindExtras}
+          {!CORE_KINDS.includes(draft.kind as never) && (
+            <div className="lv-canvas-live" data-testid="kind-preview">
+              <Eyebrow>What people see</Eyebrow>
+              <QuestionInput q={previewQ} value={preview} onChange={setPreview} />
+            </div>
+          )}
+
+          {!locked && q && (
+            <div className="lv-btn-row">
+              <RemoveQuestion n={n} onRemove={async () => { const r = await save.run(api.questionRemove(q.question_id)); if (r.ok) { toast.success("Question removed"); reload(); } else toast.error(describeError(r.error)); }} />
+            </div>
+          )}
+        </Card>
+
+        <AlertDialog open={pendingKind !== null} onOpenChange={(o) => !o && setPendingKind(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Change to {pendingKind ? kindLabel(pendingKind) : ""}?</AlertDialogTitle>
+              <AlertDialogDescription>That type has no options, so the {filled} {filled === 1 ? "option" : "options"} on this question will be removed.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep {kindLabel(draft.kind)}</AlertDialogCancel>
+              <AlertDialogAction onClick={() => { if (pendingKind) schedule({ ...draft, kind: pendingKind, options: [], max: null, cfg: defaultConfig(pendingKind) }, 0); setPendingKind(null); }}>Change type</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
+  }
 
   return (
     <div className="lv-qw-edit">
@@ -502,20 +767,7 @@ function QuestionEditor({
 
         {draft.kind === "text" && <Notice tone="warn">{TEXT_WARNING}</Notice>}
 
-        <KindSettings kind={draft.kind} n={n} cfg={draft.cfg} set={(cfg) => schedule({ ...draft, cfg })} locked={locked} />
-        {settingsProblem && !locksKind && <p className="lv-field-error lv-m0" role="status" data-testid="settings-problem">{settingsProblem}</p>}
-        {(draft.kind === "single_choice" || draft.kind === "multi_choice") && (
-          <QuizSettings kind={draft.kind} n={n} options={draft.options.map((o) => o.trim()).filter(Boolean)} cfg={draft.cfg} locked={locked} allowed={tierAllows(tier, "pro")} set={(cfg) => schedule({ ...draft, cfg })} />
-        )}
-        {locksKind && (
-          <Notice tone="warn" title={`${PLAN_LABEL[needs]} question type: preview only`}>
-            <span data-testid="kind-locked">{kindLabel(draft.kind)} is a {PLAN_LABEL[needs]} type. {PLAN_UNLOCK[needs]} You can try it out below; it will not be saved.</span>{" "}
-            <Link to="/pricing" className="lv-link">See plans</Link>
-          </Notice>
-        )}
-        {wrongSurvey && !locksKind && (
-          <Notice tone="warn" title="Needs an identified survey"><span data-testid="kind-identified">{kindLabel(draft.kind)} collects who someone is, so it only works when the survey is identified. Change who can see answers in the survey details.</span></Notice>
-        )}
+        {kindExtras}
 
         <ToggleRow
           title="Required"

@@ -19,6 +19,7 @@ import { Bars, DistributionColumns, TrendLine } from "../components/charts";
 import { Alert, AlertDescription, AlertTitle } from "@/components/shadcn/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/shadcn/alert-dialog";
 import { QrCode } from "@/components/shadcn/blocks/qr";
+import { AnswerTile, KindGlyph, StudioRail } from "../ui/StudioRail";
 import { ResultBars, TextAnswers, WithheldTag } from "@/components/shadcn/blocks/results";
 import type { HubInfo, Question } from "../lib/lvApi";
 import { Button } from "@/components/shadcn/button";
@@ -376,6 +377,27 @@ export function Gallery() {
         <DistributionColumns buckets={[2, 4, 9, 14, 7]} labels={["1", "2", "3", "4", "5"]} />
         <TrendLine points={[{ label: "Mon", value: 3 }, { label: "Tue", value: 7 }, { label: "Wed", value: 5 }, { label: "Thu", value: 12 }]} />
         <Row><strong className="ui-display"><CountUp value={128} /></strong><span className="ui-muted">CountUp respects reduced motion.</span></Row>
+      </Section>
+
+      <Section title="Creator studio">
+        <Row>
+          <AnswerTile index={0}><span>Reds</span></AnswerTile>
+          <AnswerTile index={1}><span>Blues</span></AnswerTile>
+          <AnswerTile index={2}><span>Greens</span></AnswerTile>
+          <AnswerTile index={3}><span>Yellows</span></AnswerTile>
+        </Row>
+        <Row>{(["rating", "single_choice", "multi_choice", "yes_no", "text"] as const).map((k) => <span key={k} className="ui-muted"><KindGlyph kind={k} /> {k}</span>)}</Row>
+        <Card>
+          <StudioRail
+            qs={[
+              { question_id: "g1", position: 1, kind: "single_choice", prompt: "Favourite team?", config: { options: ["Reds", "Blues"] } },
+              { question_id: "g2", position: 2, kind: "rating", prompt: "How was the match?", config: { section: { title: "After the game" } } },
+              { question_id: "g3", position: 3, kind: "text", prompt: "Anything else?", config: { optional: true } },
+            ]}
+            sel="g2" locked={false} atLimit={false} limit={30}
+            onSelect={() => {}} onAdd={() => {}} onMove={() => {}} onDuplicate={() => {}} onDelete={() => {}}
+          />
+        </Card>
       </Section>
 
       <Section title="Rows, QR and alerts">

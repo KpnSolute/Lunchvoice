@@ -99,6 +99,8 @@ const fresh = (name: string): State => ({
 });
 
 let state: State | null = null;
+// Dev mock only: another tab of the same browser changed the saved state (a second person answering), so reload it.
+if (typeof window !== "undefined") window.addEventListener("storage", (e) => { if (e.key === "lv.mock.state") state = null; });
 
 function load(name: string): State {
   if (state) return state;
@@ -356,7 +358,7 @@ function brandingCtx(s: State): BrandingCtx {
   };
 }
 
-const PUBLIC = new Set(["lv_plan_limits", "lv_waitlist_status", "lv_hub_get", "lv_invite_preview", "lv_guest_campaign_get", "lv_guest_submit", "lv_hub_reservation_status", "lv_capability_catalog", "lv_hub_pages_get", "lv_report_abuse"]);
+const PUBLIC = new Set(["lv_plan_limits", "lv_waitlist_status", "lv_hub_get", "lv_invite_preview", "lv_guest_campaign_get", "lv_guest_submit", "lv_hub_reservation_status", "lv_capability_catalog", "lv_hub_pages_get", "lv_report_abuse", "lv_hub_public_poll"]);
 /* ---- track C: community ---- */
 for (const f of COMMUNITY_PUBLIC) PUBLIC.add(f);
 for (const f of BRANDING_PUBLIC) PUBLIC.add(f); // survey branding (000043)
@@ -830,9 +832,22 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (!isActive(c)) return err("lv_closed", "This Campaign is not accepting responses");
       if (c.mine_answered) return { ok: true, receipt_id: `r-${c.campaign_id}-me`, duplicate: true };
       { const bad = answersProblem(c, a.p_answers); if (bad) return err("lv_invalid_input", bad); }
+      // 000052: a signed-in person's chosen label. Identified Campaigns only; an anonymous answer ignores it entirely.
+      let label: string | null = null;
+      if (c.anonymity === "identified" && typeof a.p_display_name === "string") {
+        if (/[\u0000-\u001f\u007f]/.test(a.p_display_name)) return err("lv_invalid_input", "A name cannot contain control characters.");
+        label = a.p_display_name.replace(/\s+/g, " ").trim() || null;
+        if (label && label.length > 40) return err("lv_invalid_input", "Keep the name to 40 characters.");
+      }
       c.mine_answered = true;
-      c.responses.push({ receipt: `r-${c.campaign_id}-me`, answers: a.p_answers as Resp["answers"], at: iso(Date.now()), guest: false });
+      c.responses.push({ receipt: `r-${c.campaign_id}-me`, answers: a.p_answers as Resp["answers"], at: iso(Date.now()), guest: false, name: label });
       return { ok: true, receipt_id: `r-${c.campaign_id}-me`, duplicate: false };
+    }
+    case "lv_campaign_by_code": {
+      // 000050: signed-in only; link-open or members of the Hub (the mock has no per-person invite list).
+      const c = s.campaigns.find((x) => x.join_code === String(a.p_join_code ?? "").trim().toUpperCase());
+      if (!c || c.status === "draft" || (c.access === "invite" && !hubById(c.hub_id))) return err("lv_not_found", "No survey uses that code.");
+      return { ok: true, campaign_id: c.campaign_id };
     }
     case "lv_guest_campaign_get": {
       const c = s.campaigns.find((x) => x.join_code === String(a.p_join_code).toUpperCase());
@@ -863,8 +878,11 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (c.anonymity === "anonymous" && (c.status === "active" || c.status === "paused")) return err("lv_policy_undecided", "Anonymous results appear after the Campaign closes");
       const members = c.responses.filter((r) => !r.guest).length;
       const guests = c.responses.filter((r) => r.guest).length;
-      if (a.p_metric === "participant_count")
-        return { ok: true, metric: "participant_count", n: members >= MIN_COHORT ? members : null, suppressed: members < MIN_COHORT, guest_n: guests >= MIN_COHORT ? guests : null, guest_suppressed: guests < MIN_COHORT };
+      if (a.p_metric === "participant_count") {
+        // As in the real API (000005): identified totals show from the first answer, anonymous ones wait for the minimum.
+        const min = c.anonymity === "identified" ? 1 : MIN_COHORT;
+        return { ok: true, metric: "participant_count", n: members >= min ? members : null, suppressed: members < min, guest_n: guests >= min ? guests : null, guest_suppressed: guests < min };
+      }
       {
         const q = c.questions.find((x) => x.question_id === a.p_question);
         if (q?.kind === "text") {
@@ -1037,8 +1055,11 @@ function distribution(c: C, questionId: string) {
     for (const x of r.answers)
       if (x.question_id === questionId)
         for (const v of q && !CORE_KINDS.includes(q.kind) ? answerKeys(q.kind, x.value) : Array.isArray(x.value) ? x.value : [x.value]) counts.set(String(v), (counts.get(String(v)) ?? 0) + 1);
-  const shown = [...counts].filter(([, k]) => k >= MIN_COHORT).map(([key, k]) => ({ key, n: k, suppressed: false, reason: null }));
-  const hidden = [...counts].some(([, k]) => k > 0 && k < MIN_COHORT) || (shown.length > 0 && shown.length < counts.size);
+  // Identified results show every option from the first answer (000005); only anonymous ones are thresholded.
+  if (c.anonymity === "identified") return [...counts].map(([key, k]) => ({ key, n: k, suppressed: false, reason: null }));
+  const min = MIN_COHORT;
+  const shown = [...counts].filter(([, k]) => k >= min).map(([key, k]) => ({ key, n: k, suppressed: false, reason: null }));
+  const hidden = [...counts].some(([, k]) => k > 0 && k < min) || (shown.length > 0 && shown.length < counts.size);
   return hidden ? [...shown, { key: "withheld", n: null, suppressed: true, reason: "below_min_cohort" }] : shown;
 }
 
@@ -1316,6 +1337,31 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
       const open = st.offers!.filter((x) => x.hub_id === a.p_hub && x.state === "pending");
       for (const o of open) o.state = "cancelled";
       return { ok: true, cancelled: open.length > 0 };
+    }
+    /* ---- 000045: delete a Quick Survey and its results ---- */
+    case "lv_quick_survey_delete": {
+      if (!authed) return err("lv_unauthenticated", "Sign in first.");
+      const c = camp(a.p_campaign);
+      if (!c || !isPersonal(s, c)) return err("lv_not_found", "No such survey.");
+      if (s.reports.some((r) => r.join_code === c.join_code))
+        return err("lv_locked", "LunchVoice staff are reviewing this survey, so it can’t be deleted right now. Contact support.");
+      s.campaigns = s.campaigns.filter((x) => x !== c);
+      s.cinvites = s.cinvites.filter((i) => i.campaign !== c.campaign_id);
+      s.eligible = s.eligible.filter((x) => x !== c.campaign_id);
+      return { ok: true, deleted: true };
+    }
+    /* ---- 000046: a public Hub's latest open guest Campaign, signed out allowed ---- */
+    case "lv_hub_public_poll": {
+      const h = s.hubs.find((x) => x.kind === "community" && x.slug === String(a.p_slug ?? "").trim().toLowerCase() && x.visibility === "public");
+      const now = Date.now();
+      const open = (c: CA) => c.status === "active" && c.audience === "members_and_guests" && c.access !== "invite"
+        && (!c.opens_at || new Date(c.opens_at).getTime() <= now) && (!c.closes_at || new Date(c.closes_at).getTime() > now);
+      const when = (c: CA) => new Date(c.opens_at ?? c.created_at).getTime();
+      const c = h ? (s.campaigns as CA[]).filter((x) => x.hub_id === h.hub_id && open(x)).sort((x, y) => when(y) - when(x))[0] : undefined;
+      return {
+        ok: true,
+        poll: c ? { title: c.title, description: c.description ?? null, mode: c.mode, anonymity: c.anonymity, closes_at: c.closes_at, question_count: c.questions.length, link_token: c.link_token } : null,
+      };
     }
     case "lv_owner_transfer_accept":
     case "lv_owner_transfer_decline":

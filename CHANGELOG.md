@@ -6,6 +6,188 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (branding is a full-width step in the Creator studio too)
+
+- The redesigned Branding panel (live preview, Colors/Banner/Logo/Text/Style) did not fit the Creator studio's narrow
+  Theme side tab, where its content stayed hidden. Branding is now its own full-width step above the questions on every
+  plan; the studio's side panel and phone sheet are named "Question properties". `e2e/studiopro.test.mjs` and
+  `e2e/branding.test.mjs` updated.
+
+### Operations (production, 2026-11-13: 000048 branding gradients)
+
+- **Applied 000048** (SHA-256 `21dc6786…`) to production through the Management API as the file's own transaction, after
+  `test:pr`, 1535/1535 database checks and 32/32 related e2e (branding, studio, Linked Questions, update notice).
+  Verification: `style`, `color2`, `gradient_angle`, `banner_style`, `cosmetics` columns present; the table has no
+  API-role access; `anon` may call only `lv_campaign_theme`, which keeps the suspended-Hub and audience visibility rules.
+
+### Added (branding v2: modern panel, color picker, gradients, cosmetics, 000048)
+
+- The Branding panel is now one card with a live preview (right on desktop, on top on phones) and groups Colors, Banner,
+  Logo, Text and Style. Colors are two rounded swatches with a pencil badge (Primary and Accent) that open our own
+  accessible color picker (`src/ui/ColorPicker.tsx`, no dependency): saturation/value area and hue slider (keyboard operable),
+  hex field, `EyeDropper` where the browser has one, curated presets (every one readable on white), and recent colors
+  (this browser only). On phones the picker is a bottom sheet. It shows the contrast ratio and offers the nearest readable shade.
+- **Gradients**: a theme is Solid or Gradient (two colors, vertical/diagonal/horizontal, six curated presets), painted on the
+  welcome card and the thank-you screen; buttons and question screens stay solid, and the text color is picked against the
+  worst end of the gradient. Both colors must reach 4.5:1 on white (client and server).
+- **Cosmetics** (all optional): banner style (color/gradient, subtle pattern dots/grid/waves, or logo only), corner style
+  (rounded/pill), progress bar tint, soft glow on the welcome card (the one-time shine is off under `prefers-reduced-motion`).
+  The cover image, the Creator Pro/Team footer toggle and button styles deferred from #75 are included.
+- Migration `000048_v2_branding_gradients.sql` (additive columns with checks, extended `lv_campaign_branding_set` and
+  `lv_campaign_theme`; rollback `supabase/rollbacks/000048_v2_branding_gradients.down.sql`; tests
+  `supabase/tests/48_branding_gradients.sql`). All 000043 rules are kept. Not applied to production.
+- The logo is shown as the creator uploaded it, on the banner: no tile, border or padding box, transparency honored. An
+  optional subtle drop-shadow (`cosmetics.logo_shadow`, default off) helps a dark logo on a dark color.
+- Survey-level customization only: `src/ui/tokens.css` is unchanged. Screenshots: `docs/v2/screenshots/branding/`.
+
+### Added (Creator studio revamp for Creator Plus and Starter Hub)
+- Quick Survey editor shows a three-part studio when `survey.branching` is on: a left rail of question thumbnails (number, kind, linked-rule tag, section dividers, a `...` menu with Duplicate, Move up/down, Move to section and Delete with confirm, drag and Alt+Arrow reorder), a canvas with a grouped type picker (Choose / Rate / Write), Required switch, large prompt and colour-and-shape answer tiles, and a right panel with Question (logic) and Theme (branding) tabs. On a phone the rail is a strip and properties open in a sheet.
+- Free creators keep the simple editor and see a small preview of the studio. Entitlement is still decided by the server; the UI only reads `features.branching`.
+- Fixed a reorder bug where swapping two questions read stale values. New `src/lib/studio.ts` (5 tests), `StudioRail` registered in `/__gallery`, `e2e/studiopro.test.mjs` (3 tests).
+- Not built (no approved path): image on a question, NPS, slider, ranking, word-cloud kinds, text length limit, AI start from a description.
+
+### Worker report 2026-11-13 (names, Present mode, studio)
+Pieces 1, 2, 4 done and checked (db 1535/0, e2e 171/171, brain, build, design, test:pr). Piece 3 not started: needs Loom verdict and founder approval. Not built: question image, NPS, slider, ranking, word cloud, length limit, AI start. Full report at the end of `docs/v2/handoffs/2026-11-13-names-results-privacy-creator-studio.md`.
+
+### Added (Present mode: live results on a big screen)
+
+- **Present** button on Results opens a full-screen, projector-sized view (`src/ui/PresentMode.tsx`): one question per slide,
+  arrow/space/page keys and on-screen buttons to move, Escape to leave. Choice and yes/no questions show bars with count and
+  percent, ratings a bar per score and the average, text questions a word cloud plus the answers (identified surveys only).
+  A live answer counter, QR code, short link and join code stay in the corner so people can still join; identified surveys
+  show a quiet "Just answered: Ana, Jordan" line, anonymous ones never show names.
+- It reads the same released results as the Results page and polls every 4 seconds, paused while the tab is hidden. Anything
+  the server withholds says "Waiting for more answers" or "Shown when the survey closes", never zero, and no percentage is
+  guessed from a partly hidden total. Growing bars stop under reduced motion; colours use the ink/inverse tokens, so it flips
+  with light, dark and high contrast. The responses list (audited) is only re-read when the count changes.
+- Mock fix: the dev mock now matches the real API for identified surveys (totals and every option show from the first
+  answer; only anonymous ones wait for the minimum) and reloads when another tab changes its saved state.
+- Tests: `src/lib/present.test.ts` (bars, withheld never zero, ratings, word cloud, names), `e2e/present.test.mjs`
+  (a second tab answers under a chosen name and appears within one poll; keys; anonymous shows the withheld message, no
+  names, no bars). No migration, no entitlement change.
+
+### Added (respondent names: a signed-in person can change the name on their answers, migration 000052)
+
+- **Change the name on your answers.** On an identified survey the "Answering as {name}" chip has a **Change** button that
+  opens a field prefilled with the account name. The choice is remembered on this device for that survey; blank or the
+  account name means "use my account name". Anonymous surveys show "Your answers are anonymous" and no name control.
+- **000052** adds `lv_api.lv_submit_response(p_campaign, p_answers, p_display_name)` as an overload; the two-argument call
+  delegates with a null name (older clients and the Discord path unchanged). The name goes in `lv.submissions.guest_name`
+  (documented; `is_guest` says whose it is), is trimmed and collapsed, 1 to 40 characters, control characters refused.
+  **An anonymous Campaign ignores it entirely** and stores nothing. It is a label only: identity, one answer per account
+  and authorization never read it.
+- **Results** show the chosen name with an **Account** tag (was "Member"), or "Guest, unverified" for guests.
+- Tests: `supabase/tests/52_respondent_display_name.sql` (clean and store, duplicate keeps the first, blank, two-argument
+  call, control characters, 40/41 characters, anonymous crafted call stores nothing, signed-out refused), the studio e2e
+  (Change, remembered after reload, creator sees "Account"), and `06_concurrency` now accepts the overload. Rollback:
+  `supabase/rollbacks/000052_*.down.sql`. **Not applied to production.**
+
+### Docs (handoff: respondent names, live results, results privacy by plan, Creator studio)
+
+- Added `docs/v2/handoffs/2026-11-13-names-results-privacy-creator-studio.md`: a worker brief for letting signed-in
+  respondents change their display name, a Kahoot-style Present mode for results, plan-based results privacy (results wait
+  for 5 answers on free and Starter; Creator Plus sees responses live, anonymous included, per founder 2026-11-13) and
+  a rail-canvas-panel Creator studio. The plan rule needs a Loom verdict and founder approval before any migration.
+
+### Operations (production, 2026-11-13: 000052)
+- Applied `000052_v2_respondent_display_name` to Lunchvoice `qprfonxvthmaoxfixigk` as its own transaction, on the founder's "make it live", before the frontend deploy. Pre-check: history ended at 000051. Verified: history ends at 000052; `lv_api.lv_submit_response(uuid, jsonb, text)` executable by `authenticated` only (not `anon`); internal `lv.submit_response` not exposed; the two-argument function still callable.
+
+### Operations (production, 2026-11-13: 000045 and 000046)
+
+- **Applied 000045** (SHA-256 `63e2ddf9…`) **and 000046** (`c38e570c…`) to production through the Management API, each as
+  the file's own transaction, after `test:pr`, `check:brand`, 1516/1516 database checks and 49/49 related e2e. Pre-check:
+  `lv.freeze_questions_after_draft` in production matched the repo's 000027 body. Verification: history now includes
+  `000045` and `000046`; `lv_quick_survey_delete` is `authenticated` only; `lv_hub_public_poll` is callable by `anon`
+  while `lv.api_hub_public_poll` is not; the trigger lets a Campaign delete cascade.
+
+### Added (audit polish: 404, Hub head, public poll, delete survey, build before sign-in, Creator plans; migrations 000045, 000046)
+
+- **F8, real 404.** An unknown address shows the "This page isn't here." page with the title "Page not found", `noindex` and
+  no canonical. Render's static hosting answers every unknown path with the SPA shell through the catch-all rewrite
+  (Hub slugs are dynamic, so it cannot tell a missing page from a Hub), so the HTTP status stays 200; the page is
+  `noindex` in both the shell and at runtime. No `404.html` was added: Render only serves it when no rewrite matches.
+- **F4, per-Hub head.** A Hub's pages set their own title ("<Hub> on LunchVoice"), description (member count and the
+  about line) and matching Open Graph/Twitter tags (`useHubHead`, `src/ui/Seo.tsx`), the same text the
+  `workers/hub-card` share page shows. Hubs stay `noindex`. The share **image** is still the LunchVoice card: per-Hub
+  images are not generated.
+- **F5, the Kitchen's poll for visitors (000046).** `lv_hub_public_poll(p_slug)`, callable signed out, returns a public,
+  unsuspended Hub's most recent open Campaign that guests may answer (title, description, mode, anonymity, question
+  count, closing time, link token); never results, counts or members-only Campaigns. A Hub's page shows it as an
+  "Open now" card with "Answer this poll". Private, missing and suspended Hubs answer `poll: null`.
+- **P8, delete a Quick Survey (000045).** `lv_quick_survey_delete(p_campaign)` deletes one of the caller's Quick Surveys and
+  every answer to it, after one plain confirmation on the survey page. Refused while staff review it (blocked or an open
+  report). Also repairs a cascade bug: 000027 had dropped 000015's deletion bypass in `lv.freeze_questions_after_draft`,
+  so deleting a published Campaign (Hub, personal space or account deletion) raised `lv_locked`.
+- **F6, build before signing in.** `/surveys/new` is open to visitors: they build a Quick Survey (title, up to 10
+  questions, or a template) kept only in their browser (`src/lib/surveyDraft.ts`, `src/pages/SurveyDraft.tsx`). Publish
+  sends them to sign in and back to `/surveys/new?draft=resume`, where the survey is created, published and opened; if
+  publishing is refused it stays a draft in the editor. Nothing is sent to the server before sign-in.
+- **Pricing and product pages.** Creator Plus ($5/month) and Creator Pro ($15/month) are shown on `/pricing` as "Opens
+  with billing" per-person plans (cannot be bought until their Stripe products exist), with the difference spelled out:
+  Creator is one person's own surveys, a Hub is a community with members. Creator Plus lists 15 active / 30 questions,
+  Creator Pro 100 / 100 (live limits), Linked Questions and custom branding as available; Trends, results charts, new
+  question types and templates appear only as "coming soon". The Team plan no longer says "Enhanced
+  Campaign modes" or "Advanced targeting and analytics" (the billing audit found neither delivered): it now says "More
+  custom Hub pages" and "Aim identified Campaigns at chosen roles"; the compare table's "Starter/Advanced analytics" cells
+  say "Totals and charts" for every plan. The Feedback and Hubs product pages and the home pricing footnote mention the
+  Creator plans.
+- Tests: `src/lib/surveyDraft.test.ts`, `e2e/auditpolish.test.mjs` (desktop and 390px), the template-link e2e, pgTAP
+  `supabase/tests/45_survey_delete.sql` and `46_hub_public_poll.sql`; `14_entitlements.sql` allow-list updated.
+  Rollbacks: `supabase/rollbacks/000045_*.down.sql`, `000046_*.down.sql`. Migrations are **not applied** to production.
+
+### Added (new-version notice)
+
+- **"A new version of LunchVoice is ready." notice** with Refresh and dismiss (`src/components/UpdateNotice.tsx`, a Sonner
+  toast). The build emits `/version.json` (git SHA + build time, `vite.config.ts`) and embeds the same id in the bundle;
+  `render.yaml` serves `/version.json` with `Cache-Control: no-store`. The open app checks every 5 minutes while the tab is
+  visible (backoff to 30 minutes on failures, no polling while hidden) and on focus / returning to the tab.
+- It never reloads by itself and waits while someone is answering a survey (`useBusy("player", true)` in `Player.tsx`) or
+  has a text field focused (`src/lib/busy.ts`), then appears. Survey drafts already persist to localStorage on every
+  change, so a refresh keeps them. A lazy route chunk that vanished in a deploy now shows the same Refresh prompt
+  (`ChunkErrorBoundary`, `vite:preloadError`) instead of a blank page.
+- Tests: `src/lib/updateCheck.test.ts` and `e2e/update.test.mjs`.
+
+### Design report (not implemented): 30-day device sessions
+
+- `docs/backend/SESSIONS.md` records why the first-party HttpOnly refresh cookie was not built: it needs a first-party
+  route to the Edge Function, and neither Render rewrites (cookie/POST pass-through undocumented) nor a Supabase custom
+  domain (CNAME cloaking, Safari 7-day cap) can be relied on. Options and owner decisions are listed there. No migration,
+  Edge Function or setting changed.
+
+### Changed (Logic panel explains where rules go, founder feedback 2026-11-13)
+
+- On the first question the Logic panel now says it is the first question and that rules go on later questions, instead
+  of a generic line that read as if logic was missing. When earlier questions exist but none can drive a rule, it says
+  to add a choice, yes/no or rating question above or move the question down.
+
+### Operations (production, 2026-11-13: 000050 and 000051)
+
+- **Applied 000050** (SHA-256 `e44eddb1…`) **and 000051** (`2c5cfe51…`) to production (`qprfonxvthmaoxfixigk`) through
+  the Management API, each as the file's own transaction, after `test:pr` and 1472/1465 database checks; the e2e
+  failures seen under parallel load (comments, community dark mode, bad invite, product pages) all pass on rerun.
+  Verification: history `000040`–`000043`, `000050`, `000051`; `lv_campaign_by_code` executable by `authenticated`
+  only; `lv_my_context` keeps the suspension block and reports Creator limits (Creator Pro owner: 100/100).
+
+### Added (who is answering: sign in or answer as a guest, founder request 2026-11-13, 000050)
+
+- **Survey links offer sign-in.** On `/c/<code>` a signed-out visitor sees "Have a LunchVoice account? Sign in" next to
+  the guest name field (when the creator asks for one); signing in returns them to the same survey.
+- **Signed-in people answer with their account.** A signed-in visitor on a survey link is no longer treated as an
+  unverified guest: `lv_api.lv_campaign_by_code` (000050, signed-in only) returns the Campaign id when they may take part
+  (or manage it), and the player shows "Answering as {name}" on identified surveys. Non-managers get the same
+  visibility as the player (published, not blocked, Hub not suspended); others get `lv_not_found`.
+- **The builder Preview shows the start step** with "As a guest" and "Signed in" views, so the name and sign-in step no
+  longer looks missing when a creator previews their own survey.
+- Tests: `supabase/tests/50_campaign_by_code.sql`; `e2e/studio.test.mjs` runs the guest path in a signed-out browser and
+  the signed-in path with "Answering as".
+
+### Fixed (My home shows Creator Quick Survey limits, 000051)
+
+- A Creator Pro account saw "Quick Surveys 1/5" on My home although its real limit is 100 active (Creator Plus 15).
+  000042 moved every Quick Survey guard to `lv.quick_limit`, but `lv_api.lv_my_context` still reported the free numbers.
+  000051 keeps the wrapper body and overrides `quick_surveys.limit` and `question_limit` with the caller's own limits.
+  Tests: `supabase/tests/51_context_creator_limits.sql` (free 5/10, Creator Plus 15/30, Creator Pro 100/100).
+
 ### Operations (production, 2026-11-13: 000042 Linked Questions)
 
 - **Applied 000042 to production** (`qprfonxvthmaoxfixigk`) from commit `537f180` (file SHA-256 `5a37f889…`) through the

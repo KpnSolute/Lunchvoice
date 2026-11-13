@@ -305,7 +305,7 @@ export function Landing() {
           ))}
         </div>
         <p className="lv-l-foot">
-          Campaign Starter, Campaign Plus and Hub URL reservations are on the <Link to="/pricing">pricing page</Link>. <span data-testid="billing-sentence">{ctas.sentence}</span>
+          Campaign Starter, Campaign Plus, Creator Plus ($5/month) and Creator Pro ($15/month), both for one person and opening with billing, and Hub URL reservations are on the <Link to="/pricing">pricing page</Link>. <span data-testid="billing-sentence">{ctas.sentence}</span>
         </p>
       </section>
     </div>

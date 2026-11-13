@@ -80,3 +80,4 @@
 .lv-tg-chip:focus-visible { outline: 2px solid var(--lv-focus); outline-offset: 3px; }
 .lv-tg-preview { display: flex; flex-direction: column; gap: 22px; }
 .lv-tg-q { display: flex; flex-direction: column; gap: 12px; }
+.lv-canvas-live { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }

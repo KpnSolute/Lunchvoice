@@ -13,6 +13,9 @@ interface ImportMetaEnv {
   readonly VITE_LV_MOCK?: string;
 }
 
+/** Injected by vite.config.ts: this bundle's build id, compared with /version.json by the update notice. */
+declare const __LV_BUILD_ID__: string;
+
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
