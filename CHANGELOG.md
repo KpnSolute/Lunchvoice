@@ -6,6 +6,13 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed (My home shows Creator Quick Survey limits, 000051)
+
+- A Creator Pro account saw "Quick Surveys 1/5" on My home although its real limit is 100 active (Creator Plus 15).
+  000042 moved every Quick Survey guard to `lv.quick_limit`, but `lv_api.lv_my_context` still reported the free numbers.
+  000051 keeps the wrapper body and overrides `quick_surveys.limit` and `question_limit` with the caller's own limits.
+  Tests: `supabase/tests/51_context_creator_limits.sql` (free 5/10, Creator Plus 15/30, Creator Pro 100/100).
+
 ### Operations (production, 2026-11-13: 000042 Linked Questions)
 
 - **Applied 000042 to production** (`qprfonxvthmaoxfixigk`) from commit `537f180` (file SHA-256 `5a37f889…`) through the
