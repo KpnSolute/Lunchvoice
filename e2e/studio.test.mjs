@@ -262,6 +262,13 @@ test("Preview renders the draft without submitting anything", async () => {
   await page.exposeFunction("__noteRpc", (fn) => calls.push(fn));
   await page.getByTestId("preview").click();
   const dialog = page.getByRole("dialog");
+  // Before starting, the preview shows who is answering: as a guest (sign-in offer) or signed in.
+  await dialog.getByRole("button", { name: "Start preview" }).waitFor();
+  if (await dialog.getByRole("group", { name: "Preview as" }).count()) {
+    await dialog.getByTestId("preview-guest-start").getByText("Have a LunchVoice account?").waitFor();
+    await dialog.getByRole("button", { name: "Signed in" }).click();
+    assert.equal(await dialog.getByTestId("preview-guest-start").count(), 0, "signed-in preview has no guest step");
+  }
   await dialog.getByRole("button", { name: "Start preview" }).click();
   await dialog.getByRole("radio", { name: "Tuesday" }).click();
   await dialog.getByRole("button", { name: "Finish" }).click();
@@ -370,17 +377,34 @@ test("Guest names: an identified survey can ask guests for a name; the creator s
   await page.getByTestId("publish").click();
   const code = (await page.getByTestId("share").getByText(/^[A-Z0-9]{6}$/).first().innerText()).trim();
 
-  // A guest opens the code: the name is required before they can start.
+  // A guest (signed out, in their own browser holding the same mock data) opens the code: the name is required before
+  // they can start, and signing in is offered.
+  const shared = await page.evaluate(() => localStorage.getItem("lv.mock.state"));
+  const guest = await openPage(app, { width: 1280, signedIn: false });
+  await guest.ctx.addInitScript((st) => {
+    if (!sessionStorage.getItem("copied")) { localStorage.setItem("lv.mock.state", st); sessionStorage.setItem("copied", "1"); }
+  }, shared);
+  await guest.go(`/c/${code}`);
+  const gp = guest.page;
+  await gp.getByTestId("guest-name").waitFor();
+  await gp.getByTestId("guest-signin").getByRole("link", { name: "Sign in" }).waitFor();
+  assert.equal(await gp.getByTestId("player-start").isDisabled(), true, "Start waits for a required name");
+  await gp.getByLabel(/Your name/).fill("  Sam  Lee ");
+  assert.equal(await gp.getByTestId("player-start").isDisabled(), false);
+  await gp.getByTestId("player-start").click();
+  await gp.getByRole("radio", { name: /Reds/ }).click();
+  await gp.getByRole("button", { name: "Review" }).click();
+  await gp.getByRole("button", { name: "Submit" }).click();
+  await gp.getByTestId("player-thanks").getByText(/under the name “Sam Lee”/).waitFor();
+  const after = await gp.evaluate(() => localStorage.getItem("lv.mock.state"));
+  await guest.ctx.close();
+  await page.evaluate((st) => localStorage.setItem("lv.mock.state", st), after);
+
+  // Signed in, the same link answers with the account: no name field, no sign-in prompt, "Answering as".
   await go(`/c/${code}`);
-  await page.getByTestId("guest-name").waitFor();
-  assert.equal(await page.getByTestId("player-start").isDisabled(), true, "Start waits for a required name");
-  await page.getByLabel(/Your name/).fill("  Sam  Lee ");
-  assert.equal(await page.getByTestId("player-start").isDisabled(), false);
-  await page.getByTestId("player-start").click();
-  await page.getByRole("radio", { name: /Reds/ }).click();
-  await page.getByRole("button", { name: "Review" }).click();
-  await page.getByRole("button", { name: "Submit" }).click();
-  await page.getByTestId("player-thanks").getByText(/under the name “Sam Lee”/).waitFor();
+  await page.getByTestId("answering-as").getByText("Dana Reyes").waitFor();
+  assert.equal(await page.getByTestId("guest-name").count(), 0, "a signed-in person types no guest name");
+  assert.equal(await page.getByTestId("guest-signin").count(), 0, "a signed-in person is not asked to sign in");
 
   // The creator sees the guest by name, labelled unverified, with the answer.
   await go("/surveys");

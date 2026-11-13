@@ -95,7 +95,13 @@ export function LogicPanel({ q, qs, locked, allowed, save, reload }: {
         <legend className="lv-legend">Show only if…</legend>
         {!draft ? (
           <>
-            <p className="ui-muted lv-m0">{sources.length ? "Everyone who reaches this question sees it. Add a rule to show it only when an earlier answer matches." : "Add a choice, yes/no or rating question before this one to show it only to some people."}</p>
+            <p className="ui-muted lv-m0" data-testid="logic-hint">
+              {sources.length
+                ? "Everyone who reaches this question sees it. Add a rule to show it only when an earlier answer matches."
+                : qs.some((x) => x.position < q.position)
+                  ? "Rules can only depend on an earlier choice, yes/no or rating question. Add one above this question, or move this question below one."
+                  : "This is the first question, so there is nothing earlier to depend on. Open a later question to add a rule, for example: show it only if this question’s answer is “Staff hub”."}
+            </p>
             {!locked && sources.length > 0 && (
               <div className="ui-row">
                 <Button variant="secondary" data-testid="logic-add" onClick={() => change({ match: "all", conditions: [{}] }, 0)}><Icon name="plus" size={16} />Show only if…</Button>

@@ -379,13 +379,19 @@ export function PreviewButton({ d, title }: { d: CampaignDetailData; title: stri
           <DialogTitle>Preview: {title || "Untitled"}</DialogTitle>
           <DialogDescription>This is what respondents see. Nothing you pick here is sent.</DialogDescription>
         </DialogHeader>
-        <PreviewRunner questions={d.questions} anonymous={d.campaign.anonymity === "anonymous"} />
+        <PreviewRunner
+          questions={d.questions}
+          anonymous={d.campaign.anonymity === "anonymous"}
+          guestsAllowed={(d.campaign.audience ?? "members_and_guests") === "members_and_guests"}
+          guestNames={d.campaign.anonymity === "identified" ? (d.campaign.guest_names ?? "off") : "off"}
+        />
       </DialogContent>
     </Dialog>
   );
 }
 
-function PreviewRunner({ questions, anonymous }: { questions: Question[]; anonymous: boolean }) {
+function PreviewRunner({ questions, anonymous, guestsAllowed, guestNames }: { questions: Question[]; anonymous: boolean; guestsAllowed: boolean; guestNames: "off" | "optional" | "required" }) {
+  const [asGuest, setAsGuest] = useState(guestsAllowed);
   const [step, setStep] = useState(-1);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   if (questions.length === 0) return <Notice>Add a question to preview it.</Notice>;
@@ -393,6 +399,30 @@ function PreviewRunner({ questions, anonymous }: { questions: Question[]; anonym
     return (
       <div className="lv-stack-16">
         <p className="lv-m0">{questions.length} {questions.length === 1 ? "question" : "questions"} · {anonymous ? "Anonymous: answers aren’t linked to names." : "Identified: the creator sees who answered."}</p>
+        {/* What people see before they start: guests can sign in or answer as a guest (with a name when asked). */}
+        {guestsAllowed && (
+          <div className="ui-row" role="group" aria-label="Preview as">
+            <Button variant={asGuest ? "ink" : "secondary"} size="sm" aria-pressed={asGuest} onClick={() => setAsGuest(true)}>As a guest</Button>
+            <Button variant={!asGuest ? "ink" : "secondary"} size="sm" aria-pressed={!asGuest} onClick={() => setAsGuest(false)}>Signed in</Button>
+          </div>
+        )}
+        {asGuest && guestsAllowed ? (
+          <div className="lv-stack-16" data-testid="preview-guest-start">
+            <div className="lv-identity-choice">
+              <div><strong>Have a LunchVoice account?</strong><p className="lv-row-sub lv-m0">Guests can sign in to answer as themselves.</p></div>
+              <Button variant="secondary" disabled>Sign in</Button>
+            </div>
+            {guestNames !== "off" && (
+              <div className="lv-guest-name">
+                <label htmlFor="preview-guest-name" className="lv-guest-name-label">Your name {guestNames === "optional" && <span className="lv-row-sub">(optional)</span>}</label>
+                <Input id="preview-guest-name" placeholder="First name or a nickname" maxLength={40} />
+                <p className="lv-row-sub lv-m0">{guestNames === "required" ? "Guests must type a name before they can start." : "Guests may type a name."} It isn’t verified.</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          !anonymous && <p className="lv-identity-chip" data-testid="preview-answering-as">Answering as <strong>your account name</strong></p>
+        )}
         <div className="ui-row"><Button variant="primary" onClick={() => setStep(0)}>Start preview</Button></div>
       </div>
     );
