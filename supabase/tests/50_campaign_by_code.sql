@@ -23,6 +23,18 @@ select t.check('invite-only: someone not invited gets lv_not_found, not the id',
 select t.as_kpn(1);
 select t.check('invite-only: the owner still gets the id', (lv_api.lv_campaign_by_code(t.get('code')) ->> 'campaign_id') = t.get('qs'));
 
+select t.as_pg();
+update lv.campaigns set access = 'link', audience = 'members_and_guests' where id = t.id('qs');
+insert into lv.hub_suspensions (hub_id, reason) select hub_id, 'test' from lv.campaigns where id = t.id('qs');
+select t.as_kpn(2);
+select t.check('suspended Hub: a visitor gets lv_not_found', t.code(lv_api.lv_campaign_by_code(t.get('code'))) = 'lv_not_found');
+select t.as_pg();
+delete from lv.hub_suspensions where hub_id = (select hub_id from lv.campaigns where id = t.id('qs'));
+update lv.campaigns set blocked_at = now() where id = t.id('qs');
+select t.as_kpn(2);
+select t.check('blocked survey: a visitor gets lv_not_found', t.code(lv_api.lv_campaign_by_code(t.get('code'))) = 'lv_not_found');
+select t.as_kpn(1);
+select t.check('blocked survey: the owner still resolves it', (lv_api.lv_campaign_by_code(t.get('code')) ->> 'campaign_id') = t.get('qs'));
 select t.as_anon();
 select t.check('anon: cannot call it', t.raises(format($q$select lv_api.lv_campaign_by_code(%L)$q$, t.get('code'))));
 rollback;

@@ -13,10 +13,14 @@ declare
   c record;
 begin
   if v_account is null then return lv.err('lv_unauthenticated', 'Sign in first.'); end if;
-  select x.id, x.hub_id, x.status into c from lv.campaigns x
+  select x.id, x.hub_id, x.status, x.blocked_at into c from lv.campaigns x
    where x.join_code = upper(btrim(coalesce(p_join_code, ''))) and x.join_code is not null;
+  -- Managers always resolve their own code. Everyone else: the same visibility as the player (published, not blocked,
+  -- Hub not suspended) and they may take part.
   if c.id is null
-     or not (lv.can_participate(c.id, v_account) or lv.has_capability(v_account, c.hub_id, 'campaign.manage')) then
+     or not (lv.has_capability(v_account, c.hub_id, 'campaign.manage')
+             or (c.status <> 'draft' and c.blocked_at is null and not lv.hub_suspended(c.hub_id)
+                 and lv.can_participate(c.id, v_account))) then
     return lv.err('lv_not_found', 'No survey uses that code.');
   end if;
   return jsonb_build_object('ok', true, 'campaign_id', c.id);
