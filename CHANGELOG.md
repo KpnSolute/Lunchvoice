@@ -31,6 +31,38 @@ categories and the repository's decimal `X.X.X` release policy.
   rejects entries without a question id, ids from another survey and duplicate ids. pgTAP `42_linked_questions.sql`
   proves each rejection.
 
+### Operations (production, 2026-11-13: 000043 survey branding)
+
+- **Applied 000043 to production** (`qprfonxvthmaoxfixigk`) from commit `e8c0406` (file SHA-256 `a11dc233…`) through the
+  Management API in one transaction (the file's own `begin`/`commit` lines stripped), after `test:pr`, 147/147 e2e and
+  1389/1389 database checks. Founder authority: migrations may be applied once tests pass. Verification: RLS on
+  `lv.campaign_branding` with no API-role table access; `anon` may call only `lv_campaign_theme`; buckets
+  `survey-logos` (1 MB) and `survey-covers` (3 MB) private; 4 storage policies; history version corrected to `000043`.
+  Security advisor: no new finding types (definer functions and RLS-without-policy are the established `lv_api` pattern).
+
+### Added (survey branding, paid, 000043)
+
+- **Security (review 2026-11-13):** the public theme (`lv_campaign_theme`) and branding image reads
+  (`lv_storage.branding_readable`) now follow the player's visibility: nothing for a suspended Hub, and only for
+  link-open Campaigns or people who may take part (`lv.can_participate`). Before, anyone holding a Campaign id could
+  read the logo and welcome/thank-you text of an invite-only or members-only survey. Managers still see their own.
+  Seven new checks in `supabase/tests/43_survey_branding.sql`.
+- **Custom survey branding** for Quick Surveys and Campaigns: brand color (WCAG AA 4.5:1 on white enforced in the editor and
+  on save, with a one-click readable shade), logo, optional cover image, welcome headline, thank-you message, rounded or pill
+  buttons, and a live start/thank-you preview at 375px and desktop (`src/pages/SurveyBranding.tsx`). Free users see the panel
+  locked with what unlocks it. The player applies the theme through `--pt-*` variables scoped to `.lv-ptheme`
+  (`src/ui/player-theme.css`, `src/ui/PlayerTheme.tsx`); no global token changes; light and dark derive their own shades; high
+  contrast keeps LunchVoice colors. The "Powered by LunchVoice" footer stays unless `survey.remove_footer` (Team, Creator Pro).
+- Founder rule: themes work without Hubs and are stored per survey. "Use the Hub's color" is only a preset; `follow_hub` is an
+  explicit toggle, so later Hub changes never silently change a survey with its own theme. A downgraded plan keeps the data and
+  the player falls back to default styling.
+- Migration `000043_v2_survey_branding.sql` (rollback in `supabase/rollbacks/`, tests `supabase/tests/43_survey_branding.sql`):
+  `lv.campaign_branding` (RLS, no grants), `lv_campaign_branding_get/_set/_theme`, buckets `survey-logos` (1 MB) and
+  `survey-covers` (3 MB) with png/jpg/webp only and storage policies. Not applied to production.
+- First release scope: color, logo, welcome headline, thank-you message, preview, locked state. Cover image, the remove-footer
+  key and button-style options exist in the API and player but their controls are deferred to a follow-up PR.
+- Tests: `src/lib/surveyTheme.test.ts`, `e2e/branding.test.mjs`. Contract: `docs/backend/API_CONTRACT.md`.
+
 ### Fixed (MCP: the KpnIdentity wrapper the tests expect is now committed, 2026-11-13)
 
 - `scripts/mcp/supabase-kpnidentity.sh` (the `kpnauth` server) was referenced by `.mcp.json` and tested by

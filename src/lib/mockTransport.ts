@@ -12,6 +12,7 @@ import { COMMUNITY_FNS, COMMUNITY_PUBLIC, communityAfter, communityHandle, type 
 /* ---- track D: api + discord ---- */
 import { INTEGRATION_FNS, integrationsHandle, type IntegrationsCtx } from "./mockIntegrations";
 /* ---- end track D ---- */
+import { BRANDING_FNS, BRANDING_PUBLIC, brandingHandle, mockBrandingStorage, type BrandingCtx } from "./mockBranding"; // survey branding (000043)
 
 // DEV-ONLY stand-in for lv_api (excluded from production bundles; see transport.ts and scripts/check-bundle.mjs).
 // It mirrors the documented shapes and the launch rules in docs/v2/LAUNCH_PLAN.md closely enough to click through
@@ -282,6 +283,8 @@ export function createMockTransport(displayName = "Dana", signedIn: () => boolea
       /* ---- track C: community ---- */
       const answeredBefore = Boolean(s.campaigns.find((c) => c.campaign_id === a.p_campaign)?.mine_answered);
       /* ---- end track C ---- */
+      // Survey branding (000043): its own handler, before the shared switch.
+      if (BRANDING_FNS.has(fn)) { const b = brandingHandle(brandingCtx(s), fn, a, signedIn()); save(); return b; }
       const r = handleTrackA(s, fn, a, signedIn(), () => handle(s, fn, a, signedIn()));
       /* ---- track C: community ---- */
       communityAfter(communityCtx(s, signedIn()), fn, a, r, answeredBefore);
@@ -291,6 +294,7 @@ export function createMockTransport(displayName = "Dana", signedIn: () => boolea
       await new Promise((res) => setTimeout(res, 60));
       return r;
     },
+    storage: mockBrandingStorage(() => brandingCtx(load(displayName)), signedIn, save), // survey branding (000043)
     /* ---- track B: commerce ---- */
     async invoke(fn, body) {
       const s = load(displayName);
@@ -304,9 +308,28 @@ export function createMockTransport(displayName = "Dana", signedIn: () => boolea
 
 const err = (code: string, message: string, extra: object = {}) => ({ ok: false, error: { code, message, ...extra } });
 
+// Survey branding (000043): the theme is the survey's own; the Hub's color is only offered (or followed on request).
+function brandingCtx(s: State): BrandingCtx {
+  return {
+    store: s as unknown as BrandingCtx["store"],
+    campaign(id) {
+      const c = s.campaigns.find((x) => x.campaign_id === id);
+      const h = c && s.hubs.find((x) => x.hub_id === c.hub_id);
+      if (!c || !h) return null;
+      const manage = h.kind === "personal" || h.members.some((m) => m.account_id === "mock-account" && m.is_owner);
+      return { hub_id: h.hub_id, status: c.status, hubKind: h.kind, hubAccent: h.kind === "community" ? (ACCENTS.find((p) => p.key === h.accent)?.hex.toLowerCase() ?? null) : null, canManage: manage };
+    },
+    allowed(hubId, key) {
+      if (key === "survey.branding") return featureAllowed(s, hubId);
+      return activeFamily(s, hubId) === "team" || s.me.creator === "creator_pro";
+    },
+  };
+}
+
 const PUBLIC = new Set(["lv_plan_limits", "lv_waitlist_status", "lv_hub_get", "lv_invite_preview", "lv_guest_campaign_get", "lv_guest_submit", "lv_hub_reservation_status", "lv_capability_catalog", "lv_hub_pages_get", "lv_report_abuse"]);
 /* ---- track C: community ---- */
 for (const f of COMMUNITY_PUBLIC) PUBLIC.add(f);
+for (const f of BRANDING_PUBLIC) PUBLIC.add(f); // survey branding (000043)
 const communityCtx = (s: State, authed: boolean): CommunityCtx => ({ s: s as unknown as CommunityCtx["s"], authed, family: (hub) => activeFamily(s, hub) });
 /* ---- end track C ---- */
 

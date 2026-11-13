@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { SurveyBrandingPanel } from "./SurveyBranding"; // survey branding (000043)
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
@@ -282,6 +283,10 @@ export function SurveyStudio() {
             </Field>
             <DescriptionField d={d} save={save} reload={detail.reload} />
           </Card>
+        </li>
+        <li>
+          {/* survey branding (000043): the creator's own Creator plan entitles it; no Hub needed */}
+          <SurveyBrandingPanel d={d} save={save} reload={detail.reload} />
         </li>
         <li>
           <Card>
