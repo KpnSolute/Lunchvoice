@@ -17,6 +17,9 @@ test("Creator Plus user brands a Hub-less Quick Survey; the player at 390px wear
   await page.getByLabel("Title").fill("Cafe check-in");
   await page.getByRole("button", { name: /Create draft/ }).click();
   await page.getByTestId("quick-editor").waitFor();
+  // Creator Plus gets the studio, where branding lives in the Theme tab.
+  const themeTab = page.getByRole("tab", { name: "Theme" });
+  if (await themeTab.count()) await themeTab.click();
   const panel = page.getByTestId("branding");
   assert.equal(await page.getByTestId("branding-locked").count(), 0);
   assert.equal(await panel.getByTestId("brand-follow-hub").count(), 0); // no Hub, nothing to follow

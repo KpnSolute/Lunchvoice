@@ -26,7 +26,7 @@ select t.check('the (issuer, subject) unique constraint is what finally prevents
 -- Submission: the lock key is per (campaign, account), plus a UNIQUE constraint as the backstop
 -- ---------------------------------------------------------------------------------------------------------
 select t.check('submit_response takes an advisory lock keyed by campaign and account',
-  t.q($$select (prosrc like '%pg_advisory_xact_lock%' and prosrc like '%lv_submit:%')::text
+  t.q($$select bool_or(prosrc like '%pg_advisory_xact_lock%' and prosrc like '%lv_submit:%')::text
             from pg_proc p join pg_namespace n on n.oid = p.pronamespace
            where n.nspname = 'lv' and p.proname = 'submit_response'$$) = 'true');
 

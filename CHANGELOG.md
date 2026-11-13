@@ -6,6 +6,13 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-13: 000048 branding gradients)
+
+- **Applied 000048** (SHA-256 `21dc6786…`) to production through the Management API as the file's own transaction, after
+  `test:pr`, 1535/1535 database checks and 32/32 related e2e (branding, studio, Linked Questions, update notice).
+  Verification: `style`, `color2`, `gradient_angle`, `banner_style`, `cosmetics` columns present; the table has no
+  API-role access; `anon` may call only `lv_campaign_theme`, which keeps the suspended-Hub and audience visibility rules.
+
 ### Added (branding v2: modern panel, color picker, gradients, cosmetics, 000048)
 
 - The Branding panel is now one card with a live preview (right on desktop, on top on phones) and groups Colors, Banner,
@@ -25,6 +32,58 @@ categories and the repository's decimal `X.X.X` release policy.
 - The logo is shown as the creator uploaded it, on the banner: no tile, border or padding box, transparency honored. An
   optional subtle drop-shadow (`cosmetics.logo_shadow`, default off) helps a dark logo on a dark color.
 - Survey-level customization only: `src/ui/tokens.css` is unchanged. Screenshots: `docs/v2/screenshots/branding/`.
+
+### Added (Creator studio revamp for Creator Plus and Starter Hub)
+- Quick Survey editor shows a three-part studio when `survey.branching` is on: a left rail of question thumbnails (number, kind, linked-rule tag, section dividers, a `...` menu with Duplicate, Move up/down, Move to section and Delete with confirm, drag and Alt+Arrow reorder), a canvas with a grouped type picker (Choose / Rate / Write), Required switch, large prompt and colour-and-shape answer tiles, and a right panel with Question (logic) and Theme (branding) tabs. On a phone the rail is a strip and properties open in a sheet.
+- Free creators keep the simple editor and see a small preview of the studio. Entitlement is still decided by the server; the UI only reads `features.branching`.
+- Fixed a reorder bug where swapping two questions read stale values. New `src/lib/studio.ts` (5 tests), `StudioRail` registered in `/__gallery`, `e2e/studiopro.test.mjs` (3 tests).
+- Not built (no approved path): image on a question, NPS, slider, ranking, word-cloud kinds, text length limit, AI start from a description.
+
+### Worker report 2026-11-13 (names, Present mode, studio)
+Pieces 1, 2, 4 done and checked (db 1535/0, e2e 171/171, brain, build, design, test:pr). Piece 3 not started: needs Loom verdict and founder approval. Not built: question image, NPS, slider, ranking, word cloud, length limit, AI start. Full report at the end of `docs/v2/handoffs/2026-11-13-names-results-privacy-creator-studio.md`.
+
+### Added (Present mode: live results on a big screen)
+
+- **Present** button on Results opens a full-screen, projector-sized view (`src/ui/PresentMode.tsx`): one question per slide,
+  arrow/space/page keys and on-screen buttons to move, Escape to leave. Choice and yes/no questions show bars with count and
+  percent, ratings a bar per score and the average, text questions a word cloud plus the answers (identified surveys only).
+  A live answer counter, QR code, short link and join code stay in the corner so people can still join; identified surveys
+  show a quiet "Just answered: Ana, Jordan" line, anonymous ones never show names.
+- It reads the same released results as the Results page and polls every 4 seconds, paused while the tab is hidden. Anything
+  the server withholds says "Waiting for more answers" or "Shown when the survey closes", never zero, and no percentage is
+  guessed from a partly hidden total. Growing bars stop under reduced motion; colours use the ink/inverse tokens, so it flips
+  with light, dark and high contrast. The responses list (audited) is only re-read when the count changes.
+- Mock fix: the dev mock now matches the real API for identified surveys (totals and every option show from the first
+  answer; only anonymous ones wait for the minimum) and reloads when another tab changes its saved state.
+- Tests: `src/lib/present.test.ts` (bars, withheld never zero, ratings, word cloud, names), `e2e/present.test.mjs`
+  (a second tab answers under a chosen name and appears within one poll; keys; anonymous shows the withheld message, no
+  names, no bars). No migration, no entitlement change.
+
+### Added (respondent names: a signed-in person can change the name on their answers, migration 000052)
+
+- **Change the name on your answers.** On an identified survey the "Answering as {name}" chip has a **Change** button that
+  opens a field prefilled with the account name. The choice is remembered on this device for that survey; blank or the
+  account name means "use my account name". Anonymous surveys show "Your answers are anonymous" and no name control.
+- **000052** adds `lv_api.lv_submit_response(p_campaign, p_answers, p_display_name)` as an overload; the two-argument call
+  delegates with a null name (older clients and the Discord path unchanged). The name goes in `lv.submissions.guest_name`
+  (documented; `is_guest` says whose it is), is trimmed and collapsed, 1 to 40 characters, control characters refused.
+  **An anonymous Campaign ignores it entirely** and stores nothing. It is a label only: identity, one answer per account
+  and authorization never read it.
+- **Results** show the chosen name with an **Account** tag (was "Member"), or "Guest, unverified" for guests.
+- Tests: `supabase/tests/52_respondent_display_name.sql` (clean and store, duplicate keeps the first, blank, two-argument
+  call, control characters, 40/41 characters, anonymous crafted call stores nothing, signed-out refused), the studio e2e
+  (Change, remembered after reload, creator sees "Account"), and `06_concurrency` now accepts the overload. Rollback:
+  `supabase/rollbacks/000052_*.down.sql`. **Not applied to production.**
+
+### Docs (handoff: respondent names, live results, results privacy by plan, Creator studio)
+
+- Added `docs/v2/handoffs/2026-11-13-names-results-privacy-creator-studio.md`: a worker brief for letting signed-in
+  respondents change their display name, a Kahoot-style Present mode for results, plan-based results privacy (results wait
+  for 5 answers on free and Starter; Creator Plus sees responses live, anonymous included, per founder 2026-11-13) and
+  a rail-canvas-panel Creator studio. The plan rule needs a Loom verdict and founder approval before any migration.
+
+### Operations (production, 2026-11-13: 000052)
+- Applied `000052_v2_respondent_display_name` to Lunchvoice `qprfonxvthmaoxfixigk` as its own transaction, on the founder's "make it live", before the frontend deploy. Pre-check: history ended at 000051. Verified: history ends at 000052; `lv_api.lv_submit_response(uuid, jsonb, text)` executable by `authenticated` only (not `anon`); internal `lv.submit_response` not exposed; the two-argument function still callable.
 
 ### Operations (production, 2026-11-13: 000045 and 000046)
 

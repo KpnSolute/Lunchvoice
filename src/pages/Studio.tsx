@@ -231,6 +231,7 @@ export function StudioHeader({
   onChanged,
   onShowReview,
   quick,
+  pro,
 }: {
   d: CampaignDetailData;
   title: string;
@@ -243,6 +244,8 @@ export function StudioHeader({
   onChanged: () => void;
   onShowReview?: () => void;
   quick?: boolean;
+  /** The Creator studio's top bar: Publish and Share live here too. */
+  pro?: boolean;
 }) {
   const phase = campaignPhase(d.campaign);
   return (
@@ -258,7 +261,8 @@ export function StudioHeader({
       <div className="lv-studio-actions">
         <PreviewButton d={d} title={title} />
         {/* The Quick Survey flow publishes from its own Publish step; its header carries lifecycle actions afterwards. */}
-        {!(quick && d.campaign.status === "draft") && <LifecycleActions d={d} issues={issues} schedule={schedule} onChanged={onChanged} onShowReview={onShowReview} quick={quick} />}
+        {pro && d.campaign.status !== "draft" && <Button asChild variant="secondary"><a href="#share-step" data-testid="top-share"><Icon name="arrow" size={16} />Share</a></Button>}
+        {!(quick && d.campaign.status === "draft" && !pro) && <LifecycleActions d={d} issues={issues} schedule={schedule} onChanged={onChanged} onShowReview={onShowReview} quick={quick} />}
         {d.campaign.status !== "draft" && <LinkButton to={resultsTo} variant="secondary" icon="voice">Results</LinkButton>}
       </div>
       {d.campaign.status === "draft" && <BlockerSummary issues={issues} />}

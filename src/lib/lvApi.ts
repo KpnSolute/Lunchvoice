@@ -585,8 +585,11 @@ export function createLvApi(transport: LvTransport) {
     campaignInviteRedeem: (token: string) => call<{ campaign_id: string; join_code: string | null }>("lv_campaign_invite_redeem", { p_token: token }),
 
     /* ---- respond ---- */
-    submit: (campaign: string, answers: Answer[]) =>
-      call<SubmitReceipt>("lv_submit_response", { p_campaign: campaign, p_answers: answers }),
+    /** 000052: `displayName` is the label a signed-in person chose; ignored by the server on anonymous surveys. */
+    submit: (campaign: string, answers: Answer[], displayName: string | null = null) =>
+      call<SubmitReceipt>("lv_submit_response", displayName
+        ? { p_campaign: campaign, p_answers: answers, p_display_name: displayName }
+        : { p_campaign: campaign, p_answers: answers }),
     // The guest read returns `phase` (not `status`) and no member fields; map it onto the member shape.
     guestCampaignGet: (joinCode: string) =>
       call<CampaignDetailData & { campaign: { phase?: string; guests_allowed?: boolean } }>("lv_guest_campaign_get", { p_join_code: joinCode }).then((r) => {
