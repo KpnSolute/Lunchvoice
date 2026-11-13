@@ -246,7 +246,7 @@ function QuestionResult({ campaignId, q, showSeen }: { campaignId: string; q: Qu
         )}
       >
         {data.length === 0 ? (
-          <LvWithheld />
+          <LvWithheld testId="question-withheld" />
         ) : current === "stars" ? (
           <LvStarDistribution data={data} mean={mean} label={q.prompt} />
         ) : current === "split" ? (
