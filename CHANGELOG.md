@@ -6,6 +6,15 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-13: 000044 Trends and analytics)
+
+- **Applied 000044** (SHA-256 `e49363a8…`) to production through the Management API as the file's own transaction, after
+  `test:pr`, 1634/1634 database checks and 40/40 related e2e. Review change before applying: the device counter trigger on
+  `lv.submissions` swallows its own errors, so a counter can never fail a submission. Pre-check: only `000016` defines
+  `lv.api_analytics_export` (no production-only migration touched it). Verification: RLS on all four new tables, no
+  API-role table access, `lv_trend_create` not callable by `anon`, the guarded device trigger enabled, `trends.max`
+  rows live (free 0, Creator Plus 3, Creator Pro 10, Starter 3, Team 5; Creator counts provisional).
+
 ### Changed (branding is a full-width step in the Creator studio too)
 
 - The redesigned Branding panel (live preview, Colors/Banner/Logo/Text/Style) did not fit the Creator studio's narrow
