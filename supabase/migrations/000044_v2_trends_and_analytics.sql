@@ -189,6 +189,7 @@ begin
   if p_description is not null and length(btrim(p_description)) > 500 then
     return lv.err('lv_invalid_input', 'Keep the description to 500 characters.');
   end if;
+  perform lv.assert_not_suspended(v_account, v_hub);
   perform pg_advisory_xact_lock(hashtextextended('lv_trend:' || v_hub::text, 0));
   v_allow := lv.trend_allowance(v_hub);
   if not (v_allow->>'can_create')::boolean then
@@ -325,12 +326,23 @@ begin
   if not lv.has_capability(v_account, c.hub_id, 'campaign.manage') then
     return lv.err('lv_forbidden', 'Asking again requires campaign.manage.');
   end if;
+  -- Moderation first: a blocked survey is never copied, and a suspended account or Hub creates nothing
+  -- (raises lv_suspended, mapped to the envelope by the lv_api wrapper).
+  if c.blocked_at is not null then
+    return lv.err('lv_locked', 'This survey was blocked by LunchVoice staff, so it cannot be asked again.');
+  end if;
+  perform lv.assert_not_suspended(v_account, c.hub_id);
   select r.trend_id into v_trend from lv.trend_runs r where r.campaign_id = p_campaign;
   if v_trend is null then return lv.err('lv_invalid_input', 'Add this survey to a Trend first.'); end if;
   if not lv.campaign_finished(c.status, c.closes_at) then
     return lv.err('lv_lifecycle_invalid', 'Ask again once this survey has closed.');
   end if;
   perform pg_advisory_xact_lock(hashtextextended('lv_trend:' || c.hub_id::text, 0));
+  -- The same creation rate limit as lv_quick_survey_create (quick.create_per_hour), counted per space.
+  if (select count(*) from lv.campaigns x where x.hub_id = c.hub_id and x.created_at > now() - interval '1 hour')
+     >= coalesce((lv.policy_json('quick.create_per_hour'))::int, 0) then
+    return lv.err('lv_rate_limited', 'Many surveys were created in the last hour. Try again later.');
+  end if;
   v_allow := lv.trend_allowance(c.hub_id);
   if not (v_allow->>'can_add')::boolean then
     return lv.err_x('lv_limit_reached', 'This space holds more Trends than its plan allows. Trends stay readable; asking again waits until the count fits.',

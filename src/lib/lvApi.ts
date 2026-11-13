@@ -369,6 +369,43 @@ export type AnalyticsResult =
       texts_withheld?: boolean;
     };
 
+/* ------------------------------------------------------------------ 000044: results analytics and Trends */
+
+/** A released-or-withheld count: null with suppressed true is withheld, never zero. */
+export interface ReleasedCount { n: number | null; suppressed: boolean }
+export interface AnalyticsSummary {
+  responses: ReleasedCount & { released: boolean };
+  completion: { rate: number | null; started: number | null; suppressed: boolean; measured: boolean };
+  median_time: { bucket: "lt_1m" | "1_3m" | "3_10m" | "gt_10m" | null; measured: number | null; suppressed: boolean };
+}
+export interface RatingSummary { metric: "rating_summary"; question_id: string; n: number | null; mean: number | null; suppressed: boolean }
+export interface PremiumCell { key: string | null; n: number | null; suppressed?: boolean; reason?: string | null }
+export interface PremiumBlock { cells: PremiumCell[]; withheld: boolean; reason: string | null }
+export interface AnalyticsPremium { over_time: PremiumBlock; device: PremiumBlock; source: PremiumBlock }
+export interface Crosstab {
+  row_question_id: string; col_question_id: string; n: number | null; withheld: boolean; reason: string | null;
+  cells: { row: string; col: string; n: number; suppressed: boolean }[];
+}
+export interface TrendInfo {
+  trend_id: string; hub_id: string; title: string; description: string | null; space: "personal" | "community";
+  created_at: string; run_count: number; latest_at: string | null;
+}
+export interface TrendLimit { max: number; used: number; over: boolean; can_create: boolean; can_add: boolean; product: "creator_plus" | "starter_hub" }
+export interface TrendRun {
+  campaign_id: string; title: string; status: string; anonymity: Anonymity; run_at: string; activated_at: string | null;
+  closed_at: string | null; closes_at: string | null; finished: boolean;
+  responses: ReleasedCount & { released: boolean; reason?: string };
+}
+export type TrendPointState = "released" | "withheld" | "no_answers" | "not_released" | "draft" | "absent";
+export interface TrendPoint {
+  campaign_id: string; question_id: string | null; state: TrendPointState;
+  mean?: number; n?: number | null; any_withheld?: boolean;
+  options?: { key: string; n: number | null; suppressed: boolean; share: number | null }[];
+}
+export interface TrendQuestion { key: string; kind: QuestionKind; prompt: string; runs: number; points: TrendPoint[] }
+export interface TrendDetail { trend: TrendInfo; runs: TrendRun[]; questions: TrendQuestion[]; can_manage: boolean; limit: TrendLimit }
+export type ResponseSource = "link" | "qr" | "code" | "discord";
+
 export interface ExportRow {
   question_id: string;
   prompt: string;
@@ -599,6 +636,31 @@ export function createLvApi(transport: LvTransport) {
     analyticsQuestion: (campaign: string, question: string, filter: LogicFilter | null = null) =>
       call<QuestionLogicResult>("lv_analytics_question", { p_campaign: campaign, p_question: question, p_filter: filter }),
     analyticsExport: (campaign: string) => call<{ rows: ExportRow[] }>("lv_analytics_export", { p_campaign: campaign }),
+    /** 000044 */
+    ratingSummary: (campaign: string, question: string) =>
+      call<RatingSummary>("lv_analytics_query", { p_campaign: campaign, p_metric: "rating_summary", p_question: question }),
+    analyticsSummary: (campaign: string) => call<AnalyticsSummary>("lv_analytics_summary", { p_campaign: campaign }),
+    analyticsPremium: (campaign: string) => call<AnalyticsPremium>("lv_analytics_premium", { p_campaign: campaign }),
+    analyticsCrosstab: (campaign: string, row: string, col: string) =>
+      call<Crosstab>("lv_analytics_crosstab", { p_campaign: campaign, p_row: row, p_col: col }),
+    trendList: (hub: string | null = null) =>
+      call<{ trends: TrendInfo[]; can_manage: boolean; limit: TrendLimit }>("lv_trend_list", { p_hub: hub }),
+    trendGet: (trend: string) => call<TrendDetail>("lv_trend_get", { p_trend: trend }),
+    trendCreate: (hub: string | null, title: string, description: string | null = null, campaigns: string[] = []) =>
+      call<{ trend: TrendInfo }>("lv_trend_create", { p_hub: hub, p_title: title, p_description: description, p_campaigns: campaigns }),
+    trendUpdate: (trend: string, title: string | null, description: string | null = null) =>
+      call<{ trend: TrendInfo }>("lv_trend_update", { p_trend: trend, p_title: title, p_description: description }),
+    trendDelete: (trend: string) => call<object>("lv_trend_delete", { p_trend: trend }),
+    trendAdd: (trend: string, campaign: string) => call<{ trend: TrendInfo }>("lv_trend_add", { p_trend: trend, p_campaign: campaign }),
+    trendRemove: (trend: string, campaign: string) => call<{ trend: TrendInfo }>("lv_trend_remove", { p_trend: trend, p_campaign: campaign }),
+    trendAskAgain: (campaign: string) =>
+      call<{ campaign_id: string; trend_id: string; space: "personal" | "community" }>("lv_trend_ask_again", { p_campaign: campaign }),
+    campaignTrend: (campaign: string) =>
+      call<{ trend: TrendInfo | null; can_manage: boolean; can_ask_again: boolean; limit: TrendLimit }>("lv_campaign_trend", { p_campaign: campaign }),
+    /** Player: where the person came from and roughly how long it took (bucketed server-side). */
+    responseContext: (receipt: string, source: ResponseSource | null, seconds: number | null) =>
+      call<{ recorded: boolean }>("lv_response_context", { p_receipt: receipt, p_source: source, p_seconds: seconds }),
+    responseStarted: (campaign: string) => call<object>("lv_response_started", { p_campaign: campaign }),
 
     /* ---- membership ---- */
     hubJoin: (hub: string) => call<{ membership_id: string; status: "accepted" | "pending" }>("lv_hub_join", { p_hub: hub }),

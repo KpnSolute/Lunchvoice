@@ -108,6 +108,33 @@ select t.check('trend: choice shares are given for run 1 and absent for withheld
 select t.check('trend: nothing in the Trend response is a per-person row',
   t.get('trend') !~ '(account_id|session|receipt|guest_token)');
 
+-- Ask again honours moderation and the creation guards (a closed survey is not a licence to copy).
+select t.as_pg();
+update lv.campaigns set blocked_at = now() where id = t.id('qs1');
+select t.as_kpn(1, null, true, 'Creator');
+select t.check('ask again: a blocked survey is refused (lv_locked)', t.code(lv_api.lv_trend_ask_again(t.id('qs1'))) = 'lv_locked');
+select t.as_pg();
+update lv.campaigns set blocked_at = null where id = t.id('qs1');
+update lv.policy set value = '0'::jsonb where key = 'quick.create_per_hour';
+select t.as_kpn(1, null, true, 'Creator');
+select t.check('ask again: a caller over the creation rate limit is refused (lv_rate_limited)', t.code(lv_api.lv_trend_ask_again(t.id('qs1'))) = 'lv_rate_limited');
+select t.as_pg();
+update lv.policy set value = '20'::jsonb where key = 'quick.create_per_hour';
+insert into lv.account_suspensions (account_id, reason) values (t.id('me'), 'test');
+select t.as_kpn(1, null, true, 'Creator');
+select t.check('ask again: a suspended account is refused (lv_suspended)', t.code(lv_api.lv_trend_ask_again(t.id('qs1'))) = 'lv_suspended');
+select t.check('trend create: a suspended account is refused', t.code(lv_api.lv_trend_create(null, 'While suspended', null, null)) = 'lv_suspended');
+select t.as_pg();
+delete from lv.account_suspensions where account_id = t.id('me');
+insert into lv.hub_suspensions (hub_id, reason) select hub_id, 'test' from lv.trends where id = t.id('tr');
+select t.as_kpn(1, null, true, 'Creator');
+select t.check('ask again: a suspended space is refused (lv_suspended)', t.code(lv_api.lv_trend_ask_again(t.id('qs1'))) = 'lv_suspended');
+select t.as_pg();
+delete from lv.hub_suspensions;
+select t.put('copies', t.q(format($q$select count(*)::text from lv.campaigns where hub_id = (select hub_id from lv.trends where id = %L::uuid)$q$, t.get('tr'))));
+select t.as_kpn(1, null, true, 'Creator');
+select t.check('ask again: none of the refusals made a copy', t.get('copies') = '2');
+
 -- Premium gate and the device counters.
 select t.check('plus: premium results ask for Creator Pro', t.code(lv_api.lv_analytics_premium(t.id('qs1'))) = 'lv_entitlement_required'
   and (lv_api.lv_analytics_premium(t.id('qs1')) #>> '{error,product}') = 'creator_pro');

@@ -1,9 +1,9 @@
 import { LvMark } from "../components/LvMark";
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
-import type { Answer, GuestNamesMode } from "../lib/lvApi";
+import type { Answer, GuestNamesMode, ResponseSource } from "../lib/lvApi";
 import { Loading, campaignPhase, LinkButton } from "../components/ui";
 import { Button } from "@/components/shadcn/button";
 import { Input } from "@/components/shadcn/input";
@@ -46,6 +46,9 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   const [busy, setBusy] = useState(false);
   // Direction of the last move, so the question stage slides the right way (Back slides from the left).
   const [dir, setDir] = useState<"fwd" | "back">("fwd");
+  // 000044: coarse context for the owner's results. Only the channel and a time bucket leave this device, never an identity.
+  const [search] = useSearchParams();
+  const startedAt = useRef<number | null>(null);
   const draftKey = `lv-draft-${guest?.joinCode ?? campaignId}`;
   // 000028: an identified survey may ask guests for a name (optional or required). Kept on this device between visits.
   const nameKey = `lv-guest-name-${guest?.joinCode ?? campaignId}`;
@@ -94,6 +97,12 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
     setBusy(false);
     if (r.ok) {
       setReceipt({ id: r.receipt_id, duplicate: r.duplicate });
+      if (!r.duplicate) {
+        const raw = search.get("src");
+        const source: ResponseSource = raw === "qr" || raw === "discord" || raw === "code" ? raw : "link";
+        const seconds = startedAt.current === null ? null : Math.round((Date.now() - startedAt.current) / 1000);
+        void api.responseContext(r.receipt_id, source, seconds);
+      }
       try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
     } else setError(describeError(r.error));
   }
@@ -207,7 +216,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
           {pt.theme?.welcome_headline && <p className="lv-pt-subtitle">{d.campaign.title}</p>}
           <div className="lv-player-hero-foot">
             <span className="lv-row-sub" style={{ color: "inherit", opacity: 0.8 }}>{hasSections(allQuestions) && planned !== allQuestions.length ? "Up to " : ""}{planned} {planned === 1 ? "question" : "questions"} · ~{minutes} min</span>
-            <Button variant="primary" onClick={() => { setDir("fwd"); setStep(0); setView("question"); }} disabled={total === 0 || nameMissing} data-testid="player-start">
+            <Button variant="primary" onClick={() => { setDir("fwd"); setStep(0); setView("question"); if (startedAt.current === null) { startedAt.current = Date.now(); void api.responseStarted(d?.campaign.campaign_id ?? campaignId); } }} disabled={total === 0 || nameMissing} data-testid="player-start">
               Start <Icon name="arrow" size={16} />
             </Button>
           </div>

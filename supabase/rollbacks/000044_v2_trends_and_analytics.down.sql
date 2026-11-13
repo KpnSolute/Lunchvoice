@@ -24,6 +24,10 @@ drop function if exists lv_api.lv_trend_get(uuid);
 drop function if exists lv_api.lv_trend_list(uuid);
 
 drop trigger if exists submissions_capture_device on lv.submissions;
+drop table if exists lv.response_context_marks;
+drop table if exists lv.campaign_response_context;
+drop table if exists lv.trend_runs;
+drop table if exists lv.trends;
 drop function if exists lv.api_analytics_crosstab(uuid, uuid, uuid);
 drop function if exists lv.api_analytics_premium(uuid);
 drop function if exists lv.premium_results_guard(uuid, uuid);
@@ -53,10 +57,6 @@ drop function if exists lv.trend_allowance(uuid);
 drop function if exists lv.trend_limit(uuid);
 drop function if exists lv.trend_run_same_space();
 
-drop table if exists lv.response_context_marks;
-drop table if exists lv.campaign_response_context;
-drop table if exists lv.trend_runs;
-drop table if exists lv.trends;
 
 delete from lv.plan_limits where key in ('trends.max', 'trends.max_pass', 'analytics.premium')
   or (key = 'analytics.export' and family in ('creator_plus', 'creator_pro'));
