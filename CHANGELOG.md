@@ -6,6 +6,14 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-13: 000045 and 000046)
+
+- **Applied 000045** (SHA-256 `63e2ddf9…`) **and 000046** (`c38e570c…`) to production through the Management API, each as
+  the file's own transaction, after `test:pr`, `check:brand`, 1516/1516 database checks and 49/49 related e2e. Pre-check:
+  `lv.freeze_questions_after_draft` in production matched the repo's 000027 body. Verification: history now includes
+  `000045` and `000046`; `lv_quick_survey_delete` is `authenticated` only; `lv_hub_public_poll` is callable by `anon`
+  while `lv.api_hub_public_poll` is not; the trigger lets a Campaign delete cascade.
+
 ### Added (audit polish: 404, Hub head, public poll, delete survey, build before sign-in, Creator plans; migrations 000045, 000046)
 
 - **F8, real 404.** An unknown address shows the "This page isn't here." page with the title "Page not found", `noindex` and
