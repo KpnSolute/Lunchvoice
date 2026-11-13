@@ -31,14 +31,16 @@ test("a use-case page shows the template's real questions", async () => {
   await ctx.close();
 });
 
-test("Use this template signs you in, then opens that template with its title", async () => {
+test("Use this template opens the builder with that template; Publish signs you in", async () => {
   const { page, go, ctx } = await openPage(app, { signedIn: false });
   await go("/use-cases/event-feedback-form");
   await page.getByTestId("use-template").click();
+  await page.waitForURL(/\/surveys\/new\?template=event-feedback/);
+  assert.equal(await page.getByTestId("vb-title").inputValue(), "How was the event?");
+  await page.getByTestId("vb-publish").click();
   await page.waitForURL(/\/signin/);
   await page.getByRole("button", { name: /Sign in \(simulated\)/ }).click();
-  await page.waitForURL(/\/surveys\/new\?template=event-feedback/);
-  assert.equal(await page.getByLabel("Title").inputValue(), "How was the event?");
+  await page.waitForURL(/\/surveys\/[^/]+$/);
   await ctx.close();
 });
 

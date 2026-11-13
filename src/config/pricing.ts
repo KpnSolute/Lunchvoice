@@ -99,20 +99,20 @@ export function capabilityRows(families?: Families | null): Row[] {
  * Creator Plus and Creator Pro (founder 2026-11-12): per-PERSON plans. The perks go with the person into their own
  * Quick Surveys and every Hub they edit, unlike a Hub plan, which belongs to one community and its members. They exist
  * in the entitlement map (migration 000041) but cannot be bought until their Stripe products exist, so they are shown as
- * "opens with billing". The perks listed are the founder's, all still being built: nothing here is available today and
- * Pro's own extras are not decided.
+ * "opens with billing". Limits (15/30, 100/100) are the live Quick Survey limits; Linked Questions
+ * (000042) and branding (000043) are live; trends, results charts, new question types and templates are not built.
  */
 export interface CreatorPlan { id: "creator_plus" | "creator_pro"; name: string; priceLabel: string; cadence: string; blurb: string; features: string[] }
 export const CREATOR_PLANS: CreatorPlan[] = [
   {
     id: "creator_plus", name: "Creator Plus", priceLabel: "$5", cadence: "per month, per person",
     blurb: "For one person who writes a lot of surveys.",
-    features: ["Linked Questions (conditional logic): coming soon", "Custom branding on your surveys: coming soon", "Trends and results charts: coming soon"],
+    features: ["Up to 15 active Quick Surveys, 30 questions each", "Linked Questions: show-only-if rules and end-survey", "Custom branding: color, logo, welcome and thank-you text", "Trends, results charts, new question types and templates: coming soon"],
   },
   {
     id: "creator_pro", name: "Creator Pro", priceLabel: "$15", cadence: "per month, per person",
     blurb: "Everything in Creator Plus, with more room.",
-    features: ["Everything in Creator Plus", "Pro’s extra limits are set before billing opens"],
+    features: ["Everything in Creator Plus", "Up to 100 active Quick Surveys, 100 questions each", "Trends, results charts, new question types and templates: coming soon"],
   },
 ];
 

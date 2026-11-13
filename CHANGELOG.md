@@ -30,8 +30,9 @@ categories and the repository's decimal `X.X.X` release policy.
   publishing is refused it stays a draft in the editor. Nothing is sent to the server before sign-in.
 - **Pricing and product pages.** Creator Plus ($5/month) and Creator Pro ($15/month) are shown on `/pricing` as "Opens
   with billing" per-person plans (cannot be bought until their Stripe products exist), with the difference spelled out:
-  Creator is one person's own surveys, a Hub is a community with members. Linked Questions (conditional logic),
-  custom branding and Trends/results charts appear only as "coming soon". The Team plan no longer says "Enhanced
+  Creator is one person's own surveys, a Hub is a community with members. Creator Plus lists 15 active / 30 questions,
+  Creator Pro 100 / 100 (live limits), Linked Questions and custom branding as available; Trends, results charts, new
+  question types and templates appear only as "coming soon". The Team plan no longer says "Enhanced
   Campaign modes" or "Advanced targeting and analytics" (the billing audit found neither delivered): it now says "More
   custom Hub pages" and "Aim identified Campaigns at chosen roles"; the compare table's "Starter/Advanced analytics" cells
   say "Totals and charts" for every plan. The Feedback and Hubs product pages and the home pricing footnote mention the

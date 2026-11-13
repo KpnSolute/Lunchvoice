@@ -93,9 +93,12 @@ for (const width of [1280, 390]) {
     assert.match(text, /Creator Pro/);
     assert.match(text, /\$15/);
     assert.match(text, /Opens with billing/);
+    assert.match(text, /30 questions/);
+    assert.match(text, /100 questions/);
+    assert.match(text, /Trends, results charts.*coming soon/);
     assert.match(text, /one person/i);
     assert.match(text, /community with members/i);
-    assert.match(text, /Linked Questions \(conditional logic\): coming soon/);
+    assert.match(text, /Linked Questions: show-only-if rules and end-survey/);
     assert.equal(await creator.getByRole("button", { name: /Opens with billing/ }).first().isDisabled(), true);
     const body = await page.locator("main, .lv-mk").first().innerText();
     assert.doesNotMatch(body, /Enhanced Campaign modes|Advanced targeting and analytics|Advanced analytics/);

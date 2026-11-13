@@ -59,7 +59,7 @@
         { "label": "Anonymous or identified", "cells": [true, true, true] },
         { "label": "Totals and charts", "cells": [true, true, true] }
       ],
-      "fits": "Writing surveys on your own? Creator Plus ($5/month) and Creator Pro ($15/month) are per-person plans that open with billing. Linked Questions, custom branding and Trends are coming soon. When the same people keep answering, give them a Hub and run your feedback as Campaigns: scheduled, aimed at your members, and followed by what you did about it.",
+      "fits": "Writing surveys on your own? Creator Plus ($5/month) and Creator Pro ($15/month) are per-person plans that open with billing. Linked Questions (show-only-if rules and end-survey) and custom branding (color, logo, welcome and thank-you text) come with Creator Plus and Starter Hub and above; More results charts, question types and templates are coming soon. When the same people keep answering, give them a Hub and run your feedback as Campaigns: scheduled, aimed at your members, and followed by what you did about it.",
       "plans": ["free"],
       "cta": "survey",
       "demo": "questions",
