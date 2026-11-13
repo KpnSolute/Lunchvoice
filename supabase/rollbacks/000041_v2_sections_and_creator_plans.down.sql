@@ -1,4 +1,4 @@
--- Rollback for 000041_v2_sections_and_creator_plans. Restores the 000017/000018/000028 function bodies and the original
+-- Rollback for 000041_v2_sections_and_creator_plans. Restores the validator that was installed before (renamed back), the 000018/000028 function bodies and the original
 -- family checks. Refuses (raises) while any Creator entitlement exists: a rollback never deletes a customer's plan.
 begin;
 do $$ begin
@@ -9,38 +9,9 @@ end $$;
 
 drop trigger if exists campaigns_rules_check on lv.campaigns;
 
-create or replace function lv.validate_answers(p_campaign uuid, p_answers jsonb) returns text
-language plpgsql stable security definer set search_path = ''
-as $$
-declare
-  q record;
-  v_val jsonb;
-  v_seen int := 0;
-begin
-  if p_answers is null or jsonb_typeof(p_answers) <> 'array' then return 'answers must be an array'; end if;
-
-  for q in select * from lv.campaign_questions where campaign_id = p_campaign loop
-    select e->'value' into v_val
-      from jsonb_array_elements(p_answers) e
-     where (e->>'question_id')::uuid = q.id
-     limit 1;
-
-    if v_val is null or v_val = 'null'::jsonb then
-      if coalesce(q.config->>'optional', 'false') = 'true' then continue; end if;
-      return 'missing answer for question ' || q.position;
-    end if;
-
-    if q.kind = 'rating' then
-      if jsonb_typeof(v_val) <> 'number' then return 'rating must be a number'; end if;
-      if (v_val)::numeric < 1 or (v_val)::numeric > 5 then return 'rating out of range'; end if;
-    end if;
-    v_seen := v_seen + 1;
-  end loop;
-
-  if v_seen = 0 then return 'answer at least one question'; end if;
-  return null;
-end;
-$$;
+-- The validator that was installed before 000041 (000017 here, 000037 on production) comes back unchanged.
+drop function lv.validate_answers(uuid, jsonb);
+alter function lv.validate_answers_core(uuid, jsonb) rename to validate_answers;
 
 create or replace function lv_api.lv_campaign_question_add(p_campaign uuid, p_position int, p_kind text, p_prompt text, p_config jsonb default '{}'::jsonb)
 returns jsonb

@@ -15,6 +15,13 @@ categories and the repository's decimal `X.X.X` release policy.
   Creator Pro ($15/month) exist as per-person plans in the entitlement map (migration
   `000041_v2_sections_and_creator_plans`); they cannot be bought until their Stripe products exist. Survey branding
   uses the same plan line (`survey.branding`) and is built next. The brain files record the Creator plans.
+- **Merge-safe validator.** Production also runs migrations that are not on `main` yet (000029–000032 from
+  `claude/determined-darwin-aa79al`, 000036–000038 elections from `claude/nice-archimedes-5rfw1t-elections`), and
+  000037 replaced `lv.validate_answers`. 000041 therefore renames whatever validator is installed to
+  `lv.validate_answers_core` and wraps it: Campaigns without sections and every election go through the old one
+  unchanged. Sections are refused on elections. Rehearsed on production's exact 38-migration chain plus 000040/000041:
+  the same 5 pre-existing check differences before and after (repo tests against other branches' migrations), 23 new
+  checks passing, the elections suites passing, and the rollback restoring a validator byte-identical to production's.
 - **Server rules** (`lv.validate_answers`): an answer to a hidden question is refused; a required question is required
   only when shown. Publishing refuses a rule that points at a later or missing question, or at an option that no
   longer exists. A lapsed plan never breaks a published survey. Contract: `docs/backend/API_CONTRACT.md`.

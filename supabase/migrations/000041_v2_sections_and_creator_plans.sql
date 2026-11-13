@@ -12,7 +12,7 @@
 --    config.section = {title, description?, show_if?} on the FIRST question of a section. Questions up to the next
 --    section start belong to it. show_if = {question_id, any_of: [...]}: show the section only when that earlier
 --    single choice, multiple choice or yes/no answer is one of any_of ("true"/"false" for yes/no).
--- 4. lv.validate_answers walks the sections: a hidden question must have no answer (refused), and a required question
+-- 4. lv.validate_answers (merge-safe wrapper, see below) walks the sections: a hidden question must have no answer (refused), and a required question
 --    is only required when its section is shown. Publishing (leaving draft) refuses a rule that points at a later,
 --    missing or non-choice question, or at an option that does not exist.
 -- 5. lv_campaign_get tells managers which survey features they may use here (features.branching/branding).
@@ -166,7 +166,13 @@ create trigger campaigns_rules_check before update of status on lv.campaigns
   for each row execute function lv.campaign_rules_check();
 
 -- ---------------------------------------------------------------- 4. answers follow the sections
-create or replace function lv.validate_answers(p_campaign uuid, p_answers jsonb) returns text
+-- Merge-safe: the validator already installed (000017 here; on production the 000037 elections version, which allows
+-- blank races and checks ballots) is kept as lv.validate_answers_core. Every Campaign without sections, and every
+-- election, still goes through it unchanged. Only a Campaign with sections uses the walk below.
+alter function lv.validate_answers(uuid, jsonb) rename to validate_answers_core;
+revoke all on function lv.validate_answers_core(uuid, jsonb) from public;
+
+create function lv.validate_answers(p_campaign uuid, p_answers jsonb) returns text
 language plpgsql stable security definer set search_path = ''
 as $$
 declare
@@ -176,6 +182,11 @@ declare
   v_rule jsonb := null;
   v_shown boolean;
 begin
+  if (select c.mode from lv.campaigns c where c.id = p_campaign) = 'election'
+     or not exists (select 1 from lv.campaign_questions x where x.campaign_id = p_campaign
+                     and x.config ? 'section' and x.config->'section' <> 'null'::jsonb) then
+    return lv.validate_answers_core(p_campaign, p_answers);
+  end if;
   if p_answers is null or jsonb_typeof(p_answers) <> 'array' then return 'answers must be an array'; end if;
 
   for q in select * from lv.campaign_questions where campaign_id = p_campaign order by position loop
@@ -225,6 +236,9 @@ begin
   if (p_old->'section') is not distinct from (p_new->'section') then return null; end if;
   select c.hub_id into v_hub from lv.campaigns c where c.id = p_campaign;
   if v_hub is null then return null; end if;   -- the body answers lv_not_found
+  if (select c.mode from lv.campaigns c where c.id = p_campaign) = 'election' then
+    return 'An election has no sections: every voter sees every race.';
+  end if;
   if not lv.feature_allowed(v_hub, lv.current_account_id(), 'survey.branching') then
     return 'ENTITLEMENT';
   end if;
@@ -304,7 +318,8 @@ end;
 $$;
 
 revoke all on function lv.account_creator_family(uuid), lv.feature_allowed(uuid, uuid, text), lv.section_config_problem(jsonb),
-  lv.rule_met(jsonb, jsonb), lv.section_rules_problem(uuid), lv.campaign_rules_check(), lv.section_write_guard(uuid, jsonb, jsonb)
+  lv.rule_met(jsonb, jsonb), lv.section_rules_problem(uuid), lv.campaign_rules_check(), lv.section_write_guard(uuid, jsonb, jsonb),
+  lv.validate_answers(uuid, jsonb)
   from public;
 
 commit;
