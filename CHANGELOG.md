@@ -26,6 +26,102 @@ categories and the repository's decimal `X.X.X` release policy.
   optional subtle drop-shadow (`cosmetics.logo_shadow`, default off) helps a dark logo on a dark color.
 - Survey-level customization only: `src/ui/tokens.css` is unchanged. Screenshots: `docs/v2/screenshots/branding/`.
 
+### Operations (production, 2026-11-13: 000045 and 000046)
+
+- **Applied 000045** (SHA-256 `63e2ddf9…`) **and 000046** (`c38e570c…`) to production through the Management API, each as
+  the file's own transaction, after `test:pr`, `check:brand`, 1516/1516 database checks and 49/49 related e2e. Pre-check:
+  `lv.freeze_questions_after_draft` in production matched the repo's 000027 body. Verification: history now includes
+  `000045` and `000046`; `lv_quick_survey_delete` is `authenticated` only; `lv_hub_public_poll` is callable by `anon`
+  while `lv.api_hub_public_poll` is not; the trigger lets a Campaign delete cascade.
+
+### Added (audit polish: 404, Hub head, public poll, delete survey, build before sign-in, Creator plans; migrations 000045, 000046)
+
+- **F8, real 404.** An unknown address shows the "This page isn't here." page with the title "Page not found", `noindex` and
+  no canonical. Render's static hosting answers every unknown path with the SPA shell through the catch-all rewrite
+  (Hub slugs are dynamic, so it cannot tell a missing page from a Hub), so the HTTP status stays 200; the page is
+  `noindex` in both the shell and at runtime. No `404.html` was added: Render only serves it when no rewrite matches.
+- **F4, per-Hub head.** A Hub's pages set their own title ("<Hub> on LunchVoice"), description (member count and the
+  about line) and matching Open Graph/Twitter tags (`useHubHead`, `src/ui/Seo.tsx`), the same text the
+  `workers/hub-card` share page shows. Hubs stay `noindex`. The share **image** is still the LunchVoice card: per-Hub
+  images are not generated.
+- **F5, the Kitchen's poll for visitors (000046).** `lv_hub_public_poll(p_slug)`, callable signed out, returns a public,
+  unsuspended Hub's most recent open Campaign that guests may answer (title, description, mode, anonymity, question
+  count, closing time, link token); never results, counts or members-only Campaigns. A Hub's page shows it as an
+  "Open now" card with "Answer this poll". Private, missing and suspended Hubs answer `poll: null`.
+- **P8, delete a Quick Survey (000045).** `lv_quick_survey_delete(p_campaign)` deletes one of the caller's Quick Surveys and
+  every answer to it, after one plain confirmation on the survey page. Refused while staff review it (blocked or an open
+  report). Also repairs a cascade bug: 000027 had dropped 000015's deletion bypass in `lv.freeze_questions_after_draft`,
+  so deleting a published Campaign (Hub, personal space or account deletion) raised `lv_locked`.
+- **F6, build before signing in.** `/surveys/new` is open to visitors: they build a Quick Survey (title, up to 10
+  questions, or a template) kept only in their browser (`src/lib/surveyDraft.ts`, `src/pages/SurveyDraft.tsx`). Publish
+  sends them to sign in and back to `/surveys/new?draft=resume`, where the survey is created, published and opened; if
+  publishing is refused it stays a draft in the editor. Nothing is sent to the server before sign-in.
+- **Pricing and product pages.** Creator Plus ($5/month) and Creator Pro ($15/month) are shown on `/pricing` as "Opens
+  with billing" per-person plans (cannot be bought until their Stripe products exist), with the difference spelled out:
+  Creator is one person's own surveys, a Hub is a community with members. Creator Plus lists 15 active / 30 questions,
+  Creator Pro 100 / 100 (live limits), Linked Questions and custom branding as available; Trends, results charts, new
+  question types and templates appear only as "coming soon". The Team plan no longer says "Enhanced
+  Campaign modes" or "Advanced targeting and analytics" (the billing audit found neither delivered): it now says "More
+  custom Hub pages" and "Aim identified Campaigns at chosen roles"; the compare table's "Starter/Advanced analytics" cells
+  say "Totals and charts" for every plan. The Feedback and Hubs product pages and the home pricing footnote mention the
+  Creator plans.
+- Tests: `src/lib/surveyDraft.test.ts`, `e2e/auditpolish.test.mjs` (desktop and 390px), the template-link e2e, pgTAP
+  `supabase/tests/45_survey_delete.sql` and `46_hub_public_poll.sql`; `14_entitlements.sql` allow-list updated.
+  Rollbacks: `supabase/rollbacks/000045_*.down.sql`, `000046_*.down.sql`. Migrations are **not applied** to production.
+
+### Added (new-version notice)
+
+- **"A new version of LunchVoice is ready." notice** with Refresh and dismiss (`src/components/UpdateNotice.tsx`, a Sonner
+  toast). The build emits `/version.json` (git SHA + build time, `vite.config.ts`) and embeds the same id in the bundle;
+  `render.yaml` serves `/version.json` with `Cache-Control: no-store`. The open app checks every 5 minutes while the tab is
+  visible (backoff to 30 minutes on failures, no polling while hidden) and on focus / returning to the tab.
+- It never reloads by itself and waits while someone is answering a survey (`useBusy("player", true)` in `Player.tsx`) or
+  has a text field focused (`src/lib/busy.ts`), then appears. Survey drafts already persist to localStorage on every
+  change, so a refresh keeps them. A lazy route chunk that vanished in a deploy now shows the same Refresh prompt
+  (`ChunkErrorBoundary`, `vite:preloadError`) instead of a blank page.
+- Tests: `src/lib/updateCheck.test.ts` and `e2e/update.test.mjs`.
+
+### Design report (not implemented): 30-day device sessions
+
+- `docs/backend/SESSIONS.md` records why the first-party HttpOnly refresh cookie was not built: it needs a first-party
+  route to the Edge Function, and neither Render rewrites (cookie/POST pass-through undocumented) nor a Supabase custom
+  domain (CNAME cloaking, Safari 7-day cap) can be relied on. Options and owner decisions are listed there. No migration,
+  Edge Function or setting changed.
+
+### Changed (Logic panel explains where rules go, founder feedback 2026-11-13)
+
+- On the first question the Logic panel now says it is the first question and that rules go on later questions, instead
+  of a generic line that read as if logic was missing. When earlier questions exist but none can drive a rule, it says
+  to add a choice, yes/no or rating question above or move the question down.
+
+### Operations (production, 2026-11-13: 000050 and 000051)
+
+- **Applied 000050** (SHA-256 `e44eddb1…`) **and 000051** (`2c5cfe51…`) to production (`qprfonxvthmaoxfixigk`) through
+  the Management API, each as the file's own transaction, after `test:pr` and 1472/1465 database checks; the e2e
+  failures seen under parallel load (comments, community dark mode, bad invite, product pages) all pass on rerun.
+  Verification: history `000040`–`000043`, `000050`, `000051`; `lv_campaign_by_code` executable by `authenticated`
+  only; `lv_my_context` keeps the suspension block and reports Creator limits (Creator Pro owner: 100/100).
+
+### Added (who is answering: sign in or answer as a guest, founder request 2026-11-13, 000050)
+
+- **Survey links offer sign-in.** On `/c/<code>` a signed-out visitor sees "Have a LunchVoice account? Sign in" next to
+  the guest name field (when the creator asks for one); signing in returns them to the same survey.
+- **Signed-in people answer with their account.** A signed-in visitor on a survey link is no longer treated as an
+  unverified guest: `lv_api.lv_campaign_by_code` (000050, signed-in only) returns the Campaign id when they may take part
+  (or manage it), and the player shows "Answering as {name}" on identified surveys. Non-managers get the same
+  visibility as the player (published, not blocked, Hub not suspended); others get `lv_not_found`.
+- **The builder Preview shows the start step** with "As a guest" and "Signed in" views, so the name and sign-in step no
+  longer looks missing when a creator previews their own survey.
+- Tests: `supabase/tests/50_campaign_by_code.sql`; `e2e/studio.test.mjs` runs the guest path in a signed-out browser and
+  the signed-in path with "Answering as".
+
+### Fixed (My home shows Creator Quick Survey limits, 000051)
+
+- A Creator Pro account saw "Quick Surveys 1/5" on My home although its real limit is 100 active (Creator Plus 15).
+  000042 moved every Quick Survey guard to `lv.quick_limit`, but `lv_api.lv_my_context` still reported the free numbers.
+  000051 keeps the wrapper body and overrides `quick_surveys.limit` and `question_limit` with the caller's own limits.
+  Tests: `supabase/tests/51_context_creator_limits.sql` (free 5/10, Creator Plus 15/30, Creator Pro 100/100).
+
 ### Operations (production, 2026-11-13: 000042 Linked Questions)
 
 - **Applied 000042 to production** (`qprfonxvthmaoxfixigk`) from commit `537f180` (file SHA-256 `5a37f889…`) through the

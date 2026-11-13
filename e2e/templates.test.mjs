@@ -45,13 +45,17 @@ test("Blank still starts empty", async () => {
 });
 
 test("a shared template link preselects it, including through sign-in", async () => {
+  // F6: signed out, the link opens the visitor builder with the template already filled in; Publish asks to sign in.
   const signedOut = await openPage(app, { signedIn: false });
   await signedOut.go("/surveys/new?template=event-feedback");
+  await signedOut.page.getByTestId("visitor-builder").waitFor();
+  assert.equal(await signedOut.page.getByTestId("vb-title").inputValue(), "How was the event?");
+  assert.equal(await signedOut.page.getByTestId("vb-question").count(), 4);
+  await signedOut.page.getByTestId("vb-publish").click();
   await signedOut.page.waitForURL(/\/signin/);
   await signedOut.page.getByRole("button", { name: /Sign in \(simulated\)/ }).click();
-  await signedOut.page.waitForURL(/\/surveys\/new\?template=event-feedback/);
-  assert.equal(await signedOut.page.getByTestId("template-picker").getByRole("radio", { name: /Event feedback/ }).isChecked(), true);
-  assert.equal(await signedOut.page.getByLabel("Title").inputValue(), "How was the event?");
+  await signedOut.page.waitForURL(/\/surveys\/[^/]+$/);
+  await signedOut.page.getByTestId("quick-editor").waitFor();
   await signedOut.ctx.close();
 
   const { page, go, ctx } = await openPage(app);

@@ -326,7 +326,7 @@ function brandingCtx(s: State): BrandingCtx {
   };
 }
 
-const PUBLIC = new Set(["lv_plan_limits", "lv_waitlist_status", "lv_hub_get", "lv_invite_preview", "lv_guest_campaign_get", "lv_guest_submit", "lv_hub_reservation_status", "lv_capability_catalog", "lv_hub_pages_get", "lv_report_abuse"]);
+const PUBLIC = new Set(["lv_plan_limits", "lv_waitlist_status", "lv_hub_get", "lv_invite_preview", "lv_guest_campaign_get", "lv_guest_submit", "lv_hub_reservation_status", "lv_capability_catalog", "lv_hub_pages_get", "lv_report_abuse", "lv_hub_public_poll"]);
 /* ---- track C: community ---- */
 for (const f of COMMUNITY_PUBLIC) PUBLIC.add(f);
 for (const f of BRANDING_PUBLIC) PUBLIC.add(f); // survey branding (000043)
@@ -796,6 +796,12 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       c.mine_answered = true;
       c.responses.push({ receipt: `r-${c.campaign_id}-me`, answers: a.p_answers as Resp["answers"], at: iso(Date.now()), guest: false });
       return { ok: true, receipt_id: `r-${c.campaign_id}-me`, duplicate: false };
+    }
+    case "lv_campaign_by_code": {
+      // 000050: signed-in only; link-open or members of the Hub (the mock has no per-person invite list).
+      const c = s.campaigns.find((x) => x.join_code === String(a.p_join_code ?? "").trim().toUpperCase());
+      if (!c || c.status === "draft" || (c.access === "invite" && !hubById(c.hub_id))) return err("lv_not_found", "No survey uses that code.");
+      return { ok: true, campaign_id: c.campaign_id };
     }
     case "lv_guest_campaign_get": {
       const c = s.campaigns.find((x) => x.join_code === String(a.p_join_code).toUpperCase());
@@ -1271,6 +1277,31 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
       const open = st.offers!.filter((x) => x.hub_id === a.p_hub && x.state === "pending");
       for (const o of open) o.state = "cancelled";
       return { ok: true, cancelled: open.length > 0 };
+    }
+    /* ---- 000045: delete a Quick Survey and its results ---- */
+    case "lv_quick_survey_delete": {
+      if (!authed) return err("lv_unauthenticated", "Sign in first.");
+      const c = camp(a.p_campaign);
+      if (!c || !isPersonal(s, c)) return err("lv_not_found", "No such survey.");
+      if (s.reports.some((r) => r.join_code === c.join_code))
+        return err("lv_locked", "LunchVoice staff are reviewing this survey, so it can’t be deleted right now. Contact support.");
+      s.campaigns = s.campaigns.filter((x) => x !== c);
+      s.cinvites = s.cinvites.filter((i) => i.campaign !== c.campaign_id);
+      s.eligible = s.eligible.filter((x) => x !== c.campaign_id);
+      return { ok: true, deleted: true };
+    }
+    /* ---- 000046: a public Hub's latest open guest Campaign, signed out allowed ---- */
+    case "lv_hub_public_poll": {
+      const h = s.hubs.find((x) => x.kind === "community" && x.slug === String(a.p_slug ?? "").trim().toLowerCase() && x.visibility === "public");
+      const now = Date.now();
+      const open = (c: CA) => c.status === "active" && c.audience === "members_and_guests" && c.access !== "invite"
+        && (!c.opens_at || new Date(c.opens_at).getTime() <= now) && (!c.closes_at || new Date(c.closes_at).getTime() > now);
+      const when = (c: CA) => new Date(c.opens_at ?? c.created_at).getTime();
+      const c = h ? (s.campaigns as CA[]).filter((x) => x.hub_id === h.hub_id && open(x)).sort((x, y) => when(y) - when(x))[0] : undefined;
+      return {
+        ok: true,
+        poll: c ? { title: c.title, description: c.description ?? null, mode: c.mode, anonymity: c.anonymity, closes_at: c.closes_at, question_count: c.questions.length, link_token: c.link_token } : null,
+      };
     }
     case "lv_owner_transfer_accept":
     case "lv_owner_transfer_decline":
