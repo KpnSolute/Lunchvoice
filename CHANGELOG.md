@@ -55,6 +55,9 @@ Pieces 1, 2, 4 done and checked (db 1535/0, e2e 171/171, brain, build, design, t
   for 5 answers on free and Starter; Creator Plus sees responses live, anonymous included, per founder 2026-11-13) and
   a rail-canvas-panel Creator studio. The plan rule needs a Loom verdict and founder approval before any migration.
 
+### Operations (production, 2026-11-13: 000052)
+- Applied `000052_v2_respondent_display_name` to Lunchvoice `qprfonxvthmaoxfixigk` as its own transaction, on the founder's "make it live", before the frontend deploy. Pre-check: history ended at 000051. Verified: history ends at 000052; `lv_api.lv_submit_response(uuid, jsonb, text)` executable by `authenticated` only (not `anon`); internal `lv.submit_response` not exposed; the two-argument function still callable.
+
 ### Operations (production, 2026-11-13: 000045 and 000046)
 
 - **Applied 000045** (SHA-256 `63e2ddf9…`) **and 000046** (`c38e570c…`) to production through the Management API, each as
