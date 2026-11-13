@@ -6,6 +6,9 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (Creator Trends allowance: Plus 5, Pro 10; migration 000054, NOT applied to production)
+- Founder decision 2026-11-13: Creator Plus allows 5 Trends, Creator Pro 10. Production still holds Plus 3 / Pro 10 from 000044 (provisional). `000054_v2_creator_trends_allowance` changes only the Plus value and the notes; rollback in `supabase/rollbacks/`. Test 44, the dev mock and the API contract follow. `AGENTS.md` and `CLAUDE.md` record the allowance. Waiting for approval to apply to production (Trends are not purchasable yet, so no customer is affected).
+
 ### Docs (deployment truth, connector retest, payment site and creator dashboard decisions; founder 2026-11-13)
 
 - **Deployment truth found and logged.** LunchVoice is a Render **static site** built from `main` (`npm install; npm run build`,

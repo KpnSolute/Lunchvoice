@@ -398,7 +398,7 @@ function trendsCtx(s: State, authed: boolean): TrendsCtx {
     canManage: (id) => { const h = hubOf(id); return !!h && (h.kind === "personal" || h.members.some((m) => m.account_id === "mock-account" && m.is_owner)); },
     personalHub: () => s.hubs.find((h) => h.kind === "personal")?.hub_id ?? null,
     trendMax: (id) => {
-      if (hubOf(id)?.kind === "personal") return s.me.creator === "creator_pro" ? 10 : s.me.creator === "creator_plus" ? 3 : 0;
+      if (hubOf(id)?.kind === "personal") return s.me.creator === "creator_pro" ? 10 : s.me.creator === "creator_plus" ? 5 : 0;
       const f = activeFamily(s, id);
       return f === "team" ? 5 : f === "starter" ? 3 : 0;
     },

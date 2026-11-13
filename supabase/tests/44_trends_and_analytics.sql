@@ -4,8 +4,8 @@ begin;
 select t.trust_test_issuer();
 
 -- ---------------------------------------------------------------- the map
-select t.check('map: free 0, creator_plus 3, creator_pro 10, starter 3, team 5 Trends',
-  (lv.plan_limit('free', 'trends.max'))::int = 0 and (lv.plan_limit('creator_plus', 'trends.max'))::int = 3
+select t.check('map: free 0, creator_plus 5, creator_pro 10, starter 3, team 5 Trends',
+  (lv.plan_limit('free', 'trends.max'))::int = 0 and (lv.plan_limit('creator_plus', 'trends.max'))::int = 5
   and (lv.plan_limit('creator_pro', 'trends.max'))::int = 10 and (lv.plan_limit('starter', 'trends.max'))::int = 3
   and (lv.plan_limit('team', 'trends.max'))::int = 5);
 select t.check('map: a Campaign pass includes 1 Trend', (lv.plan_limit('starter', 'trends.max_pass'))::int = 1 and (lv.plan_limit('team', 'trends.max_pass'))::int = 1);
@@ -40,7 +40,7 @@ select t.check('plus: one space per Trend (the personal space)', t.q(format($q$s
 select t.check('plus: a survey is in at most one Trend',
   t.code(lv_api.lv_trend_create(null, 'Second', null, array[t.id('qs1')])) = 'lv_conflict');
 select t.check('plus: a bad name is refused', t.code(lv_api.lv_trend_create(null, '   ', null, null)) = 'lv_invalid_input');
-select t.check('plus: list shows the Trend and the allowance', (lv_api.lv_trend_list(null) #>> '{limit,max}') = '3'
+select t.check('plus: list shows the Trend and the allowance', (lv_api.lv_trend_list(null) #>> '{limit,max}') = '5'
   and jsonb_array_length(lv_api.lv_trend_list(null) -> 'trends') = 1);
 select t.check('plus: the survey knows its Trend', (lv_api.lv_campaign_trend(t.id('qs1')) #>> '{trend,title}') = 'Lunch over time');
 select t.check('plus: ask again waits until the survey has closed', t.code(lv_api.lv_trend_ask_again(t.id('qs1'))) = 'lv_lifecycle_invalid');

@@ -1316,7 +1316,7 @@ All functions return the envelope. Results functions go through the same gate as
 `lv_lifecycle_invalid`; an open anonymous survey -> `lv_policy_undecided`; no `analytics.read` -> `lv_forbidden`). A null
 count with `suppressed: true` is withheld, never zero.
 
-- **Map.** `trends.max` (free 0, creator_plus 3, creator_pro 10, starter 3, team 5; Creator values provisional),
+- **Map.** `trends.max` (free 0, creator_plus 5, creator_pro 10, starter 3, team 5; Creator values set by the founder 2026-11-13 (000054)),
   `trends.max_pass` (1 for starter and team passes), `analytics.premium` (team, creator_pro), `analytics.export`
   (also creator_plus, creator_pro). `lv_analytics_export` now accepts a person's Creator plan for a personal-space survey.
 - **`lv_analytics_summary(p_campaign)`** -> `{ responses: {n, suppressed, released}, completion: {rate, started, suppressed, measured},

@@ -69,7 +69,7 @@ UI and API; the backend evaluates the active entitlement.
   (founder, 2026-11-13); elections keep the waiting rules until the creator-controlled setting is built. Results
   visibility is the creator's choice: Team Hub and Creator Pro creators may choose live results for elections and any
   survey type, and respondents are always told before they answer (founder, 2026-11-13; design in
-  `docs/v2/LAUNCH_PREP_PLAN_2026-11-13.md`, not built yet). Other Creator perks are not approved yet.
+  `docs/v2/LAUNCH_PREP_PLAN_2026-11-13.md`, not built yet). Trends allowance: Creator Plus 5, Creator Pro 10 (founder, 2026-11-13). Other Creator perks are not approved yet.
 - Free Quick Survey: $0 for any signed-in account. 5 active surveys, 10
   questions, core kinds, link or invite-only; lives in a personal space that is
   never a Hub. The launch waitlist is never authorization.
