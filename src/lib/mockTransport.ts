@@ -853,7 +853,8 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       const group = rows.filter(inGroup);
       const anon = c.anonymity === "anonymous";
       const low = (n: number) => anon && n > 0 && n < MIN_COHORT;
-      if (filter && anon && (group.length < MIN_COHORT || low(rows.length - group.length))) return { ok: true, metric: "question_logic", question_id: qid, filter, filter_withheld: true, seen: null, answered: null, seen_withheld: true, cells: [], withheld: true };
+      // 000042 (security review): anonymous surveys refuse filters, so two queries can never be compared to single people out.
+      if (filter && anon) return err("lv_invalid_input", "Filtering results is not available on anonymous surveys.");
       const seen = group.filter((ans) => walk(c.questions as Question[], ans).visible.some((q) => q.question_id === qid)).length;
       const answered = group.filter((ans) => ans[qid] !== undefined && ans[qid] !== null).length;
       const seenW = low(seen) || low(group.length - seen);

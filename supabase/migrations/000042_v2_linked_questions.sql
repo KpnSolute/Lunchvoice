@@ -727,6 +727,13 @@ begin
   end if;
 
   v_sensitive := c.anonymity = 'anonymous';
+  -- Security review (2026-11-13): on anonymous Campaigns a filter lets two queries differ by a few people (or isolate
+  -- free text), which the minimum cohort cannot fully stop. Filters stay on identified Campaigns only until a
+  -- cohort-safe partition design exists.
+  if v_sensitive and v_filter is not null then
+    insert into lv.analytics_query_log (campaign_id, caller, metric, question_id, outcome) values (p_campaign, v_account, 'question_logic', p_question, 'suppressed');
+    return lv.err('lv_invalid_input', 'Filtering results is not available on anonymous surveys.');
+  end if;
   v_text_min := coalesce((lv.policy_json('campaign.min_cohort'))::int, 5);
   v_min := case when v_sensitive then v_text_min else 1 end;
 

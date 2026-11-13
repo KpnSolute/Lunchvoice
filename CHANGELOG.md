@@ -33,6 +33,9 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Operations (production, 2026-11-13: 000043 survey branding)
 
+- **Security (review 2026-11-13):** `lv_analytics_question` refuses a filter on anonymous Campaigns (`lv_invalid_input`).
+  A filter let two queries differ by a few respondents or isolate free text, which the minimum cohort cannot fully
+  prevent. Filters remain on identified Campaigns; a cohort-safe partition design is future work.
 - **Applied 000043 to production** (`qprfonxvthmaoxfixigk`) from commit `e8c0406` (file SHA-256 `a11dc233…`) through the
   Management API in one transaction (the file's own `begin`/`commit` lines stripped), after `test:pr`, 147/147 e2e and
   1389/1389 database checks. Founder authority: migrations may be applied once tests pass. Verification: RLS on

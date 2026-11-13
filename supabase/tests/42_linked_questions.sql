@@ -241,11 +241,9 @@ select t.check('results: Q12 was seen and answered by the 5 leadership paths',
 select t.check('results: Q20 (one Corporate path, under 5) withholds seen and answered',
   (lv_api.lv_analytics_question(t.id('c'), t.id('q20')) ->> 'seen') is null and (lv_api.lv_analytics_question(t.id('c'), t.id('q20')) ->> 'answered') is null
   and (lv_api.lv_analytics_question(t.id('c'), t.id('q20')) ->> 'seen_withheld') = 'true');
-select t.check('results: filtering by an earlier answer (Lead) counts only that group',
-  (lv_api.lv_analytics_question(t.id('c'), t.id('q5'), jsonb_build_object('question_id', t.get('q1'), 'any_of', jsonb_build_array('Lead'))) ->> 'seen') = '5');
-select t.check('results: a filter group under 5 is withheld completely',
-  (lv_api.lv_analytics_question(t.id('c'), t.id('q5'), jsonb_build_object('question_id', t.get('q1'), 'any_of', jsonb_build_array('Corporate'))) ->> 'filter_withheld') = 'true'
-  and (lv_api.lv_analytics_question(t.id('c'), t.id('q5'), jsonb_build_object('question_id', t.get('q1'), 'any_of', jsonb_build_array('Corporate'))) ->> 'seen') is null);
+select t.check('results: an anonymous survey refuses every filter (no differencing)',
+  t.code(lv_api.lv_analytics_question(t.id('c'), t.id('q5'), jsonb_build_object('question_id', t.get('q1'), 'any_of', jsonb_build_array('Lead')))) = 'lv_invalid_input'
+  and t.code(lv_api.lv_analytics_question(t.id('c'), t.id('q21'), jsonb_build_object('question_id', t.get('q1'), 'any_of', jsonb_build_array('Corporate')))) = 'lv_invalid_input');
 select t.check('results: a filter on a rating question is refused',
   t.code(lv_api.lv_analytics_question(t.id('c'), t.id('q5'), jsonb_build_object('question_id', t.get('q5'), 'any_of', jsonb_build_array('3')))) = 'lv_invalid_input');
 select t.check('results: not callable by anonymous', (select not has_function_privilege('anon', 'lv_api.lv_analytics_question(uuid,uuid,jsonb)', 'execute')));
