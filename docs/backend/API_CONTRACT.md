@@ -1147,3 +1147,22 @@ same (a neutral card), so private Hubs stay indistinguishable from missing ones.
   missing or later question, a question people cannot pick an answer for, or an option that no longer exists.
 - **Answers.** `lv_submit_response` and `lv_guest_submit` refuse (`lv_invalid_input`) an answer to a question whose
   section is not shown to that person, and require a required question only when its section is shown.
+
+## Survey branding (000043)
+
+Paid feature `survey.branding` (starter, team, creator_plus, creator_pro); `survey.remove_footer` (team, creator_pro). The
+theme belongs to the survey, never to the Hub. A Hub Campaign may start from the Hub's color (a copy) or explicitly set
+`follow_hub: true`; without it a later Hub change never changes the survey. Entitlement on save is
+`lv.feature_allowed(hub, caller, key)`: the Hub's plan OR the caller's own Creator plan. A lapsed plan keeps the stored
+row; `lv_campaign_theme` then answers `theme: null` and the player uses LunchVoice styling. Branding never touches
+questions, answers or anonymity.
+
+- `lv_campaign_branding_get(p_campaign)` (managers) -> `{ ok, branding: SurveyBranding | null, features: { branding, remove_footer }, hub: { kind, accent_hex } }`
+- `lv_campaign_branding_set(p_campaign, p_branding)` (managers; `null` resets) -> `{ ok, branding }`.
+  `SurveyBranding` = `{ follow_hub, color (#rrggbb, >= 4.5:1 on white), logo_path, cover_path, welcome_headline (<=120), thank_you (<=500), button_style: rounded|pill, hide_footer }`.
+  Errors: `lv_entitlement_required` (with `product`, `feature`), `lv_invalid_input` (contrast, lengths, paths), `lv_locked` (archived), `lv_not_found`.
+- `lv_campaign_theme(p_campaign)` (anon + authenticated; draft surveys only for managers) -> `{ ok, theme: { color, logo_path, cover_path, welcome_headline, thank_you, button_style, hide_footer } | null }`, color already resolved.
+- Storage buckets `survey-logos` (1 MB) and `survey-covers` (3 MB), png/jpeg/webp only (no SVG). Object names
+  `<campaign uuid>/<logo|cover>-<hex>.<png|jpg|webp>`. Write: Hub managers (owner of a personal space) with `survey.branding`;
+  read: managers, or anyone for an image referenced by a published survey's active theme. The app loads images through
+  the authenticated client as `blob:` URLs, so CSP needs no new origin.

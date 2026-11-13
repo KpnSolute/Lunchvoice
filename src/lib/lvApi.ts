@@ -6,6 +6,7 @@ import { communityApi } from "./communityApi";
 /* ---- end track C ---- */
 /* ---- track D: api + discord ---- */
 import { integrationsApi } from "./integrationsApi";
+import { brandingApi, type BrandingStorage } from "./surveyBrandingApi"; // survey branding (000043)
 /* ---- end track D ---- */
 
 export type LvErrorCode =
@@ -381,6 +382,8 @@ export interface ReservationStatus {
 
 export interface LvTransport {
   rpc(fn: string, args?: Record<string, unknown>): Promise<unknown>;
+  /** Survey branding images (000043); absent where uploads are not available. */
+  storage?: BrandingStorage;
 }
 
 function normalize<T>(raw: unknown): LvResult<T> {
@@ -616,6 +619,7 @@ export function createLvApi(transport: LvTransport) {
     /* ---- track D: api + discord ---- */
     ...integrationsApi(call),
     /* ---- end track D ---- */
+    ...brandingApi(transport, call), // survey branding (000043)
   };
 }
 

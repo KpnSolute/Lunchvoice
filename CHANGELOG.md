@@ -6,6 +6,24 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (survey branding, paid, 000043)
+
+- **Custom survey branding** for Quick Surveys and Campaigns: brand color (WCAG AA 4.5:1 on white enforced in the editor and
+  on save, with a one-click readable shade), logo, optional cover image, welcome headline, thank-you message, rounded or pill
+  buttons, and a live start/thank-you preview at 375px and desktop (`src/pages/SurveyBranding.tsx`). Free users see the panel
+  locked with what unlocks it. The player applies the theme through `--pt-*` variables scoped to `.lv-ptheme`
+  (`src/ui/player-theme.css`, `src/ui/PlayerTheme.tsx`); no global token changes; light and dark derive their own shades; high
+  contrast keeps LunchVoice colors. The "Powered by LunchVoice" footer stays unless `survey.remove_footer` (Team, Creator Pro).
+- Founder rule: themes work without Hubs and are stored per survey. "Use the Hub's color" is only a preset; `follow_hub` is an
+  explicit toggle, so later Hub changes never silently change a survey with its own theme. A downgraded plan keeps the data and
+  the player falls back to default styling.
+- Migration `000043_v2_survey_branding.sql` (rollback in `supabase/rollbacks/`, tests `supabase/tests/43_survey_branding.sql`):
+  `lv.campaign_branding` (RLS, no grants), `lv_campaign_branding_get/_set/_theme`, buckets `survey-logos` (1 MB) and
+  `survey-covers` (3 MB) with png/jpg/webp only and storage policies. Not applied to production.
+- First release scope: color, logo, welcome headline, thank-you message, preview, locked state. Cover image, the remove-footer
+  key and button-style options exist in the API and player but their controls are deferred to a follow-up PR.
+- Tests: `src/lib/surveyTheme.test.ts`, `e2e/branding.test.mjs`. Contract: `docs/backend/API_CONTRACT.md`.
+
 ### Fixed (MCP: the KpnIdentity wrapper the tests expect is now committed, 2026-11-13)
 
 - `scripts/mcp/supabase-kpnidentity.sh` (the `kpnauth` server) was referenced by `.mcp.json` and tested by
