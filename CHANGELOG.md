@@ -6,6 +6,15 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-13: 000042 Linked Questions)
+
+- **Applied 000042 to production** (`qprfonxvthmaoxfixigk`) from commit `537f180` (file SHA-256 `5a37f889…`) through the
+  Management API as the file's own single transaction, after `test:pr`, 152/152 e2e and 1461/1461 database checks
+  (with 000043). Pre-check: `lv.capacity_check` present, `capacity_check_core` absent, latest `000043`. Verification:
+  history `000040`–`000043`; `lv.check_answer_value` rejects an off-list choice and a non-boolean yes/no; the elections
+  validator (`validate_answers_core`) kept; no new function executable by `anon`; Creator Quick Survey limits live
+  (Plus 30 questions / 15 active, Pro 100 / 100). Founder authority: migrations may be applied once tests pass.
+
 ### Added (Linked Questions, migration 000042, 2026-11-13)
 
 - **Per-question "show only if" rules and "end survey"**, for Creator Plus or a Starter Hub and above (the existing
