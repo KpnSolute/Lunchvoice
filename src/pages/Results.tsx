@@ -12,13 +12,14 @@ import { Card } from "@/components/shadcn/card";
 import { Badge } from "@/components/shadcn/badge";
 import { DisabledAction, Eyebrow, LoadingRows, Metric, Notice, SectionTitle } from "@/components/shadcn/blocks";
 import { ResultBars, TextAnswers, WITHHELD_EXPLAINER } from "@/components/shadcn/blocks/results";
+import { ANON_MIN_ANSWERS } from "../config/privacy";
 
 // Shared results for Hub Campaigns and Quick Surveys. Aggregates only; withheld is its own state, never zero.
 
 const KIND_LABEL: Record<string, string> = { rating: "Rating", single_choice: "Single choice", multi_choice: "Multiple choice", yes_no: "Yes / No", text: "Text" };
 
 export function explainResultsError(e: Pick<LvError, "code" | "message">): string {
-  if (e.code === "lv_policy_undecided") return "This survey is anonymous and still open. Results appear once it closes, so early answers can’t be matched to people.";
+  if (e.code === "lv_policy_undecided") return `This survey is anonymous and still open. Results appear once it closes with at least ${ANON_MIN_ANSWERS} answers, so early answers can’t be matched to people.`;
   if (e.code === "lv_lifecycle_invalid") return "No results yet. Publish it first; drafts never report results.";
   return describeError(e);
 }
@@ -164,7 +165,9 @@ function QuestionResult({ campaignId, q }: { campaignId: string; q: Question }) 
         <p className="ui-muted lv-m0">{explainResultsError(r.error)}</p>
       ) : q.kind === "text" ? (
         <TextAnswers texts={d?.texts_withheld ? null : (d?.texts ?? null)} />
-      ) : d && d.cells.length > 0 ? (
+      ) : d && (d.cells.length > 0 || d.withheld) ? (
+        <>
+        {d.withheld && d.cells.length === 0 && <p className="ui-muted lv-m0" data-testid="question-withheld">Withheld: this question has fewer than {ANON_MIN_ANSWERS} answers, so showing them could point at someone. It is not zero.</p>}
         <ResultBars
           caption={q.prompt}
           cells={
@@ -173,6 +176,7 @@ function QuestionResult({ campaignId, q }: { campaignId: string; q: Question }) 
               : d.cells.map((x) => ({ key: x.key ?? "withheld", label: x.suppressed || x.key === null ? "Withheld" : label(q, x.key), n: x.n, suppressed: x.suppressed }))
           }
         />
+        </>
       ) : (
         <p className="ui-muted lv-m0">No answers yet.</p>
       )}

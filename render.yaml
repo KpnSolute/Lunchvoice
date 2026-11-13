@@ -18,7 +18,7 @@ services:
         value: "default-src 'self'; script-src 'self' 'sha256-kU0Cb4JIx44Xq6Y1Z0qnsT36nfN1wDLltqHWX/KPdyQ='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://qprfonxvthmaoxfixigk.supabase.co https://axzwdbizblfkspduqilj.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests"
       - path: /*
         name: Strict-Transport-Security
-        value: max-age=31536000
+        value: max-age=31536000; includeSubDomains
       - path: /*
         name: X-Content-Type-Options
         value: nosniff
@@ -31,6 +31,11 @@ services:
       - path: /*
         name: X-Frame-Options
         value: DENY
+      # Audit F9: Vite fingerprints every file in /assets (index-<hash>.js), so a file at a given URL never changes.
+      # Browsers may keep them for a year without re-validating; HTML stays uncached so new builds are picked up.
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
     # SEO (src/config/seo.json, scripts/seo-prerender.mjs): each indexable public page has its own prerendered
     # HTML with its title, description, canonical and a static content fallback. Rules apply in order, so these
     # come before the catch-all. Every other client-side route (/signin, /{hubSlug}, /c/:joinCode) gets the

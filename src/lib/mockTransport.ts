@@ -1,4 +1,5 @@
-import { isLinkToken, questionConfigProblem, type LvTransport } from "./lvApi";
+import { isLinkToken, questionConfigProblem, type LvTransport, type Question, type SectionConfig } from "./lvApi";
+import { rulesProblem, visibleQuestions } from "./sections";
 import { slugProblem } from "./reservedSlugs";
 import { ACCENTS } from "./accent";
 import { commerceInvoke, commerceMock } from "./mockCommerce"; // track B: commerce
@@ -72,7 +73,7 @@ type H = {
 };
 type State = {
   n: number;
-  me: { display_name: string; deleted?: boolean };
+  me: { display_name: string; deleted?: boolean; /** 000041: the person's Creator plan, if any (seed "creator"). */ creator?: "creator_plus" | "creator_pro" };
   waitlist: { status: "none" | "admitted" | "waitlisted"; position?: number; joined_at?: string; contact_email?: string | null };
   ents: Ent[];
   credits: { family: string; used: boolean; id: string }[];
@@ -109,6 +110,8 @@ function load(name: string): State {
     /* ---- track D: api + discord ---- */
     // "team": the demo with its Hub on the Team plan (the API, webhooks and Discord tabs are usable).
     if (seed === "team") { seedDemo(state, false); for (const e of state.ents) if (e.scope === "hub") e.family = "team"; }
+    // "creator": the demo plus a Creator Plus plan on the person (000041), so Quick Surveys can use sections.
+    if (seed === "creator") { seedDemo(state, false); state.me.creator = "creator_plus"; }
     /* ---- end track D ---- */
   } catch { /* ignore */ }
   return state;
@@ -154,13 +157,25 @@ function windowProblem(opens: string | null, closes: string | null): string | nu
   if (closes && new Date(closes).getTime() <= Date.now()) return "The close time must be in the future.";
   return null;
 }
-// lv.validate_answers (000017): required unless config.optional; at least one answer.
+// lv.feature_allowed (000041): the Hub's active family or the person's Creator plan.
+function featureAllowed(s: State, hubId: string): boolean {
+  return activeFamily(s, hubId) !== "free" || !!s.me.creator;
+}
+// lv.validate_answers (000017, sections 000041): required unless optional or hidden; never an answer to a hidden question.
 function answersProblem(c: C, answers: unknown): string | null {
   if (!Array.isArray(answers)) return "answers must be an array";
   let seen = 0;
-  for (const q of c.questions) {
-    const v = (answers as { question_id: string; value: unknown }[]).find((x) => x.question_id === q.question_id)?.value;
-    if (v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0)) {
+  const list = answers as { question_id: string; value: unknown }[];
+  const given: Record<string, unknown> = Object.fromEntries(list.map((x) => [x.question_id, x.value]));
+  const shown = new Set(visibleQuestions(c.questions as Question[], given).map((q) => q.question_id));
+  for (const q of [...c.questions].sort((x, y) => x.position - y.position)) {
+    const v = list.find((x) => x.question_id === q.question_id)?.value;
+    const empty = v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
+    if (!shown.has(q.question_id)) {
+      if (!empty) return "answer given for a question this person was not shown";
+      continue;
+    }
+    if (empty) {
       if ((q.config as { optional?: boolean }).optional) continue;
       return `missing answer for question ${q.position}`;
     }
@@ -350,7 +365,8 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
     /* ---------------- account ---------------- */
     case "lv_profile_update": {
       const name = String(a.p_display_name ?? "").trim();
-      if (name.length < 1 || name.length > 60) return err("lv_invalid_input", "Display name must be 1 to 60 characters");
+      if (name.length < 1 || name.length > 80) return err("lv_invalid_input", "A display name is 1 to 80 characters.");
+      if (name.includes("@")) return err("lv_invalid_input", "A display name can’t contain @, so it never shows an email address."); // 000040
       s.me.display_name = name;
       for (const h of s.hubs) for (const m of h.members) if (m.account_id === "mock-account") m.display_name = name;
       return { ok: true, account: { account_id: "mock-account", display_name: name } };
@@ -768,6 +784,9 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
           return { ok: true, metric: "answer_distribution", question_id: q.question_id, cells: [], texts: t, texts_withheld: t === null };
         }
       }
+      // As in the real API (000016): an anonymous question with fewer than MIN_COHORT answers is withheld whole.
+      if (c.anonymity === "anonymous" && c.responses.length < MIN_COHORT)
+        return { ok: true, metric: "answer_distribution", question_id: a.p_question, cells: [], withheld: true };
       return { ok: true, metric: "answer_distribution", question_id: a.p_question, cells: distribution(c, String(a.p_question)) };
     }
     case "lv_analytics_export": {
@@ -992,6 +1011,8 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
       if (c && isPersonal(s, c) && c.questions.length >= LIMITS.free.quick_survey_questions) return base();
       const bad = questionConfigProblem(String(a.p_kind), a.p_config ?? {});
       if (bad && c) return err("lv_invalid_input", bad);
+      const sec = (a.p_config as { section?: SectionConfig } | null)?.section;
+      if (c && sec && !featureAllowed(s, c.hub_id)) return err("lv_entitlement_required", "Sections and “show only if” rules start with Creator Plus or a Starter Hub.", { product: "creator_plus", feature: "survey.branching" });
       return base();
     }
     case "lv_campaign_question_update": {
@@ -1000,6 +1021,12 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
       if (q && (a.p_kind != null || a.p_config != null)) {
         const bad = questionConfigProblem(String(a.p_kind ?? q.kind), a.p_config ?? q.config);
         if (bad) return err("lv_invalid_input", bad);
+      }
+      const sec = (a.p_config as { section?: SectionConfig } | null)?.section;
+      if (c && q && sec) {
+        if (!sec.title?.trim() || (sec.show_if && (sec.show_if.any_of?.length ?? 0) === 0)) return err("lv_invalid_input", "A section needs a title, and a rule needs at least one answer.");
+        if (JSON.stringify(sec) !== JSON.stringify((q.config as { section?: unknown }).section) && !featureAllowed(s, c.hub_id))
+          return err("lv_entitlement_required", "Sections and “show only if” rules start with Creator Plus or a Starter Hub.", { product: "creator_plus", feature: "survey.branching" });
       }
       return base();
     }
@@ -1010,6 +1037,7 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
       const h = hubOf(c);
       const out: Record<string, unknown> = { ...r, campaign: { ...r.campaign, description: c.description ?? null, ...(r.can_manage ? { has_responses: c.responses.length > 0, guest_names: c.guest_names ?? "off" } : {}) } };
       if (r.can_manage) {
+        out.features = { branching: featureAllowed(s, c.hub_id), branding: featureAllowed(s, c.hub_id) };
         out.link_token = c.link_token;
         out.audience = audience(c, h?.kind === "community");
         const extra = roleGate(c);
@@ -1029,6 +1057,8 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
       const c = camp(a.p_campaign);
       const extra = c && c.status === "draft" ? roleGate(c) : [];
       if (extra.length) return err("lv_gate_blocked", extra.join(","), { reasons: extra });
+      const rules = c && c.status === "draft" ? rulesProblem(c.questions as Question[]) : null;
+      if (rules) return err("lv_invalid_input", rules);
       return base();
     }
     case "lv_campaign_set_audience_roles": {

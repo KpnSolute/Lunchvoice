@@ -71,7 +71,7 @@ test("the header action is hidden on /waitlist and /signin, and the phone menu r
   await page.getByRole("button", { name: "Open menu" }).click();
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Sign in" }).click();
   await page.waitForURL(/\/signin$/);
-  assert.match(await page.getByTestId("signin-how").innerText(), /auth\.kpnsolute\.com.*Google/);
+  assert.match(await page.getByTestId("signin-how").innerText(), /Google or email on auth\.kpnsolute\.com/);
   await ctx.close();
 });
 

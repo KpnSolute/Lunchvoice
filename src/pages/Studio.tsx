@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ANON_MIN_ANSWERS } from "../config/privacy";
+import { rulesProblem } from "../lib/sections";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
@@ -116,7 +118,7 @@ export function gateMessages(d: CampaignDetailData): { key: string; message: str
 
 export function useReadiness(d: CampaignDetailData | null, title: string, schedule: ScheduleState, questionLimit: number | null): ReadinessIssue[] {
   return useMemo(
-    () => (d ? readiness({ title, questions: d.questions, start: schedule.start, end: schedule.end, questionLimit, gateMessages: gateMessages(d) }) : []),
+    () => (d ? readiness({ title, questions: d.questions, start: schedule.start, end: schedule.end, questionLimit, gateMessages: gateMessages(d), sectionProblem: rulesProblem(d.questions) }) : []),
     [d, title, schedule, questionLimit],
   );
 }
@@ -256,7 +258,7 @@ export function StudioHeader({
         {!(quick && d.campaign.status === "draft") && <LifecycleActions d={d} issues={issues} schedule={schedule} onChanged={onChanged} onShowReview={onShowReview} quick={quick} />}
         {d.campaign.status !== "draft" && <LinkButton to={resultsTo} variant="secondary" icon="voice">Results</LinkButton>}
       </div>
-      <BlockerSummary issues={issues} />
+      {d.campaign.status === "draft" && <BlockerSummary issues={issues} />}
     </header>
   );
 }
@@ -334,8 +336,8 @@ export function LifecycleActions({
       {(live || status === "paused") && (
         <ConfirmAction
           trigger={<Button variant="secondary" disabled={busy}>Close</Button>}
-          title="Close this Campaign?"
-          body="Nobody can answer after it closes. Results stay, and anonymous results become visible once it’s closed."
+          title={quick ? "Close this survey?" : "Close this Campaign?"}
+          body={`Nobody can answer after it closes. Results stay. Anonymous results become visible once it’s closed, for questions with at least ${ANON_MIN_ANSWERS} answers.`}
           action="Close"
           onConfirm={() => act(() => api.campaignClose(id), "Closed")}
         />
@@ -352,7 +354,7 @@ export function LifecycleActions({
       {status === "closed" && (
         <ConfirmAction
           trigger={<Button variant="quiet" disabled={busy}>Archive</Button>}
-          title="Archive this Campaign?"
+          title={quick ? "Archive this survey?" : "Archive this Campaign?"}
           body="It leaves your lists. Its results are kept."
           action="Archive"
           onConfirm={() => act(() => api.campaignArchive(id), "Archived")}
@@ -586,7 +588,9 @@ export function GuestsGroup({ d, save, reload }: { d: CampaignDetailData; save: 
     <Card data-testid="audience-guests">
       <ToggleRow
         title="Allow guest responses"
-        description="People without an account may respond when the Campaign’s access mode allows it. Guests never become Hub members."
+        description={d.campaign.access
+          ? "People without an account may answer from the link or code. Guests never count as members."
+          : "People without an account may respond when the Campaign’s access mode allows it. Guests never become Hub members."}
         control={
           <Switch
             aria-label="Allow guest responses"

@@ -14,6 +14,10 @@ wired; deploy it together with the Stripe setup). Future runs: a new procedure n
 grant audit exact. Pending: `supabase functions deploy session billing-webhook checkout email-dispatch` (founder,
 CLI) and the section 11 Stripe/email steps.
 
+**000040-000041: EXECUTED 2026-11-13** (display names never an email; sections and Creator plans) from `75cf270`
+with file hashes recorded, after a rehearsal on production's exact chain (which includes 000029–000032 and
+000036–000038 from branches not yet on `main`); history versions corrected; see CHANGELOG. The P3 data fix is not run.
+
 Project: LunchVoice Supabase project, ref `qprfonxvthmaoxfixigk`. Identity provider: KpnIdentity
 (`axzwdbizblfkspduqilj`, `auth.kpnsolute.com`). Verify the ref before every step.
 

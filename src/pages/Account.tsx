@@ -404,7 +404,7 @@ export function RedeemInvite() {
         <PageHeader eyebrow="Invitation" title="You’ve been invited to a Hub" sub="Someone wants you in their community on LunchVoice." />
         <Card className="lv-invite-card">
           <ol className="lv-invite-steps">
-            <li><span className="lv-step-n">1</span><div><strong>Sign in</strong><p>Use your Google account on auth.kpnsolute.com, run by the company that makes LunchVoice. It’s free.</p></div></li>
+            <li><span className="lv-step-n">1</span><div><strong>Sign in</strong><p>Use Google or email on auth.kpnsolute.com, run by the company that makes LunchVoice. It’s free.</p></div></li>
             <li><span className="lv-step-n">2</span><div><strong>See which Hub it is</strong><p>You’ll see the Hub before you accept anything.</p></div></li>
             <li><span className="lv-step-n">3</span><div><strong>Join</strong><p>Accepting makes you a member. You can leave any time.</p></div></li>
           </ol>
@@ -533,7 +533,7 @@ export function Settings() {
         <Card>
           <SectionTitle>Profile</SectionTitle>
           <form className="lv-stack-16" onSubmit={(e) => { e.preventDefault(); void saveName(); }}>
-            <Field label="Display name" htmlFor="display-name" help="Shown to Hub managers on identified Campaigns and member lists. Never on anonymous answers." counter={{ value: current.length, max: 60 }}>
+            <Field label="Display name" htmlFor="display-name" help="Shown to Hub managers on identified Campaigns and member lists. Never on anonymous answers, and never an email address." counter={{ value: current.length, max: 60 }}>
               <Input id="display-name" value={current} maxLength={60} onChange={(e) => setName(e.target.value)} aria-describedby="display-name-help" />
             </Field>
             <div className="ui-row"><Button type="submit" variant="ink" disabled={saving || !current.trim()}>{saving ? "Saving…" : "Save name"}</Button></div>

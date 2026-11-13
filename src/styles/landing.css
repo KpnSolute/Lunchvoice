@@ -79,6 +79,9 @@ main:focus { outline: none; }
 /* ============================================================ landing */
 .lv-l { overflow-x: clip; }
 .lv-l-ink { background: var(--lv-band-ink); color: var(--lv-on-band); }
+/* Audit F3 (WCAG 2.4.7): the default focus colour is near-black and vanishes on ink. On every ink surface the ring
+   uses the on-band colour instead, so keyboard focus is visible on the hero CTA and the other dark bands. */
+.lv-l-ink, .lv-l-step-ink, .lv-l-band-ink, .lv-l-mode-ink, .lv-l-plan-ink, .lv-footer { --lv-focus: var(--lv-on-band); }
 .lv-l-mono { font: 700 12px/1.2 var(--lv-font-mono); letter-spacing: 0.12em; text-transform: uppercase; }
 .lv-l-dim { color: var(--lv-on-band-muted); font-weight: 400; letter-spacing: 0.04em; text-transform: none; }
 .lv-l-amber { color: var(--lv-band-amber); }
@@ -276,6 +279,8 @@ main:focus { outline: none; }
 .lv-signin { align-items: flex-start; }
 .lv-signin-title { margin: 0; font: 800 32px/1 var(--lv-font-display); letter-spacing: -0.035em; }
 .lv-signin-sub { margin: 0; }
+/* Audit F10: the join-code link ran past the card at 375px; let it wrap instead. */
+.lv-signin-join { white-space: normal; height: auto; min-height: 44px; text-align: left; max-width: 100%; }
 .lv-dev-box { width: 100%; display: flex; flex-direction: column; gap: 12px; padding-top: 16px; border-top: 1px dashed var(--lv-line); }
 
 /* ---------- responsive ---------- */

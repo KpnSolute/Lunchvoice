@@ -26,6 +26,8 @@ export interface ReadinessInput {
   questionLimit?: number | null;
   /** Server gate reasons (lv_campaign_get gate) already described for people. */
   gateMessages?: { key: string; message: string }[];
+  /** 000041: the first broken section rule (src/lib/sections.ts rulesProblem), or null. */
+  sectionProblem?: string | null;
   now?: number;
 }
 
@@ -59,6 +61,8 @@ export function readiness(input: ReadinessInput): ReadinessIssue[] {
     if (q.kind === "multi_choice" && typeof q.config.max === "number" && q.config.max > filled.length && filled.length >= MIN_OPTIONS)
       issues.push({ key: `q${n}-max`, message: `Question ${n} allows more choices than it has options.`, section: "questions" });
   });
+
+  if (input.sectionProblem) issues.push({ key: "sections", message: input.sectionProblem, section: "questions" });
 
   const startAt = input.start.mode === "at" ? input.start.at : null;
   const endAt = input.end.mode === "at" ? input.end.at : null;

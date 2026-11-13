@@ -3,6 +3,7 @@ import { cn } from "cn"
 import { LockIcon } from "lucide-react"
 import { Button } from "../button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../table"
+import { ANON_MIN_ANSWERS } from "@/config/privacy"
 
 export interface ResultCell {
   key: string
@@ -11,7 +12,8 @@ export interface ResultCell {
   suppressed: boolean
 }
 
-export const WITHHELD_EXPLAINER = "Hidden to protect anonymity: too few answers."
+/** Anonymous results publish only groups of at least this many answers. */
+export const WITHHELD_EXPLAINER = `Withheld to protect anonymity. Anonymous results only show groups of at least ${ANON_MIN_ANSWERS} answers.`
 
 /** The withheld state: striped, labelled, never a number and never zero (L-07). */
 export function WithheldTag({ className }: { className?: string }) {
@@ -102,7 +104,7 @@ export function TextAnswers({ texts }: { texts: string[] | null | undefined }) {
     return (
       <div className="flex flex-col items-start gap-2">
         <WithheldTag />
-        <p className="m-0 text-[14px] text-[var(--lv-muted)]">Text answers appear once enough people have answered, so nobody can be picked out.</p>
+        <p className="m-0 text-[14px] text-[var(--lv-muted)]">Text answers appear once at least {ANON_MIN_ANSWERS} people have answered, so nobody can be picked out.</p>
       </div>
     )
   }

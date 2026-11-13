@@ -1126,3 +1126,24 @@ sends them, the UI shows nothing in their place; it never estimates them.
 No new error codes. The Worker calls `lv_hub_get` with the anon key and treats any `ok: false` or non-public Hub the
 same (a neutral card), so private Hubs stay indistinguishable from missing ones.
 
+
+## Sections, conditional sections and Creator plans (000041)
+
+- **Families.** `creator_plus` ($5/month) and `creator_pro` ($15/month) are account-scoped entitlements (a check
+  refuses them on a Hub). Products `creator_plus` and `creator_pro` exist with `purchasable = false` until their
+  Stripe products do. `lv_plan_limits` still lists only `free`, `starter` and `team` families.
+- **Feature keys.** `survey.branching` and `survey.branding` are `true` for `starter`, `team`, `creator_plus` and
+  `creator_pro`. `lv.feature_allowed(hub, account, key)` = the Hub's active family OR the caller's active Creator family.
+- **`lv_campaign_get`** (managers only) adds `features: { branching: boolean, branding: boolean }` for the caller here.
+- **Section shape** (in a question's `config`, on the first question of a section):
+  `section: { title: 1–120 chars, description?: ≤500 chars, show_if?: { question_id: uuid, any_of: [1–10 strings] } }`.
+  Questions up to the next section start belong to it. For a yes/no source, `any_of` holds `"true"`/`"false"`;
+  for a multiple choice source, any picked option matches.
+- **Writes.** `lv_campaign_question_add` / `lv_campaign_question_update` return `lv_invalid_input` for a malformed
+  section and `lv_entitlement_required` with `product: "creator_plus"` and `feature: "survey.branching"` when a new or
+  changed section is saved without the feature. Removing a section is always allowed. A lapsed plan never changes a
+  published survey: its rules keep working for respondents.
+- **Publishing** (any move out of draft) returns `lv_invalid_input` with a plain sentence when a rule points at a
+  missing or later question, a question people cannot pick an answer for, or an option that no longer exists.
+- **Answers.** `lv_submit_response` and `lv_guest_submit` refuse (`lv_invalid_input`) an answer to a question whose
+  section is not shown to that person, and require a required question only when its section is shown.

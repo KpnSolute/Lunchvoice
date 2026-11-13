@@ -18,6 +18,115 @@ categories and the repository's decimal `X.X.X` release policy.
   `execute_sql`, `delete_branch`, `reset_branch`, `merge_branch` and `deploy_edge_function` were removed from the
   auto-allow list so they prompt again on a production project.
 
+### Operations (production, 2026-11-13, founder approval in session)
+
+- **Applied 000040 and 000041 to production** (`qprfonxvthmaoxfixigk`) from commit `75cf270` (SHA-256 `8f0f2231…`
+  and `0a082d1f…`), through the Management API, one transaction each. Backup on record: daily physical backup
+  `2244167446` (2026-11-12 10:45 UTC; point-in-time recovery is off). Pre-check: production runs 7 migrations not on
+  `main` (000029–000032, 000036–000038); 000041 was made merge-safe for the elections validator and rehearsed on
+  production's exact chain first (see the 000041 entry). Verification: all 15 changed functions hash-identical to the
+  rehearsal; none executable by `anon`; `survey.branching`/`survey.branding` rows, Creator products and the publish
+  trigger present; migration history corrected to `000040` and `000041`. The P3 data-fix script was **not** run.
+- **Founder access grant** (exact SQL shown and approved first): the founder's account received Creator Pro
+  (account-scoped, `grant`, no end date) and one unused Team Hub credit, with one audit event
+  (`founder-grant-2026-11-13`). Already in place: staff access, the Kitchen on Team Hub.
+- **Not deployed:** the frontend for sections lives on `claude/confident-euler-e4uri9`; lunchvoice.com shows it after
+  the branch is merged and Render deploys.
+
+### Added (sections and "show only if" rules; Creator plans; founder 2026-11-13)
+
+- **One survey, different questions per person.** A question can start a **section** with a title, an optional line
+  under it, and a rule: "show only if [an earlier choice or yes/no question] is any of [answers]". Everyone else skips
+  the section. Example: staff see "Your day", center leaders and corporate see "Across departments and centers".
+- **Plans.** Sections start at **Creator Plus** and **Starter Hub** (founder 2026-11-13). Creator Plus ($5/month) and
+  Creator Pro ($15/month) exist as per-person plans in the entitlement map (migration
+  `000041_v2_sections_and_creator_plans`); they cannot be bought until their Stripe products exist. Survey branding
+  uses the same plan line (`survey.branding`) and is built next. The brain files record the Creator plans.
+- **Merge-safe validator.** Production also runs migrations that are not on `main` yet (000029–000032 from
+  `claude/determined-darwin-aa79al`, 000036–000038 elections from `claude/nice-archimedes-5rfw1t-elections`), and
+  000037 replaced `lv.validate_answers`. 000041 therefore renames whatever validator is installed to
+  `lv.validate_answers_core` and wraps it: Campaigns without sections and every election go through the old one
+  unchanged. Sections are refused on elections. Rehearsed on production's exact 38-migration chain plus 000040/000041:
+  the same 5 pre-existing check differences before and after (repo tests against other branches' migrations), 23 new
+  checks passing, the elections suites passing, and the rollback restoring a validator byte-identical to production's.
+- **Server rules** (`lv.validate_answers`): an answer to a hidden question is refused; a required question is required
+  only when shown. Publishing refuses a rule that points at a later or missing question, or at an option that no
+  longer exists. A lapsed plan never breaks a published survey. Contract: `docs/backend/API_CONTRACT.md`.
+- **Builder.** A "Section" panel under each question (from question 2): start a section, title, description, "Who sees
+  this section" with the answers as checkboxes, a plain sentence ("Shown when “What is your role?” is Manager or
+  Corporate operations. Everyone else skips it."), and a note that anonymous results for the section stay withheld
+  under 5 answers. On a free plan the panel says which plans include it, with a link to plans. The question outline
+  shows section headers with their rule. The publish checklist shows a broken rule.
+- **Answering screen.** Only the sections a person's answers open are shown; the progress bar counts them. The section
+  title and line appear above its first question. The welcome screen counts the longest path ("Up to N questions" when
+  some people answer fewer). Answers to sections a person backed out of are never sent.
+- **Design pass** (design-system skill): tokens only, existing `Badge`, `Field`, `Checkbox`, `Notice` and
+  `.lv-inline-link`; the section label is grouped with its question; checked at 390, 768 and 1280 in light, dark and
+  high contrast with no horizontal scroll and no overlapping elements (automated box check).
+- **Fixed while building:** wrapping the question editor remounted it when a new question was created (caught by the
+  save-race test); the section panel is now a sibling.
+- **Tests:** `supabase/tests/41_sections_and_creator_plans.sql` (gating, Creator plan on a person only, malformed rule,
+  publish checks, hidden and required answers, lapse); `src/lib/sections.test.ts`; `e2e/sections.test.mjs` (build a
+  conditional section, free-plan lock, the player shows and drops the section). `db-test-canonical.sh`: 1342 checks,
+  0 failed, rollback rehearsal passes.
+- **Noticed, not changed:** inline links use the legacy `a { color: var(--accent) }` rule (`src/index.css`), amber on
+  white, which is below AA contrast for text. New links here use `.lv-inline-link`. Changing the global rule needs a
+  founder decision.
+
+### Fixed (audit P3, founder decision 2026-11-12: a display name is never an email address)
+
+- **Migration `000040_v2_display_name_never_email`:** `lv.safe_display_name(name, email)` keeps a name without "@";
+  otherwise it uses the part before the @ with leading and trailing digits trimmed, and "Member" when nothing is left.
+  `lv.ensure_account` creates accounts through it and no longer caches an "@" token name in
+  `account_identities.display_name` (KpnIdentity sends the email as `name` for email/password sign-ups, which is how
+  emails reached member lists). `lv_profile_update` refuses a name containing "@". `lv.accounts` gets
+  `CHECK (no "@")`, added `NOT VALID` so the migration applies over the existing rows; new and updated rows are
+  checked at once. Rollback: `supabase/rollbacks/000040_…down.sql` (it never puts an email back).
+- **Data fix, approval only:** `scripts/data-fixes/2026-11-12_p3_display_names.sql` previews, rewrites the old rows in
+  one transaction, refuses to commit when the count differs from the preview, validates the check and writes one
+  audit event. Not a migration and not run anywhere. Production preview (read only, 2026-11-12): 2 of 5 accounts
+  and 2 cached identity names would change.
+- **Tests:** `supabase/tests/40_display_name_never_email.sql` (helper cases, new account from an email-shaped token,
+  profile editor, table check). `scripts/db-test-canonical.sh`: 1329 checks, 0 failed; rollback rehearsal passes.
+  The dev mock and the Account help text match the rule.
+
+### Fixed (pre-launch audit 2026-11-12, first batch: LunchVoice-side quick wins)
+
+Source: "LunchVoice.com Pre-Launch Audit — Results" and "KpnAuth Review" (2026-11-12). This batch covers the items that
+live in this repository and need no database change.
+
+- **P2, withheld shown as "No answers yet":** on a closed anonymous survey under the minimum, the API returns
+  `cells: []` with `withheld: true`; `Results.tsx` fell through to "No answers yet", so the creator thought the survey
+  failed. It now shows the Withheld bar and "Withheld: this question has fewer than 5 answers…". The dev mock now
+  returns the same shape as the real API (000016), which is why this was never caught.
+- **P4, the minimum is stated:** results, the withheld explainer, text answers and the Close dialog say "at least 5".
+  The number lives in `src/config/privacy.ts` (`ANON_MIN_ANSWERS`), mirroring policy `campaign.min_cohort` (000014);
+  the server still decides what is withheld.
+- **P1, live-results claim (copy side only):** live anonymous results stay blocked by design (000013: a live tally is
+  identity-linked). The homepage lede, "How a survey works" steps, `seo.json`/`index.html` descriptions and the event
+  use case no longer promise watching anonymous answers arrive; they say identified surveys fill in live and anonymous
+  results open on close with at least 5 answers. Whether to show a live response count is a founder decision.
+- **P6, thank-you next step:** "Make your own survey, free" (to `/surveys/new`) beside Done.
+- **P7/P9:** Quick Survey Close/Archive dialogs say "survey", the guest toggle no longer mentions Campaign access modes,
+  and the screen-reader "Ready to publish." line is gone once a survey is published.
+- **F3, invisible focus ring on dark sections (WCAG 2.4.7):** ink surfaces re-scope `--lv-focus` to the existing
+  `--lv-on-band` colour (no new token value). Checked on the hero CTA.
+- **F7/G6, F10:** `/signin` and the account page say "Google or email" (the auth page leads with email); the join-code
+  link wraps at 375px instead of overflowing; a missing join code no longer shows "We can't find that." twice;
+  Discover shows "Under 100 active members" instead of "0+ active members".
+- **F9:** `/assets/*` is served `Cache-Control: public, max-age=31536000, immutable` (fingerprinted files).
+- **F12:** HSTS adds `includeSubDomains` (every lunchvoice.com subdomain must be HTTPS; matches the planned
+  auth.lunchvoice.com); the maker mark span gets `role="img"` for its `aria-label`. The homepage's static canonical
+  stays omitted on purpose (`scripts/seo-prerender.mjs`: hosts may serve `index.html` for any path); `Seo.tsx` sets it.
+- **Tests:** `e2e/studio.test.mjs` (closed anonymous survey under the minimum: Withheld with the number, Close dialog
+  wording, no stale readiness line); `e2e/polish.test.mjs` (thank-you next step); `e2e/sitecta.test.mjs` (sign-in copy).
+- **Not in this batch:** F2 analytics (needs the founder to pick a tool; it also changes the CSP), F4/F5 per-Hub share
+  previews and public Hub activity, F6 build-before-sign-in, F8 real 404 status (Render static rewrites), F11 token
+  sprawl, P3 emails as display names (backend: `lv.ensure_account` falls back to the token `name` claim, which
+  can be an email; needs a migration plus a production data fix with owner approval), P5 a live Kitchen poll (content),
+  P8 deleting Quick Surveys, P10 name shown three ways. KpnAuth items K1–K16 and B1–B9 belong to the
+  auth.kpnsolute.com app and the KpnIdentity Supabase project, not this repository.
+
 ### Changed (survey creation and Campaign lists, founder assignment 2026-11-12, PR D)
 
 - **New Quick Survey opens on a short template list:** Blank and the first five templates, then "Show all N templates".

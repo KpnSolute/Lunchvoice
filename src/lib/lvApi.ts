@@ -231,8 +231,14 @@ export interface QuestionConfig {
   max?: number;
   /** A person may skip this question (backend honours it since 000017). */
   optional?: boolean;
+  /** 000041: this question starts a section. Questions up to the next section start belong to it. */
+  section?: SectionConfig | null;
   [key: string]: unknown;
 }
+
+/** 000041: show the section only when an earlier choice or yes/no answer is one of any_of ("true"/"false" for yes/no). */
+export interface SectionRule { question_id: string; any_of: string[] }
+export interface SectionConfig { title: string; description?: string | null; show_if?: SectionRule | null }
 
 export interface Question {
   question_id: string;
@@ -279,6 +285,8 @@ export interface CampaignDetailData {
     has_responses?: boolean;
   };
   questions: Question[];
+  /** 000041 (managers only): survey features this person may use here (their Hub's plan or their Creator plan). */
+  features?: { branching: boolean; branding: boolean };
   has_responded: boolean;
   receipt_id: string | null;
   can_respond: boolean;
