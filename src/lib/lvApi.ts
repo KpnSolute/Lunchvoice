@@ -584,6 +584,8 @@ export function createLvApi(transport: LvTransport) {
           join_code: r.join_code ?? joinCode,
         } as LvResult<CampaignDetailData>;
       }),
+    // 000050: a signed-in person on a survey link answers with their account. Only eligible people get the id.
+    campaignByCode: (joinCode: string) => call<{ campaign_id: string }>("lv_campaign_by_code", { p_join_code: joinCode }),
     // 000028: always the four-argument call; the name is null unless the creator asked for one.
     guestSubmit: (joinCode: string, guestKey: string, answers: Answer[], guestName: string | null = null) =>
       call<SubmitReceipt>("lv_guest_submit", { p_join_code: joinCode, p_guest_key: guestKey, p_answers: answers, p_guest_name: guestName }),

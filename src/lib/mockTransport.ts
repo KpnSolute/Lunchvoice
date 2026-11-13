@@ -797,6 +797,12 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       c.responses.push({ receipt: `r-${c.campaign_id}-me`, answers: a.p_answers as Resp["answers"], at: iso(Date.now()), guest: false });
       return { ok: true, receipt_id: `r-${c.campaign_id}-me`, duplicate: false };
     }
+    case "lv_campaign_by_code": {
+      // 000050: signed-in only; link-open or members of the Hub (the mock has no per-person invite list).
+      const c = s.campaigns.find((x) => x.join_code === String(a.p_join_code ?? "").trim().toUpperCase());
+      if (!c || c.status === "draft" || (c.access === "invite" && !hubById(c.hub_id))) return err("lv_not_found", "No survey uses that code.");
+      return { ok: true, campaign_id: c.campaign_id };
+    }
     case "lv_guest_campaign_get": {
       const c = s.campaigns.find((x) => x.join_code === String(a.p_join_code).toUpperCase());
       if (!c || c.status === "draft" || c.audience !== "members_and_guests") return err("lv_not_found", "Campaign not found");

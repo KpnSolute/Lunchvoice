@@ -25,6 +25,40 @@ categories and the repository's decimal `X.X.X` release policy.
   domain (CNAME cloaking, Safari 7-day cap) can be relied on. Options and owner decisions are listed there. No migration,
   Edge Function or setting changed.
 
+### Changed (Logic panel explains where rules go, founder feedback 2026-11-13)
+
+- On the first question the Logic panel now says it is the first question and that rules go on later questions, instead
+  of a generic line that read as if logic was missing. When earlier questions exist but none can drive a rule, it says
+  to add a choice, yes/no or rating question above or move the question down.
+
+### Operations (production, 2026-11-13: 000050 and 000051)
+
+- **Applied 000050** (SHA-256 `e44eddb1…`) **and 000051** (`2c5cfe51…`) to production (`qprfonxvthmaoxfixigk`) through
+  the Management API, each as the file's own transaction, after `test:pr` and 1472/1465 database checks; the e2e
+  failures seen under parallel load (comments, community dark mode, bad invite, product pages) all pass on rerun.
+  Verification: history `000040`–`000043`, `000050`, `000051`; `lv_campaign_by_code` executable by `authenticated`
+  only; `lv_my_context` keeps the suspension block and reports Creator limits (Creator Pro owner: 100/100).
+
+### Added (who is answering: sign in or answer as a guest, founder request 2026-11-13, 000050)
+
+- **Survey links offer sign-in.** On `/c/<code>` a signed-out visitor sees "Have a LunchVoice account? Sign in" next to
+  the guest name field (when the creator asks for one); signing in returns them to the same survey.
+- **Signed-in people answer with their account.** A signed-in visitor on a survey link is no longer treated as an
+  unverified guest: `lv_api.lv_campaign_by_code` (000050, signed-in only) returns the Campaign id when they may take part
+  (or manage it), and the player shows "Answering as {name}" on identified surveys. Non-managers get the same
+  visibility as the player (published, not blocked, Hub not suspended); others get `lv_not_found`.
+- **The builder Preview shows the start step** with "As a guest" and "Signed in" views, so the name and sign-in step no
+  longer looks missing when a creator previews their own survey.
+- Tests: `supabase/tests/50_campaign_by_code.sql`; `e2e/studio.test.mjs` runs the guest path in a signed-out browser and
+  the signed-in path with "Answering as".
+
+### Fixed (My home shows Creator Quick Survey limits, 000051)
+
+- A Creator Pro account saw "Quick Surveys 1/5" on My home although its real limit is 100 active (Creator Plus 15).
+  000042 moved every Quick Survey guard to `lv.quick_limit`, but `lv_api.lv_my_context` still reported the free numbers.
+  000051 keeps the wrapper body and overrides `quick_surveys.limit` and `question_limit` with the caller's own limits.
+  Tests: `supabase/tests/51_context_creator_limits.sql` (free 5/10, Creator Plus 15/30, Creator Pro 100/100).
+
 ### Operations (production, 2026-11-13: 000042 Linked Questions)
 
 - **Applied 000042 to production** (`qprfonxvthmaoxfixigk`) from commit `537f180` (file SHA-256 `5a37f889…`) through the

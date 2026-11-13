@@ -1,6 +1,6 @@
 import { LvMark } from "../components/LvMark";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import type { Answer, GuestNamesMode } from "../lib/lvApi";
@@ -36,7 +36,7 @@ function PoweredBy() {
 type View = "welcome" | "question" | "review";
 
 export function Player({ campaignId, guest, embedded = false }: { campaignId: string; guest?: { joinCode: string; guestKey: string }; embedded?: boolean }) {
-  const { api } = useIdentity();
+  const { api, session } = useIdentity();
   const detail = useLv(() => (guest ? api.guestCampaignGet(guest.joinCode) : api.campaignGet(campaignId)), [api, campaignId, guest?.joinCode]);
   const [view, setView] = useState<View>("welcome");
   const [step, setStep] = useState(0);
@@ -223,6 +223,21 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
             <p id="guest-name-help" className="lv-row-sub lv-m0">{namesMode === "required" ? "The creator needs a name to see who answered. " : "The creator sees this next to your answers. "}It isn’t verified.</p>
           </div>
         )}
+        {/* Who is answering (founder request 2026-11-13): guests can sign in instead; signed-in people see their name. */}
+        {guest && !session && (
+          <div className="lv-identity-choice lv-enter" style={{ "--i": 1 } as React.CSSProperties} data-testid="guest-signin">
+            <div>
+              <strong>Have a LunchVoice account?</strong>
+              <p className="lv-row-sub lv-m0">{anonymous ? "Sign in so you’re counted once. Your answers still aren’t linked to you." : "Sign in to answer as yourself instead of typing a name."}</p>
+            </div>
+            <Button asChild variant="secondary"><Link to="/signin" state={{ from: `/c/${guest.joinCode}` }}>Sign in</Link></Button>
+          </div>
+        )}
+        {!guest && session && !anonymous && (
+          <p className="lv-identity-chip lv-enter" style={{ "--i": 1 } as React.CSSProperties} data-testid="answering-as">
+            <Icon name="check" size={16} /> Answering as <strong>{session.name ?? "you"}</strong>
+          </p>
+        )}
         <ul className="lv-promises">
           <li className="lv-enter" style={{ "--i": 1 } as React.CSSProperties}><span><Icon name="lock" size={18} /></span><div><strong>{privacyPromise.title}</strong><p>{privacyPromise.body}</p></div></li>
           <li className="lv-enter" style={{ "--i": 2 } as React.CSSProperties}><span><Icon name="check" size={18} /></span><div><strong>{anyOptional ? "Some questions are optional" : "Every question needs an answer"}</strong><p>{anyOptional ? "Optional questions are marked. Answer the rest to submit." : "You can go back and change answers before you submit."}</p></div></li>
@@ -307,6 +322,23 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
 
 export function GuestCampaign() {
   const { joinCode = "" } = useParams();
+  const { session } = useIdentity();
+  // Signed in: answer with the account (members and link-open surveys), not as a guest.
+  if (session) return <SignedInByCode joinCode={joinCode} />;
+  return <GuestByCode joinCode={joinCode} />;
+}
+
+function SignedInByCode({ joinCode }: { joinCode: string }) {
+  const { api } = useIdentity();
+  const found = useLv(() => api.campaignByCode(joinCode), [api, joinCode]);
+  if (found.loading) return <div className="lv-player lv-player-light"><div className="lv-player-body"><Loading rows={2} /></div></div>;
+  const id = found.data?.campaign_id;
+  // Not eligible with this account (or the lookup is not deployed yet): the guest player explains it or lets them answer.
+  if (!id) return <GuestByCode joinCode={joinCode} />;
+  return <Player campaignId={id} />;
+}
+
+function GuestByCode({ joinCode }: { joinCode: string }) {
   const storageKey = `lv-guest-key-${joinCode}`;
   const [guestKey, setGuestKey] = useState<string | null>(null);
 
