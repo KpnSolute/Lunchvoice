@@ -12,6 +12,7 @@ import { Icon } from "../components/Icon";
 import { describeError } from "../lib/errors";
 import { QuestionInput, summarize } from "../ui/QuestionControls";
 import { StateScreen } from "../ui/StateScreen";
+import { hasSections, longestPath, sectionsOf, visibleQuestions } from "../lib/sections";
 import { START_SURVEY } from "../lib/billingState";
 
 /**
@@ -51,8 +52,12 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   useEffect(() => { try { localStorage.setItem(nameKey, guestName); } catch { /* ignore */ } }, [guestName, nameKey]);
 
   const d = detail.data;
-  const questions = d?.questions ?? [];
+  const allQuestions = d?.questions ?? [];
+  // 000041: only the sections this person's earlier answers open. Rules look back, so earlier steps never move.
+  const questions = visibleQuestions(allQuestions, answers);
+  const sectionStarts = new Map(sectionsOf(allQuestions).filter((s) => s.title).map((s) => [s.questions[0]!.question_id, s]));
   const q = questions[step];
+  const section = q ? sectionStarts.get(q.question_id) : undefined;
   const namesMode: GuestNamesMode = guest && d?.campaign.anonymity === "identified" ? (d.campaign.guest_names ?? "off") : "off";
   const cleanName = guestName.replace(/\s+/g, " ").trim();
   const nameMissing = namesMode === "required" && !cleanName;
@@ -66,12 +71,12 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   }, []);
 
   useEffect(() => {
-    if (!questions.length) return;
+    if (!allQuestions.length) return;
     try {
       const raw = localStorage.getItem(draftKey);
       if (raw) setAnswers(JSON.parse(raw));
     } catch { /* storage unavailable: drafts simply do not resume */ }
-  }, [draftKey, questions.length]);
+  }, [draftKey, allQuestions.length]);
 
   useEffect(() => {
     try { localStorage.setItem(draftKey, JSON.stringify(answers)); } catch { /* ignore */ }
@@ -168,7 +173,9 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   }
 
   const total = questions.length;
-  const minutes = Math.max(1, Math.round(total * 0.3));
+  // Before the first answer, conditional sections are closed: the welcome screen counts the longest path instead.
+  const planned = view === "welcome" ? longestPath(allQuestions) : total;
+  const minutes = Math.max(1, Math.round(planned * 0.3));
   const anonymous = d.campaign.anonymity === "anonymous";
   const answered = (i: number) => {
     const v = answers[questions[i]!.question_id];
@@ -191,7 +198,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
           <span className="lv-eyebrow-mono" style={{ color: "var(--lv-accent)" }}>{guest ? "Open to guests" : "You're invited"}</span>
           <h1 className="lv-player-title">{d.campaign.title}</h1>
           <div className="lv-player-hero-foot">
-            <span className="lv-row-sub" style={{ color: "inherit", opacity: 0.8 }}>{total} {total === 1 ? "question" : "questions"} · ~{minutes} min</span>
+            <span className="lv-row-sub" style={{ color: "inherit", opacity: 0.8 }}>{hasSections(allQuestions) && planned !== allQuestions.length ? "Up to " : ""}{planned} {planned === 1 ? "question" : "questions"} · ~{minutes} min</span>
             <Button variant="primary" onClick={() => { setDir("fwd"); setStep(0); setView("question"); }} disabled={total === 0 || nameMissing} data-testid="player-start">
               Start <Icon name="arrow" size={16} />
             </Button>
@@ -269,6 +276,12 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
         <b style={{ width: `${pct}%` }} />
       </div>
       <div className="lv-q-stage" key={`${step}-${q?.question_id}`} data-dir={dir} data-testid="player-stage" data-step={step}>
+        {section && (
+          <div className="lv-q-section" data-testid="player-section">
+            <span className="lv-eyebrow-mono">{section.title}</span>
+            {section.description && <p className="lv-q-section-desc">{section.description}</p>}
+          </div>
+        )}
         <h1 className="lv-q-title">{q?.prompt}</h1>
         <div className="lv-q-controls">
           {q && <QuestionInput q={q} value={answers[q.question_id]} onChange={(v) => setAnswers((a) => ({ ...a, [q.question_id]: v }))} />}

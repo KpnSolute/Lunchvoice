@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { describeError } from "../lib/errors";
@@ -6,6 +6,8 @@ import { questionConfigProblem, type CampaignDetailData, type LvResult, type Que
 import { isChoice, MAX_OPTIONS, MIN_OPTIONS } from "../lib/readiness";
 import { Icon } from "../components/Icon";
 import { QuestionInput } from "../ui/QuestionControls";
+import { describeRule } from "../lib/sections";
+import { SectionPanel } from "./SectionPanel";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
 import { Input } from "@/components/shadcn/input";
@@ -165,6 +167,8 @@ export function QuestionWorkbench({
         ) : (
           <Card variant="well"><p className="lv-m0">{qs.length ? "Pick a question to see it." : "This survey has no questions."}</p></Card>
         )}
+        {/* A sibling, not a wrapper: wrapping the editor would remount it when a new question is created (save race). */}
+        {current && <SectionPanel key={`sec-${current.question_id}`} q={current} n={index + 1} qs={qs} locked={locked} allowed={d.features?.branching ?? false} save={save} reload={reload} />}
       </section>
     </div>
     </div>
@@ -203,8 +207,14 @@ function OutlineList({
       {!locked && qs.length > 1 && <p className="ui-help lv-m0">Drag to reorder, or focus a question and press Alt with the arrow keys.</p>}
       <ol className="lv-outline" data-testid="question-outline">
         {qs.map((q, i) => (
+          <Fragment key={q.question_id}>
+          {q.config.section && (
+            <li className="lv-outline-section" data-testid="outline-section">
+              <span className="lv-outline-section-title">{q.config.section.title || "Untitled section"}</span>
+              {q.config.section.show_if && <small>{describeRule(q.config.section.show_if, qs)}</small>}
+            </li>
+          )}
           <li
-            key={q.question_id}
             className="lv-outline-li"
             data-over={over === i || undefined}
             draggable={!locked}
@@ -228,6 +238,7 @@ function OutlineList({
               </span>
             )}
           </li>
+          </Fragment>
         ))}
         {sel === "new" && !locked && !atLimit && (
           <li className="lv-outline-li"><span className="lv-outline-item" aria-current="true"><span className="lv-outline-n">{String(qs.length + 1).padStart(2, "0")}</span><span className="lv-outline-text"><span>New question</span><small>Not saved yet: type the question text</small></span></span></li>

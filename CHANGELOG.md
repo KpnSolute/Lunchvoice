@@ -6,6 +6,39 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (sections and "show only if" rules; Creator plans; founder 2026-11-13)
+
+- **One survey, different questions per person.** A question can start a **section** with a title, an optional line
+  under it, and a rule: "show only if [an earlier choice or yes/no question] is any of [answers]". Everyone else skips
+  the section. Example: staff see "Your day", center leaders and corporate see "Across departments and centers".
+- **Plans.** Sections start at **Creator Plus** and **Starter Hub** (founder 2026-11-13). Creator Plus ($5/month) and
+  Creator Pro ($15/month) exist as per-person plans in the entitlement map (migration
+  `000041_v2_sections_and_creator_plans`); they cannot be bought until their Stripe products exist. Survey branding
+  uses the same plan line (`survey.branding`) and is built next. The brain files record the Creator plans.
+- **Server rules** (`lv.validate_answers`): an answer to a hidden question is refused; a required question is required
+  only when shown. Publishing refuses a rule that points at a later or missing question, or at an option that no
+  longer exists. A lapsed plan never breaks a published survey. Contract: `docs/backend/API_CONTRACT.md`.
+- **Builder.** A "Section" panel under each question (from question 2): start a section, title, description, "Who sees
+  this section" with the answers as checkboxes, a plain sentence ("Shown when “What is your role?” is Manager or
+  Corporate operations. Everyone else skips it."), and a note that anonymous results for the section stay withheld
+  under 5 answers. On a free plan the panel says which plans include it, with a link to plans. The question outline
+  shows section headers with their rule. The publish checklist shows a broken rule.
+- **Answering screen.** Only the sections a person's answers open are shown; the progress bar counts them. The section
+  title and line appear above its first question. The welcome screen counts the longest path ("Up to N questions" when
+  some people answer fewer). Answers to sections a person backed out of are never sent.
+- **Design pass** (design-system skill): tokens only, existing `Badge`, `Field`, `Checkbox`, `Notice` and
+  `.lv-inline-link`; the section label is grouped with its question; checked at 390, 768 and 1280 in light, dark and
+  high contrast with no horizontal scroll and no overlapping elements (automated box check).
+- **Fixed while building:** wrapping the question editor remounted it when a new question was created (caught by the
+  save-race test); the section panel is now a sibling.
+- **Tests:** `supabase/tests/41_sections_and_creator_plans.sql` (gating, Creator plan on a person only, malformed rule,
+  publish checks, hidden and required answers, lapse); `src/lib/sections.test.ts`; `e2e/sections.test.mjs` (build a
+  conditional section, free-plan lock, the player shows and drops the section). `db-test-canonical.sh`: 1342 checks,
+  0 failed, rollback rehearsal passes.
+- **Noticed, not changed:** inline links use the legacy `a { color: var(--accent) }` rule (`src/index.css`), amber on
+  white, which is below AA contrast for text. New links here use `.lv-inline-link`. Changing the global rule needs a
+  founder decision.
+
 ### Fixed (audit P3, founder decision 2026-11-12: a display name is never an email address)
 
 - **Migration `000040_v2_display_name_never_email`:** `lv.safe_display_name(name, email)` keeps a name without "@";

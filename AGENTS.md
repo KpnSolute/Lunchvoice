@@ -50,6 +50,10 @@ UI and API; the backend evaluates the active entitlement.
   $13 per additional week.
 - Campaign Plus: Team family, time-bounded. $39 for the first 2 weeks, $19 per
   additional week (founder, 2026-11-07).
+- Creator Plus: $5/month; Creator Pro: $15/month (founder, 2026-11-12). Per-person plans (account-scoped
+  entitlements): the perks go with the person into their personal space and every Hub they edit. Sections and
+  conditional sections (`survey.branching`) and survey branding (`survey.branding`) start at Creator Plus and
+  Starter Hub (founder, 2026-11-13). Other Creator perks are not approved yet.
 - Free Quick Survey: $0 for any signed-in account. 5 active surveys, 10
   questions, core kinds, link or invite-only; lives in a personal space that is
   never a Hub. The launch waitlist is never authorization.

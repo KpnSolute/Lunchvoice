@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ANON_MIN_ANSWERS } from "../config/privacy";
+import { rulesProblem } from "../lib/sections";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
@@ -117,7 +118,7 @@ export function gateMessages(d: CampaignDetailData): { key: string; message: str
 
 export function useReadiness(d: CampaignDetailData | null, title: string, schedule: ScheduleState, questionLimit: number | null): ReadinessIssue[] {
   return useMemo(
-    () => (d ? readiness({ title, questions: d.questions, start: schedule.start, end: schedule.end, questionLimit, gateMessages: gateMessages(d) }) : []),
+    () => (d ? readiness({ title, questions: d.questions, start: schedule.start, end: schedule.end, questionLimit, gateMessages: gateMessages(d), sectionProblem: rulesProblem(d.questions) }) : []),
     [d, title, schedule, questionLimit],
   );
 }
