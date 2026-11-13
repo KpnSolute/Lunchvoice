@@ -6,6 +6,28 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (live results and individual responses by plan, 000053; not applied to production)
+
+- Founder decision 2026-11-13: pro users see individual results from guests and signed-in people, and nothing is held
+  back for 4 or fewer answers. New entitlement `results.instant` (`team` = Team Hub and Campaign Plus, `creator_plus`,
+  `creator_pro`), resolved per survey on the server: the Hub's plan or the creator's own Creator plan. Free Quick Survey,
+  Starter Hub and Campaign Starter keep the waiting rules exactly (anonymous waits for 5 answers and for the close).
+- On a live plan, totals, charts, rating means, per-question seen/answered and free text show from the first answer for
+  identified and anonymous surveys, live and closed. The old engine keeps its rules as `lv.analytics_core_waiting`; a thin
+  `lv.analytics_core` wrapper takes the live path. `lv.api_analytics_question` is the 000042 body with three marked edits.
+- Safeguards: anonymous individual responses (`lv_campaign_responses_anon`, offset pages) carry answers only, an opaque
+  key, a stable hash order, no account, name, time, receipt or submission id; every read is audited and logged; free text is
+  shuffled; filters on anonymous surveys stay refused; `campaign.results_instant` makes the player say "The creator can see
+  results as they come in." on anonymous surveys (respondents never learn the plan of an identified one).
+- Results page: Individual responses list (anonymous rows labelled "Response"), 15 s refresh while open, and on waiting
+  plans a quiet "See results live with Creator Plus: opens with billing" note. Studio privacy copy follows the flag.
+  Pricing, product, use-case and privacy copy state live results; the Team and Campaign Plus rows too.
+- Tests: `supabase/tests/53_results_instant.sql` (every plan family, anonymous and identified, live and closed, below and
+  above 5, responses, flag, filters, grants); `24` and `42` updated where a Team Hub or Creator Plus survey now reports live;
+  `e2e/liveresults.test.mjs`; `src/lib/livePricing.test.ts`. Rollback `supabase/rollbacks/000053_v2_results_instant.down.sql`.
+  Known trade-off: on live anonymous results a creator who polls can see which answer is new (the founder accepted this
+  with the notice to respondents); order, time and identity are never exposed.
+
 ### Changed (branding is a full-width step in the Creator studio too)
 
 - The redesigned Branding panel (live preview, Colors/Banner/Logo/Text/Style) did not fit the Creator studio's narrow

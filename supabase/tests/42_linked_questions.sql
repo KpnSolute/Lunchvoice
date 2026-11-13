@@ -238,9 +238,11 @@ select t.check('results: Q5 was seen by the 6 staff paths and answered by all 6'
   (lv_api.lv_analytics_question(t.id('c'), t.id('q5')) ->> 'seen') = '6' and (lv_api.lv_analytics_question(t.id('c'), t.id('q5')) ->> 'answered') = '6');
 select t.check('results: Q12 was seen and answered by the 5 leadership paths',
   (lv_api.lv_analytics_question(t.id('c'), t.id('q12')) ->> 'seen') = '6' and (lv_api.lv_analytics_question(t.id('c'), t.id('q12')) ->> 'answered') = '6');
-select t.check('results: Q20 (one Corporate path, under 5) withholds seen and answered',
-  (lv_api.lv_analytics_question(t.id('c'), t.id('q20')) ->> 'seen') is null and (lv_api.lv_analytics_question(t.id('c'), t.id('q20')) ->> 'answered') is null
-  and (lv_api.lv_analytics_question(t.id('c'), t.id('q20')) ->> 'seen_withheld') = 'true');
+-- 000053: this survey's creator has Creator Plus (results.instant), so small groups are shown, not withheld. The
+-- withholding of a path under the minimum is covered on a free survey in 53_results_instant.sql.
+select t.check('results: Creator Plus shows Q20 (one Corporate path) seen and answered, not withheld',
+  (lv_api.lv_analytics_question(t.id('c'), t.id('q20')) ->> 'seen') = '1' and (lv_api.lv_analytics_question(t.id('c'), t.id('q20')) ->> 'answered') = '1'
+  and (lv_api.lv_analytics_question(t.id('c'), t.id('q20')) ->> 'seen_withheld') = 'false');
 select t.check('results: an anonymous survey refuses every filter (no differencing)',
   t.code(lv_api.lv_analytics_question(t.id('c'), t.id('q5'), jsonb_build_object('question_id', t.get('q1'), 'any_of', jsonb_build_array('Lead')))) = 'lv_invalid_input'
   and t.code(lv_api.lv_analytics_question(t.id('c'), t.id('q21'), jsonb_build_object('question_id', t.get('q1'), 'any_of', jsonb_build_array('Corporate')))) = 'lv_invalid_input');

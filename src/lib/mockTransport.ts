@@ -167,6 +167,11 @@ const qLimit = (s: State) => (s.me.creator === "creator_pro" ? 100 : s.me.creato
 function featureAllowed(s: State, hubId: string): boolean {
   return activeFamily(s, hubId) !== "free" || !!s.me.creator;
 }
+// lv.results_instant (000053): results from the first answer, anonymous surveys included. A Team Hub (Team Hub and
+// Campaign Plus) or the creator's own Creator Plus/Pro; Starter, Campaign Starter and free creators wait.
+function resultsInstant(s: State, hubId: string): boolean {
+  return activeFamily(s, hubId) === "team" || !!s.me.creator;
+}
 // 000042: logic keys in a question's settings (show_if, jumps).
 const logicPart = (cfg: unknown) => { const c = (cfg ?? {}) as { show_if?: unknown; jumps?: unknown[] }; return { show_if: c.show_if ?? null, jumps: c.jumps?.length ? c.jumps : null }; };
 const hasLogicConfig = (cfg: unknown) => { const l = logicPart(cfg); return l.show_if !== null || l.jumps !== null; };
@@ -838,23 +843,24 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       const c = camp(a.p_campaign);
       if (!c) return err("lv_not_found", "Campaign not found");
       if (c.status === "draft") return err("lv_lifecycle_invalid", "Results are not available for a draft");
-      if (c.anonymity === "anonymous" && (c.status === "active" || c.status === "paused")) return err("lv_policy_undecided", "Anonymous results appear after the Campaign closes");
+      const instant = resultsInstant(s, c.hub_id);
+      if (!instant && c.anonymity === "anonymous" && (c.status === "active" || c.status === "paused")) return err("lv_policy_undecided", "Anonymous results appear after the Campaign closes");
       const members = c.responses.filter((r) => !r.guest).length;
       const guests = c.responses.filter((r) => r.guest).length;
       if (a.p_metric === "participant_count") {
         // As in the real API (000005): identified totals show from the first answer, anonymous ones wait for the minimum.
-        const min = c.anonymity === "identified" ? 1 : MIN_COHORT;
+        const min = instant || c.anonymity === "identified" ? 1 : MIN_COHORT;
         return { ok: true, metric: "participant_count", n: members >= min ? members : null, suppressed: members < min, guest_n: guests >= min ? guests : null, guest_suppressed: guests < min };
       }
       {
         const q = c.questions.find((x) => x.question_id === a.p_question);
         if (q?.kind === "text") {
-          const t = texts(c, q.question_id);
+          const t = texts(c, q.question_id, instant);
           return { ok: true, metric: "answer_distribution", question_id: q.question_id, cells: [], texts: t, texts_withheld: t === null };
         }
       }
       // As in the real API (000016): an anonymous question with fewer than MIN_COHORT answers is withheld whole.
-      if (c.anonymity === "anonymous" && c.responses.length < MIN_COHORT)
+      if (!instant && c.anonymity === "anonymous" && c.responses.length < MIN_COHORT)
         return { ok: true, metric: "answer_distribution", question_id: a.p_question, cells: [], withheld: true };
       return { ok: true, metric: "answer_distribution", question_id: a.p_question, cells: distribution(c, String(a.p_question)) };
     }
@@ -863,14 +869,15 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       const c = camp(a.p_campaign);
       if (!c) return err("lv_not_found", "Campaign not found");
       if (c.status === "draft") return err("lv_lifecycle_invalid", "Results are not available for a draft");
-      if (c.anonymity === "anonymous" && (c.status === "active" || c.status === "paused")) return err("lv_policy_undecided", "Anonymous results appear after the Campaign closes");
+      const instant = resultsInstant(s, c.hub_id);
+      if (!instant && c.anonymity === "anonymous" && (c.status === "active" || c.status === "paused")) return err("lv_policy_undecided", "Anonymous results appear after the Campaign closes");
       const qid = String(a.p_question);
       const filter = a.p_filter as { question_id: string; any_of: string[] } | null;
       const rows = c.responses.map((r) => Object.fromEntries(r.answers.map((x) => [x.question_id, x.value])));
       const inGroup = (ans: Record<string, unknown>) => { if (!filter) return true; const v = ans[filter.question_id]; return (Array.isArray(v) ? v : [v]).some((x) => filter.any_of.includes(String(x))); };
       const group = rows.filter(inGroup);
       const anon = c.anonymity === "anonymous";
-      const low = (n: number) => anon && n > 0 && n < MIN_COHORT;
+      const low = (n: number) => anon && !instant && n > 0 && n < MIN_COHORT;
       // 000042 (security review): anonymous surveys refuse filters, so two queries can never be compared to single people out.
       if (filter && anon) return err("lv_invalid_input", "Filtering results is not available on anonymous surveys.");
       const seen = group.filter((ans) => walk(c.questions as Question[], ans).visible.some((q) => q.question_id === qid)).length;
@@ -1025,9 +1032,9 @@ function distribution(c: C, questionId: string) {
 }
 
 // L-10: free-text answers are released as an unordered list only once the Campaign has enough answers.
-function texts(c: C, questionId: string): string[] | null {
+function texts(c: C, questionId: string, instant = false): string[] | null {
   const all = c.responses.flatMap((r) => r.answers.filter((x) => x.question_id === questionId && typeof x.value === "string" && x.value.trim()).map((x) => String(x.value)));
-  if (c.responses.length < MIN_COHORT) return null;
+  if (!instant && c.responses.length < MIN_COHORT) return null;
   return all.sort(() => Math.random() - 0.5);
 }
 
@@ -1131,7 +1138,9 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
       const c = camp(a.p_campaign);
       if (!r.ok || !c) return r;
       const h = hubOf(c);
-      const out: Record<string, unknown> = { ...r, campaign: { ...r.campaign, description: c.description ?? null, ...(r.can_manage ? { has_responses: c.responses.length > 0, guest_names: c.guest_names ?? "off" } : {}), ...(r.can_manage && h?.kind === "personal" ? { question_limit: qLimit(s) } : {}) } };
+      // 000053: managers learn results are live; respondents only on an anonymous survey (never the creator's plan otherwise).
+      const live = resultsInstant(s, c.hub_id) && (Boolean(r.can_manage) || c.anonymity === "anonymous");
+      const out: Record<string, unknown> = { ...r, campaign: { ...r.campaign, results_instant: live, description: c.description ?? null, ...(r.can_manage ? { has_responses: c.responses.length > 0, guest_names: c.guest_names ?? "off" } : {}), ...(r.can_manage && h?.kind === "personal" ? { question_limit: qLimit(s) } : {}) } };
       if (r.can_manage) {
         out.features = { branching: featureAllowed(s, c.hub_id), branding: featureAllowed(s, c.hub_id) };
         out.link_token = c.link_token;
@@ -1212,7 +1221,7 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
       }
       if (!r.ok) return r;
       const c = cc;
-      return { ...r, join_code: c?.join_code, campaign: { ...r.campaign, description: c?.description ?? null, guest_names: c && c.anonymity === "identified" ? c.guest_names ?? "off" : "off" } };
+      return { ...r, join_code: c?.join_code, campaign: { ...r.campaign, results_instant: Boolean(c && c.anonymity === "anonymous" && resultsInstant(s, c.hub_id)), description: c?.description ?? null, guest_names: c && c.anonymity === "identified" ? c.guest_names ?? "off" : "off" } };
     }
     case "lv_campaign_set_guest_names": {
       const c = camp(a.p_campaign);
@@ -1243,6 +1252,27 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
         responses: rows.map(({ r, i }) => ({
           response_id: `resp-${c.campaign_id}-${i}`, kind: r.guest ? "guest" : "member", verified: !r.guest,
           name: r.guest ? r.name ?? null : r.name ?? `Member ${i + 1}`, at: r.at,
+          answers: r.answers.map((an) => { const q = c.questions.find((x) => x.question_id === an.question_id); return { question_id: an.question_id, prompt: q?.prompt ?? "", kind: q?.kind ?? "text", value: an.value }; }),
+        })),
+      };
+    }
+    case "lv_campaign_responses_anon": {
+      // 000053: each submission's answers only, in a stable hash order; no name, account, time, receipt or arrival order.
+      const c = camp(a.p_campaign);
+      if (!c || c.status === "draft") return err("lv_not_found", "Campaign not found");
+      const g = handle(s, "lv_campaign_get", { p_campaign: a.p_campaign }, authed) as { ok: boolean; can_manage?: boolean };
+      if (!g.ok || !g.can_manage) return err("lv_forbidden", "Reading responses requires analytics.read.");
+      if (c.anonymity !== "anonymous") return err("lv_not_available", "This survey is identified. Use its Responses list.");
+      if (!resultsInstant(s, c.hub_id)) return err("lv_entitlement_required", "Individual responses on an anonymous survey need Creator Plus or a Team Hub.", { product: "creator_plus", feature: "results.instant" });
+      const limit = Math.min(Math.max(Number(a.p_limit ?? 50), 1), 100);
+      const offset = Math.max(Number(a.p_offset ?? 0), 0);
+      const hash = (t: string) => { let h = 2166136261; for (let k = 0; k < t.length; k++) { h ^= t.charCodeAt(k); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16).padStart(8, "0"); };
+      const rows = c.responses.map((r, i) => ({ r, key: hash(`${c.campaign_id}:${r.receipt}:${i}`) })).sort((x, y) => (x.key < y.key ? -1 : x.key > y.key ? 1 : 0)).slice(offset, offset + limit);
+      return {
+        ok: true,
+        total: c.responses.length,
+        responses: rows.map(({ r, key }) => ({
+          response_id: key,
           answers: r.answers.map((an) => { const q = c.questions.find((x) => x.question_id === an.question_id); return { question_id: an.question_id, prompt: q?.prompt ?? "", kind: q?.kind ?? "text", value: an.value }; }),
         })),
       };

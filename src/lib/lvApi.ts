@@ -294,6 +294,12 @@ export interface ResponseRow {
   answers: { question_id: string; prompt: string; kind: string; value: unknown }[];
 }
 
+/** One anonymous submission as the creator reads it (000053): answers only, an opaque key, no person, time or order. */
+export interface AnonResponseRow {
+  response_id: string;
+  answers: { question_id: string; prompt: string; kind: string; value: unknown }[];
+}
+
 export interface CampaignDetailData {
   campaign: {
     campaign_id: string;
@@ -314,6 +320,11 @@ export interface CampaignDetailData {
     description?: string | null;
     /** 000028: whether guests are asked for a name (identified Campaigns only). Managers and the guest view get it. */
     guest_names?: GuestNamesMode;
+    /**
+     * 000053, decided by the server: results show from the first answer on this survey's plan. Managers get it for any
+     * survey; a respondent only on an anonymous one (so the start screen can say the creator sees results as they come in).
+     */
+    results_instant?: boolean;
     /** 000027 (managers only): someone has answered, so a paused Campaign's mode, anonymity and questions stay locked. */
     has_responses?: boolean;
   };
@@ -612,6 +623,9 @@ export function createLvApi(transport: LvTransport) {
       call<SubmitReceipt>("lv_guest_submit", { p_join_code: joinCode, p_guest_key: guestKey, p_answers: answers, p_guest_name: guestName }),
     campaignSetGuestNames: (campaign: string, mode: GuestNamesMode) =>
       call<{ guest_names: GuestNamesMode }>("lv_campaign_set_guest_names", { p_campaign: campaign, p_mode: mode }),
+    // 000053: individual responses of an ANONYMOUS survey on a plan with live results. Offset pages in a hash order.
+    campaignResponsesAnon: (campaign: string, limit = 50, offset = 0) =>
+      call<{ responses: AnonResponseRow[]; total: number }>("lv_campaign_responses_anon", { p_campaign: campaign, p_limit: limit, p_offset: offset }),
     campaignResponses: (campaign: string, limit = 50, before: string | null = null) =>
       call<{ responses: ResponseRow[]; total: number }>("lv_campaign_responses", { p_campaign: campaign, p_limit: limit, p_before: before }),
 

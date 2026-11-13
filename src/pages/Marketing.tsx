@@ -193,7 +193,7 @@ const STORED: [string, string][] = [
   ["Your sign-in", "The verified KpnIdentity issuer and subject (your KpnSolute account, signed in with Google). This is your identity; your email is never used as one."],
   ["Profile", "Your display name, and the email address cached from your sign-in."],
   ["Waitlist contact email", "Optional. Only if you give it and agree; used for launch and account updates; deleted when you delete your account."],
-  ["Answers", "What you answer on surveys and Campaigns. On anonymous surveys the creator sees totals only and can’t link an answer to you. On identified surveys the creator sees who answered; a guest’s name, if the survey asks for one, is what the guest typed."],
+  ["Answers", "What you answer on surveys and Campaigns. On anonymous surveys the creator can’t link an answer to you. Depending on the creator’s plan they see totals once the survey ends, or results as they come in; either way an answer never carries your name or a time, and the survey tells you before you start. On identified surveys the creator sees who answered; a guest’s name, if the survey asks for one, is what the guest typed."],
   ["Hubs and memberships", "Hubs you create or join, your roles in them, and invitations."],
   ["Community activity", "In Hubs that switch them on: posts and comments you write, reports you file, whether you opted in to the leaderboard, Hub points and shop orders. The leaderboard shows only members who opt in, and only how many of the Hub’s ended Campaigns (anonymous ones included) they took part in, never what they answered."],
   ["Payments", "If you buy a plan, Stripe handles your card and billing details. We keep your Stripe customer reference and which plan you bought, never your card number."],

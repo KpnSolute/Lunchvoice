@@ -31,7 +31,7 @@ export const PLANS: Plan[] = [
   {
     id: "campaign_plus", product: "campaign_plus", name: "Campaign Plus", priceLabel: "$39", cadence: "first 2 weeks, then $19 per extra week",
     blurb: "One time-bounded Campaign with Team features.",
-    features: ["Team features during your paid window", "No recurring subscription"],
+    features: ["Team features during your paid window", "Live results and individual responses", "No recurring subscription"],
   },
   {
     id: "starter", product: "starter_hub", name: "Starter Hub", priceLabel: "$13", cadence: "per month",
@@ -41,7 +41,7 @@ export const PLANS: Plan[] = [
   {
     id: "team", product: "team_hub", name: "Team Hub", priceLabel: "$29", cadence: "per month",
     blurb: "More roles, pages, modes and analytics.",
-    features: ["6 custom roles", "More custom Hub pages", "Aim identified Campaigns at chosen roles", "5 active surveys", "A survey stops counting toward that limit once 20% of members have answered", "Apply for Discover at 700 active members"],
+    features: ["6 custom roles", "More custom Hub pages", "Live results and individual responses", "Aim identified Campaigns at chosen roles", "5 active surveys", "A survey stops counting toward that limit once 20% of members have answered", "Apply for Discover at 700 active members"],
   },
   {
     id: "reservation", product: "hub_reservation", name: "Reserve your Hub URL", priceLabel: "$25", cadence: "per 12 months, renews at $25",
@@ -72,7 +72,7 @@ const STATIC_ROWS: Row[] = [
   { label: "Link, QR and join code", cells: [true, true, true, true, true] },
   { label: "Invite-only access", cells: [true, true, true, true, true] },
   { label: "Anonymous or identified", cells: [true, true, true, true, true] },
-  { label: "Results", cells: ["Totals and charts", "Totals and charts", "Totals and charts", "Totals and charts", "Totals and charts"] },
+  { label: "Results", cells: ["Totals and charts", "Totals and charts", "Live results and individual responses", "Totals and charts", "Live results and individual responses"] },
   { label: "Export of released results", cells: [false, true, true, true, true] },
   { label: "Aim identified Campaigns at chosen roles", cells: [false, false, true, false, true] },
   { label: "Discover listing", cells: [false, false, "Apply at 700 members", false, false] },
@@ -107,7 +107,7 @@ export const CREATOR_PLANS: CreatorPlan[] = [
   {
     id: "creator_plus", name: "Creator Plus", priceLabel: "$5", cadence: "per month, per person",
     blurb: "For one person who writes a lot of surveys.",
-    features: ["Up to 15 active Quick Surveys, 30 questions each", "Linked Questions: show-only-if rules and end-survey", "Custom branding: color, logo, welcome and thank-you text", "Trends, results charts, new question types and templates: coming soon"],
+    features: ["Up to 15 active Quick Surveys, 30 questions each", "Live results and individual responses", "Linked Questions: show-only-if rules and end-survey", "Custom branding: color, logo, welcome and thank-you text", "Trends, results charts, new question types and templates: coming soon"],
   },
   {
     id: "creator_pro", name: "Creator Pro", priceLabel: "$15", cadence: "per month, per person",

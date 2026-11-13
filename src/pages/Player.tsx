@@ -269,6 +269,11 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
             <Icon name="lock" size={16} /> Your answers are anonymous
           </p>
         )}
+        {anonymous && d.campaign.results_instant && (
+          <p className="lv-identity-chip lv-enter" style={{ "--i": 1 } as React.CSSProperties} data-testid="results-live-note">
+            <Icon name="lock" size={16} /> The creator can see results as they come in. Your answers are not linked to your name.
+          </p>
+        )}
         <ul className="lv-promises">
           <li className="lv-enter" style={{ "--i": 1 } as React.CSSProperties}><span><Icon name="lock" size={18} /></span><div><strong>{privacyPromise.title}</strong><p>{privacyPromise.body}</p></div></li>
           <li className="lv-enter" style={{ "--i": 2 } as React.CSSProperties}><span><Icon name="check" size={18} /></span><div><strong>{anyOptional ? "Some questions are optional" : "Every question needs an answer"}</strong><p>{anyOptional ? "Optional questions are marked. Answer the rest to submit." : "You can go back and change answers before you submit."}</p></div></li>

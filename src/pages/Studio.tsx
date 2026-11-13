@@ -344,7 +344,9 @@ export function LifecycleActions({
         <ConfirmAction
           trigger={<Button variant="secondary" disabled={busy}>Close</Button>}
           title={quick ? "Close this survey?" : "Close this Campaign?"}
-          body={`Nobody can answer after it closes. Results stay. Anonymous results become visible once it’s closed, for questions with at least ${ANON_MIN_ANSWERS} answers.`}
+          body={d.campaign.results_instant
+            ? "Nobody can answer after it closes. Results stay."
+            : `Nobody can answer after it closes. Results stay. Anonymous results become visible once it’s closed, for questions with at least ${ANON_MIN_ANSWERS} answers.`}
           action="Close"
           onConfirm={() => act(() => api.campaignClose(id), "Closed")}
         />
@@ -605,6 +607,8 @@ export function IdentityGroup({ d, save, reload }: { d: CampaignDetailData; save
             ? "Not while guests give a name: turn guest names off first, so no answer can be traced to a typed name."
             : d.audience?.scope === "roles"
             ? "Not with specific roles: switch Who can participate back to all members first, so no answer can be traced to one person."
+            : d.campaign.results_instant
+            ? "Nobody, including you, can link an answer to a person. Your plan shows results live, and each answer on its own, with no name or time. People are told before they start."
             : "You see totals only. Nobody, including you, can link an answer to a person. Small groups are withheld."}
         />
         <RadioCard value="identified" title="Identified" description="You can see who answered and what they said. People are told before they start." />
@@ -838,7 +842,9 @@ export function ReviewSection({
         </dl>
         <p className="ui-help lv-m0">
           {d.campaign.anonymity === "anonymous"
-            ? "Privacy: results show totals only. A group too small to stay anonymous is withheld, never shown as zero. Written answers appear only once enough people have answered."
+            ? (d.campaign.results_instant
+              ? "Privacy: your plan shows results as they come in, with each answer listed on its own and no name or time. Answers are never linked to a person, and people are told before they start."
+              : "Privacy: results show totals only. A group too small to stay anonymous is withheld, never shown as zero. Written answers appear only once enough people have answered.")
             : "Privacy: this is identified, so you’ll see who answered. People are told before they start."}
         </p>
         {d.questions.length > 0 && (

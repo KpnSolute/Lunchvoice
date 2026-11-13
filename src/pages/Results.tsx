@@ -4,7 +4,7 @@ import { useIdentity } from "../identity/IdentityProvider";
 import { CountUp } from "../ui/motion";
 import { useLv } from "../lib/useLv";
 import { describeError } from "../lib/errors";
-import type { AnalyticsResult, ExportRow, LvError, Question, ResponseRow } from "../lib/lvApi";
+import type { AnalyticsResult, AnonResponseRow, ExportRow, LvError, Question, ResponseRow } from "../lib/lvApi";
 import { summarize } from "../ui/QuestionControls";
 import { Icon } from "../components/Icon";
 import { Button } from "@/components/shadcn/button";
@@ -35,11 +35,22 @@ function label(q: Question, key: string) {
 export function ResultsView({ campaignId, exportBlocked }: { campaignId: string; exportBlocked: string | null }) {
   const { api } = useIdentity();
   const detail = useLv(() => api.campaignGet(campaignId), [api, campaignId]);
-  const count = useLv(() => api.analytics(campaignId, "participant_count"), [api, campaignId]);
+  // 000053: on a plan with live results the page refreshes its totals while the survey is open.
+  const [tick, setTick] = useState(0);
+  const instant = Boolean(detail.data?.campaign.results_instant);
+  const open = detail.data?.campaign.status === "active";
+  useEffect(() => {
+    if (!instant || !open) return;
+    const t = window.setInterval(() => { if (!document.hidden) setTick((x) => x + 1); }, 15000);
+    return () => window.clearInterval(t);
+  }, [instant, open]);
+  const count = useLv(() => api.analytics(campaignId, "participant_count"), [api, campaignId, tick]);
   const [exporting, setExporting] = useState(false);
   const [presenting, setPresenting] = useState(false);
   const c = count.data as Extract<AnalyticsResult, { metric: "participant_count" }> | null;
   const questions = detail.data?.questions ?? [];
+  const answered = c && !c.suppressed && c.n !== null ? c.n + (c.guest_suppressed ? 0 : c.guest_n ?? 0) : null;
+  const anonymous = detail.data?.campaign.anonymity === "anonymous";
   // 000042: on a survey where people take different paths, each question also says how many saw it.
   const hasPaths = questions.some((q) => q.config.show_if || q.config.jumps?.length || q.config.section?.show_if);
 
@@ -75,8 +86,15 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
             ) : null}
           </div>
         ) : null}
+        {instant && anonymous && (
+          <p className="ui-help lv-m0" data-testid="live-note">Your plan shows results as people answer. Each answer is listed on its own, with no name or time, and respondents are told before they start.</p>
+        )}
+        {detail.data && !instant && (count.error || c?.suppressed) && (
+          <p className="ui-help lv-m0" data-testid="live-upsell">Results appear after {ANON_MIN_ANSWERS} answers. See results live with Creator Plus: opens with billing.</p>
+        )}
       </Card>
 
+      {anonymous && instant && <AnonResponsesCard campaignId={campaignId} questions={questions} answered={answered} />}
       {detail.data?.campaign.anonymity === "identified" && <ResponsesCard campaignId={campaignId} questions={questions} />}
 
       <div className="ui-spread">
@@ -98,7 +116,7 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
 
       {detail.loading && !detail.data && <LoadingRows rows={3} />}
       {detail.error && <Notice tone="error">{describeError(detail.error)}</Notice>}
-      {questions.map((q) => <QuestionResult key={q.question_id} campaignId={campaignId} q={q} showSeen={hasPaths} />)}
+      {questions.map((q) => <QuestionResult key={q.question_id} campaignId={campaignId} q={q} showSeen={hasPaths} answered={answered} />)}
       {detail.data && questions.length === 0 && <Notice>This survey has no questions yet.</Notice>}
     </div>
   );
@@ -161,9 +179,63 @@ function ResponsesCard({ campaignId, questions }: { campaignId: string; question
   );
 }
 
-function QuestionResult({ campaignId, q, showSeen }: { campaignId: string; q: Question; showSeen: boolean }) {
+/** Individual responses of an anonymous survey on a live-results plan (000053): answers only, no person, time or order. */
+function AnonResponsesCard({ campaignId, questions, answered }: { campaignId: string; questions: Question[]; answered: number | null }) {
   const { api } = useIdentity();
-  const r = useLv(() => api.analytics(campaignId, "answer_distribution", q.question_id), [api, campaignId, q.question_id]);
+  const [rows, setRows] = useState<AnonResponseRow[]>([]);
+  const [total, setTotal] = useState<number | null>(null);
+  const [busy, setBusy] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const byId = new Map(questions.map((q) => [q.question_id, q]));
+  async function load(offset: number) {
+    setBusy(true);
+    const r = await api.campaignResponsesAnon(campaignId, 20, offset);
+    setBusy(false);
+    if (!r.ok) { setError(explainResultsError(r.error)); return; }
+    setError(null);
+    setTotal(r.total);
+    setRows((prev) => (offset ? [...prev, ...r.responses] : r.responses));
+  }
+  // Reload from the top only when the number of answers changes, so each refresh is one audited read, not one per poll.
+  useEffect(() => { void load(0); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [api, campaignId, answered]);
+  return (
+    <Card data-testid="anon-responses">
+      <div className="ui-spread">
+        <h3 className="lv-q-result-title">Individual responses</h3>
+        {total !== null && <Badge>{total} {total === 1 ? "response" : "responses"}</Badge>}
+      </div>
+      <p className="ui-help lv-m0">This survey is anonymous. Each response is shown on its own, in no particular order, with no name, account or time. Opening this list is recorded.</p>
+      {error && <Notice tone="error">{error}</Notice>}
+      {!error && !busy && rows.length === 0 && <p className="ui-muted lv-m0">No responses yet.</p>}
+      <ul className="lv-resp-list">
+        {rows.map((r) => (
+          <li key={r.response_id} className="lv-resp" data-testid="anon-response-row">
+            <div className="lv-resp-head"><strong>Response</strong></div>
+            <dl className="lv-resp-answers">
+              {r.answers.map((a) => {
+                const q = byId.get(a.question_id);
+                return (
+                  <div key={a.question_id}>
+                    <dt>{a.prompt}</dt>
+                    <dd>{q ? summarize(q, a.value) : String(a.value ?? "")}</dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </li>
+        ))}
+      </ul>
+      {busy && <LoadingRows rows={1} label="Loading responses" />}
+      {!busy && total !== null && rows.length < total && (
+        <Button variant="secondary" onClick={() => void load(rows.length)}>Show more</Button>
+      )}
+    </Card>
+  );
+}
+
+function QuestionResult({ campaignId, q, showSeen, answered }: { campaignId: string; q: Question; showSeen: boolean; answered: number | null }) {
+  const { api } = useIdentity();
+  const r = useLv(() => api.analytics(campaignId, "answer_distribution", q.question_id), [api, campaignId, q.question_id, answered]);
   const d = r.data as Extract<AnalyticsResult, { metric: "answer_distribution" }> | null;
   return (
     <Card>

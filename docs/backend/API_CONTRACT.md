@@ -1229,3 +1229,35 @@ lapse falls back, player visibility rules, table closed to API roles). New `Surv
 - `banner_style`: `fill` (the color or gradient) | `pattern` | `logo` (logo only, LunchVoice ink behind it).
 - `cosmetics`: `{ pattern: none|dots|grid|waves, progress_tint: bool, glow: bool }`. Corner style is the existing `button_style`.
 - Save rules: text on a gradient is white, so BOTH colors must reach 4.5:1 on white (`lv_invalid_input` otherwise); a gradient needs `color2` and a first color (or `follow_hub`); unknown angle, banner, pattern or style are refused; a solid theme drops `color2`.
+
+## Live results and individual responses by plan (000053)
+
+Founder decision 2026-11-13: pro users see individual results from guests and signed-in people, and nothing is held back
+for 4 or fewer answers. Entitlement key **`results.instant`** in `lv.plan_limits` (`true` for `team`, `creator_plus`,
+`creator_pro`). It is resolved per survey, server side, as `lv.feature_allowed`: the Hub's active family (Team Hub,
+Campaign Plus) OR the survey creator's own Creator plan (`campaigns.created_by`, else the Hub owner). The app never
+computes it; it reads the flag below. Free Quick Survey, Starter Hub and Campaign Starter keep the waiting rules
+unchanged: anonymous results wait for the survey to finish and for 5 answers; identified results show from the first
+answer except free text (5).
+
+- **`lv_campaign_get` / `lv_guest_campaign_get`** return `campaign.results_instant: boolean`. Managers get it for every
+  survey; a respondent gets it only on an **anonymous** survey (identified surveys always say `false`, so a respondent never
+  learns the creator's plan). The player shows "The creator can see results as they come in." before the first question
+  when it is `true`.
+- **`lv_analytics_query` / `lv_analytics_overview` / `lv_analytics_question`**: where `results.instant` holds they publish
+  totals, distributions, rating means, seen/answered and free text from the first answer, while the survey is live and after
+  it closes, for identified and anonymous surveys: no minimum, no complementary suppression, no frozen population,
+  `texts_withheld: false`. Free text is shuffled and carries no metadata. **Filters on anonymous surveys stay refused**
+  (`lv_invalid_input`) on every plan. `lv_analytics_export` is unchanged (Starter or Team, as before).
+- **`lv_campaign_responses_anon(p_campaign, p_limit default 50, p_offset default 0)`** (authenticated; needs
+  `analytics.read`): `{ ok, total, responses: [{ response_id, answers: [{ question_id, prompt, kind, value }] }] }`.
+  Anonymous surveys only (`lv_not_available` for identified ones: use `lv_campaign_responses`). Without `results.instant`:
+  `lv_entitlement_required` with `error.product = "creator_plus"`. Rows carry **no** account, name, kind, timestamp,
+  receipt id, submission id or arrival order; `response_id` is an opaque 16-character key; order is a stable hash that does
+  not follow submission time; page with `p_offset`. Every call is written to `lv.audit_events`
+  (`campaign.responses_viewed`, `detail.anonymous = true`) and to `lv.analytics_query_log` (`individual_responses`).
+- Identified surveys keep `lv_campaign_responses` (names, `kind: member` shown as Account, `kind: guest` shown as Guest,
+  unverified), unchanged.
+- The REST API `results.get` and `released_participants` go through the same engine, so a Team Hub's results are live there
+  too; the API still never returns free text.
+- A lapsed plan returns the survey to the waiting rules at once (nothing is stored differently).

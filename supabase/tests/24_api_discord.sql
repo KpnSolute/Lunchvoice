@@ -146,8 +146,10 @@ select t.put('c_anon', (lv_api.lv_campaign_create(t.id('hub'), 'Winter social ni
 select t.put('qa_r', (lv_api.lv_campaign_question_add(t.id('c_anon'), 1, 'rating', 'How was it?') ->> 'question_id'));
 select t.put('qa_t', (lv_api.lv_campaign_question_add(t.id('c_anon'), 2, 'text', 'Anything else?') ->> 'question_id'));
 select lv_api.lv_campaign_activate(t.id('c_anon'));
-select t.check('anonymous results are not released while live, through the API too',
-  t.code(t.api(t.get('h1'), 'results.get', jsonb_build_object('campaign_id', t.get('c_anon')))) <> 'ok');
+-- 000053: a Team Hub has results.instant, so even an anonymous survey reports live, through the API too. The waiting
+-- rules (anonymous held until the end and 5 answers) are covered on free and Starter surveys in 53_results_instant.sql.
+select t.check('team hub: anonymous results are live from the first answer, through the API too',
+  t.code(t.api(t.get('h1'), 'results.get', jsonb_build_object('campaign_id', t.get('c_anon')))) = 'ok');
 select t.as_kpn(3);
 select t.as_kpn(n) || t.submit(t.id('c_anon'), t.id('qa_r'), to_jsonb(case when n = 8 then 1 else 5 end), t.id('qa_t'), 'Loved the route ' || n)::text
   from generate_series(3, 8) n;
@@ -155,13 +157,13 @@ select t.as_kpn(1);
 select lv_api.lv_campaign_close(t.id('c_anon'));
 select t.put('ov', lv_api.lv_analytics_overview(t.id('c_anon'))::text);
 select t.put('ra', t.api(t.get('h1'), 'results.get', jsonb_build_object('campaign_id', t.get('c_anon')))::text);
-select t.check('results: the API answers from the same engine (same participant count and withheld rating)',
+select t.check('results: the API answers from the same engine (same participant count and rating cells)',
   (t.get('ra')::jsonb #>> '{participant_count,n}') = (t.get('ov')::jsonb #>> '{participant_count,n}')
-  and (t.get('ra')::jsonb #>> '{questions,0,result,withheld}') = 'true'
+  and (t.get('ra')::jsonb #>> '{questions,0,result,withheld}') = 'false'
   and (t.get('ra')::jsonb #> '{questions,0,result}') = (t.get('ov')::jsonb #> '{questions,0,result}'));
-select t.check('results: withheld stays withheld, never zero (no cells, mean null)',
-  jsonb_array_length(t.get('ra')::jsonb #> '{questions,0,result,cells}') = 0
-  and (t.get('ra')::jsonb #>> '{questions,0,result,summary,mean}') is null);
+select t.check('results: a Team Hub shows its rating cells and mean (results.instant)',
+  jsonb_array_length(t.get('ra')::jsonb #> '{questions,0,result,cells}') = 2
+  and (t.get('ra')::jsonb #>> '{questions,0,result,summary,mean}') is not null);
 select t.check('results: the app shows the free texts, the API never returns an individual answer',
   jsonb_array_length(t.get('ov')::jsonb #> '{questions,1,result,texts}') = 6
   and (t.get('ra')::jsonb #>> '{questions,1,result,texts_omitted}') = 'true'

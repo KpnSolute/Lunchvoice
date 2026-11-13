@@ -47,7 +47,7 @@
       "points": [
         { "title": "Four ways to ask", "body": "A survey for several questions, a poll for one quick choice, a rating for a score, and open feedback for comments. Questions can be ratings, single or multiple choice, yes or no, or short text." },
         { "title": "Three ways in", "body": "Share a link, print the QR code, or read out the six-character code. A link survey can also let guests answer without an account." },
-        { "title": "Anonymous or by name", "body": "You choose before you publish. On an anonymous survey you see totals only, and nobody, including you, can link an answer to a person." },
+        { "title": "Anonymous or by name", "body": "You choose before you publish. On an anonymous survey nobody, including you, can link an answer to a person. Free surveys show totals once the survey closes and 5 people have answered. Live results and individual responses (never with a name or time) start with Creator Plus." },
         { "title": "Start from a template", "body": "Event feedback, a team pulse, a club vote and more. Every question in a template can be edited before you publish." }
       ],
       "planRows": [
