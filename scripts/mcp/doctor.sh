@@ -16,6 +16,7 @@ bad() { printf 'FAIL  %s\n' "$1"; fail=1; }
 if git -C "$ROOT" check-ignore -q .mcp.env 2>/dev/null; then ok ".mcp.env is gitignored"; else bad ".mcp.env is NOT gitignored"; fi
 
 unset SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF SUPABASE_MCP_READ_ONLY SUPABASE_MCP_VERSION
+unset LUNCHVOICE_SUPABASE_ACCESS_TOKEN LUNCHVOICE_SUPABASE_PROJECT_REF LUNCHVOICE_SUPABASE_MCP_READ_ONLY
 errfile="$(mktemp)"
 if ( lv_mcp_load_env ) >/dev/null 2>"$errfile"; then
   ok ".mcp.env exists and is owner-only"
@@ -26,6 +27,10 @@ else
 fi
 rm -f "$errfile"
 lv_mcp_load_env
+
+SUPABASE_ACCESS_TOKEN="${LUNCHVOICE_SUPABASE_ACCESS_TOKEN:-${SUPABASE_ACCESS_TOKEN:-}}"
+SUPABASE_PROJECT_REF="${LUNCHVOICE_SUPABASE_PROJECT_REF:-${SUPABASE_PROJECT_REF:-}}"
+SUPABASE_MCP_READ_ONLY="${LUNCHVOICE_SUPABASE_MCP_READ_ONLY:-${SUPABASE_MCP_READ_ONLY:-true}}"
 
 if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then ok "SUPABASE_ACCESS_TOKEN is set (value not shown)"; else bad "SUPABASE_ACCESS_TOKEN is empty"; exit 1; fi
 

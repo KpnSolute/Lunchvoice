@@ -2,7 +2,7 @@
 # Start the Supabase MCP server for THIS project only (stdio).
 #
 # - Scoped to one project with --project-ref (default: project_id in supabase/config.toml).
-# - Read-only by default. Set SUPABASE_MCP_READ_ONLY=false in .mcp.env to allow writes.
+# - Read-only by default. Set LUNCHVOICE_SUPABASE_MCP_READ_ONLY=false in .mcp.env to allow writes.
 # - Version pinned (override with SUPABASE_MCP_VERSION in .mcp.env). Upgrade deliberately.
 # - The access token comes only from .mcp.env, never from your global environment.
 # Nothing is written to stdout except by the MCP server itself.
@@ -14,10 +14,17 @@ ROOT="$(cd "$HERE/../.." && pwd)"
 
 # Ignore anything inherited from the global shell; only .mcp.env counts.
 unset SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF SUPABASE_MCP_READ_ONLY SUPABASE_MCP_VERSION
+unset LUNCHVOICE_SUPABASE_ACCESS_TOKEN LUNCHVOICE_SUPABASE_PROJECT_REF LUNCHVOICE_SUPABASE_MCP_READ_ONLY
 lv_mcp_load_env
 
+# Accept the Lunchvoice-prefixed names and the original names for compatibility.
+SUPABASE_ACCESS_TOKEN="${LUNCHVOICE_SUPABASE_ACCESS_TOKEN:-${SUPABASE_ACCESS_TOKEN:-}}"
+SUPABASE_PROJECT_REF="${LUNCHVOICE_SUPABASE_PROJECT_REF:-${SUPABASE_PROJECT_REF:-}}"
+SUPABASE_MCP_READ_ONLY="${LUNCHVOICE_SUPABASE_MCP_READ_ONLY:-${SUPABASE_MCP_READ_ONLY:-true}}"
+export SUPABASE_ACCESS_TOKEN
+
 if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
-  echo "[mcp] SUPABASE_ACCESS_TOKEN is empty in .mcp.env." >&2
+  echo "[mcp] LUNCHVOICE_SUPABASE_ACCESS_TOKEN is empty in .mcp.env." >&2
   exit 1
 fi
 
@@ -29,9 +36,9 @@ fi
 
 VERSION="${SUPABASE_MCP_VERSION:-0.13.0}"
 args=("--project-ref=$REF")
-if [ "${SUPABASE_MCP_READ_ONLY:-true}" != "false" ]; then
+if [ "$SUPABASE_MCP_READ_ONLY" != "false" ]; then
   args+=("--read-only")
 fi
 
-echo "[mcp] supabase ${VERSION} project=${REF} read_only=${SUPABASE_MCP_READ_ONLY:-true}" >&2
+echo "[mcp] supabase ${VERSION} project=${REF} read_only=${SUPABASE_MCP_READ_ONLY}" >&2
 exec npx -y "@supabase/mcp-server-supabase@${VERSION}" "${args[@]}"

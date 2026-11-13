@@ -6,6 +6,14 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed (MCP: the KpnIdentity wrapper the tests expect is now committed, 2026-11-13)
+
+- `scripts/mcp/supabase-kpnidentity.sh` (the `kpnauth` server) was referenced by `.mcp.json` and tested by
+  `scripts/mcp.test.mjs` but never committed, so `test:scripts` failed on `main` with exit 127. It is now committed with
+  the matching `supabase.sh`, `doctor.sh` and `.mcp.env.example` changes: the LunchVoice token is
+  `LUNCHVOICE_SUPABASE_ACCESS_TOKEN`, and the KpnIdentity server uses its own `KPNIDENTITY_SUPABASE_ACCESS_TOKEN` and
+  refuses to reuse the primary token. No secret values are committed.
+
 ### Changed
 
 - **Renamed the project MCP servers to `lunchvoice` and `kpnauth`** across every harness config: `.mcp.json` (Claude Code),
