@@ -32,7 +32,7 @@ const MARKETING_ROUTES = new Set([
   "/", "/how-it-works", "/use-cases", "/pricing", "/beta", "/about", "/waitlist",
   "/status", "/terms", "/guidelines", "/privacy", "/support", "/discover", "/products",
 ]);
-const isMarketingRoute = (p: string) => MARKETING_ROUTES.has(p) || p.startsWith("/use-cases/") || p.startsWith("/products/");
+const isMarketingRoute = (p: string) => MARKETING_ROUTES.has(p) || p.startsWith("/use-cases/") || p === "/templates" || p.startsWith("/templates/") || p.startsWith("/products/");
 
 // Account routes get the account shell: header pills on desktop, bottom tabs on phones.
 const isAccountRoute = (p: string) => ["/me", "/join", "/settings", "/create"].includes(p) || p === "/surveys" || p.startsWith("/surveys/");
@@ -45,6 +45,7 @@ const ACCOUNT_TABS = [
 // After the Products menu. The waitlist is the amber header action, so it is not repeated here.
 const MARKETING_LINKS = [
   { to: "/use-cases", label: "Use cases" },
+  { to: "/templates", label: "Templates" },
   { to: "/pricing", label: "Pricing" },
   { to: "/discover", label: "Discover" },
   { to: "/how-it-works", label: "How it works" },

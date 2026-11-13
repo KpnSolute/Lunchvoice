@@ -49,11 +49,56 @@ export function productPage(p) {
   };
 }
 
+const PLAN_LINE = { free: "Free with any account.", plus: "Included with Creator Plus or a Starter Hub.", pro: "Included with Creator Pro or a Team Hub." };
+export const categorySlug = (c) => c.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const noun = (n) => (n === 1 ? "question" : "questions");
+
+/**
+ * The public template gallery: /templates, one page per category and one per template, all from templates.json (the
+ * file the app reads too). Mirrored in src/ui/Seo.tsx; scripts/seo-prerender.test.mjs checks the two agree.
+ */
+export function templatePages(templates) {
+  const cats = [...new Set(templates.map((t) => t.category))];
+  return [
+    {
+      path: "/templates",
+      title: `${templates.length} survey templates for any group`,
+      description: `Browse ${templates.length} ready-made survey templates in ${cats.length} categories. Preview every question, then use one for free or with Creator Plus and Pro.`,
+      h1: "Survey templates",
+      body: `Ready-made surveys for customers, teams, events, schools, dining, communities and more. ${cats.join(", ")}.`,
+      changefreq: "weekly",
+      priority: 0.7,
+    },
+    ...cats.map((c) => {
+      const inCat = templates.filter((t) => t.category === c);
+      return {
+        path: `/templates/${categorySlug(c)}`,
+        title: `${c} survey templates`,
+        description: `${inCat.length} ready-made ${c.toLowerCase()} survey templates. Preview every question, then use one and change anything you like.`,
+        h1: `${c} survey templates`,
+        body: inCat.map((t) => `${t.name}: ${t.blurb}`).join(" "),
+        changefreq: "monthly",
+        priority: 0.6,
+      };
+    }),
+    ...templates.map((t) => ({
+      path: `/templates/${t.slug}`,
+      title: `${t.name} survey template`,
+      description: `${t.blurb} ${t.questions.length} ${noun(t.questions.length)}, ${t.anonymity === "identified" ? "identified" : "anonymous"}. ${PLAN_LINE[t.plan]} Preview it, then edit anything.`,
+      h1: `${t.name} survey template`,
+      body: `${t.intro} Questions: ${t.questions.map((q) => q.prompt).join(" ")}`,
+      changefreq: "monthly",
+      priority: 0.5,
+    })),
+  ];
+}
+
 export function loadSeo(root = ".") {
   const seo = JSON.parse(readFileSync(join(root, "src/config/seo.json"), "utf8"));
   const { useCases } = JSON.parse(readFileSync(join(root, "src/config/useCases.json"), "utf8"));
   const { products } = JSON.parse(readFileSync(join(root, "src/config/products.json"), "utf8"));
-  return { ...seo, pages: [...seo.pages, ...products.map(productPage), ...useCases.map((u) => useCasePage(u, null))], useCases, products };
+  const { templates } = JSON.parse(readFileSync(join(root, "src/config/templates.json"), "utf8"));
+  return { ...seo, pages: [...seo.pages, ...products.map(productPage), ...useCases.map((u) => useCasePage(u, null)), ...templatePages(templates)], useCases, products, templates };
 }
 
 export function escapeHtml(s) {

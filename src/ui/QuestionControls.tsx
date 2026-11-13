@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Icon } from "../components/Icon";
 import type { Question } from "../lib/lvApi";
+import { CORE_KINDS, FACE_LABELS, agreeLabels } from "../lib/questionKinds";
+import { KindInput, type UploadResult } from "./KindControls";
 
 /**
  * The five answer modes as accessible controls. Selection is the pressed amber surface plus a glyph change,
@@ -32,7 +34,13 @@ export const MAX_TEXT = 280;
 /** A playful word for each rating. Shown only to the person answering; never a result. */
 export const RATING_WORDS = ["", "Not great", "Meh", "Okay", "Good", "Loved it!"];
 
-export function QuestionInput({ q, value, onChange }: { q: Question; value: unknown; onChange: (v: unknown) => void }) {
+/** One question's answer control: the five core kinds here, the v2 kinds (000047) in KindControls.tsx. */
+export function QuestionInput({ q, value, onChange, upload }: { q: Question; value: unknown; onChange: (v: unknown) => void; upload?: (file: File) => Promise<UploadResult> }) {
+  if (!(CORE_KINDS as readonly string[]).includes(q.kind)) return <KindInput q={q} value={value} onChange={onChange} upload={upload} />;
+  return <CoreInput q={q} value={value} onChange={onChange} />;
+}
+
+function CoreInput({ q, value, onChange }: { q: Question; value: unknown; onChange: (v: unknown) => void }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const jelly = useJelly(value);
   const options = (q.config?.options as string[] | undefined) ?? [];
@@ -180,6 +188,17 @@ export function summarize(q: Question, value: unknown): string {
   if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return "Skipped";
   if (q.kind === "rating") return `${value} of 5`;
   if (q.kind === "yes_no") return value ? "Yes" : "No";
+  if (q.kind === "face_scale") return FACE_LABELS[Number(value) - 1] ?? String(value);
+  if (q.kind === "nps") return `${value} of 10`;
+  if (q.kind === "agree_scale") return agreeLabels(q.config)[Number(value) - 1] ?? String(value);
+  if (q.kind === "ranking" && Array.isArray(value)) return value.map((v, i) => `${i + 1}. ${v}`).join(", ");
+  if (q.kind === "agree_grid" && typeof value === "object") return `${Object.keys(value as object).length} statements rated`;
+  if (q.kind === "before_after" && typeof value === "object") return `Before ${(value as { before: number }).before}, now ${(value as { after: number }).after}`;
+  if (q.kind === "contact" && typeof value === "object") return Object.values(value as Record<string, string>).join(", ");
+  if (q.kind === "file_upload" && typeof value === "object") return (value as { name: string }).name;
+  if (q.kind === "consent") return "Agreed";
+  if (q.kind === "signature") return `Signed: ${value}`;
+  if (q.kind === "price_ladder") return value === "none" ? "None of these" : String(value);
   if (Array.isArray(value)) return value.join(", ");
   return String(value);
 }

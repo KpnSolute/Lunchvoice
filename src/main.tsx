@@ -7,6 +7,7 @@ import { AuthCallback, RequireSignIn, Shell, SignIn } from "./pages/Public";
 import { Landing } from "./pages/Landing";
 import { About, Beta, Discover, Guidelines, HowItWorks, NotFoundPage, Privacy, Status, Support, Terms, UseCases } from "./pages/Marketing";
 import { UseCasePage } from "./pages/UseCasePage";
+import { TemplateGallery, TemplateRoute } from "./pages/TemplateGallery";
 import { ProductPage, Products } from "./pages/Products";
 import { CreateHub, Join, Me, RedeemInvite, Settings } from "./pages/Account";
 import { Pricing } from "./pages/Pricing";
@@ -29,6 +30,7 @@ import "./ui/shadcn.css";
 import "./index.css";
 import "./ui/ui.css";
 import "./ui/app.css";
+import "./ui/questionkinds.css";
 import "./ui/hub.css";
 import "./ui/motion.css";
 import "./styles/system.css";
@@ -52,6 +54,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="how-it-works" element={<HowItWorks />} />
             <Route path="use-cases" element={<UseCases />} />
             <Route path="use-cases/:slug" element={<UseCasePage />} />
+            <Route path="templates" element={<TemplateGallery />} />
+            <Route path="templates/:slug" element={<TemplateRoute />} />
             <Route path="products" element={<Products />} />
             <Route path="products/:slug" element={<ProductPage />} />
             <Route path="pricing" element={<Pricing />} />

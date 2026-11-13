@@ -1,3 +1,4 @@
+import { kindConfigProblem, type AnyKind, type PlanTier } from "./questionKinds";
 import { accentHex, normalizePalette, type AccentOption } from "./accent";
 // Typed client for the v2 `lv_api` functions. Shapes follow docs/backend/API_CONTRACT.md and the launch contract in
 // docs/v2/LAUNCH_PLAN.md ("API contract"). Every expected application failure arrives as {ok:false,error}.
@@ -205,7 +206,7 @@ export interface Role {
 export type CampaignMode = "survey" | "poll" | "rating" | "feedback";
 export type Anonymity = "anonymous" | "identified";
 export type CampaignStatus = "draft" | "active" | "paused" | "closed" | "archived";
-export type QuestionKind = "rating" | "single_choice" | "multi_choice" | "yes_no" | "text";
+export type QuestionKind = AnyKind; // the five core kinds (000003) and the v2 set (000047), see questionKinds.ts
 export type SurveyAccess = "link" | "invite";
 
 export interface CampaignRow {
@@ -509,6 +510,8 @@ export function createLvApi(transport: LvTransport) {
     campaignGet: (campaign: string) => call<CampaignDetailData>("lv_campaign_get", { p_campaign: campaign }),
     campaignCreate: (hub: string, title: string, mode: CampaignMode, anonymity: Anonymity = "anonymous") =>
       call<{ campaign_id: string }>("lv_campaign_create", { p_hub: hub, p_title: title, p_mode: mode, p_anonymity: anonymity }),
+    /** 000047: which question types this person can add (to one survey, or overall). */
+    kindTier: (campaign?: string) => call<{ tier: PlanTier; quiz: boolean }>("lv_kind_tier", { p_campaign: campaign ?? null }),
     questionAdd: (campaign: string, position: number, kind: QuestionKind, prompt: string, config: object = {}) =>
       call<{ question_id: string }>("lv_campaign_question_add", {
         p_campaign: campaign,
@@ -655,6 +658,17 @@ export function createLvApi(transport: LvTransport) {
     ...integrationsApi(call),
     /* ---- end track D ---- */
     ...brandingApi(transport, call), // survey branding (000043)
+    /** 000047: store a file for a file-upload answer in the private bucket, under <survey>/<me>/. Signed-in people only. */
+    uploadAnswerFile: async (campaign: string, file: File): Promise<{ ok: boolean; path?: string; message?: string }> => {
+      if (!transport.storage) return { ok: false, message: "Uploads are not available here." };
+      const me = await call<MyContext>("lv_my_context");
+      if (!me.ok) return { ok: false, message: "Sign in to attach a file." };
+      const safe = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-").replace(/^-+|-+$/g, "").slice(-60) || "file";
+      const rand = Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, "0")).join("");
+      const path = `${campaign}/${me.account_id}/${rand}-${safe}`;
+      const r = await transport.storage.upload("survey-uploads", path, file, file.type);
+      return r.ok ? { ok: true, path } : { ok: false, message: r.message };
+    },
   };
 }
 
@@ -702,7 +716,7 @@ export interface OwnerOffer {
 /** The rule lv.question_config_problem (000018) enforces, shared by the editor and the dev mock. */
 export function questionConfigProblem(kind: string, config: unknown): string | null {
   if (config !== null && config !== undefined && (typeof config !== "object" || Array.isArray(config))) return "Question settings must be an object.";
-  if (kind !== "single_choice" && kind !== "multi_choice") return null;
+  if (kind !== "single_choice" && kind !== "multi_choice") return kindConfigProblem(kind, config);
   const c = (config ?? {}) as { options?: unknown; max?: unknown };
   if (!Array.isArray(c.options) || c.options.length < 2 || c.options.length > 10) return "A choice question needs 2 to 10 options.";
   if (c.options.some((o) => typeof o !== "string" || !o.trim())) return "Every option needs text.";
@@ -711,7 +725,7 @@ export function questionConfigProblem(kind: string, config: unknown): string | n
   if (new Set(opts.map((o) => o.trim().toLowerCase())).size < opts.length) return "Options must all be different.";
   if (c.max !== undefined && c.max !== null && (typeof c.max !== "number" || !Number.isInteger(c.max) || c.max < 1 || c.max > opts.length))
     return "The most choices a person can pick must be between 1 and the number of options.";
-  return null;
+  return kindConfigProblem(kind, config);
 }
 
 /** A 32-character hex link token (LC-10) rather than a 6-character join code. */

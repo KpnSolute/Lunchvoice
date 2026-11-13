@@ -2,6 +2,8 @@
 // publish (lv_campaign_activate / lv_campaign_schedule) and its answer always wins. Messages are exact so people
 // know what to fix; the section tells the Studio where to send them.
 
+import { kindConfigProblem, OPTION_KINDS } from "./questionKinds";
+
 export type StudioSection = "details" | "questions" | "audience" | "schedule" | "review";
 
 export interface ReadinessIssue {
@@ -34,6 +36,9 @@ export interface ReadinessInput {
 export const MIN_OPTIONS = 2;
 export const MAX_OPTIONS = 10;
 export const isChoice = (kind: string) => kind === "single_choice" || kind === "multi_choice";
+/** Every kind whose settings hold an options list (000047 adds dropdown, ranking and image choice). */
+export const hasOptions = (kind: string) => (OPTION_KINDS as readonly string[]).includes(kind);
+const MOST_OPTIONS: Record<string, number> = { dropdown: 50, image_choice: 6, ranking: 10 };
 
 export function readiness(input: ReadinessInput): ReadinessIssue[] {
   const issues: ReadinessIssue[] = [];
@@ -48,13 +53,17 @@ export function readiness(input: ReadinessInput): ReadinessIssue[] {
   input.questions.forEach((q, i) => {
     const n = i + 1;
     if (!q.prompt.trim()) issues.push({ key: `q${n}-prompt`, message: `Question ${n} needs a question text.`, section: "questions" });
-    if (!isChoice(q.kind)) return;
+    if (!hasOptions(q.kind)) {
+      const bad = kindConfigProblem(q.kind, q.config);
+      if (bad) issues.push({ key: `q${n}-settings`, message: `Question ${n}: ${bad}`, section: "questions" });
+      return;
+    }
     const raw = q.config.options ?? [];
     const options = raw.map((o) => o.trim());
     const filled = options.filter(Boolean);
     if (filled.length < MIN_OPTIONS) issues.push({ key: `q${n}-options`, message: `Question ${n} needs at least two options.`, section: "questions" });
     if (options.some((o) => !o)) issues.push({ key: `q${n}-empty`, message: `Question ${n} has an empty option.`, section: "questions" });
-    if (filled.length > MAX_OPTIONS) issues.push({ key: `q${n}-many`, message: `Question ${n} has more than ${MAX_OPTIONS} options.`, section: "questions" });
+    if (filled.length > (MOST_OPTIONS[q.kind] ?? MAX_OPTIONS)) issues.push({ key: `q${n}-many`, message: `Question ${n} has more than ${MOST_OPTIONS[q.kind] ?? MAX_OPTIONS} options.`, section: "questions" });
     const seen = new Set<string>();
     if (filled.some((o) => { const k = o.toLowerCase(); if (seen.has(k)) return true; seen.add(k); return false; }))
       issues.push({ key: `q${n}-dupe`, message: `Question ${n} has the same option twice.`, section: "questions" });

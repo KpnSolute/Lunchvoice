@@ -96,6 +96,291 @@ services:
         source: /guidelines
         destination: /guidelines/index.html
       - type: rewrite
+        source: /templates
+        destination: /templates/index.html
+      - type: rewrite
+        source: /templates/events
+        destination: /templates/events/index.html
+      - type: rewrite
+        source: /templates/teams-and-work
+        destination: /templates/teams-and-work/index.html
+      - type: rewrite
+        source: /templates/decisions
+        destination: /templates/decisions/index.html
+      - type: rewrite
+        source: /templates/community
+        destination: /templates/community/index.html
+      - type: rewrite
+        source: /templates/customers
+        destination: /templates/customers/index.html
+      - type: rewrite
+        source: /templates/education
+        destination: /templates/education/index.html
+      - type: rewrite
+        source: /templates/dining
+        destination: /templates/dining/index.html
+      - type: rewrite
+        source: /templates/clubs-and-groups
+        destination: /templates/clubs-and-groups/index.html
+      - type: rewrite
+        source: /templates/product-and-research
+        destination: /templates/product-and-research/index.html
+      - type: rewrite
+        source: /templates/health-and-wellbeing
+        destination: /templates/health-and-wellbeing/index.html
+      - type: rewrite
+        source: /templates/forms
+        destination: /templates/forms/index.html
+      - type: rewrite
+        source: /templates/fun
+        destination: /templates/fun/index.html
+      - type: rewrite
+        source: /templates/event-feedback
+        destination: /templates/event-feedback/index.html
+      - type: rewrite
+        source: /templates/team-pulse
+        destination: /templates/team-pulse/index.html
+      - type: rewrite
+        source: /templates/group-decision
+        destination: /templates/group-decision/index.html
+      - type: rewrite
+        source: /templates/suggestion-box
+        destination: /templates/suggestion-box/index.html
+      - type: rewrite
+        source: /templates/service-feedback
+        destination: /templates/service-feedback/index.html
+      - type: rewrite
+        source: /templates/meeting-feedback
+        destination: /templates/meeting-feedback/index.html
+      - type: rewrite
+        source: /templates/employee-survey
+        destination: /templates/employee-survey/index.html
+      - type: rewrite
+        source: /templates/committee-vote
+        destination: /templates/committee-vote/index.html
+      - type: rewrite
+        source: /templates/member-questionnaire
+        destination: /templates/member-questionnaire/index.html
+      - type: rewrite
+        source: /templates/menu-feedback
+        destination: /templates/menu-feedback/index.html
+      - type: rewrite
+        source: /templates/recommendation-check
+        destination: /templates/recommendation-check/index.html
+      - type: rewrite
+        source: /templates/support-satisfaction
+        destination: /templates/support-satisfaction/index.html
+      - type: rewrite
+        source: /templates/product-feedback
+        destination: /templates/product-feedback/index.html
+      - type: rewrite
+        source: /templates/training-evaluation
+        destination: /templates/training-evaluation/index.html
+      - type: rewrite
+        source: /templates/onboarding-checkin
+        destination: /templates/onboarding-checkin/index.html
+      - type: rewrite
+        source: /templates/event-rsvp
+        destination: /templates/event-rsvp/index.html
+      - type: rewrite
+        source: /templates/speaker-feedback
+        destination: /templates/speaker-feedback/index.html
+      - type: rewrite
+        source: /templates/volunteer-interest
+        destination: /templates/volunteer-interest/index.html
+      - type: rewrite
+        source: /templates/neighbourhood-priorities
+        destination: /templates/neighbourhood-priorities/index.html
+      - type: rewrite
+        source: /templates/feature-vote
+        destination: /templates/feature-vote/index.html
+      - type: rewrite
+        source: /templates/csat-survey
+        destination: /templates/csat-survey/index.html
+      - type: rewrite
+        source: /templates/nps-survey
+        destination: /templates/nps-survey/index.html
+      - type: rewrite
+        source: /templates/customer-effort-score
+        destination: /templates/customer-effort-score/index.html
+      - type: rewrite
+        source: /templates/post-purchase-feedback
+        destination: /templates/post-purchase-feedback/index.html
+      - type: rewrite
+        source: /templates/website-feedback
+        destination: /templates/website-feedback/index.html
+      - type: rewrite
+        source: /templates/cancellation-reasons
+        destination: /templates/cancellation-reasons/index.html
+      - type: rewrite
+        source: /templates/voice-of-the-customer
+        destination: /templates/voice-of-the-customer/index.html
+      - type: rewrite
+        source: /templates/employee-engagement
+        destination: /templates/employee-engagement/index.html
+      - type: rewrite
+        source: /templates/enps
+        destination: /templates/enps/index.html
+      - type: rewrite
+        source: /templates/exit-survey
+        destination: /templates/exit-survey/index.html
+      - type: rewrite
+        source: /templates/manager-feedback
+        destination: /templates/manager-feedback/index.html
+      - type: rewrite
+        source: /templates/feedback-360
+        destination: /templates/feedback-360/index.html
+      - type: rewrite
+        source: /templates/remote-work-check
+        destination: /templates/remote-work-check/index.html
+      - type: rewrite
+        source: /templates/wellbeing-pulse
+        destination: /templates/wellbeing-pulse/index.html
+      - type: rewrite
+        source: /templates/start-stop-continue
+        destination: /templates/start-stop-continue/index.html
+      - type: rewrite
+        source: /templates/belonging-inclusion
+        destination: /templates/belonging-inclusion/index.html
+      - type: rewrite
+        source: /templates/shift-preferences
+        destination: /templates/shift-preferences/index.html
+      - type: rewrite
+        source: /templates/event-registration
+        destination: /templates/event-registration/index.html
+      - type: rewrite
+        source: /templates/conference-feedback
+        destination: /templates/conference-feedback/index.html
+      - type: rewrite
+        source: /templates/event-ideas
+        destination: /templates/event-ideas/index.html
+      - type: rewrite
+        source: /templates/concert-feedback
+        destination: /templates/concert-feedback/index.html
+      - type: rewrite
+        source: /templates/webinar-feedback
+        destination: /templates/webinar-feedback/index.html
+      - type: rewrite
+        source: /templates/course-evaluation
+        destination: /templates/course-evaluation/index.html
+      - type: rewrite
+        source: /templates/student-satisfaction
+        destination: /templates/student-satisfaction/index.html
+      - type: rewrite
+        source: /templates/parent-survey
+        destination: /templates/parent-survey/index.html
+      - type: rewrite
+        source: /templates/exit-ticket
+        destination: /templates/exit-ticket/index.html
+      - type: rewrite
+        source: /templates/instructor-feedback
+        destination: /templates/instructor-feedback/index.html
+      - type: rewrite
+        source: /templates/campus-dining
+        destination: /templates/campus-dining/index.html
+      - type: rewrite
+        source: /templates/school-event-feedback
+        destination: /templates/school-event-feedback/index.html
+      - type: rewrite
+        source: /templates/alumni-survey
+        destination: /templates/alumni-survey/index.html
+      - type: rewrite
+        source: /templates/quick-visit-rating
+        destination: /templates/quick-visit-rating/index.html
+      - type: rewrite
+        source: /templates/menu-vote
+        destination: /templates/menu-vote/index.html
+      - type: rewrite
+        source: /templates/dietary-preferences
+        destination: /templates/dietary-preferences/index.html
+      - type: rewrite
+        source: /templates/table-qr-feedback
+        destination: /templates/table-qr-feedback/index.html
+      - type: rewrite
+        source: /templates/catering-feedback
+        destination: /templates/catering-feedback/index.html
+      - type: rewrite
+        source: /templates/food-waste-check
+        destination: /templates/food-waste-check/index.html
+      - type: rewrite
+        source: /templates/volunteer-feedback
+        destination: /templates/volunteer-feedback/index.html
+      - type: rewrite
+        source: /templates/donor-feedback
+        destination: /templates/donor-feedback/index.html
+      - type: rewrite
+        source: /templates/residents-survey
+        destination: /templates/residents-survey/index.html
+      - type: rewrite
+        source: /templates/local-issues-poll
+        destination: /templates/local-issues-poll/index.html
+      - type: rewrite
+        source: /templates/community-needs
+        destination: /templates/community-needs/index.html
+      - type: rewrite
+        source: /templates/library-venue-feedback
+        destination: /templates/library-venue-feedback/index.html
+      - type: rewrite
+        source: /templates/program-impact
+        destination: /templates/program-impact/index.html
+      - type: rewrite
+        source: /templates/club-satisfaction
+        destination: /templates/club-satisfaction/index.html
+      - type: rewrite
+        source: /templates/coach-feedback
+        destination: /templates/coach-feedback/index.html
+      - type: rewrite
+        source: /templates/group-poll
+        destination: /templates/group-poll/index.html
+      - type: rewrite
+        source: /templates/officer-election
+        destination: /templates/officer-election/index.html
+      - type: rewrite
+        source: /templates/feature-requests
+        destination: /templates/feature-requests/index.html
+      - type: rewrite
+        source: /templates/beta-feedback
+        destination: /templates/beta-feedback/index.html
+      - type: rewrite
+        source: /templates/concept-test
+        destination: /templates/concept-test/index.html
+      - type: rewrite
+        source: /templates/design-test
+        destination: /templates/design-test/index.html
+      - type: rewrite
+        source: /templates/price-sensitivity
+        destination: /templates/price-sensitivity/index.html
+      - type: rewrite
+        source: /templates/brand-awareness
+        destination: /templates/brand-awareness/index.html
+      - type: rewrite
+        source: /templates/clinic-experience
+        destination: /templates/clinic-experience/index.html
+      - type: rewrite
+        source: /templates/gym-class-feedback
+        destination: /templates/gym-class-feedback/index.html
+      - type: rewrite
+        source: /templates/interest-waitlist
+        destination: /templates/interest-waitlist/index.html
+      - type: rewrite
+        source: /templates/application-form
+        destination: /templates/application-form/index.html
+      - type: rewrite
+        source: /templates/consent-form
+        destination: /templates/consent-form/index.html
+      - type: rewrite
+        source: /templates/request-form
+        destination: /templates/request-form/index.html
+      - type: rewrite
+        source: /templates/this-or-that
+        destination: /templates/this-or-that/index.html
+      - type: rewrite
+        source: /templates/scored-quiz
+        destination: /templates/scored-quiz/index.html
+      - type: rewrite
+        source: /templates/trivia-night
+        destination: /templates/trivia-night/index.html
+      - type: rewrite
         source: /use-cases/anonymous-employee-survey
         destination: /use-cases/anonymous-employee-survey/index.html
       - type: rewrite

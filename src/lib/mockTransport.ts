@@ -1,5 +1,6 @@
 import { isLinkToken, questionConfigProblem, type LvTransport, type Question, type SectionConfig } from "./lvApi";
 import { rulesProblem } from "./sections";
+import { answerKeys, answerValueProblem, IDENTIFIED_ONLY, isKnownKind, kindInfo, PLAN_PRODUCT, tierAllows, tierOf, type PlanTier } from "./questionKinds"; // question types (000047)
 import { walk } from "./logic";
 import { slugProblem } from "./reservedSlugs";
 import { ACCENTS } from "./accent";
@@ -114,6 +115,8 @@ function load(name: string): State {
     if (seed === "team") { seedDemo(state, false); for (const e of state.ents) if (e.scope === "hub") e.family = "team"; }
     // "creator": the demo plus a Creator Plus plan on the person (000041), so Quick Surveys can use sections.
     if (seed === "creator") { seedDemo(state, false); state.me.creator = "creator_plus"; }
+    // "creatorpro": the demo plus a Creator Pro plan on the person (000041/000047), so every question type is open.
+    if (seed === "creatorpro") { seedDemo(state, false); state.me.creator = "creator_pro"; }
     /* ---- end track D ---- */
   } catch { /* ignore */ }
   return state;
@@ -161,6 +164,33 @@ function windowProblem(opens: string | null, closes: string | null): string | nu
 }
 // 000042: the Quick Survey question limit for this person (their Creator plan or free).
 const qLimit = (s: State) => (s.me.creator === "creator_pro" ? 100 : s.me.creator === "creator_plus" ? 30 : LIMITS.free.quick_survey_questions);
+// 000047: answer files (bucket survey-uploads). The dev mock keeps nothing: it checks the path and size, then says ok.
+function uploadsStorage<T extends { upload(bucket: string, path: string, file: Blob, contentType: string): Promise<{ ok: boolean; message?: string }> }>(inner: T, authed: () => boolean): T {
+  return {
+    ...inner,
+    async upload(bucket: string, path: string, file: Blob, contentType: string) {
+      if (bucket !== "survey-uploads") return inner.upload(bucket, path, file, contentType);
+      if (!authed()) return { ok: false, message: "new row violates row-level security policy" };
+      if (!/^[^/]+\/[^/]+\/[0-9a-f]{8,}-[a-z0-9.-]+$/.test(path)) return { ok: false, message: "Invalid object name." };
+      return file.size > 10 * 1024 * 1024 ? { ok: false, message: "The object exceeded the maximum allowed size" } : { ok: true };
+    },
+  };
+}
+// 000047: the question types this person may add here: their Creator plan or, in a Hub, the Hub's family.
+function kindTier(s: State, hubId?: string): PlanTier {
+  const hubFam = hubId && s.hubs.find((x) => x.hub_id === hubId)?.kind === "community" ? activeFamily(s, hubId) : null;
+  return tierOf(hubFam, s.me.creator ?? null);
+}
+// lv.quick_question_guard (000047): plan gate and the identity rule. Returns an error envelope or null.
+function kindGuard(s: State, c: C, kind: string | null) {
+  if (kind === null) return null;
+  if (!isKnownKind(kind)) return err("lv_invalid_input", "That question type does not exist.");
+  const need = kindInfo(kind)!.plan;
+  if (!tierAllows(kindTier(s, c.hub_id), need))
+    return err("lv_entitlement_required", need === "plus" ? "This question type starts with Creator Plus or a Starter Hub." : "This question type starts with Creator Pro or a Team Hub.", { product: PLAN_PRODUCT[need], feature: "survey.kinds", kind });
+  if (IDENTIFIED_ONLY.includes(kind as never) && c.anonymity === "anonymous") return err("lv_invalid_input", "This question type collects who someone is, so it needs an identified survey.");
+  return null;
+}
 // lv.feature_allowed (000041): the Hub's active family or the person's Creator plan.
 function featureAllowed(s: State, hubId: string): boolean {
   return activeFamily(s, hubId) !== "free" || !!s.me.creator;
@@ -182,7 +212,7 @@ function valueProblem(q: Q, v: unknown): string | null {
       return typeof cfg.max === "number" && v.length > cfg.max ? `choose at most ${cfg.max} options` : null;
     case "yes_no": return typeof v === "boolean" ? null : "answer yes or no";
     case "text": return typeof v !== "string" ? "a text answer must be text" : v.length > 280 ? "keep a text answer to 280 characters" : null;
-    default: return null;
+    default: return answerValueProblem(q.kind, q.config, v); // the v2 kinds (000047)
   }
 }
 // lv.validate_answers (000017, sections 000041): required unless optional or hidden; never an answer to a hidden question.
@@ -294,7 +324,7 @@ export function createMockTransport(displayName = "Dana", signedIn: () => boolea
       await new Promise((res) => setTimeout(res, 60));
       return r;
     },
-    storage: mockBrandingStorage(() => brandingCtx(load(displayName)), signedIn, save), // survey branding (000043)
+    storage: uploadsStorage(mockBrandingStorage(() => brandingCtx(load(displayName)), signedIn, save), signedIn), // survey branding (000043), answer files (000047)
     /* ---- track B: commerce ---- */
     async invoke(fn, body) {
       const s = load(displayName);
@@ -360,6 +390,13 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
   /* ---- end track D ---- */
   switch (fn) {
     /* ---------------- context and entitlements ---------------- */
+    case "lv_kind_tier": {
+      const c = a.p_campaign ? camp(a.p_campaign) : null;
+      if (a.p_campaign && !c) return err("lv_not_found", "No such survey.");
+      const best = c ? kindTier(s, c.hub_id) : tierOf(null, s.me.creator ?? null);
+      const hubBest = c ? best : s.hubs.filter((h) => h.kind === "community" && h.members.some((m) => m.account_id === "mock-account" && m.status === "accepted")).map((h) => kindTier(s, h.hub_id)).reduce<PlanTier>((x, y) => (tierAllows(x, y) ? x : y), best);
+      return { ok: true, tier: hubBest, quiz: hubBest === "pro" };
+    }
     case "lv_my_context": {
       const answered = s.campaigns.filter((c) => c.mine_answered);
       return {
@@ -666,7 +703,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       const c = camp(a.p_campaign);
       if (!c) return err("lv_not_found", "Campaign not found");
       if (c.status !== "draft" && !(c.status === "paused" && c.responses.length === 0)) return err("lv_locked", "Questions cannot change once a Campaign has answers or has been closed");
-      if (!CORE_KINDS.includes(String(a.p_kind))) return err("lv_invalid_input", "That question kind isn't available");
+      if (!isKnownKind(String(a.p_kind))) return err("lv_invalid_input", "That question kind isn't available");
       if (isPersonal(s, c) && c.questions.length >= qLimit(s))
         return err("lv_limit_reached", `Quick Surveys have up to ${qLimit(s)} questions`, { limit: qLimit(s), used: c.questions.length });
       if (!String(a.p_prompt ?? "").trim()) return err("lv_invalid_input", "A question needs a prompt.");
@@ -682,7 +719,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (!c || !q) return err("lv_not_found", "Question not found");
       if (c.status !== "draft" && !(c.status === "paused" && c.responses.length === 0)) return err("lv_locked", "Questions cannot change once a Campaign has answers or has been closed");
       if (a.p_prompt != null && !String(a.p_prompt).trim()) return err("lv_invalid_input", "A question needs a prompt.");
-      if (a.p_kind != null && !CORE_KINDS.includes(String(a.p_kind))) return err("lv_invalid_input", "That question kind isn't available");
+      if (a.p_kind != null && !isKnownKind(String(a.p_kind))) return err("lv_invalid_input", "That question kind isn't available");
       if (a.p_position != null && c.questions.some((x) => x !== q && x.position === Number(a.p_position)))
         return err("lv_conflict", "Another question already has that position");
       if (a.p_prompt != null) q.prompt = String(a.p_prompt).trim();
@@ -994,10 +1031,12 @@ function distribution(c: C, questionId: string) {
   for (const opt of (q?.config as { options?: string[] })?.options ?? []) counts.set(opt, 0);
   if (q?.kind === "rating") for (const k of ["1", "2", "3", "4", "5"]) counts.set(k, 0);
   if (q?.kind === "yes_no") for (const k of ["true", "false"]) counts.set(k, 0);
+  if (q?.kind === "nps") for (let k = 0; k <= 10; k++) counts.set(String(k), 0);
+  if (q?.kind === "face_scale") for (let k = 1; k <= 5; k++) counts.set(String(k), 0);
   for (const r of c.responses)
     for (const x of r.answers)
       if (x.question_id === questionId)
-        for (const v of Array.isArray(x.value) ? x.value : [x.value]) counts.set(String(v), (counts.get(String(v)) ?? 0) + 1);
+        for (const v of q && !CORE_KINDS.includes(q.kind) ? answerKeys(q.kind, x.value) : Array.isArray(x.value) ? x.value : [x.value]) counts.set(String(v), (counts.get(String(v)) ?? 0) + 1);
   const shown = [...counts].filter(([, k]) => k >= MIN_COHORT).map(([key, k]) => ({ key, n: k, suppressed: false, reason: null }));
   const hidden = [...counts].some(([, k]) => k > 0 && k < MIN_COHORT) || (shown.length > 0 && shown.length < counts.size);
   return hidden ? [...shown, { key: "withheld", n: null, suppressed: true, reason: "below_min_cohort" }] : shown;
@@ -1080,6 +1119,8 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
     case "lv_campaign_question_add": {
       // Same order as the backend: the Quick Survey size guard first, then the option rule, then the body.
       const c = camp(a.p_campaign);
+      const gated = c ? kindGuard(s, c, String(a.p_kind)) : null;
+      if (gated) return gated;
       if (c && isPersonal(s, c) && c.questions.length >= qLimit(s)) return base();
       const bad = questionConfigProblem(String(a.p_kind), a.p_config ?? {});
       if (bad && c) return err("lv_invalid_input", bad);
@@ -1091,6 +1132,10 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
     case "lv_campaign_question_update": {
       const c = s.campaigns.find((x) => x.questions.some((q) => q.question_id === a.p_question));
       const q = c?.questions.find((x) => x.question_id === a.p_question);
+      const gated = c && a.p_kind != null ? kindGuard(s, c, String(a.p_kind)) : null;
+      if (gated) return gated;
+      if (c && q && a.p_config != null && (q.config as { quiz?: unknown }).quiz === undefined && (a.p_config as { quiz?: unknown }).quiz && !tierAllows(kindTier(s, c.hub_id), "pro"))
+        return err("lv_entitlement_required", "Quiz scoring starts with Creator Pro or a Team Hub.", { product: "creator_pro", feature: "survey.quiz" });
       if (q && (a.p_kind != null || a.p_config != null)) {
         const bad = questionConfigProblem(String(a.p_kind ?? q.kind), a.p_config ?? q.config);
         if (bad) return err("lv_invalid_input", bad);

@@ -109,7 +109,7 @@ export function Pricing() {
         <div className="lv-mk-grid">
           <Card>
             <strong>Free Quick Survey</strong>
-            <p className="lv-mk-card-body">{SURVEY_TEMPLATES.length} templates for feedback, votes, questionnaires, RSVPs and more. Free with any account.</p>
+            <p className="lv-mk-card-body">{SURVEY_TEMPLATES.filter((t) => t.plan === "free").length} free templates for feedback, votes, questionnaires, RSVPs and more, and {SURVEY_TEMPLATES.length} in all with the paid question types.</p>
             <ul className="lv-price-list">
               {SURVEY_TEMPLATES.slice(0, 5).map((t) => <li key={t.id}><Icon name="check" size={15} />{t.name}</li>)}
             </ul>

@@ -1,0 +1,82 @@
+/* ---------- Question types (000047) ----------
+   Controls for the v2 answer types. Same tokens and surfaces as the five core controls in ui.css; no new values. */
+.lv-kc-wrap { display: flex; flex-direction: column; gap: 10px; }
+.lv-kc-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.lv-kc-pick { font: inherit; color: inherit; cursor: pointer; }
+.lv-kc-pick:focus-visible, .lv-kc-field:focus-visible, .lv-kc-range:focus-visible, .lv-kc-file:focus-within { outline: 2px solid var(--lv-focus); outline-offset: 3px; }
+
+/* faces and the 0-10 / 1-N number scales share the round control surface */
+.lv-kc-faces, .lv-kc-nps, .lv-kc-scale { display: flex; flex-wrap: wrap; gap: 8px; }
+.lv-kc-faces .lv-kc-pick, .lv-kc-nps .lv-kc-pick, .lv-kc-scale .lv-kc-pick {
+  min-width: 44px; min-height: 44px; border-radius: 999px; border: var(--lv-control-border); display: grid; place-items: center;
+  background: var(--lv-raised-bg); box-shadow: var(--lv-raised-shadow); color: var(--lv-text); font: 600 16px/1 var(--lv-font-ui);
+  transition: transform var(--lv-dur-press) var(--lv-ease-spring), box-shadow var(--lv-dur-press) var(--lv-ease-spring);
+}
+.lv-kc-faces .lv-kc-pick { min-width: 56px; min-height: 56px; }
+.lv-kc-faces .lv-kc-pick[data-on='true'], .lv-kc-nps .lv-kc-pick[data-on='true'], .lv-kc-scale .lv-kc-pick[data-on='true'] {
+  background: var(--lv-pressed-bg); box-shadow: var(--lv-pressed-shadow); color: var(--lv-on-accent); transform: scale(1.05);
+}
+.lv-kc-pick:active { transform: scale(0.94, 0.88); }
+.lv-kc-nps .lv-kc-pick { flex: 1 0 calc((100% - 5 * 8px) / 6); }
+.lv-kc-scale .lv-kc-pick { flex: 1 0 44px; }
+.lv-kc-ends { display: flex; justify-content: space-between; gap: 12px; font: 400 13px/1.3 var(--lv-font-ui); color: var(--lv-muted); }
+.lv-kc-big { font: 800 32px/1 var(--lv-font-display); letter-spacing: -0.03em; }
+
+/* text-like fields */
+.lv-kc-field {
+  width: 100%; min-height: 52px; padding: 12px 16px; border: var(--lv-control-border); border-radius: var(--lv-radius-field);
+  background: var(--lv-well); box-shadow: var(--lv-well-shadow); color: var(--lv-text); font: 400 16px/1.4 var(--lv-font-ui);
+}
+.lv-kc-select { appearance: auto; }
+.lv-kc-sign { font: italic 500 22px/1.3 var(--lv-font-display); }
+.lv-kc-unit { display: flex; align-items: center; gap: 10px; }
+.lv-kc-unit-tag { font: 700 14px/1 var(--lv-font-mono); color: var(--lv-muted); }
+.lv-kc-labelled { display: flex; flex-direction: column; gap: 6px; }
+.lv-kc-labelled > label { font: 600 14px/1.2 var(--lv-font-ui); }
+
+/* slider */
+.lv-kc-slider-top { display: flex; align-items: baseline; gap: 12px; min-height: 36px; }
+.lv-kc-range { width: 100%; min-height: 44px; accent-color: var(--lv-accent); cursor: pointer; }
+.lv-kc-range[data-touched='false'] { opacity: 0.6; }
+
+/* ranking */
+.lv-kc-rank { font: 800 14px/1 var(--lv-font-mono); }
+.lv-option[aria-checked='true'] .lv-kc-rank { color: var(--lv-accent); }
+
+/* image choice */
+.lv-kc-images { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.lv-kc-images .lv-kc-pick {
+  display: flex; flex-direction: column; gap: 8px; padding: 8px; border: var(--lv-control-border); border-radius: 18px; min-height: 44px; text-align: left;
+  background: var(--lv-raised-bg); box-shadow: var(--lv-raised-shadow); color: var(--lv-text);
+}
+.lv-kc-images .lv-kc-pick[data-on='true'] { background: var(--lv-pressed-bg); box-shadow: var(--lv-pressed-shadow); color: var(--lv-on-accent); }
+.lv-kc-img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; background: var(--lv-well); display: block; }
+.lv-kc-img-label { font: 600 15px/1.3 var(--lv-font-ui); display: flex; gap: 6px; align-items: center; }
+
+/* grids and before/after */
+.lv-kc-grid { display: flex; flex-direction: column; gap: 14px; }
+.lv-kc-gridrow { margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.lv-kc-gridrow > legend { padding: 0; font: 600 15px/1.35 var(--lv-font-ui); margin-bottom: 8px; }
+
+/* file */
+.lv-kc-file { cursor: pointer; }
+
+/* editor */
+.lv-kc-settings { display: flex; flex-direction: column; gap: 14px; }
+.lv-kc-statement { min-height: 96px; }
+.lv-kc-checks { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.lv-kc-check { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font: 500 15px/1.3 var(--lv-font-ui); cursor: pointer; }
+.lv-kc-check input { width: 20px; height: 20px; accent-color: var(--lv-accent); }
+.lv-kc-lock { display: inline-flex; align-items: center; gap: 4px; font: 600 12px/1 var(--lv-font-ui); color: var(--lv-muted); }
+
+/* template gallery */
+.lv-tg-search { max-width: 480px; }
+.lv-tg-cats { display: flex; flex-wrap: wrap; gap: 8px; }
+.lv-tg-chip {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: var(--lv-radius-pill); border: var(--lv-control-border);
+  background: var(--lv-raised-bg); box-shadow: var(--lv-raised-shadow); color: var(--lv-text); font: 500 14px/1 var(--lv-font-ui); text-decoration: none;
+}
+.lv-tg-chip[aria-current='page'] { background: var(--lv-pressed-bg); box-shadow: var(--lv-pressed-shadow); color: var(--lv-on-accent); font-weight: 600; }
+.lv-tg-chip:focus-visible { outline: 2px solid var(--lv-focus); outline-offset: 3px; }
+.lv-tg-preview { display: flex; flex-direction: column; gap: 22px; }
+.lv-tg-q { display: flex; flex-direction: column; gap: 12px; }

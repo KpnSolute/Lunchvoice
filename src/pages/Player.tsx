@@ -11,6 +11,7 @@ import { ReportSurvey } from "./ReportSurvey";
 import { Icon } from "../components/Icon";
 import { describeError } from "../lib/errors";
 import { QuestionInput, summarize } from "../ui/QuestionControls";
+import { answerValueProblem, CORE_KINDS, IDENTIFIED_ONLY } from "../lib/questionKinds"; // v2 question types (000047)
 import { StateScreen } from "../ui/StateScreen";
 import { hasSections, longestPath, sectionsOf, visibleQuestions } from "../lib/sections";
 import { START_SURVEY } from "../lib/billingState";
@@ -62,6 +63,8 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   const q = questions[step];
   const section = q ? sectionStarts.get(q.question_id) : undefined;
   const namesMode: GuestNamesMode = guest && d?.campaign.anonymity === "identified" ? (d.campaign.guest_names ?? "off") : "off";
+  // File answers go to the private bucket and need a signed-in person (guests have no folder of their own).
+  const uploadFile = guest ? undefined : (f: File) => api.uploadAnswerFile(campaignId, f);
   const cleanName = guestName.replace(/\s+/g, " ").trim();
   const nameMissing = namesMode === "required" && !cleanName;
 
@@ -82,14 +85,15 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   }, [draftKey, allQuestions.length]);
 
   useEffect(() => {
-    try { localStorage.setItem(draftKey, JSON.stringify(answers)); } catch { /* ignore */ }
+    // Names, contact details, consent and signatures are not kept on the device between visits.
+    try { localStorage.setItem(draftKey, JSON.stringify(Object.fromEntries(Object.entries(answers).filter(([id]) => !allQuestions.some((x) => x.question_id === id && IDENTIFIED_ONLY.includes(x.kind)))))); } catch { /* ignore */ }
   }, [answers, draftKey]);
 
   async function submit() {
     if (busy) return;
     setBusy(true);
     setError(null);
-    const payload: Answer[] = questions.map((qq) => ({ question_id: qq.question_id, value: answers[qq.question_id] ?? null }));
+    const payload: Answer[] = questions.map((qq) => { const v = answers[qq.question_id] ?? null; return { question_id: qq.question_id, value: v !== null && !(CORE_KINDS as readonly string[]).includes(qq.kind) && answerValueProblem(qq.kind, qq.config, v) ? null : v }; });
     const r = guest ? await api.guestSubmit(guest.joinCode, guest.guestKey, payload, namesMode === "off" ? null : cleanName || null) : await api.submit(campaignId, payload);
     setBusy(false);
     if (r.ok) {
@@ -184,8 +188,11 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   const minutes = Math.max(1, Math.round(planned * 0.3));
   const anonymous = d.campaign.anonymity === "anonymous";
   const answered = (i: number) => {
-    const v = answers[questions[i]!.question_id];
-    return v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0);
+    const q = questions[i]!;
+    const v = answers[q.question_id];
+    const some = v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0);
+    // The v2 kinds are only answered when the whole value is valid (a half-filled grid or contact form is not an answer).
+    return some && ((CORE_KINDS as readonly string[]).includes(q.kind) || answerValueProblem(q.kind, q.config, v) === null);
   };
   // Compliance LC-03: every question is required unless its config says optional; the promises must be true.
   const optional = (i: number) => Boolean((questions[i]?.config as { optional?: boolean } | undefined)?.optional);
@@ -292,7 +299,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
         )}
         <h1 className="lv-q-title">{q?.prompt}</h1>
         <div className="lv-q-controls">
-          {q && <QuestionInput q={q} value={answers[q.question_id]} onChange={(v) => setAnswers((a) => ({ ...a, [q.question_id]: v }))} />}
+          {q && <QuestionInput q={q} value={answers[q.question_id]} onChange={(v) => setAnswers((a) => ({ ...a, [q.question_id]: v }))} upload={uploadFile} />}
         </div>
       </div>
       <div className="lv-player-nav">

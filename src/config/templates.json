@@ -1,0 +1,4924 @@
+{
+ "note": "The template gallery and the Quick Survey picker read this one file (src/config/surveyTemplates.ts, scripts/seo-prerender.mjs). Never rename a published slug. Rules: anonymous unless a template needs to know who answered (those say so on their first line); health templates ask about experience only; dietary options are choices, never allergies; Pro group breakdowns follow the minimum of 5; generic wording, no customer named.",
+ "templates": [
+  {
+   "slug": "event-feedback",
+   "category": "Events",
+   "plan": "free",
+   "name": "Event feedback",
+   "blurb": "How it went, what to keep, what to change.",
+   "title": "How was the event?",
+   "intro": "How it went, what to keep, what to change. Anonymous by default.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "rating",
+     "prompt": "Overall, how was the event?"
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What worked well?",
+     "options": [
+      "Venue",
+      "Schedule",
+      "Speakers or activities",
+      "Food and drink",
+      "People I met",
+      "Value for money"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Would you come to the next one?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What is one thing we should change?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "team-pulse",
+   "category": "Teams and work",
+   "plan": "free",
+   "name": "Team pulse check",
+   "blurb": "A quick, honest read on how the week is going.",
+   "title": "Weekly team pulse",
+   "intro": "A quick, honest read on how the week is going. Anonymous by default.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "rating",
+     "prompt": "How was your week?"
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How is your workload right now?",
+     "options": [
+      "Too light",
+      "About right",
+      "Too heavy"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Do you have what you need to do your job well?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What would make next week better?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "group-decision",
+   "category": "Decisions",
+   "plan": "free",
+   "name": "Pick a time or option",
+   "blurb": "Let the group choose, then see the totals.",
+   "title": "When should we meet?",
+   "intro": "Let the group choose, then see the totals. Anonymous by default.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "single_choice",
+     "prompt": "Which time works best for you?",
+     "options": [
+      "Weekday evening",
+      "Saturday morning",
+      "Saturday afternoon",
+      "Sunday afternoon"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Can you make it if your first choice is not picked?"
+    }
+   ]
+  },
+  {
+   "slug": "suggestion-box",
+   "category": "Community",
+   "plan": "free",
+   "name": "Suggestion box",
+   "blurb": "An open, anonymous place for ideas.",
+   "title": "Got an idea? Tell us.",
+   "intro": "An open, anonymous place for ideas. Anonymous by default.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "text",
+     "prompt": "What is your idea?"
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What is it about?",
+     "options": [
+      "Something we do",
+      "Something we should start",
+      "Something we should stop",
+      "Something else"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Would you help make it happen?"
+    }
+   ]
+  },
+  {
+   "slug": "service-feedback",
+   "category": "Customers",
+   "plan": "free",
+   "name": "Service feedback",
+   "blurb": "For a shop, canteen, class or any service people use.",
+   "title": "How did we do?",
+   "intro": "For a shop, canteen, class or any service people use. Anonymous by default.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "rating",
+     "prompt": "Overall, how was your visit?"
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What stood out?",
+     "options": [
+      "Quality",
+      "Speed",
+      "Friendliness",
+      "Value",
+      "Cleanliness",
+      "Choice"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How often do you use us?",
+     "options": [
+      "First time",
+      "Occasionally",
+      "Weekly",
+      "Most days"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything else we should know?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "meeting-feedback",
+   "category": "Teams and work",
+   "plan": "free",
+   "name": "Meeting or workshop feedback",
+   "blurb": "Find out if the session was worth everyone's time.",
+   "title": "How useful was this session?",
+   "intro": "Find out if the session was worth everyone's time. Anonymous by default.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "rating",
+     "prompt": "How useful was this session?"
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How was the pace?",
+     "options": [
+      "Too slow",
+      "About right",
+      "Too fast"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Did you leave with a clear next step?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What should we do differently next time?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "employee-survey",
+   "category": "Teams and work",
+   "plan": "free",
+   "name": "Anonymous employee survey",
+   "blurb": "Honest feedback with no names attached.",
+   "title": "Employee feedback survey",
+   "intro": "Honest feedback with no names attached. Anonymous by default.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "rating",
+     "prompt": "Overall, how satisfied are you working here?"
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How likely are you to still be here in a year?",
+     "options": [
+      "Very likely",
+      "Likely",
+      "Unsure",
+      "Unlikely"
+     ]
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "Which of these would improve your work most?",
+     "options": [
+      "Clearer priorities",
+      "Better tools",
+      "More flexibility",
+      "Recognition",
+      "Training and growth",
+      "Communication from leadership"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Do you feel comfortable raising concerns?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What is one thing we should start, stop or change?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "committee-vote",
+   "category": "Decisions",
+   "plan": "free",
+   "name": "Club or committee vote",
+   "blurb": "A one-person-one-vote ballot for a decision or a chair.",
+   "title": "Committee vote",
+   "intro": "A one-person-one-vote ballot for a decision or a chair. Anonymous by default.",
+   "anonymity": "anonymous",
+   "access": "invite",
+   "questions": [
+    {
+     "kind": "single_choice",
+     "prompt": "Which candidate do you vote for?",
+     "options": [
+      "Candidate A",
+      "Candidate B",
+      "Candidate C",
+      "Abstain"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Do you approve the proposed budget for next year?"
+    }
+   ]
+  },
+  {
+   "slug": "member-questionnaire",
+   "category": "Community",
+   "plan": "free",
+   "name": "Member questionnaire",
+   "blurb": "Learn what your members want before you plan.",
+   "title": "Member questionnaire",
+   "intro": "Learn what your members want before you plan. Anonymous by default.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "multi_choice",
+     "prompt": "Which activities interest you?",
+     "options": [
+      "Social events",
+      "Workshops",
+      "Volunteering",
+      "Sports or outdoors",
+      "Fundraising",
+      "Online meetups"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How often can you take part?",
+     "options": [
+      "Weekly",
+      "Monthly",
+      "A few times a year",
+      "Rarely"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What time suits you best?",
+     "options": [
+      "Weekday mornings",
+      "Weekday evenings",
+      "Weekends",
+      "No preference"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Would you like to help organise something?"
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything else we should know?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "menu-feedback",
+   "category": "Customers",
+   "plan": "free",
+   "name": "Menu and dining feedback",
+   "blurb": "For canteens, cafés and catered events.",
+   "title": "How was the food?",
+   "intro": "For canteens, cafés and catered events. Anonymous by default.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "rating",
+     "prompt": "How was your meal today?"
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What should we serve more of?",
+     "options": [
+      "Hot meals",
+      "Vegetarian or vegan",
+      "Healthier options",
+      "Snacks",
+      "Breakfast",
+      "Drinks"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How was the portion size?",
+     "options": [
+      "Too small",
+      "About right",
+      "Too big"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Would you recommend it to a friend?"
+    },
+    {
+     "kind": "text",
+     "prompt": "Any dish we should bring back or drop?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "recommendation-check",
+   "category": "Customers",
+   "plan": "free",
+   "name": "Would you recommend us?",
+   "blurb": "A quick loyalty check with the reason behind the score.",
+   "title": "Would you recommend us?",
+   "intro": "A quick loyalty check with the reason behind the score. Anonymous by default.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "rating",
+     "prompt": "How likely are you to recommend us to a friend?"
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What is the main reason for your score?",
+     "options": [
+      "Quality",
+      "Price",
+      "Service",
+      "Convenience",
+      "Something else"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "What is one thing we could do better?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "support-satisfaction",
+   "category": "Customers",
+   "plan": "free",
+   "name": "Support satisfaction",
+   "blurb": "Was the problem solved, and how fast?",
+   "title": "How was the help you received?",
+   "intro": "Was the problem solved, and how fast? Anonymous by default.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "rating",
+     "prompt": "How satisfied are you with the help you received?"
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Was your issue resolved?"
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How long did it take?",
+     "options": [
+      "Under an hour",
+      "Same day",
+      "A few days",
+      "Longer"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything we could have done better?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "product-feedback",
+   "category": "Customers",
+   "plan": "free",
+   "name": "Product or app feedback",
+   "blurb": "What works, what is missing.",
+   "title": "Tell us about the product",
+   "intro": "What works, what is missing. Anonymous by default.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "rating",
+     "prompt": "How satisfied are you with the product overall?"
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What do you like most?",
+     "options": [
+      "Setup",
+      "Everyday use",
+      "Speed",
+      "Design",
+      "Price",
+      "Support"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Does it do what you expected?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What is missing?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "training-evaluation",
+   "category": "Teams and work",
+   "plan": "free",
+   "name": "Training evaluation",
+   "blurb": "Was the course worth it, and will people use it?",
+   "title": "How was the training?",
+   "intro": "Was the course worth it, and will people use it? Anonymous by default.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "rating",
+     "prompt": "How useful was the training?"
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How was the length?",
+     "options": [
+      "Too short",
+      "About right",
+      "Too long"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Will you use what you learned?"
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What would improve it?",
+     "options": [
+      "More examples",
+      "More practice time",
+      "Better materials",
+      "The trainer",
+      "The pace",
+      "The venue or tools"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "Any other comments?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "onboarding-checkin",
+   "category": "Teams and work",
+   "plan": "free",
+   "name": "New starter check-in",
+   "blurb": "Find out how a new person is settling in.",
+   "title": "How are you settling in?",
+   "intro": "Find out how a new person is settling in. Anonymous by default.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "rating",
+     "prompt": "How welcome do you feel?"
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Do you know who to ask for help?"
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What would help you settle in?",
+     "options": [
+      "A buddy",
+      "Clearer tasks",
+      "Training",
+      "More introductions",
+      "Tools and access"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything we should know?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "event-rsvp",
+   "category": "Events",
+   "plan": "free",
+   "name": "Event RSVP",
+   "blurb": "Who is coming, with how many, and what they need.",
+   "title": "Will you join us?",
+   "intro": "Identified survey: we record who answers. Who is coming, with how many, and what they need. We record who answers so you can follow up.",
+   "anonymity": "identified",
+   "questions": [
+    {
+     "kind": "single_choice",
+     "prompt": "Will you attend?",
+     "options": [
+      "Yes",
+      "Maybe",
+      "No"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How many people are coming with you?",
+     "options": [
+      "Just me",
+      "1 more",
+      "2 more",
+      "3 or more"
+     ]
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "Any dietary needs?",
+     "options": [
+      "Vegetarian",
+      "Vegan",
+      "Gluten-free",
+      "Nut-free",
+      "None"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything we should know?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "speaker-feedback",
+   "category": "Events",
+   "plan": "free",
+   "name": "Speaker or session feedback",
+   "blurb": "Was the content right, and would people come back?",
+   "title": "How was the session?",
+   "intro": "Was the content right, and would people come back? Anonymous by default.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "rating",
+     "prompt": "How was the session?"
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Was the content right for you?",
+     "options": [
+      "Too basic",
+      "About right",
+      "Too advanced"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Would you attend another session by this speaker?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What would you add or change?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "volunteer-interest",
+   "category": "Community",
+   "plan": "free",
+   "name": "Volunteer interest",
+   "blurb": "Who can help, with what, and how much time.",
+   "title": "Could you help out?",
+   "intro": "Identified survey: we record who answers. Who can help, with what, and how much time. We record who answers so you can follow up.",
+   "anonymity": "identified",
+   "questions": [
+    {
+     "kind": "multi_choice",
+     "prompt": "Where could you help?",
+     "options": [
+      "Setting up",
+      "Welcoming people",
+      "Social media",
+      "Fundraising",
+      "Driving or logistics",
+      "Clearing up"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How much time could you give?",
+     "options": [
+      "An hour or two",
+      "A few hours a month",
+      "A few hours a week",
+      "Not sure yet"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything else you would like us to know?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "neighbourhood-priorities",
+   "category": "Community",
+   "plan": "free",
+   "name": "Neighbourhood priorities",
+   "blurb": "What residents want looked at first.",
+   "title": "What should we focus on?",
+   "intro": "What residents want looked at first. Anonymous by default.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "rating",
+     "prompt": "How would you rate the neighbourhood today?"
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What should we focus on first? Pick up to 3.",
+     "options": [
+      "Safety",
+      "Cleanliness",
+      "Traffic and parking",
+      "Green space",
+      "Events",
+      "Noise"
+     ],
+     "max": 3
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Would you come to a community meeting about it?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What is one thing you would change?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "feature-vote",
+   "category": "Decisions",
+   "plan": "free",
+   "name": "Priority vote",
+   "blurb": "Let people pick what to do first.",
+   "title": "What should we do first?",
+   "intro": "Let people pick what to do first. Anonymous by default.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "multi_choice",
+     "prompt": "Which would you use most? Pick up to 3.",
+     "options": [
+      "Option A",
+      "Option B",
+      "Option C",
+      "Option D",
+      "Option E"
+     ],
+     "max": 3
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything we missed?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "csat-survey",
+   "category": "Customers",
+   "plan": "free",
+   "name": "Customer satisfaction (CSAT)",
+   "blurb": "One score for how happy people were, plus the reason.",
+   "title": "How satisfied were you?",
+   "intro": "Five quick questions. Anonymous, so people can be straight with you.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "face_scale",
+     "prompt": "How satisfied are you with us today?"
+    },
+    {
+     "kind": "face_scale",
+     "prompt": "How satisfied are you with how quickly we helped?"
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What mattered most?",
+     "options": [
+      "Quality",
+      "Speed",
+      "Friendliness",
+      "Price",
+      "Easy to use"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Did we do what you expected?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What is one thing we should change?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "nps-survey",
+   "category": "Customers",
+   "plan": "plus",
+   "name": "Net Promoter Score (NPS)",
+   "blurb": "How likely people are to recommend you, scored automatically.",
+   "title": "Would you recommend us?",
+   "intro": "Anonymous. Results show your NPS: the share who would recommend minus the share who would not.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "nps",
+     "prompt": "How likely are you to recommend us to a friend or colleague?",
+     "config": {
+      "low_label": "Not at all likely",
+      "high_label": "Extremely likely"
+     }
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What is the main reason for your score?",
+     "options": [
+      "Quality",
+      "Price",
+      "Service",
+      "Ease of use",
+      "Reliability",
+      "Something else"
+     ],
+     "max": 2
+    },
+    {
+     "kind": "text",
+     "prompt": "What is one thing we could do better?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "customer-effort-score",
+   "category": "Customers",
+   "plan": "plus",
+   "name": "Customer effort score",
+   "blurb": "How easy was it to get what they came for?",
+   "title": "How easy was that?",
+   "intro": "Three questions about effort. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "agree_scale",
+     "prompt": "It was easy to get what I needed.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What got in the way?",
+     "options": [
+      "Nothing",
+      "Finding information",
+      "Waiting",
+      "Too many steps",
+      "Unclear instructions",
+      "Something else"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "What would have made it easier?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "post-purchase-feedback",
+   "category": "Customers",
+   "plan": "free",
+   "name": "Post-purchase feedback",
+   "blurb": "Check how buying went, while it is fresh.",
+   "title": "How was your purchase?",
+   "intro": "Four questions, about a minute. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "rating",
+     "prompt": "How was buying from us?"
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How did you find us?",
+     "options": [
+      "A friend told me",
+      "Search",
+      "Social media",
+      "Walked past",
+      "Something else"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Was everything as described?"
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything we could do better?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "website-feedback",
+   "category": "Customers",
+   "plan": "free",
+   "name": "Website feedback",
+   "blurb": "Find out what is hard to find or confusing.",
+   "title": "Tell us about our website",
+   "intro": "Four questions about the site. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "face_scale",
+     "prompt": "How easy was our website to use?"
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What did you come to do?",
+     "options": [
+      "Find information",
+      "Buy something",
+      "Get support",
+      "Look around",
+      "Something else"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Did you find it?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What is missing or confusing?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "cancellation-reasons",
+   "category": "Customers",
+   "plan": "plus",
+   "name": "Cancellation reasons",
+   "blurb": "Learn why people leave, and what might bring them back.",
+   "title": "Why are you leaving?",
+   "intro": "Four questions, all optional where it counts. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "dropdown",
+     "prompt": "What is the main reason you are leaving?",
+     "options": [
+      "Too expensive",
+      "Missing a feature",
+      "Hard to use",
+      "Switching to another option",
+      "I no longer need it",
+      "Poor support",
+      "Something else"
+     ]
+    },
+    {
+     "kind": "ranking",
+     "prompt": "Rank what would have kept you.",
+     "options": [
+      "Lower price",
+      "More features",
+      "Better support",
+      "Easier to use"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Would you consider coming back?"
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything else you want us to know?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "voice-of-the-customer",
+   "category": "Customers",
+   "plan": "pro",
+   "name": "Voice of the customer (quarterly)",
+   "blurb": "A longer check-in you can repeat every quarter and watch the trend.",
+   "title": "Voice of the customer",
+   "intro": "Ten questions, repeated each quarter so you can compare. Anonymous. Results by group show only when at least 5 people answered.",
+   "anonymity": "anonymous",
+   "breakdown": true,
+   "questions": [
+    {
+     "kind": "nps",
+     "prompt": "How likely are you to recommend us?",
+     "config": {
+      "low_label": "Not at all likely",
+      "high_label": "Extremely likely"
+     }
+    },
+    {
+     "kind": "agree_grid",
+     "prompt": "How much do you agree?",
+     "config": {
+      "points": 5,
+      "rows": [
+       "Good value for the price",
+       "Easy to work with",
+       "Quick to respond",
+       "Reliable",
+       "I trust them"
+      ]
+     }
+    },
+    {
+     "kind": "ranking",
+     "prompt": "Rank what matters most to you.",
+     "options": [
+      "Quality",
+      "Price",
+      "Speed",
+      "Support",
+      "New features"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How long have you been a customer?",
+     "options": [
+      "Under 6 months",
+      "6 to 12 months",
+      "1 to 3 years",
+      "Over 3 years"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What best describes you?",
+     "options": [
+      "Individual",
+      "Small team",
+      "Company",
+      "Organisation"
+     ]
+    },
+    {
+     "kind": "before_after",
+     "prompt": "How would you rate us then and now?",
+     "config": {
+      "points": 5,
+      "before_label": "A year ago",
+      "after_label": "Now"
+     }
+    },
+    {
+     "kind": "price_ladder",
+     "prompt": "The most you would pay each month before you looked elsewhere?",
+     "config": {
+      "prices": [
+       10,
+       20,
+       30,
+       50,
+       100
+      ],
+      "currency": "USD"
+     }
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What should we build or improve next?",
+     "options": [
+      "Speed",
+      "Integrations",
+      "Reports",
+      "Mobile",
+      "Support",
+      "Price"
+     ],
+     "max": 3
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I would choose us again.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "text",
+     "prompt": "What is the one thing we should do next quarter?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "employee-engagement",
+   "category": "Teams and work",
+   "plan": "pro",
+   "name": "Employee engagement (full)",
+   "blurb": "A full engagement survey: pride, growth, trust and leadership.",
+   "title": "Employee engagement survey",
+   "intro": "Twenty questions, about eight minutes. Anonymous: nobody can link an answer to a person. Results by group show only when at least 5 people answered.",
+   "anonymity": "anonymous",
+   "breakdown": true,
+   "questions": [
+    {
+     "kind": "nps",
+     "prompt": "How likely are you to recommend this as a place to work?",
+     "config": {
+      "low_label": "Not at all",
+      "high_label": "Extremely"
+     }
+    },
+    {
+     "kind": "agree_grid",
+     "prompt": "How much do you agree?",
+     "config": {
+      "points": 5,
+      "rows": [
+       "I know what is expected of me",
+       "I have what I need to do my job well",
+       "My work is recognised",
+       "I am proud of the work we do",
+       "I trust the people I work with"
+      ]
+     }
+    },
+    {
+     "kind": "agree_grid",
+     "prompt": "About leadership, how much do you agree?",
+     "config": {
+      "points": 5,
+      "rows": [
+       "Leaders are clear about the direction",
+       "Leaders listen to staff",
+       "Decisions are explained",
+       "Leaders act on feedback"
+      ]
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I see a future for myself here.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I get the chance to learn and grow.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "My workload is manageable.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I can speak up without worrying.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I feel part of a team.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "My manager supports me.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "Pay and benefits feel fair.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "ranking",
+     "prompt": "Rank what keeps you here.",
+     "options": [
+      "The people",
+      "Pay",
+      "Flexibility",
+      "Growth",
+      "Purpose"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How long have you worked here?",
+     "options": [
+      "Under a year",
+      "1 to 3 years",
+      "3 to 5 years",
+      "Over 5 years"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Where do you mostly work?",
+     "options": [
+      "On site",
+      "Hybrid",
+      "Remote"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which area do you work in?",
+     "options": [
+      "Operations",
+      "Sales or service",
+      "Technology",
+      "Support functions",
+      "Other"
+     ]
+    },
+    {
+     "kind": "slider",
+     "prompt": "How energised do you feel at work most days?",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "min_label": "Drained",
+      "max_label": "Energised"
+     }
+    },
+    {
+     "kind": "before_after",
+     "prompt": "How was morale then and now?",
+     "config": {
+      "points": 5,
+      "before_label": "A year ago",
+      "after_label": "Now"
+     }
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What should we improve first?",
+     "options": [
+      "Communication",
+      "Workload",
+      "Tools",
+      "Recognition",
+      "Training",
+      "Pay"
+     ],
+     "max": 3
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Do you plan to be here in a year?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What is one thing we should start doing?",
+     "optional": true
+    },
+    {
+     "kind": "text",
+     "prompt": "What is one thing we should stop?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "enps",
+   "category": "Teams and work",
+   "plan": "plus",
+   "name": "eNPS",
+   "blurb": "Would your people recommend working here? Two questions.",
+   "title": "Employee Net Promoter Score",
+   "intro": "Two questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "nps",
+     "prompt": "How likely are you to recommend working here to a friend?",
+     "config": {
+      "low_label": "Not at all",
+      "high_label": "Extremely"
+     }
+    },
+    {
+     "kind": "text",
+     "prompt": "What is the main reason for your score?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "exit-survey",
+   "category": "Teams and work",
+   "plan": "plus",
+   "name": "Exit survey",
+   "blurb": "Learn why people leave while they can still tell you.",
+   "title": "Before you go",
+   "intro": "Eight questions, anonymous. Honest answers help the next person.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "dropdown",
+     "prompt": "What is the main reason you are leaving?",
+     "options": [
+      "Pay",
+      "Growth",
+      "My manager",
+      "Workload",
+      "Flexibility",
+      "Culture",
+      "Moving away",
+      "Something else"
+     ]
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I had the tools I needed.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "My manager supported me.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I felt recognised.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "ranking",
+     "prompt": "Rank what would have made you stay.",
+     "options": [
+      "Better pay",
+      "A clear path to grow",
+      "More flexibility",
+      "A better manager",
+      "A lighter workload"
+     ]
+    },
+    {
+     "kind": "nps",
+     "prompt": "How likely are you to recommend working here?",
+     "config": {
+      "low_label": "Not at all",
+      "high_label": "Extremely"
+     }
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Would you ever come back?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What advice would you give us?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "manager-feedback",
+   "category": "Teams and work",
+   "plan": "plus",
+   "name": "Upward manager feedback",
+   "blurb": "Let a team tell their manager what helps and what does not.",
+   "title": "Feedback for my manager",
+   "intro": "Eight questions about one manager. Anonymous, and shown only when at least 5 people answered.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "agree_scale",
+     "prompt": "My manager gives me clear direction.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "My manager listens to me.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "My manager gives useful feedback.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "My manager trusts me to get on with it.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "My manager supports my growth.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "slider",
+     "prompt": "How much of a difference does your manager make to your week?",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "min_label": "A drag",
+      "max_label": "A big help"
+     }
+    },
+    {
+     "kind": "text",
+     "prompt": "What should this manager keep doing?",
+     "optional": true
+    },
+    {
+     "kind": "text",
+     "prompt": "What is one thing this manager could do differently?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "feedback-360",
+   "category": "Teams and work",
+   "plan": "pro",
+   "name": "360 feedback",
+   "blurb": "Collect feedback on one person from the people around them.",
+   "title": "360 feedback",
+   "intro": "Identified survey: we record who answers. Say which person this is about and how you work with them. Your name is recorded for the person running the review.",
+   "anonymity": "identified",
+   "questions": [
+    {
+     "kind": "contact",
+     "prompt": "Your name",
+     "config": {
+      "fields": [
+       "name"
+      ]
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How do you work with this person?",
+     "options": [
+      "Manager",
+      "Peer",
+      "Direct report",
+      "Another team",
+      "Customer or partner"
+     ]
+    },
+    {
+     "kind": "agree_grid",
+     "prompt": "How much do you agree?",
+     "config": {
+      "points": 5,
+      "rows": [
+       "Communicates clearly",
+       "Delivers what they promise",
+       "Works well with others",
+       "Handles pressure well",
+       "Takes feedback well"
+      ]
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I would be glad to work with this person again.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "slider",
+     "prompt": "Overall, how effective are they?",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "min_label": "Not effective",
+      "max_label": "Very effective"
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "They set a good example.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "They help others succeed.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "They make good decisions.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "They are open to other views.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "ranking",
+     "prompt": "Rank their strengths.",
+     "options": [
+      "Delivery",
+      "Communication",
+      "Teamwork",
+      "Leadership",
+      "Problem solving"
+     ]
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What should they work on?",
+     "options": [
+      "Communication",
+      "Planning",
+      "Delegating",
+      "Listening",
+      "Follow-through",
+      "Confidence"
+     ],
+     "max": 2
+    },
+    {
+     "kind": "text",
+     "prompt": "What should this person keep doing?",
+     "optional": true
+    },
+    {
+     "kind": "text",
+     "prompt": "What is one thing they could do differently?",
+     "optional": true
+    },
+    {
+     "kind": "text",
+     "prompt": "Any examples you would like to share?",
+     "optional": true
+    },
+    {
+     "kind": "consent",
+     "prompt": "Consent",
+     "config": {
+      "statement": "I agree my name can be shared with the person running this review."
+     }
+    }
+   ]
+  },
+  {
+   "slug": "remote-work-check",
+   "category": "Teams and work",
+   "plan": "free",
+   "name": "Remote and hybrid work check",
+   "blurb": "How remote and hybrid days are working for people.",
+   "title": "How is remote and hybrid working?",
+   "intro": "Five questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "single_choice",
+     "prompt": "Where do you mostly work?",
+     "options": [
+      "On site",
+      "Hybrid",
+      "Remote"
+     ]
+    },
+    {
+     "kind": "face_scale",
+     "prompt": "How well is this working for you?"
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What is hardest?",
+     "options": [
+      "Staying in touch",
+      "Focus",
+      "Switching off",
+      "Tools",
+      "Feeling part of the team"
+     ],
+     "max": 2
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How many days would you like on site?",
+     "options": [
+      "None",
+      "1 to 2",
+      "3 to 4",
+      "Every day"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "What one change would help most?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "wellbeing-pulse",
+   "category": "Teams and work",
+   "plan": "plus",
+   "name": "Workplace wellbeing pulse",
+   "blurb": "How the workload and the week feel. Experience only.",
+   "title": "How is your week?",
+   "intro": "Six questions about how work feels. We ask about your experience of work, nothing about your health. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "slider",
+     "prompt": "How is your energy at work this week?",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "min_label": "Low",
+      "max_label": "High"
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "My workload this week is manageable.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I was able to take proper breaks.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I feel supported by my team.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What would help most?",
+     "options": [
+      "Fewer meetings",
+      "Clearer priorities",
+      "More flexibility",
+      "More help",
+      "Nothing right now"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything that would make next week better?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "start-stop-continue",
+   "category": "Teams and work",
+   "plan": "free",
+   "name": "Retrospective: start, stop, continue",
+   "blurb": "A simple team retro anyone can answer in a minute.",
+   "title": "Start, stop, continue",
+   "intro": "Three questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "text",
+     "prompt": "What should we start doing?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What should we stop doing?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What should we keep doing?"
+    }
+   ]
+  },
+  {
+   "slug": "belonging-inclusion",
+   "category": "Teams and work",
+   "plan": "pro",
+   "name": "Belonging and inclusion",
+   "blurb": "How included people feel, with results by group.",
+   "title": "Belonging and inclusion",
+   "intro": "Twelve questions about how included you feel here. Anonymous. Results by group show only when at least 5 people answered.",
+   "anonymity": "anonymous",
+   "breakdown": true,
+   "questions": [
+    {
+     "kind": "agree_grid",
+     "prompt": "How much do you agree?",
+     "config": {
+      "points": 5,
+      "rows": [
+       "I feel I belong here",
+       "People like me can succeed here",
+       "I can be myself at work",
+       "My ideas are heard",
+       "People are treated fairly"
+      ]
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I would speak up if I saw something unfair.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "Leaders act on concerns about inclusion.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I have someone at work I can ask for help.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "Everyone is treated with respect here.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "slider",
+     "prompt": "How included do you feel in team decisions?",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "min_label": "Not at all",
+      "max_label": "Fully"
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How long have you been here?",
+     "options": [
+      "Under a year",
+      "1 to 3 years",
+      "Over 3 years"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which team are you in?",
+     "options": [
+      "Team A",
+      "Team B",
+      "Team C",
+      "Team D"
+     ]
+    },
+    {
+     "kind": "before_after",
+     "prompt": "How included did you feel then and now?",
+     "config": {
+      "points": 5,
+      "before_label": "A year ago",
+      "after_label": "Now"
+     }
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What would make the biggest difference?",
+     "options": [
+      "Listening more",
+      "Fairer decisions",
+      "More visible role models",
+      "Flexible ways of working",
+      "Training"
+     ],
+     "max": 2
+    },
+    {
+     "kind": "text",
+     "prompt": "Tell us about a time you felt included.",
+     "optional": true
+    },
+    {
+     "kind": "text",
+     "prompt": "What is one thing that would help you feel more included?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "shift-preferences",
+   "category": "Teams and work",
+   "plan": "free",
+   "name": "Shift and schedule preferences",
+   "blurb": "Find out which shifts and days suit people.",
+   "title": "Which shifts suit you?",
+   "intro": "Three questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "multi_choice",
+     "prompt": "Which shifts could you work?",
+     "options": [
+      "Early",
+      "Day",
+      "Late",
+      "Night",
+      "Weekends"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How many hours would you like each week?",
+     "options": [
+      "Under 10",
+      "10 to 20",
+      "20 to 30",
+      "30 or more"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "Any days you cannot work?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "event-registration",
+   "category": "Events",
+   "plan": "plus",
+   "name": "Event registration form",
+   "blurb": "Names, contact details and what people need.",
+   "title": "Register for the event",
+   "intro": "Identified survey: we record who answers. This form records your name and contact details so we can reach you about the event.",
+   "anonymity": "identified",
+   "questions": [
+    {
+     "kind": "contact",
+     "prompt": "Your details",
+     "config": {
+      "fields": [
+       "name",
+       "email"
+      ]
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which day will you come?",
+     "options": [
+      "Day 1",
+      "Day 2",
+      "Both"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How many people are you registering?",
+     "options": [
+      "Just me",
+      "2",
+      "3",
+      "4 or more"
+     ]
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "Any dietary choices?",
+     "options": [
+      "Vegetarian",
+      "Vegan",
+      "Halal",
+      "Kosher",
+      "Gluten-free",
+      "No preference"
+     ]
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "Anything to help you take part?",
+     "options": [
+      "Step-free access",
+      "A seat near the front",
+      "Large print",
+      "A quiet space",
+      "None"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything else we should know?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "conference-feedback",
+   "category": "Events",
+   "plan": "plus",
+   "name": "Conference feedback",
+   "blurb": "Rate the sessions, speakers and the day as a whole.",
+   "title": "How was the conference?",
+   "intro": "Ten questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "nps",
+     "prompt": "How likely are you to recommend this conference?",
+     "config": {
+      "low_label": "Not at all",
+      "high_label": "Extremely"
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "The sessions were worth my time.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "ranking",
+     "prompt": "Rank what you valued most.",
+     "options": [
+      "Talks",
+      "Networking",
+      "Workshops",
+      "Exhibition",
+      "Food"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which day did you attend?",
+     "options": [
+      "Day 1",
+      "Day 2",
+      "Both"
+     ]
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "The content was relevant to me.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I met people I will stay in touch with.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "slider",
+     "prompt": "How was the pace of the programme?",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "min_label": "Too slow",
+      "max_label": "Too fast"
+     }
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Would you come next year?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What was the best session, and why?",
+     "optional": true
+    },
+    {
+     "kind": "text",
+     "prompt": "What should we change?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "event-ideas",
+   "category": "Events",
+   "plan": "free",
+   "name": "Event planning: what should we do?",
+   "blurb": "Ask your group what they would like to do.",
+   "title": "What should we do?",
+   "intro": "Four questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "multi_choice",
+     "prompt": "What would you like to do?",
+     "options": [
+      "A meal together",
+      "A trip",
+      "A talk",
+      "A game night",
+      "A workshop",
+      "Something outdoors"
+     ],
+     "max": 3
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "When suits you best?",
+     "options": [
+      "Weekday evening",
+      "Saturday",
+      "Sunday",
+      "It depends"
+     ]
+    },
+    {
+     "kind": "number",
+     "prompt": "What is a fair price per person?",
+     "config": {
+      "min": 0,
+      "max": 500,
+      "integer": true,
+      "unit": "USD"
+     }
+    },
+    {
+     "kind": "text",
+     "prompt": "Any other idea?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "concert-feedback",
+   "category": "Events",
+   "plan": "free",
+   "name": "Concert or show feedback",
+   "blurb": "How the show felt for the people who came.",
+   "title": "How was the show?",
+   "intro": "Four questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "face_scale",
+     "prompt": "How was the show?"
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What stood out?",
+     "options": [
+      "The performers",
+      "The sound",
+      "The venue",
+      "The atmosphere",
+      "The price"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Would you come to another?"
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything we should change?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "webinar-feedback",
+   "category": "Events",
+   "plan": "free",
+   "name": "Webinar feedback",
+   "blurb": "Did the session deliver what it promised?",
+   "title": "How was the webinar?",
+   "intro": "Four questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "rating",
+     "prompt": "How useful was the webinar?"
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How was the length?",
+     "options": [
+      "Too short",
+      "About right",
+      "Too long"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Would you join another?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What topic should we cover next?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "course-evaluation",
+   "category": "Education",
+   "plan": "plus",
+   "name": "Course evaluation",
+   "blurb": "How the course, the teaching and the materials worked.",
+   "title": "Course evaluation",
+   "intro": "Ten questions. Anonymous: your instructor sees totals, not names.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "agree_scale",
+     "prompt": "The course was well organised.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "The teaching was clear.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "The materials helped me learn.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "The workload was reasonable.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "The assessments were fair.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "nps",
+     "prompt": "How likely are you to recommend this course?",
+     "config": {
+      "low_label": "Not at all",
+      "high_label": "Extremely"
+     }
+    },
+    {
+     "kind": "slider",
+     "prompt": "How much did you learn?",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "min_label": "Very little",
+      "max_label": "A lot"
+     }
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What helped you most?",
+     "options": [
+      "Lectures",
+      "Discussions",
+      "Readings",
+      "Practice work",
+      "Feedback"
+     ],
+     "max": 2
+    },
+    {
+     "kind": "text",
+     "prompt": "What was the best part?",
+     "optional": true
+    },
+    {
+     "kind": "text",
+     "prompt": "What should change?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "student-satisfaction",
+   "category": "Education",
+   "plan": "plus",
+   "name": "Student satisfaction",
+   "blurb": "How supported and challenged students feel.",
+   "title": "How is it going?",
+   "intro": "Ten questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "agree_scale",
+     "prompt": "I feel safe here.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "face_scale",
+     "prompt": "Overall, how do you feel about school this term?"
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I feel I belong here.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I know how I am doing.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I can talk to an adult here if I need to.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "The work I get is interesting.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "slider",
+     "prompt": "How stressed do you feel about work?",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "min_label": "Not at all",
+      "max_label": "Very"
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which year are you in?",
+     "options": [
+      "Year 1",
+      "Year 2",
+      "Year 3",
+      "Year 4 or above"
+     ]
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What would help most?",
+     "options": [
+      "Smaller classes",
+      "More feedback",
+      "Quiet study space",
+      "Better food",
+      "Clubs and activities"
+     ],
+     "max": 2
+    },
+    {
+     "kind": "text",
+     "prompt": "What is the best thing about being here?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "parent-survey",
+   "category": "Education",
+   "plan": "plus",
+   "name": "Parent survey",
+   "blurb": "How parents and carers feel about communication and support.",
+   "title": "Parent and carer survey",
+   "intro": "Eight questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "agree_scale",
+     "prompt": "I am kept informed about what is happening.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "nps",
+     "prompt": "How likely are you to recommend the school?",
+     "config": {
+      "low_label": "Not at all",
+      "high_label": "Extremely"
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How do you prefer to hear from us?",
+     "options": [
+      "Email",
+      "Text message",
+      "An app",
+      "Letters home",
+      "In person"
+     ]
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I feel welcome at the school.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What would you like more of?",
+     "options": [
+      "Information about learning",
+      "Events",
+      "Parent evenings",
+      "Ways to volunteer"
+     ],
+     "max": 2
+    },
+    {
+     "kind": "ranking",
+     "prompt": "Rank what matters most.",
+     "options": [
+      "Learning",
+      "Wellbeing",
+      "Behaviour",
+      "Communication",
+      "Activities"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "What is one thing we do well?",
+     "optional": true
+    },
+    {
+     "kind": "text",
+     "prompt": "What is one thing we could improve?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "exit-ticket",
+   "category": "Education",
+   "plan": "free",
+   "name": "Class exit ticket",
+   "blurb": "Check what stuck before people leave the room.",
+   "title": "Exit ticket",
+   "intro": "Three questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "face_scale",
+     "prompt": "How well did you follow today?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What is the main thing you learned?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What is still unclear?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "instructor-feedback",
+   "category": "Education",
+   "plan": "plus",
+   "name": "Instructor feedback",
+   "blurb": "Give an instructor useful, specific feedback.",
+   "title": "Feedback for my instructor",
+   "intro": "Six questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "agree_scale",
+     "prompt": "Explanations were clear.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "The pace suited me.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "Questions were welcome.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "slider",
+     "prompt": "How engaging was the instructor?",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "min_label": "Not at all",
+      "max_label": "Very"
+     }
+    },
+    {
+     "kind": "text",
+     "prompt": "What should the instructor keep doing?",
+     "optional": true
+    },
+    {
+     "kind": "text",
+     "prompt": "What could the instructor do differently?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "campus-dining",
+   "category": "Education",
+   "plan": "free",
+   "name": "Campus dining feedback",
+   "blurb": "How the food and the queue feel to students.",
+   "title": "How is dining on campus?",
+   "intro": "Five questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "face_scale",
+     "prompt": "How was the food?"
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How long was the wait?",
+     "options": [
+      "No wait",
+      "Under 5 minutes",
+      "5 to 10 minutes",
+      "Over 10 minutes"
+     ]
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What would you like more of?",
+     "options": [
+      "Hot meals",
+      "Vegetarian choices",
+      "Halal choices",
+      "Healthy options",
+      "Snacks"
+     ],
+     "max": 3
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Is it good value?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What should we change?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "school-event-feedback",
+   "category": "Education",
+   "plan": "free",
+   "name": "School event feedback",
+   "blurb": "How the open day, fair or concert went.",
+   "title": "How was the event?",
+   "intro": "Four questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "face_scale",
+     "prompt": "How was the event?"
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What did you enjoy?",
+     "options": [
+      "The activities",
+      "The performances",
+      "The food",
+      "Seeing friends",
+      "The atmosphere"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Would you come again?"
+    },
+    {
+     "kind": "text",
+     "prompt": "Any idea for next time?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "alumni-survey",
+   "category": "Education",
+   "plan": "pro",
+   "name": "Graduate and alumni survey",
+   "blurb": "Where people went next and how their course helped.",
+   "title": "Graduate and alumni survey",
+   "intro": "Twelve questions. Anonymous. Results by group show only when at least 5 people answered.",
+   "anonymity": "anonymous",
+   "breakdown": true,
+   "questions": [
+    {
+     "kind": "single_choice",
+     "prompt": "What are you doing now?",
+     "options": [
+      "Working",
+      "Studying",
+      "Both",
+      "Looking for work",
+      "Something else"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How long after finishing did it take to find your next step?",
+     "options": [
+      "Before I finished",
+      "Under 3 months",
+      "3 to 6 months",
+      "Over 6 months",
+      "Not applicable"
+     ]
+    },
+    {
+     "kind": "agree_grid",
+     "prompt": "How much do you agree?",
+     "config": {
+      "points": 5,
+      "rows": [
+       "My course prepared me well",
+       "I use what I learned",
+       "I would choose it again",
+       "I felt supported"
+      ]
+     }
+    },
+    {
+     "kind": "nps",
+     "prompt": "How likely are you to recommend the course?",
+     "config": {
+      "low_label": "Not at all",
+      "high_label": "Extremely"
+     }
+    },
+    {
+     "kind": "before_after",
+     "prompt": "How confident were you about your skills then and now?",
+     "config": {
+      "points": 5,
+      "before_label": "When I finished",
+      "after_label": "Now"
+     }
+    },
+    {
+     "kind": "dropdown",
+     "prompt": "Which year did you finish?",
+     "options": [
+      "2025",
+      "2024",
+      "2023",
+      "2022",
+      "2021",
+      "2020",
+      "Earlier"
+     ]
+    },
+    {
+     "kind": "ranking",
+     "prompt": "Rank what helped your career most.",
+     "options": [
+      "Teaching",
+      "Placements",
+      "Networking",
+      "Projects",
+      "Careers advice"
+     ]
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I would like to stay involved with the school.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "How could we help you now?",
+     "options": [
+      "Mentoring",
+      "Events",
+      "Careers support",
+      "Networking",
+      "Short courses"
+     ],
+     "max": 3
+    },
+    {
+     "kind": "slider",
+     "prompt": "How valuable was the course overall?",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "min_label": "Not at all",
+      "max_label": "Very"
+     }
+    },
+    {
+     "kind": "text",
+     "prompt": "What advice would you give to current students?",
+     "optional": true
+    },
+    {
+     "kind": "text",
+     "prompt": "What should we change?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "quick-visit-rating",
+   "category": "Dining",
+   "plan": "free",
+   "name": "Quick visit rating",
+   "blurb": "One tap: how was it?",
+   "title": "How was your visit?",
+   "intro": "One question. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "face_scale",
+     "prompt": "How was your visit today?"
+    }
+   ]
+  },
+  {
+   "slug": "menu-vote",
+   "category": "Dining",
+   "plan": "free",
+   "name": "Menu planning vote",
+   "blurb": "Let diners choose what goes on next week's menu.",
+   "title": "Vote for next week's menu",
+   "intro": "Three questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "multi_choice",
+     "prompt": "Which mains should we serve?",
+     "options": [
+      "Pasta bake",
+      "Chicken curry",
+      "Veggie chili",
+      "Fish and chips",
+      "Stir fry",
+      "Pizza"
+     ],
+     "max": 3
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which soup?",
+     "options": [
+      "Tomato",
+      "Lentil",
+      "Chicken noodle",
+      "Minestrone"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "Any other dish you would love?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "dietary-preferences",
+   "category": "Dining",
+   "plan": "free",
+   "name": "Dietary preferences",
+   "blurb": "Which dietary choices should the menu cover?",
+   "title": "Your dietary choices",
+   "intro": "Three questions about choices, not health. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "multi_choice",
+     "prompt": "Which of these do you choose?",
+     "options": [
+      "Vegetarian",
+      "Vegan",
+      "Halal",
+      "Kosher",
+      "Pescatarian",
+      "Gluten-free",
+      "No preference"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How often do you eat here?",
+     "options": [
+      "Most days",
+      "A few times a week",
+      "Occasionally",
+      "First time"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything we should offer more of?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "table-qr-feedback",
+   "category": "Dining",
+   "plan": "free",
+   "name": "Table QR feedback",
+   "blurb": "A scan-at-the-table check that takes ten seconds.",
+   "title": "How is everything?",
+   "intro": "Three questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "face_scale",
+     "prompt": "How is everything so far?"
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What was great?",
+     "options": [
+      "The food",
+      "The service",
+      "The atmosphere",
+      "The price"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything we should fix?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "catering-feedback",
+   "category": "Dining",
+   "plan": "plus",
+   "name": "Catering feedback",
+   "blurb": "How a catered event went, course by course.",
+   "title": "How was the catering?",
+   "intro": "Six questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "agree_scale",
+     "prompt": "The food tasted good.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "nps",
+     "prompt": "How likely are you to use this caterer again?",
+     "config": {
+      "low_label": "Not at all",
+      "high_label": "Extremely"
+     }
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What would you change?",
+     "options": [
+      "More choice",
+      "Hotter food",
+      "Faster service",
+      "Better labels",
+      "Nothing"
+     ],
+     "max": 2
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "Dietary needs were met well.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "slider",
+     "prompt": "Value for money?",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "min_label": "Poor",
+      "max_label": "Great"
+     }
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything else?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "food-waste-check",
+   "category": "Dining",
+   "plan": "free",
+   "name": "Food waste check",
+   "blurb": "Find out what goes in the bin and why.",
+   "title": "What did you leave?",
+   "intro": "Three questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "single_choice",
+     "prompt": "Did you finish your meal?",
+     "options": [
+      "All of it",
+      "Most of it",
+      "Half",
+      "Very little"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "If you left some, why?",
+     "options": [
+      "Too much",
+      "Did not like it",
+      "Not hungry",
+      "Ran out of time",
+      "I finished"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What portion size would you like?",
+     "options": [
+      "Smaller",
+      "The same",
+      "Bigger"
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "volunteer-feedback",
+   "category": "Community",
+   "plan": "free",
+   "name": "Volunteer feedback",
+   "blurb": "How volunteering feels, and what would keep people coming.",
+   "title": "How was volunteering?",
+   "intro": "Five questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "face_scale",
+     "prompt": "How was your volunteering experience?"
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Did you know what to do?"
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How often would you like to help?",
+     "options": [
+      "Weekly",
+      "Monthly",
+      "A few times a year",
+      "Not sure"
+     ]
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What would help?",
+     "options": [
+      "Clearer tasks",
+      "Training",
+      "A thank-you",
+      "Flexible times",
+      "A buddy"
+     ],
+     "max": 2
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything we should change?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "donor-feedback",
+   "category": "Community",
+   "plan": "plus",
+   "name": "Donor feedback",
+   "blurb": "Why people give, and how you can thank them better.",
+   "title": "Tell us about giving",
+   "intro": "Six questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "nps",
+     "prompt": "How likely are you to recommend us to a friend?",
+     "config": {
+      "low_label": "Not at all",
+      "high_label": "Extremely"
+     }
+    },
+    {
+     "kind": "ranking",
+     "prompt": "Rank why you give.",
+     "options": [
+      "The cause",
+      "A personal link",
+      "Being asked",
+      "Tax benefits",
+      "Seeing results"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How do you like to hear about our work?",
+     "options": [
+      "Email",
+      "Letter",
+      "Social media",
+      "Events",
+      "I do not"
+     ]
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I can see how my gift makes a difference.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "Giving was easy.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "text",
+     "prompt": "What would make you give again?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "residents-survey",
+   "category": "Community",
+   "plan": "plus",
+   "name": "Residents and HOA survey",
+   "blurb": "What residents want fixed, funded and decided.",
+   "title": "Residents survey",
+   "intro": "Eight questions. Anonymous: shared as totals only.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "agree_scale",
+     "prompt": "I feel safe where I live.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "ranking",
+     "prompt": "Rank what to fund first.",
+     "options": [
+      "Repairs",
+      "Landscaping",
+      "Security",
+      "Social events",
+      "Reserve fund"
+     ]
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "Communication from the board is clear.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I would go to a residents' meeting.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How long have you lived here?",
+     "options": [
+      "Under a year",
+      "1 to 5 years",
+      "5 to 10 years",
+      "Over 10 years"
+     ]
+    },
+    {
+     "kind": "slider",
+     "prompt": "Overall, how happy are you living here?",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "min_label": "Unhappy",
+      "max_label": "Very happy"
+     }
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "How should we contact you?",
+     "options": [
+      "Email",
+      "Notice board",
+      "Group chat",
+      "Letter"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "What is one thing we should change?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "local-issues-poll",
+   "category": "Community",
+   "plan": "free",
+   "name": "Environment and local issues poll",
+   "blurb": "What matters most in the neighbourhood right now?",
+   "title": "What matters most to you?",
+   "intro": "Four questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "multi_choice",
+     "prompt": "Which issues matter most? Pick up to 3.",
+     "options": [
+      "Litter",
+      "Traffic",
+      "Green space",
+      "Flooding",
+      "Safety",
+      "Noise",
+      "Recycling"
+     ],
+     "max": 3
+    },
+    {
+     "kind": "face_scale",
+     "prompt": "How do you feel about your area today?"
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Would you join a clean-up?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What is the one thing you would fix?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "community-needs",
+   "category": "Community",
+   "plan": "pro",
+   "name": "Community needs assessment",
+   "blurb": "A thorough look at what a community needs and who is missing out.",
+   "title": "Community needs assessment",
+   "intro": "Fifteen questions. Anonymous. Results by group show only when at least 5 people answered.",
+   "anonymity": "anonymous",
+   "breakdown": true,
+   "questions": [
+    {
+     "kind": "agree_grid",
+     "prompt": "How easy is it to get these?",
+     "config": {
+      "points": 5,
+      "rows": [
+       "Healthy food",
+       "Housing",
+       "Transport",
+       "Childcare",
+       "Green space",
+       "Support services"
+      ]
+     }
+    },
+    {
+     "kind": "ranking",
+     "prompt": "Rank the needs that matter most.",
+     "options": [
+      "Housing",
+      "Jobs",
+      "Transport",
+      "Youth activities",
+      "Support for older people"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which area do you live in?",
+     "options": [
+      "North",
+      "South",
+      "East",
+      "West",
+      "Central"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Who lives in your household?",
+     "options": [
+      "Just me",
+      "Two adults",
+      "Family with children",
+      "Older adults",
+      "Shared house"
+     ]
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I feel part of the community.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I know where to go for help.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "Services are easy to reach.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "My voice is heard locally.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "before_after",
+     "prompt": "How was your area then and now?",
+     "config": {
+      "points": 5,
+      "before_label": "Five years ago",
+      "after_label": "Now"
+     }
+    },
+    {
+     "kind": "slider",
+     "prompt": "How safe do you feel after dark?",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "min_label": "Not safe",
+      "max_label": "Very safe"
+     }
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What would help most?",
+     "options": [
+      "More buses",
+      "A community hub",
+      "Activities for young people",
+      "Better lighting",
+      "More jobs nearby"
+     ],
+     "max": 3
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "How do you hear about local news?",
+     "options": [
+      "Social media",
+      "Newsletter",
+      "Word of mouth",
+      "Notice boards",
+      "Radio"
+     ],
+     "max": 3
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Would you help make a change?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What is the biggest thing missing?",
+     "optional": true
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything else you want to say?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "library-venue-feedback",
+   "category": "Community",
+   "plan": "free",
+   "name": "Library or venue feedback",
+   "blurb": "How a library, hall or centre is working for visitors.",
+   "title": "How is our space?",
+   "intro": "Four questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "face_scale",
+     "prompt": "How was your visit?"
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What did you use?",
+     "options": [
+      "Books",
+      "Study space",
+      "Computers",
+      "Events",
+      "Children's area"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Opening hours suit me.",
+     "options": [
+      "Yes",
+      "Mostly",
+      "No"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "What should we add or change?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "program-impact",
+   "category": "Community",
+   "plan": "pro",
+   "name": "Program impact survey",
+   "blurb": "Show what changed for people after a programme.",
+   "title": "How did the programme help?",
+   "intro": "Twelve questions, with a before and after. Anonymous. Results by group show only when at least 5 people answered.",
+   "anonymity": "anonymous",
+   "breakdown": true,
+   "questions": [
+    {
+     "kind": "before_after",
+     "prompt": "How confident were you about the topic?",
+     "config": {
+      "points": 5,
+      "before_label": "Before the programme",
+      "after_label": "Now"
+     }
+    },
+    {
+     "kind": "before_after",
+     "prompt": "How connected did you feel to others?",
+     "config": {
+      "points": 5,
+      "before_label": "Before the programme",
+      "after_label": "Now"
+     }
+    },
+    {
+     "kind": "agree_grid",
+     "prompt": "How much do you agree?",
+     "config": {
+      "points": 5,
+      "rows": [
+       "I learned something useful",
+       "I met new people",
+       "I would recommend it",
+       "It was easy to take part"
+      ]
+     }
+    },
+    {
+     "kind": "nps",
+     "prompt": "How likely are you to recommend the programme?",
+     "config": {
+      "low_label": "Not at all",
+      "high_label": "Extremely"
+     }
+    },
+    {
+     "kind": "slider",
+     "prompt": "How much has it helped overall?",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "min_label": "Not at all",
+      "max_label": "A great deal"
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I changed something because of it.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "It was worth my time.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How long did you take part?",
+     "options": [
+      "Under a month",
+      "1 to 3 months",
+      "3 to 6 months",
+      "Over 6 months"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which group do you belong to?",
+     "options": [
+      "Group A",
+      "Group B",
+      "Group C",
+      "Other"
+     ]
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What helped most?",
+     "options": [
+      "The leaders",
+      "The other people",
+      "The content",
+      "The place",
+      "The timing"
+     ],
+     "max": 2
+    },
+    {
+     "kind": "text",
+     "prompt": "What changed for you?",
+     "optional": true
+    },
+    {
+     "kind": "text",
+     "prompt": "What should we improve?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "club-satisfaction",
+   "category": "Clubs and groups",
+   "plan": "free",
+   "name": "Club member satisfaction",
+   "blurb": "Are members getting what they joined for?",
+   "title": "How is the club for you?",
+   "intro": "Five questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "face_scale",
+     "prompt": "How happy are you with the club?"
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What do you value most?",
+     "options": [
+      "The people",
+      "The activities",
+      "The location",
+      "The price",
+      "Learning"
+     ],
+     "max": 2
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How often do you come?",
+     "options": [
+      "Every time",
+      "Most times",
+      "Sometimes",
+      "Rarely"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Would you recommend the club?"
+    },
+    {
+     "kind": "text",
+     "prompt": "What would you change?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "coach-feedback",
+   "category": "Clubs and groups",
+   "plan": "free",
+   "name": "Team and coach feedback",
+   "blurb": "Honest feedback for a coach or captain.",
+   "title": "How is the team going?",
+   "intro": "Five questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "face_scale",
+     "prompt": "How are you enjoying it this season?"
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How are the training sessions?",
+     "options": [
+      "Too easy",
+      "About right",
+      "Too hard"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Do you feel included?"
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What would help the team?",
+     "options": [
+      "More practice",
+      "Clearer roles",
+      "Better kit",
+      "More matches",
+      "More fun"
+     ],
+     "max": 2
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything for the coach?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "group-poll",
+   "category": "Clubs and groups",
+   "plan": "free",
+   "name": "Discord community poll",
+   "blurb": "A quick poll for your server or group chat.",
+   "title": "Quick poll",
+   "intro": "Two questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "multi_choice",
+     "prompt": "What should we do next? Pick up to 2.",
+     "options": [
+      "Game night",
+      "Movie night",
+      "Tournament",
+      "Q and A",
+      "Something new"
+     ],
+     "max": 2
+    },
+    {
+     "kind": "text",
+     "prompt": "Any other idea?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "officer-election",
+   "category": "Clubs and groups",
+   "plan": "plus",
+   "name": "Officer election",
+   "blurb": "A private ballot for club officers, with one vote each.",
+   "title": "Officer election",
+   "intro": "Invite-only, one vote per person. Votes are secret: you see totals, not who voted for whom.",
+   "anonymity": "anonymous",
+   "access": "invite",
+   "questions": [
+    {
+     "kind": "single_choice",
+     "prompt": "Who should be president?",
+     "options": [
+      "Candidate A",
+      "Candidate B",
+      "Candidate C",
+      "Abstain"
+     ]
+    },
+    {
+     "kind": "ranking",
+     "prompt": "Rank your choices for treasurer.",
+     "options": [
+      "Candidate A",
+      "Candidate B",
+      "Candidate C"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Do you approve the proposed budget?"
+    }
+   ]
+  },
+  {
+   "slug": "feature-requests",
+   "category": "Product and research",
+   "plan": "plus",
+   "name": "Feature requests and priorities",
+   "blurb": "Find out what people want built first.",
+   "title": "What should we build next?",
+   "intro": "Five questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "ranking",
+     "prompt": "Rank what we should build.",
+     "options": [
+      "Faster",
+      "Integrations",
+      "Reports",
+      "Mobile app",
+      "Templates"
+     ]
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "Which problems do you have today?",
+     "options": [
+      "Hard to find things",
+      "Too slow",
+      "Missing features",
+      "Hard to share",
+      "Price"
+     ],
+     "max": 3
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I would pay for the top feature.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "slider",
+     "prompt": "How much do you need it?",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "min_label": "Nice to have",
+      "max_label": "Essential"
+     }
+    },
+    {
+     "kind": "text",
+     "prompt": "What is missing?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "beta-feedback",
+   "category": "Product and research",
+   "plan": "plus",
+   "name": "Beta tester feedback",
+   "blurb": "What broke, what confused, what delighted.",
+   "title": "Beta feedback",
+   "intro": "Eight questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "agree_scale",
+     "prompt": "It was easy to use.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "nps",
+     "prompt": "How likely are you to recommend this?",
+     "config": {
+      "low_label": "Not at all",
+      "high_label": "Extremely"
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How did you use it?",
+     "options": [
+      "On a phone",
+      "On a laptop",
+      "On both"
+     ]
+    },
+    {
+     "kind": "yes_no",
+     "prompt": "Did anything stop you?"
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "Where did you get stuck?",
+     "options": [
+      "Signing in",
+      "Setup",
+      "Finding things",
+      "Sharing",
+      "Nowhere"
+     ]
+    },
+    {
+     "kind": "slider",
+     "prompt": "How close is it to ready?",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "min_label": "Far",
+      "max_label": "Ready"
+     }
+    },
+    {
+     "kind": "text",
+     "prompt": "What did you like most?",
+     "optional": true
+    },
+    {
+     "kind": "text",
+     "prompt": "What should we fix first?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "concept-test",
+   "category": "Product and research",
+   "plan": "pro",
+   "name": "Concept test",
+   "blurb": "Test an idea before you build it.",
+   "title": "What do you think of this idea?",
+   "intro": "Ten questions. Anonymous. Results by group show only when at least 5 people answered.",
+   "anonymity": "anonymous",
+   "breakdown": true,
+   "questions": [
+    {
+     "kind": "agree_scale",
+     "prompt": "I understand what this is.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "It would solve a problem I have.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "It is different from what I use now.",
+     "config": {
+      "points": 7
+     }
+    },
+    {
+     "kind": "slider",
+     "prompt": "How likely are you to try it?",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "min_label": "Not at all",
+      "max_label": "Definitely"
+     }
+    },
+    {
+     "kind": "price_ladder",
+     "prompt": "The most you would pay each month?",
+     "config": {
+      "prices": [
+       5,
+       10,
+       20,
+       40
+      ],
+      "currency": "USD"
+     }
+    },
+    {
+     "kind": "agree_grid",
+     "prompt": "Rate each part of the idea.",
+     "config": {
+      "points": 5,
+      "rows": [
+       "Name",
+       "Look",
+       "Features",
+       "Price"
+      ]
+     }
+    },
+    {
+     "kind": "ranking",
+     "prompt": "Rank what matters most.",
+     "options": [
+      "Price",
+      "Features",
+      "Design",
+      "Trust",
+      "Support"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Who would use it?",
+     "options": [
+      "Me",
+      "My team",
+      "My family",
+      "Nobody I know"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "What is unclear?",
+     "optional": true
+    },
+    {
+     "kind": "text",
+     "prompt": "What would make you say yes?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "design-test",
+   "category": "Product and research",
+   "plan": "pro",
+   "name": "Logo or design test",
+   "blurb": "Which design do people prefer, and what does it say?",
+   "title": "Which one do you prefer?",
+   "intro": "Four questions. Anonymous. Add your pictures to the first question.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "image_choice",
+     "prompt": "Which design do you prefer?",
+     "options": [
+      "Design A",
+      "Design B",
+      "Design C"
+     ]
+    },
+    {
+     "kind": "agree_grid",
+     "prompt": "How does it come across?",
+     "config": {
+      "points": 5,
+      "rows": [
+       "Friendly",
+       "Trustworthy",
+       "Modern",
+       "Memorable"
+      ]
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What would you expect from it?",
+     "options": [
+      "A budget option",
+      "A reliable choice",
+      "A premium choice",
+      "Not sure"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "What would you change?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "price-sensitivity",
+   "category": "Product and research",
+   "plan": "pro",
+   "name": "Price sensitivity",
+   "blurb": "Find the price where people say yes, and where they stop.",
+   "title": "What would you pay?",
+   "intro": "Six questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "price_ladder",
+     "prompt": "The highest price you would still pay?",
+     "config": {
+      "prices": [
+       5,
+       10,
+       15,
+       20,
+       30,
+       50
+      ],
+      "currency": "USD"
+     }
+    },
+    {
+     "kind": "price_ladder",
+     "prompt": "The price where it starts to feel too expensive?",
+     "config": {
+      "prices": [
+       5,
+       10,
+       15,
+       20,
+       30,
+       50
+      ],
+      "currency": "USD"
+     }
+    },
+    {
+     "kind": "price_ladder",
+     "prompt": "The price where it feels too cheap to trust?",
+     "config": {
+      "prices": [
+       1,
+       3,
+       5,
+       10,
+       15
+      ],
+      "currency": "USD"
+     }
+    },
+    {
+     "kind": "ranking",
+     "prompt": "Rank what you would pay for.",
+     "options": [
+      "Speed",
+      "Support",
+      "Extra seats",
+      "Reports",
+      "Privacy"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How often would you use it?",
+     "options": [
+      "Daily",
+      "Weekly",
+      "Monthly",
+      "Rarely"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "What would make it worth more?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "brand-awareness",
+   "category": "Product and research",
+   "plan": "pro",
+   "name": "Brand awareness",
+   "blurb": "How many people know you, and what they think of you.",
+   "title": "What do you know about us?",
+   "intro": "Eight questions. Anonymous. Results by group show only when at least 5 people answered.",
+   "anonymity": "anonymous",
+   "breakdown": true,
+   "questions": [
+    {
+     "kind": "single_choice",
+     "prompt": "Have you heard of us?",
+     "options": [
+      "Yes, I use it",
+      "Yes, I know it",
+      "I think so",
+      "No"
+     ]
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "Where did you hear about us?",
+     "options": [
+      "A friend",
+      "Search",
+      "Social media",
+      "An event",
+      "Press",
+      "Somewhere else"
+     ]
+    },
+    {
+     "kind": "agree_grid",
+     "prompt": "How well does each describe us?",
+     "config": {
+      "points": 5,
+      "rows": [
+       "Friendly",
+       "Reliable",
+       "Modern",
+       "Good value",
+       "For people like me"
+      ]
+     }
+    },
+    {
+     "kind": "nps",
+     "prompt": "How likely are you to recommend us?",
+     "config": {
+      "low_label": "Not at all",
+      "high_label": "Extremely"
+     }
+    },
+    {
+     "kind": "before_after",
+     "prompt": "How did you feel about us then and now?",
+     "config": {
+      "points": 5,
+      "before_label": "Before today",
+      "after_label": "Now"
+     }
+    },
+    {
+     "kind": "ranking",
+     "prompt": "Rank the brands you consider.",
+     "options": [
+      "Us",
+      "Brand B",
+      "Brand C",
+      "Brand D"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which group are you in?",
+     "options": [
+      "Under 25",
+      "25 to 44",
+      "45 to 64",
+      "65 or over"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "What first comes to mind about us?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "clinic-experience",
+   "category": "Health and wellbeing",
+   "plan": "plus",
+   "name": "Clinic visit experience",
+   "blurb": "How the visit felt: waiting, welcome, clarity. Experience only.",
+   "title": "How was your visit?",
+   "intro": "Six questions about your experience of the visit. Please do not write anything about your health. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "face_scale",
+     "prompt": "How was your visit overall?"
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "I felt listened to.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "nps",
+     "prompt": "How likely are you to recommend this clinic?",
+     "config": {
+      "low_label": "Not at all",
+      "high_label": "Extremely"
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How long did you wait?",
+     "options": [
+      "No wait",
+      "Under 15 minutes",
+      "15 to 30 minutes",
+      "Over 30 minutes"
+     ]
+    },
+    {
+     "kind": "agree_scale",
+     "prompt": "It was easy to book.",
+     "config": {
+      "points": 5
+     }
+    },
+    {
+     "kind": "text",
+     "prompt": "What one thing would improve the visit?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "gym-class-feedback",
+   "category": "Health and wellbeing",
+   "plan": "free",
+   "name": "Gym or class feedback",
+   "blurb": "How the class or the space felt to members.",
+   "title": "How was your class?",
+   "intro": "Four questions about your experience of the class. Nothing about your health. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "face_scale",
+     "prompt": "How was the class?"
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How was the level?",
+     "options": [
+      "Too easy",
+      "About right",
+      "Too hard"
+     ]
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "What helped?",
+     "options": [
+      "The instructor",
+      "The music",
+      "The space",
+      "The group",
+      "The time"
+     ],
+     "max": 2
+    },
+    {
+     "kind": "text",
+     "prompt": "What would make it better?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "interest-waitlist",
+   "category": "Forms",
+   "plan": "plus",
+   "name": "Interest or waitlist form",
+   "blurb": "Collect names and contact details for people who want in.",
+   "title": "Join the list",
+   "intro": "Identified survey: we record who answers. We record your name and contact details so we can get back to you.",
+   "anonymity": "identified",
+   "questions": [
+    {
+     "kind": "contact",
+     "prompt": "Your details",
+     "config": {
+      "fields": [
+       "name",
+       "email"
+      ]
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What are you interested in?",
+     "options": [
+      "Option A",
+      "Option B",
+      "Either"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "When would you like to start?",
+     "options": [
+      "As soon as possible",
+      "Within a month",
+      "Later"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything we should know?",
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "application-form",
+   "category": "Forms",
+   "plan": "pro",
+   "name": "Application form",
+   "blurb": "Collect an application with details, answers and a file.",
+   "title": "Apply",
+   "intro": "Identified survey: we record who answers. We record your name and contact details, and you can attach a file.",
+   "anonymity": "identified",
+   "questions": [
+    {
+     "kind": "contact",
+     "prompt": "Your details",
+     "config": {
+      "fields": [
+       "name",
+       "email",
+       "phone"
+      ]
+     }
+    },
+    {
+     "kind": "dropdown",
+     "prompt": "Which role or place are you applying for?",
+     "options": [
+      "Option A",
+      "Option B",
+      "Option C"
+     ]
+    },
+    {
+     "kind": "date",
+     "prompt": "When could you start?"
+    },
+    {
+     "kind": "number",
+     "prompt": "How many years of experience do you have?",
+     "config": {
+      "min": 0,
+      "max": 60,
+      "integer": true,
+      "unit": "years"
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How did you hear about this?",
+     "options": [
+      "A friend",
+      "Our website",
+      "Social media",
+      "Somewhere else"
+     ]
+    },
+    {
+     "kind": "text",
+     "prompt": "Why are you applying?"
+    },
+    {
+     "kind": "text",
+     "prompt": "Tell us about something you are proud of.",
+     "optional": true
+    },
+    {
+     "kind": "file_upload",
+     "prompt": "Attach your CV or portfolio.",
+     "optional": true,
+     "config": {
+      "max_mb": 5,
+      "types": [
+       "image",
+       "pdf"
+      ]
+     }
+    },
+    {
+     "kind": "text",
+     "prompt": "Anything else we should know?",
+     "optional": true
+    },
+    {
+     "kind": "signature",
+     "prompt": "Type your full name to confirm this is accurate."
+    }
+   ]
+  },
+  {
+   "slug": "consent-form",
+   "category": "Forms",
+   "plan": "pro",
+   "name": "Consent form",
+   "blurb": "Ask people to agree and sign by typing their name.",
+   "title": "Consent form",
+   "intro": "Identified survey: we record who answers. We record your name and the time you agreed.",
+   "anonymity": "identified",
+   "questions": [
+    {
+     "kind": "contact",
+     "prompt": "Your name",
+     "config": {
+      "fields": [
+       "name"
+      ]
+     }
+    },
+    {
+     "kind": "consent",
+     "prompt": "Consent",
+     "config": {
+      "statement": "I have read the information and I agree to take part."
+     }
+    },
+    {
+     "kind": "consent",
+     "prompt": "Photos",
+     "config": {
+      "statement": "I agree to photos being used by the organisers."
+     }
+    },
+    {
+     "kind": "signature",
+     "prompt": "Type your full name to sign."
+    }
+   ]
+  },
+  {
+   "slug": "request-form",
+   "category": "Forms",
+   "plan": "plus",
+   "name": "Request form",
+   "blurb": "A simple way to take requests and see what people ask for.",
+   "title": "Make a request",
+   "intro": "Five questions. Anonymous: do not include personal details.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "dropdown",
+     "prompt": "What kind of request is it?",
+     "options": [
+      "Something broken",
+      "Something new",
+      "A change",
+      "A question",
+      "Other"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How urgent is it?",
+     "options": [
+      "Not urgent",
+      "This week",
+      "Today"
+     ]
+    },
+    {
+     "kind": "date",
+     "prompt": "When do you need it by?",
+     "optional": true
+    },
+    {
+     "kind": "text",
+     "prompt": "Describe the request."
+    },
+    {
+     "kind": "multi_choice",
+     "prompt": "Where does it affect?",
+     "options": [
+      "My team",
+      "My building",
+      "My customers",
+      "Everyone"
+     ],
+     "optional": true
+    }
+   ]
+  },
+  {
+   "slug": "this-or-that",
+   "category": "Fun",
+   "plan": "free",
+   "name": "This or that",
+   "blurb": "Quick-fire choices to settle friendly arguments.",
+   "title": "This or that?",
+   "intro": "Five questions. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "single_choice",
+     "prompt": "Coffee or tea?",
+     "options": [
+      "Coffee",
+      "Tea"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Mountains or beach?",
+     "options": [
+      "Mountains",
+      "Beach"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Early bird or night owl?",
+     "options": [
+      "Early bird",
+      "Night owl"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Sweet or savoury?",
+     "options": [
+      "Sweet",
+      "Savoury"
+     ]
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Cats or dogs?",
+     "options": [
+      "Cats",
+      "Dogs"
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "scored-quiz",
+   "category": "Fun",
+   "plan": "pro",
+   "name": "Scored quiz",
+   "blurb": "A quiz that scores each answer and shows a total.",
+   "title": "Quiz time",
+   "intro": "Ten questions. Each right answer earns points. Anonymous.",
+   "anonymity": "anonymous",
+   "questions": [
+    {
+     "kind": "single_choice",
+     "prompt": "What is the capital of France?",
+     "options": [
+      "Paris",
+      "Lyon",
+      "Nice",
+      "Lille"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "Paris"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How many days are in a leap year?",
+     "options": [
+      "364",
+      "365",
+      "366",
+      "367"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "366"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which planet is closest to the sun?",
+     "options": [
+      "Venus",
+      "Mercury",
+      "Mars",
+      "Earth"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "Mercury"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What is 12 times 12?",
+     "options": [
+      "122",
+      "124",
+      "144",
+      "148"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "144"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which is the largest ocean?",
+     "options": [
+      "Atlantic",
+      "Indian",
+      "Arctic",
+      "Pacific"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "Pacific"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What do bees make?",
+     "options": [
+      "Silk",
+      "Honey",
+      "Milk",
+      "Paper"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "Honey"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How many sides does a hexagon have?",
+     "options": [
+      "5",
+      "6",
+      "7",
+      "8"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "6"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which colour do you get from blue and yellow?",
+     "options": [
+      "Green",
+      "Orange",
+      "Purple",
+      "Brown"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "Green"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which is a mammal?",
+     "options": [
+      "Shark",
+      "Dolphin",
+      "Trout",
+      "Octopus"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "Dolphin"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What is the freezing point of water in Celsius?",
+     "options": [
+      "-10",
+      "0",
+      "10",
+      "32"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "0"
+       ],
+       "points": 1
+      }
+     }
+    }
+   ]
+  },
+  {
+   "slug": "trivia-night",
+   "category": "Fun",
+   "plan": "pro",
+   "name": "Trivia night",
+   "blurb": "Fifteen questions for a team trivia night.",
+   "title": "Trivia night",
+   "intro": "Fifteen questions. Scored per answer. Timed rounds and a live leaderboard are not built yet.",
+   "anonymity": "anonymous",
+   "flags": [
+    "timed",
+    "leaderboard"
+   ],
+   "questions": [
+    {
+     "kind": "single_choice",
+     "prompt": "Which instrument has 88 keys?",
+     "options": [
+      "Guitar",
+      "Piano",
+      "Violin",
+      "Flute"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "Piano"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What is the capital of Japan?",
+     "options": [
+      "Osaka",
+      "Kyoto",
+      "Tokyo",
+      "Nagoya"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "Tokyo"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How many continents are there?",
+     "options": [
+      "5",
+      "6",
+      "7",
+      "8"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "7"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which gas do plants take in?",
+     "options": [
+      "Oxygen",
+      "Nitrogen",
+      "Carbon dioxide",
+      "Helium"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "Carbon dioxide"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Who painted the Mona Lisa?",
+     "options": [
+      "Van Gogh",
+      "Da Vinci",
+      "Picasso",
+      "Monet"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "Da Vinci"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which is the longest river in Africa?",
+     "options": [
+      "Congo",
+      "Niger",
+      "Nile",
+      "Zambezi"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "Nile"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What is the hardest natural substance?",
+     "options": [
+      "Gold",
+      "Iron",
+      "Diamond",
+      "Quartz"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "Diamond"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How many strings does a standard violin have?",
+     "options": [
+      "3",
+      "4",
+      "5",
+      "6"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "4"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which planet has rings that are easy to see?",
+     "options": [
+      "Mars",
+      "Saturn",
+      "Venus",
+      "Mercury"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "Saturn"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What is the smallest prime number?",
+     "options": [
+      "0",
+      "1",
+      "2",
+      "3"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "2"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which language has the most native speakers?",
+     "options": [
+      "English",
+      "Spanish",
+      "Mandarin",
+      "Hindi"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "Mandarin"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "What is H2O?",
+     "options": [
+      "Salt",
+      "Water",
+      "Air",
+      "Sugar"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "Water"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which sport uses a shuttlecock?",
+     "options": [
+      "Tennis",
+      "Badminton",
+      "Squash",
+      "Golf"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "Badminton"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "How many minutes are in two hours?",
+     "options": [
+      "100",
+      "120",
+      "140",
+      "180"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "120"
+       ],
+       "points": 1
+      }
+     }
+    },
+    {
+     "kind": "single_choice",
+     "prompt": "Which is the tallest mountain above sea level?",
+     "options": [
+      "K2",
+      "Everest",
+      "Kilimanjaro",
+      "Denali"
+     ],
+     "config": {
+      "quiz": {
+       "correct": [
+        "Everest"
+       ],
+       "points": 1
+      }
+     }
+    }
+   ]
+  }
+ ]
+}
