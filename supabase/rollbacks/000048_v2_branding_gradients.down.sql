@@ -4,7 +4,7 @@ begin;
 do $$ begin
   if exists (select 1 from lv.campaign_branding
               where style <> 'solid' or banner_style <> 'fill' or gradient_angle <> 135
-                 or cosmetics <> '{"pattern":"none","progress_tint":false,"glow":false}'::jsonb) then
+                 or cosmetics <> '{"pattern":"none","progress_tint":false,"glow":false,"logo_shadow":false}'::jsonb) then
     raise exception 'Surveys use gradients or cosmetics; resolve them before rolling back 000048.';
   end if;
 end $$;

@@ -200,7 +200,11 @@ export function SurveyBrandingPanel({ d, save, reload }: { d: CampaignDetailData
 
           <fieldset className="lv-bgroup" disabled={off}>
             <legend className="lv-bgroup-h">Logo</legend>
-            <ImageField kind="logo" label="Logo" hint={`PNG, JPG or WebP, up to ${IMAGE_LIMITS.logo.label}. Shown on a light tile so any logo stays visible.`} url={logoUrl} has={Boolean(draft.logo_path)} off={off} onPick={(f) => pick("logo", f)} onClear={() => clear("logo")} />
+            <label className="ui-row lv-switch-row">
+              <Switch checked={draft.cosmetics.logo_shadow} onCheckedChange={(v) => setCos({ logo_shadow: v })} disabled={off} aria-label="Soft shadow behind the logo" data-testid="brand-logo-shadow" />
+              <span>Soft shadow behind the logo. Off by default; it can help a dark logo on a dark color.</span>
+            </label>
+            <ImageField kind="logo" label="Logo" hint={`PNG, JPG or WebP, up to ${IMAGE_LIMITS.logo.label}. Shown as it is, on your banner color; a transparent PNG works best.`} url={logoUrl} has={Boolean(draft.logo_path)} off={off} onPick={(f) => pick("logo", f)} onClear={() => clear("logo")} />
           </fieldset>
 
           <fieldset className="lv-bgroup" disabled={off}>

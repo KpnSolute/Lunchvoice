@@ -37,6 +37,7 @@ export function themeState(theme: PlayerTheme | null, logoUrl: string | null, co
         "data-pt-pattern": theme.banner_style === "pattern" ? theme.cosmetics?.pattern ?? "dots" : "none",
         "data-pt-glow": theme.cosmetics?.glow ? "on" : "off",
         "data-pt-progress": theme.cosmetics?.progress_tint ? "on" : "off",
+        "data-pt-logo-shadow": theme.cosmetics?.logo_shadow ? "on" : "off",
       },
     },
     hideFooter: theme.hide_footer,

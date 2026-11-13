@@ -39,6 +39,7 @@ test("Creator Plus user brands a Hub-less Quick Survey; the player at 390px wear
   await panel.getByTestId("brand-angle-vertical").click();
   await panel.getByTestId("brand-banner-pattern").click();
   await panel.getByTestId("brand-glow").click();
+  await panel.getByTestId("brand-logo-shadow").click();
   await panel.getByTestId("brand-progress").click();
   // A too-light accent blocks saving until it is fixed.
   await panel.getByTestId("brand-swatch-accent").click();
@@ -70,6 +71,7 @@ test("Creator Plus user brands a Hub-less Quick Survey; the player at 390px wear
   assert.equal(row.gradient_angle, 180);
   assert.equal(row.banner_style, "pattern");
   assert.equal(row.cosmetics.glow, true);
+  assert.equal(row.cosmetics.logo_shadow, true);
   assert.match(row.color2, /^#[0-9a-f]{6}$/);
   assert.equal(row.welcome_headline, "Tell us about lunch");
   assert.ok(row.logo_path.startsWith(`${c.campaign_id}/logo-`));
@@ -87,6 +89,10 @@ test("Creator Plus user brands a Hub-less Quick Survey; the player at 390px wear
   await go(`/c/${code}`);
   await page.getByTestId("player-hero").getByText("Tell us about lunch").waitFor();
   await page.getByTestId("brand-logo").waitFor();
+  // The logo is shown as it is: no tile, background, border or padding; the drop-shadow exists only because the creator switched it on.
+  const logoStyle = await page.getByTestId("brand-logo").first().evaluate((el) => { const c = getComputedStyle(el); return [c.backgroundColor, c.paddingTop, c.borderTopWidth, c.boxShadow, c.filter]; });
+  assert.deepEqual(logoStyle.slice(0, 4), ["rgba(0, 0, 0, 0)", "0px", "0px", "none"]);
+  assert.match(logoStyle[4], /drop-shadow/); // this test turned the optional shadow on
   assert.ok(await noHorizontalScroll(page));
   const accent = await page.locator(".lv-ptheme").evaluate((el) => el.style.getPropertyValue("--pt-accent"));
   assert.match(accent, /^#[0-9a-f]{6}$/);

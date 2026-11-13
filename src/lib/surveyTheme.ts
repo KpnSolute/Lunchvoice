@@ -85,8 +85,8 @@ export type ThemeStyle = "solid" | "gradient";
 export type GradientAngle = 90 | 135 | 180;
 export type BannerStyle = "fill" | "pattern" | "logo";
 export type PatternKey = "none" | "dots" | "grid" | "waves";
-export interface Cosmetics { pattern: PatternKey; progress_tint: boolean; glow: boolean }
-export const DEFAULT_COSMETICS: Cosmetics = { pattern: "none", progress_tint: false, glow: false };
+export interface Cosmetics { pattern: PatternKey; progress_tint: boolean; glow: boolean; logo_shadow: boolean }
+export const DEFAULT_COSMETICS: Cosmetics = { pattern: "none", progress_tint: false, glow: false, logo_shadow: false };
 export const ANGLES: { angle: GradientAngle; key: "vertical" | "diagonal" | "horizontal"; label: string }[] = [
   { angle: 180, key: "vertical", label: "Vertical" },
   { angle: 135, key: "diagonal", label: "Diagonal" },

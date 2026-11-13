@@ -133,7 +133,7 @@ test("mock server: gradient saves with direction and cosmetics, comes back in th
   const th = (brandingHandle(paid, "lv_campaign_theme", { p_campaign: "g" }, true) as { theme: Record<string, unknown> }).theme;
   assert.equal(th.style, "gradient");
   assert.equal(th.color2, "#1d4ed8");
-  assert.deepEqual(th.cosmetics, { pattern: "grid", progress_tint: true, glow: true });
+  assert.deepEqual(th.cosmetics, { pattern: "grid", progress_tint: true, glow: true, logo_shadow: false });
   const bad = (b: object) => (brandingHandle(paid, "lv_campaign_branding_set", { p_campaign: "g", p_branding: b }, true) as { ok: boolean }).ok;
   assert.equal(bad({ ...body, color2: "#fbbf24" }), false);
   assert.equal(bad({ ...body, color2: null }), false);

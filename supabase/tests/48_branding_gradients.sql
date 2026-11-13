@@ -22,6 +22,10 @@ select t.check('gradient: the saved values come back',
   (lv_api.lv_campaign_branding_get(t.id('qs')) #>> '{branding,color2}') = '#1d4ed8'
   and (lv_api.lv_campaign_branding_get(t.id('qs')) #>> '{branding,gradient_angle}') = '180'
   and (lv_api.lv_campaign_branding_get(t.id('qs')) #>> '{branding,cosmetics,pattern}') = 'grid');
+select t.check('logo: the optional drop shadow saves and defaults off',
+  (lv_api.lv_campaign_branding_get(t.id('qs')) #>> '{branding,cosmetics,logo_shadow}') = 'false'
+  and t.code(lv_api.lv_campaign_branding_set(t.id('qs'), '{"color":"#0f766e","cosmetics":{"logo_shadow":true}}'::jsonb)) = 'ok');
+select t.check('logo: the shadow comes back', (lv_api.lv_campaign_branding_get(t.id('qs')) #>> '{branding,cosmetics,logo_shadow}') = 'true');
 select t.check('gradient: a light second color is refused (white text would not read)',
   t.code(lv_api.lv_campaign_branding_set(t.id('qs'), '{"style":"gradient","color":"#0f766e","color2":"#fbbf24"}'::jsonb)) = 'lv_invalid_input');
 select t.check('gradient: a missing second color is refused',

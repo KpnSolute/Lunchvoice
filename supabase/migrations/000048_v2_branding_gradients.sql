@@ -10,7 +10,7 @@
 --   color2          second color of a gradient      (#rrggbb; NULL for solid)
 --   gradient_angle  90 horizontal | 135 diagonal | 180 vertical
 --   banner_style    'fill' (the color or gradient) | 'pattern' | 'logo' (logo only, no color band)
---   cosmetics       {pattern: none|dots|grid|waves, progress_tint: bool, glow: bool}   (strictly shaped here)
+--   cosmetics       {pattern: none|dots|grid|waves, progress_tint: bool, glow: bool, logo_shadow: bool}   (strictly shaped here)
 -- Text on a gradient is white, so BOTH colors must reach 4.5:1 against white (checked on save). Corner style is the
 -- existing button_style; the cover image and footer key from 000043 are unchanged.
 -- Rollback: supabase/rollbacks/000048_v2_branding_gradients.down.sql.
@@ -21,10 +21,11 @@ alter table lv.campaign_branding
   add column color2 text check (color2 is null or color2 ~ '^#[0-9a-f]{6}$'),
   add column gradient_angle int not null default 135 check (gradient_angle in (90, 135, 180)),
   add column banner_style text not null default 'fill' check (banner_style in ('fill', 'pattern', 'logo')),
-  add column cosmetics jsonb not null default '{"pattern":"none","progress_tint":false,"glow":false}'::jsonb
-    check (jsonb_typeof(cosmetics) = 'object' and length(cosmetics::text) <= 120
+  add column cosmetics jsonb not null default '{"pattern":"none","progress_tint":false,"glow":false,"logo_shadow":false}'::jsonb
+    check (jsonb_typeof(cosmetics) = 'object' and length(cosmetics::text) <= 160
            and cosmetics->>'pattern' in ('none', 'dots', 'grid', 'waves')
-           and jsonb_typeof(cosmetics->'progress_tint') = 'boolean' and jsonb_typeof(cosmetics->'glow') = 'boolean'),
+           and jsonb_typeof(cosmetics->'progress_tint') = 'boolean' and jsonb_typeof(cosmetics->'glow') = 'boolean'
+           and jsonb_typeof(cosmetics->'logo_shadow') = 'boolean'),
   add constraint campaign_branding_gradient_has_color2 check (style = 'solid' or color2 is not null);
 
 create or replace function lv.branding_json(b lv.campaign_branding) returns jsonb
@@ -93,7 +94,8 @@ begin
   v_pattern := coalesce(nullif(p_branding#>>'{cosmetics,pattern}', ''), case when v_banner = 'pattern' then 'dots' else 'none' end);
   v_cos := jsonb_build_object('pattern', v_pattern,
     'progress_tint', coalesce((p_branding#>>'{cosmetics,progress_tint}')::boolean, false),
-    'glow', coalesce((p_branding#>>'{cosmetics,glow}')::boolean, false));
+    'glow', coalesce((p_branding#>>'{cosmetics,glow}')::boolean, false),
+    'logo_shadow', coalesce((p_branding#>>'{cosmetics,logo_shadow}')::boolean, false));
 
   if v_follow and c.kind <> 'community' then
     return lv.err('lv_invalid_input', 'Only a Hub Campaign can follow its Hub''s color.');

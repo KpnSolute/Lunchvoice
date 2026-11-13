@@ -62,7 +62,7 @@ export function brandingHandle(ctx: BrandingCtx, fn: string, a: Record<string, u
     banner_style: (p.banner_style ?? "fill") as SurveyBranding["banner_style"],
     cosmetics: {
       pattern: (p.cosmetics?.pattern ?? (p.banner_style === "pattern" ? "dots" : "none")) as PatternKey,
-      progress_tint: Boolean(p.cosmetics?.progress_tint ?? DEFAULT_COSMETICS.progress_tint), glow: Boolean(p.cosmetics?.glow ?? DEFAULT_COSMETICS.glow),
+      progress_tint: Boolean(p.cosmetics?.progress_tint ?? DEFAULT_COSMETICS.progress_tint), glow: Boolean(p.cosmetics?.glow ?? DEFAULT_COSMETICS.glow), logo_shadow: Boolean(p.cosmetics?.logo_shadow),
     },
   };
   if (!["solid", "gradient"].includes(b.style)) return err("lv_invalid_input", "The look is solid or gradient.");

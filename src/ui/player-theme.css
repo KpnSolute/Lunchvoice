@@ -48,11 +48,10 @@
   display: block; width: calc(100% + 2 * var(--lv-space-6)); max-width: none; aspect-ratio: 3 / 1; object-fit: cover;
   margin: calc(-1 * var(--lv-space-6)) calc(-1 * var(--lv-space-6)) 0;
 }
-/* Logo: on a light tile so transparent and dark logos both stay visible on any survey color. */
-.lv-pt-logo {
-  display: block; height: 48px; width: auto; max-width: 160px; object-fit: contain; padding: var(--lv-space-1);
-  border-radius: var(--lv-radius-tag); background: #fff; box-shadow: var(--lv-card-shadow); /* always light: any logo stays visible */
-}
+/* Logo: the image itself, on the banner. No tile, border or padding box; its own transparency is honored. The creator
+   may switch on a very subtle drop-shadow (cosmetics.logo_shadow, default off) for a dark logo on a dark color. */
+.lv-pt-logo { display: block; height: 56px; width: auto; max-width: 200px; object-fit: contain; }
+.lv-ptheme[data-pt-logo-shadow='on'] .lv-pt-logo { filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4)); }
 .lv-pt-cover + .lv-pt-logo { margin-top: calc(-1 * var(--lv-space-8)); position: relative; }
 .lv-pt-subtitle { margin: 0; font: 600 16px/1.35 var(--lv-font-ui); opacity: 0.9; }
 .lv-pt-message { margin: 0; font: 600 19px/1.45 var(--lv-font-ui); max-width: 44ch; white-space: pre-line; overflow-wrap: anywhere; }
@@ -123,9 +122,9 @@
 .lv-color-input { width: 44px; height: 44px; padding: 0; border: 1px solid var(--lv-line); border-radius: var(--lv-radius-control); background: var(--lv-surface); cursor: pointer; }
 .lv-color-input:disabled { cursor: not-allowed; opacity: 0.5; }
 .lv-switch-row { align-items: flex-start; gap: var(--lv-space-3); }
-.lv-brand-thumb { display: block; object-fit: contain; border-radius: var(--lv-radius-tag); background: var(--lv-surface); border: 1px solid var(--lv-line); }
+.lv-brand-thumb { display: block; object-fit: contain; }
 .lv-brand-thumb-logo { height: 40px; max-width: 120px; }
-.lv-brand-thumb-cover { height: 40px; width: 120px; object-fit: cover; }
+.lv-brand-thumb-cover { height: 40px; width: 120px; object-fit: cover; border-radius: var(--lv-radius-tag); border: 1px solid var(--lv-line); }
 .lv-brand-frame { display: flex; flex-direction: column; gap: var(--lv-space-3); min-width: 0; }
 .lv-brand-frame-phone { max-width: 375px; }
 .lv-brand-screen { border: 1px solid var(--lv-line); border-radius: var(--lv-radius-card); padding: var(--lv-space-4); overflow: hidden; }

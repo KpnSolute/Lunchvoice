@@ -22,6 +22,8 @@ categories and the repository's decimal `X.X.X` release policy.
 - Migration `000048_v2_branding_gradients.sql` (additive columns with checks, extended `lv_campaign_branding_set` and
   `lv_campaign_theme`; rollback `supabase/rollbacks/000048_v2_branding_gradients.down.sql`; tests
   `supabase/tests/48_branding_gradients.sql`). All 000043 rules are kept. Not applied to production.
+- The logo is shown as the creator uploaded it, on the banner: no tile, border or padding box, transparency honored. An
+  optional subtle drop-shadow (`cosmetics.logo_shadow`, default off) helps a dark logo on a dark color.
 - Survey-level customization only: `src/ui/tokens.css` is unchanged. Screenshots: `docs/v2/screenshots/branding/`.
 
 ### Operations (production, 2026-11-13: 000042 Linked Questions)
