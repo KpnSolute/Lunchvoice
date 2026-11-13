@@ -6,6 +6,13 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Docs (handoff: respondent names, live results, results privacy by plan, Creator studio)
+
+- Added `docs/v2/handoffs/2026-11-13-names-results-privacy-creator-studio.md`: a worker brief for letting signed-in
+  respondents change their display name, a Kahoot-style Present mode for results, plan-based results privacy (results wait
+  for 5 answers on free and Starter; Creator Plus sees responses live, anonymous included, per founder 2026-11-13) and
+  a rail-canvas-panel Creator studio. The plan rule needs a Loom verdict and founder approval before any migration.
+
 ### Operations (production, 2026-11-13: 000045 and 000046)
 
 - **Applied 000045** (SHA-256 `63e2ddf9…`) **and 000046** (`c38e570c…`) to production through the Management API, each as
