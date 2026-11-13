@@ -6,6 +6,14 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed (docs: Trends and Creator plans spec matches the founder's prices, 2026-11-13)
+
+- `docs/v2/TRENDS_AND_CREATOR_PLANS.md` said Creator $12 and Creator Pro $27 and marked Trends "Built". The founder's
+  decision is Creator Plus $5 and Creator Pro $15 (migration `000041`, families `creator_plus` and `creator_pro`), and
+  Trends are not built on any branch. The spec now says so, marks the Creator survey, question and Trend limits as
+  proposals (the Project Profile proposes different ones), and lists what `000041` does and does not include. The
+  matching Google Docs ("Project Profile - LunchVoice V2" and "Trends and Creator Plans") were corrected the same day.
+
 ### Added (docs: what is V2.x and V3, founder direction 2026-11-12)
 
 - `docs/v3/ROADMAP.md`: every idea in the founder's Google Doc "LunchVoice — Innovation Concepts and Product Roadmap —
