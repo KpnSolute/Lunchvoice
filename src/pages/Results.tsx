@@ -125,8 +125,8 @@ function ResponsesCard({ campaignId, questions }: { campaignId: string; question
         {rows.map((r) => (
           <li key={r.response_id} className="lv-resp" data-testid="response-row">
             <div className="lv-resp-head">
-              <strong>{r.name ?? (r.kind === "guest" ? "Guest (no name given)" : "Member")}</strong>
-              <Badge variant={r.verified ? "ok" : "outline"}>{r.verified ? "Member" : "Guest, unverified"}</Badge>
+              <strong>{r.name ?? (r.kind === "guest" ? "Guest (no name given)" : "Account")}</strong>
+              <Badge variant={r.verified ? "ok" : "outline"}>{r.verified ? "Account" : "Guest, unverified"}</Badge>
               <span className="ui-muted lv-small">{new Date(r.at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
             </div>
             <dl className="lv-resp-answers">

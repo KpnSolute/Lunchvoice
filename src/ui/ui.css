@@ -395,3 +395,7 @@ a.lv-row:hover .lv-row-title { text-decoration: underline; text-underline-offset
 .lv-checklist svg { flex: none; margin-top: 2px; color: var(--lv-accent-deep); }
 .lv-code-input { font-family: var(--lv-font-mono) !important; letter-spacing: 0.14em; text-transform: uppercase; font-size: 18px !important; }
 @media (max-width: 520px) { .lv-slug { flex-direction: column; align-items: stretch; } }
+/* 000052: change the name on your answers */
+.lv-identity-chip-wrap { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.lv-linklike { background: none; border: 0; padding: 0 0 0 4px; font: inherit; color: var(--lv-ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: 24px; }
+.lv-linklike:focus-visible { outline: 2px solid var(--lv-ink); outline-offset: 2px; border-radius: 4px; }

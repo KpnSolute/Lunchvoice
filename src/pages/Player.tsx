@@ -53,6 +53,14 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   const nameKey = `lv-guest-name-${guest?.joinCode ?? campaignId}`;
   const [guestName, setGuestName] = useState<string>(() => { try { return localStorage.getItem(nameKey) ?? ""; } catch { return ""; } });
   useEffect(() => { try { localStorage.setItem(nameKey, guestName); } catch { /* ignore */ } }, [guestName, nameKey]);
+  // 000052: a signed-in person may answer under a name of their choice (a preferred name, "Maurice from Corporate").
+  // Empty means "use my account name". Kept on this device per survey; only a label, never an identity.
+  const accountNameKey = `lv-account-name-${campaignId}`;
+  const [accountName, setAccountName] = useState<string>(() => { try { return localStorage.getItem(accountNameKey) ?? ""; } catch { return ""; } });
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  useEffect(() => { try { localStorage.setItem(accountNameKey, accountName); } catch { /* ignore */ } }, [accountName, accountNameKey]);
+  const cleanAccountName = accountName.replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim();
 
   const d = detail.data;
   // Survey branding (000043): the survey's own theme, or none. Never changes questions, answers or anonymity.
@@ -92,7 +100,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
     setBusy(true);
     setError(null);
     const payload: Answer[] = questions.map((qq) => ({ question_id: qq.question_id, value: answers[qq.question_id] ?? null }));
-    const r = guest ? await api.guestSubmit(guest.joinCode, guest.guestKey, payload, namesMode === "off" ? null : cleanName || null) : await api.submit(campaignId, payload);
+    const r = guest ? await api.guestSubmit(guest.joinCode, guest.guestKey, payload, namesMode === "off" ? null : cleanName || null) : await api.submit(campaignId, payload, d?.campaign.anonymity === "identified" && session ? cleanAccountName || null : null);
     setBusy(false);
     if (r.ok) {
       setReceipt({ id: r.receipt_id, duplicate: r.duplicate });
@@ -151,6 +159,8 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
               ? "Your answers went in anonymously. The creator sees totals, never names."
               : guest && cleanName && namesMode !== "off"
                 ? `Your answers were recorded under the name “${cleanName}”. The creator can see them.`
+                : !guest && session && cleanAccountName
+                  ? `Your answers were recorded under the name “${cleanAccountName}”. The creator can see them.`
                 : "Your answers were recorded. The creator can see who answered."}
         </p>
         {(receipt?.id || d.receipt_id) && <p className="lv-thanks-receipt">Receipt {receipt?.id ?? d.receipt_id}</p>}
@@ -234,8 +244,29 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
           </div>
         )}
         {!guest && session && !anonymous && (
-          <p className="lv-identity-chip lv-enter" style={{ "--i": 1 } as React.CSSProperties} data-testid="answering-as">
-            <Icon name="check" size={16} /> Answering as <strong>{session.name ?? "you"}</strong>
+          <div className="lv-identity-chip-wrap lv-enter" style={{ "--i": 1 } as React.CSSProperties}>
+            <p className="lv-identity-chip" data-testid="answering-as">
+              <Icon name="check" size={16} /> Answering as <strong>{cleanAccountName || session.name || "you"}</strong>
+              {!editingName && (
+                <button type="button" className="lv-linklike" data-testid="change-name" onClick={() => { setNameDraft(cleanAccountName || session.name || ""); setEditingName(true); }}>Change</button>
+              )}
+            </p>
+            {editingName && (
+              <form className="lv-guest-name" data-testid="change-name-form" onSubmit={(e) => { e.preventDefault(); const next = nameDraft.replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim(); setAccountName(next === (session.name ?? "") ? "" : next); setEditingName(false); }}>
+                <label htmlFor="account-name-input" className="lv-guest-name-label">Name on your answers</label>
+                <Input id="account-name-input" value={nameDraft} maxLength={40} autoComplete="nickname" autoFocus onChange={(e) => setNameDraft(e.target.value)} aria-describedby="account-name-help" />
+                <p id="account-name-help" className="lv-row-sub lv-m0">The creator sees this next to your answers, tagged as an account. Your account stays the same.</p>
+                <div className="lv-row">
+                  <Button type="submit" variant="primary">Use this name</Button>
+                  <Button type="button" variant="secondary" onClick={() => setEditingName(false)}>Cancel</Button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+        {!guest && session && anonymous && (
+          <p className="lv-identity-chip lv-enter" style={{ "--i": 1 } as React.CSSProperties} data-testid="anonymous-note">
+            <Icon name="lock" size={16} /> Your answers are anonymous
           </p>
         )}
         <ul className="lv-promises">

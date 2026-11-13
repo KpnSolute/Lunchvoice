@@ -149,6 +149,16 @@ Anonymous versus identified is a Campaign setting (`campaign.anonymity`), not an
 Campaign the submission stores no account and the Hub can never see who answered. Show this to respondents
 before they submit.
 
+### `lv_submit_response(p_campaign, p_answers, p_display_name)` (000052)
+Overload for a signed-in respondent who wants a different name on their answers ("Maurice from Corporate"). Send
+`p_display_name` only when you have one; the two-argument call is unchanged. The name is cleaned the same way for
+everyone: runs of spaces collapse, the ends are trimmed, 1 to 40 characters; control characters or more than 40
+characters are `lv_invalid_input`; a blank name means "use my account name" and stores nothing. It is stored in
+`lv.submissions.guest_name` (the column 000028 protects) and `is_guest` says whose it is. **Anonymous Campaigns
+ignore it entirely** (no error, nothing stored). It is only a label: identity stays the `(issuer, subject)` pair, one
+answer per account is decided by participation, and authorization never reads it. `lv_campaign_responses` returns it as
+`name` with `kind: "member"` (shown as **Account**) or `kind: "guest"` (shown as **Guest, unverified**).
+
 ## Analytics
 
 ### `lv_analytics_query(p_campaign, p_metric, p_question?)`

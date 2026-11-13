@@ -415,7 +415,28 @@ test("Guest names: an identified survey can ask guests for a name; the creator s
   await row.getByText("Sam Lee").waitFor();
   await row.getByText("Guest, unverified").waitFor();
   await row.getByText("Reds").waitFor();
-  assert.deepEqual([], []);
+
+  // 000052: a signed-in person changes the name on their answers; the creator sees it tagged "Account".
+  await go(`/c/${code}`);
+  await page.getByTestId("answering-as").getByText("Dana Reyes").waitFor();
+  await page.getByTestId("change-name").click();
+  await page.getByLabel("Name on your answers").fill("  Maurice   from Corporate ");
+  await page.getByRole("button", { name: "Use this name" }).click();
+  await page.getByTestId("answering-as").getByText("Maurice from Corporate").waitFor();
+  await page.reload();
+  await page.getByTestId("answering-as").getByText("Maurice from Corporate").waitFor(); // remembered on this device
+  await page.getByTestId("player-start").click();
+  await page.getByRole("radio", { name: /Blues/ }).click();
+  await page.getByRole("button", { name: "Review" }).click();
+  await page.getByRole("button", { name: "Submit" }).click();
+  await page.getByTestId("player-thanks").getByText(/under the name “Maurice from Corporate”/).waitFor();
+  await go("/surveys");
+  await page.getByText("Trivia night").first().click();
+  await page.getByRole("link", { name: /Results/ }).first().click();
+  const named = page.getByTestId("response-row").first();
+  await named.waitFor();
+  await named.getByText("Maurice from Corporate").waitFor();
+  await named.getByText("Account", { exact: true }).waitFor();
   await ctx.close();
 });
 

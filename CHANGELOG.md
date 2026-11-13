@@ -6,6 +6,22 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (respondent names: a signed-in person can change the name on their answers, migration 000052)
+
+- **Change the name on your answers.** On an identified survey the "Answering as {name}" chip has a **Change** button that
+  opens a field prefilled with the account name. The choice is remembered on this device for that survey; blank or the
+  account name means "use my account name". Anonymous surveys show "Your answers are anonymous" and no name control.
+- **000052** adds `lv_api.lv_submit_response(p_campaign, p_answers, p_display_name)` as an overload; the two-argument call
+  delegates with a null name (older clients and the Discord path unchanged). The name goes in `lv.submissions.guest_name`
+  (documented; `is_guest` says whose it is), is trimmed and collapsed, 1 to 40 characters, control characters refused.
+  **An anonymous Campaign ignores it entirely** and stores nothing. It is a label only: identity, one answer per account
+  and authorization never read it.
+- **Results** show the chosen name with an **Account** tag (was "Member"), or "Guest, unverified" for guests.
+- Tests: `supabase/tests/52_respondent_display_name.sql` (clean and store, duplicate keeps the first, blank, two-argument
+  call, control characters, 40/41 characters, anonymous crafted call stores nothing, signed-out refused), the studio e2e
+  (Change, remembered after reload, creator sees "Account"), and `06_concurrency` now accepts the overload. Rollback:
+  `supabase/rollbacks/000052_*.down.sql`. **Not applied to production.**
+
 ### Docs (handoff: respondent names, live results, results privacy by plan, Creator studio)
 
 - Added `docs/v2/handoffs/2026-11-13-names-results-privacy-creator-studio.md`: a worker brief for letting signed-in

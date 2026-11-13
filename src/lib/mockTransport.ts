@@ -793,8 +793,15 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (!isActive(c)) return err("lv_closed", "This Campaign is not accepting responses");
       if (c.mine_answered) return { ok: true, receipt_id: `r-${c.campaign_id}-me`, duplicate: true };
       { const bad = answersProblem(c, a.p_answers); if (bad) return err("lv_invalid_input", bad); }
+      // 000052: a signed-in person's chosen label. Identified Campaigns only; an anonymous answer ignores it entirely.
+      let label: string | null = null;
+      if (c.anonymity === "identified" && typeof a.p_display_name === "string") {
+        if (/[\u0000-\u001f\u007f]/.test(a.p_display_name)) return err("lv_invalid_input", "A name cannot contain control characters.");
+        label = a.p_display_name.replace(/\s+/g, " ").trim() || null;
+        if (label && label.length > 40) return err("lv_invalid_input", "Keep the name to 40 characters.");
+      }
       c.mine_answered = true;
-      c.responses.push({ receipt: `r-${c.campaign_id}-me`, answers: a.p_answers as Resp["answers"], at: iso(Date.now()), guest: false });
+      c.responses.push({ receipt: `r-${c.campaign_id}-me`, answers: a.p_answers as Resp["answers"], at: iso(Date.now()), guest: false, name: label });
       return { ok: true, receipt_id: `r-${c.campaign_id}-me`, duplicate: false };
     }
     case "lv_campaign_by_code": {
