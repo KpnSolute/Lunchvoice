@@ -82,25 +82,34 @@ within one poll; an anonymous Campaign in Present mode shows the withheld messag
 What the founder asked for: below 5 answers, results stay hidden on Starter Hub and the Free Quick Survey; Creator Plus
 can run **private** surveys where only people with the link answer and the creator sees results instantly.
 
-Recommendation, to confirm with the founder before building:
+Founder decision (2026-11-13): **paid Creator Plus (and above) sees responses live**, anonymous surveys included.
+Lower plans keep the waiting rule.
 
-- **Keep the anonymous protections on every plan, Creator Plus included.** They protect respondents, not the creator: with
-  fewer than 5 anonymous answers a creator can often tell who said what. Paying should not switch that off.
-- Apply the new plan rule to **identified** surveys, which today show results from the first answer on every plan:
-  - Free Quick Survey and Starter Hub (and Campaign Starter): identified results are hidden until 5 answers.
-  - Creator Plus, Creator Pro, Team Hub, Campaign Plus: identified results show instantly.
+- Free Quick Survey and Starter Hub (and Campaign Starter): results, identified or anonymous, stay hidden until 5
+  answers; anonymous results also stay hidden until the survey closes, as today.
+- Creator Plus, Creator Pro (and Team Hub, Campaign Plus unless the founder says otherwise): results show live from the
+  first answer, for identified and anonymous surveys.
 - "Private survey" (Creator Plus): link or invite only, not listed in any Hub feed or Discover, results visible only to
-  the creator and people they share them with. Free Quick Surveys are already link or invite only, so the paid
-  difference is instant results and the private-results sharing control.
+  the creator and people they share them with.
 - Ambiguity to confirm: "the people who get the link get surveyed instantly" could also mean respondents see the
   results right after answering. Ask; do not build respondent-visible results without a yes.
+
+Safeguards that keep "anonymous" honest when results are live (these do not hold results back):
+
+- Tell respondents before they answer: "The creator can see results as they come in." Show it on the start screen of
+  any anonymous survey whose creator has live results.
+- Live anonymous results never show timestamps, order of arrival or a "just answered" line, so a creator cannot match
+  an answer to the person who just walked in.
+- Free-text answers on anonymous surveys still need a decided policy (`000005` returns `lv_policy_undecided` for them);
+  ask the founder whether live includes free text.
+- `000005` currently blocks live anonymous results on purpose ("a running identity-linked tally"); the new migration
+  changes that rule for the live-results entitlement only, with a comment pointing to this decision.
 
 Build after approval:
 
 - New entitlement keys in the single entitlement map (for example `results.instant` and `survey.private`), evaluated on
   the server in the analytics function. The UI only explains the server's answer (reuse the withheld message).
-- Starter and free creators see "Results appear after 5 answers (2 so far)". Show the count; it is not sensitive for an
-  identified survey. Offer the Creator Plus upgrade as **Coming soon** if checkout is not live.
+- Starter and free creators see "Results appear after 5 answers (2 so far)". Offer the Creator Plus upgrade as **Coming soon** if checkout is not live.
 - Database tests for each plan family, for anonymous and identified, active and closed.
 
 Approvals needed first:
