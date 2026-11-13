@@ -6,6 +6,13 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (branding is a full-width step in the Creator studio too)
+
+- The redesigned Branding panel (live preview, Colors/Banner/Logo/Text/Style) did not fit the Creator studio's narrow
+  Theme side tab, where its content stayed hidden. Branding is now its own full-width step above the questions on every
+  plan; the studio's side panel and phone sheet are named "Question properties". `e2e/studiopro.test.mjs` and
+  `e2e/branding.test.mjs` updated.
+
 ### Operations (production, 2026-11-13: 000048 branding gradients)
 
 - **Applied 000048** (SHA-256 `21dc6786…`) to production through the Management API as the file's own transaction, after

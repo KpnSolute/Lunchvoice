@@ -63,10 +63,9 @@ test("Creator Plus builds a 10-question survey with two sections and a linked qu
   await logic.getByTestId("logic-summary").getByText("Shown if Q1: Corporate").waitFor();
   await page.getByTestId("outline-rule").filter({ hasText: "Shown if Q1: Corporate" }).first().waitFor();
 
-  // The Theme tab holds the existing branding options.
-  await page.getByRole("tab", { name: "Theme" }).click();
-  await page.getByRole("tabpanel").getByText(/theme|brand|colour|color/i).first().waitFor();
-  await page.getByRole("tab", { name: "Question" }).click();
+  // Branding is its own full-width step above the studio (it has a live preview), not a side tab.
+  await page.getByTestId("branding").waitFor();
+  assert.equal(await page.getByRole("tab", { name: "Theme" }).count(), 0);
 
   // Reorder with the keyboard: Alt+ArrowUp moves question 2 above question 1.
   await page.getByTestId("rail-thumb").nth(1).focus();
@@ -121,7 +120,7 @@ test("The studio works on a phone: strip of thumbnails, properties in a sheet, n
   await addChoice(page, "Second?", ["C", "D"]);
   assert.ok(await noHorizontalScroll(page));
   await page.getByTestId("open-properties").click();
-  await page.getByRole("dialog").getByRole("tab", { name: "Theme" }).waitFor();
+  await page.getByRole("dialog").getByRole("heading", { name: "Question properties" }).waitFor();
   await page.keyboard.press("Escape");
   await page.screenshot({ path: "/tmp/studio-390.png" });
   await ctx.close();

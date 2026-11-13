@@ -199,11 +199,11 @@ export function QuestionWorkbench({
           </section>
           <aside className="lv-pro-panel" aria-label="Properties">
             <div className="lv-pro-panel-trigger">
-              <Button variant="secondary" block onClick={() => setPanelSheet(true)} data-testid="open-properties"><Icon name="settings" size={16} /> Properties and theme</Button>
+              <Button variant="secondary" block onClick={() => setPanelSheet(true)} data-testid="open-properties"><Icon name="settings" size={16} /> Question properties</Button>
             </div>
             <Sheet open={panelSheet} onOpenChange={setPanelSheet}>
               <SheetContent side="bottom" className="lv-pro-sheet">
-                <SheetTitle>Properties and theme</SheetTitle>
+                <SheetTitle>Question properties</SheetTitle>
                 <SheetDescription className="sr-only">Logic, sections and the survey theme.</SheetDescription>
                 <ProPanelTabs properties={properties} themePanel={themePanel} />
               </SheetContent>

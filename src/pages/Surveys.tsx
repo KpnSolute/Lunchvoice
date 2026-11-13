@@ -302,17 +302,16 @@ export function SurveyStudio() {
             <DescriptionField d={d} save={save} reload={detail.reload} />
           </Card>
         </li>
-        {!pro && (
-          <li>
-            {/* survey branding (000043): the creator's own Creator plan entitles it; no Hub needed */}
-            <SurveyBrandingPanel d={d} save={save} reload={detail.reload} />
-          </li>
-        )}
+        <li>
+          {/* survey branding (000043/000048): its own full-width step on every plan (the panel has a live preview, so it
+              does not fit the studio's side tab); the creator's own Creator plan entitles it, no Hub needed */}
+          <SurveyBrandingPanel d={d} save={save} reload={detail.reload} />
+        </li>
         <li>
           {pro ? (
             <div className="lv-studio-canvas" data-testid="pro-studio">
               <h2 className="lv-share-h"><span className="lv-step-n">2</span>Questions</h2>
-              <QuestionWorkbench layout="pro" d={d} locked={!meaning} limit={questionLimit} save={save} reload={detail.reload} themePanel={<SurveyBrandingPanel d={d} save={save} reload={detail.reload} />} />
+              <QuestionWorkbench layout="pro" d={d} locked={!meaning} limit={questionLimit} save={save} reload={detail.reload} />
             </div>
           ) : (
             <Card>
