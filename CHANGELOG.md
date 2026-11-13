@@ -6,6 +6,14 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-13: 000050 and 000051)
+
+- **Applied 000050** (SHA-256 `e44eddb1…`) **and 000051** (`2c5cfe51…`) to production (`qprfonxvthmaoxfixigk`) through
+  the Management API, each as the file's own transaction, after `test:pr` and 1472/1465 database checks; the e2e
+  failures seen under parallel load (comments, community dark mode, bad invite, product pages) all pass on rerun.
+  Verification: history `000040`–`000043`, `000050`, `000051`; `lv_campaign_by_code` executable by `authenticated`
+  only; `lv_my_context` keeps the suspension block and reports Creator limits (Creator Pro owner: 100/100).
+
 ### Added (who is answering: sign in or answer as a guest, founder request 2026-11-13, 000050)
 
 - **Survey links offer sign-in.** On `/c/<code>` a signed-out visitor sees "Have a LunchVoice account? Sign in" next to
@@ -18,6 +26,13 @@ categories and the repository's decimal `X.X.X` release policy.
   longer looks missing when a creator previews their own survey.
 - Tests: `supabase/tests/50_campaign_by_code.sql`; `e2e/studio.test.mjs` runs the guest path in a signed-out browser and
   the signed-in path with "Answering as".
+
+### Fixed (My home shows Creator Quick Survey limits, 000051)
+
+- A Creator Pro account saw "Quick Surveys 1/5" on My home although its real limit is 100 active (Creator Plus 15).
+  000042 moved every Quick Survey guard to `lv.quick_limit`, but `lv_api.lv_my_context` still reported the free numbers.
+  000051 keeps the wrapper body and overrides `quick_surveys.limit` and `question_limit` with the caller's own limits.
+  Tests: `supabase/tests/51_context_creator_limits.sql` (free 5/10, Creator Plus 15/30, Creator Pro 100/100).
 
 ### Operations (production, 2026-11-13: 000042 Linked Questions)
 
