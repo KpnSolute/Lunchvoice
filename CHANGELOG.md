@@ -6,6 +6,30 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Docs (launch prep: services log, decisions, creator-controlled results, Cloudflare sign-in design; founder 2026-11-13)
+
+- **`docs/ops/SERVICES_AND_DEPENDENCIES.md` (new):** every service that runs LunchVoice (GitHub, Render, both Supabase
+  projects, Cloudflare, Resend, Stripe, Discord, Google, the registrar), where each is found in Composio or outside it, the
+  7 deployed Edge Functions with versions, secret names and where they are set (no values), the Cloudflare usage log, the
+  npm dependencies with their purpose, build and CI tooling, and the founder's open items. Each row says whether it was
+  verified live on 2026-11-13 (Composio, Supabase and Cloudflare tools), read from the repo, or needs the owner to confirm.
+- **`docs/v2/LAUNCH_PREP_PLAN_2026-11-13.md` (new):** this week is plan and prep, next week (from 2026-11-16) is the launch
+  build. Decisions D-01 to D-04: Cloudflare Workers is the edge platform and needs no per-use approval (each use logged);
+  results visibility is the creator's choice; the plan for the week. Includes the creator-controlled results design
+  (migration 000054: Live, Live including elections and Instant answers for Team Hub and Creator Pro, respondent notices,
+  creator confirmation dialogs, safeguards that never turn off), the 30-day sign-in design on a Cloudflare Worker
+  (`auth.lunchvoice.com`, host-only `__Host-` cookie, device sessions in 000049, verification list), the owner actions and
+  agent prep for this week, a day-by-day build order for next week, and 12 open questions each with a recommended answer.
+- **`SESSIONS.md` corrected:** a Worker on `lunchvoice.com/auth/*` does not run in front of Render while the apex is a
+  proxied A record (the hub-card README found the same); the proxy question is answered with the Custom Domain design.
+- **Roadmap:** `PRODUCT_DIRECTION_2026-11-11.md` section 9 logs the platform decisions.
+- **Brain files** (`AGENTS.md` and `CLAUDE.md`, edited together): live results are approved for Creator Plus, Creator Pro,
+  Team Hub and Campaign Plus; creator-controlled visibility (live elections for Team Hub and Creator Pro) is recorded as
+  approved but not built; pointers to the new docs and the standing Cloudflare approval.
+- **Found while checking:** production runs migrations `000029` to `000032` and `000036` to `000038` that `main` does not
+  contain (open PRs #59 and #73); point-in-time recovery is off. Both are prep items in the plan.
+- No code, migration or setting changed; nothing was deployed.
+
 ### Operations (production, 2026-11-13: 000053 live results by plan)
 
 - **Applied 000053** (SHA-256 `a6c0a67d…`) to production through the Management API as the file's own transaction, after

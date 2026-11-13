@@ -27,7 +27,12 @@ Dining is one customer use case, not the product.
   (Quick Surveys, whitelist launch) and the launch definition of done live in
   `docs/v2/LAUNCH_PLAN.md`, which wins where it differs. Worker handoffs live in
   `docs/v2/handoffs/`. Product detail is `docs/v2/PRODUCT_SPEC.md`; the
-  identity boundary is `docs/v2/IDENTITY_CONTRACT.md`.
+  identity boundary is `docs/v2/IDENTITY_CONTRACT.md`. Every service and
+  dependency that runs LunchVoice, and where it lives in Composio or outside
+  it, is in `docs/ops/SERVICES_AND_DEPENDENCIES.md` (update it with any
+  change); the launch decisions log is `docs/v2/LAUNCH_PREP_PLAN_2026-11-13.md`.
+  Cloudflare Workers is the edge platform for LunchVoice's needs (founder,
+  2026-11-13): use it without asking, and log each use in that inventory.
 - Supabase refs: Lunchvoice `qprfonxvthmaoxfixigk`, KpnIdentity
   `axzwdbizblfkspduqilj`. Production is not mutated without the approvals below.
 - GitHub: `KpnSolute/Lunchvoice`. Local frontend: `npm run dev`.
@@ -53,7 +58,12 @@ UI and API; the backend evaluates the active entitlement.
 - Creator Plus: $5/month; Creator Pro: $15/month (founder, 2026-11-12). Per-person plans (account-scoped
   entitlements): the perks go with the person into their personal space and every Hub they edit. Sections and
   conditional sections (`survey.branching`) and survey branding (`survey.branding`) start at Creator Plus and
-  Starter Hub (founder, 2026-11-13). Other Creator perks are not approved yet.
+  Starter Hub (founder, 2026-11-13). Live results (`results.instant`) are approved for Creator Plus, Creator Pro,
+  Team Hub and Campaign Plus: totals and charts from the first answer, anonymous individual answers in groups of 5
+  (founder, 2026-11-13); elections keep the waiting rules until the creator-controlled setting is built. Results
+  visibility is the creator's choice: Team Hub and Creator Pro creators may choose live results for elections and any
+  survey type, and respondents are always told before they answer (founder, 2026-11-13; design in
+  `docs/v2/LAUNCH_PREP_PLAN_2026-11-13.md`, not built yet). Other Creator perks are not approved yet.
 - Free Quick Survey: $0 for any signed-in account. 5 active surveys, 10
   questions, core kinds, link or invite-only; lives in a personal space that is
   never a Hub. The launch waitlist is never authorization.

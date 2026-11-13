@@ -93,3 +93,21 @@ Feedback: the Hub colour and buttons feel wrong; wants a familiar Discord feel w
   - This is a product subdomain, not a tenant subdomain: Hub URLs stay path-based (`lunchvoice.com/{hubSlug}`).
   - Needs DNS and a Render custom domain, which require owner approval.
   - Builds on the Creator studio work in `docs/v2/handoffs/2026-11-13-names-results-privacy-creator-studio.md`.
+
+## 9. Platform and services decisions (log)
+
+Newest last. The full inventory is `docs/ops/SERVICES_AND_DEPENDENCIES.md`; the launch plan for the build week of
+2026-11-16 is `docs/v2/LAUNCH_PREP_PLAN_2026-11-13.md`.
+
+- **2026-11-12, Cloudflare Worker `lunchvoice-hub-card`** on `hub.lunchvoice.com`: share-link previews for Hubs. Live.
+- **2026-11-13, Cloudflare Workers are LunchVoice's edge platform** (founder). Use them for LunchVoice's edge needs
+  without asking each time; log every use here and in the Cloudflare usage log. Not covered: a paid plan change,
+  nameservers or registrar, other KpnSolute products' Workers.
+- **2026-11-13, 30-day sign-in** will be served by a Worker on its own Custom Domain, `auth.lunchvoice.com` (a Worker on
+  `lunchvoice.com/auth/*` cannot run in front of Render while the apex is a proxied A record). Host-only
+  `__Host-` cookie, same-site with every `lunchvoice.com` host. Builds the week of 2026-11-16.
+- **2026-11-13, results visibility is the creator's choice** (founder): Team Hub and Creator Pro creators may choose live
+  results for elections and any survey type; respondents are always told first. Builds the week of 2026-11-16
+  (migration 000054).
+- **Optional, undecided:** make the apex a proxied CNAME to Render ("O2O") so zone Workers run in front of the whole
+  site (true HTTP 404, per-Hub share images, edge headers). A DNS change; decide after launch unless needed sooner.

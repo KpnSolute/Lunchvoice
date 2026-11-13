@@ -2,6 +2,12 @@
 
 Status: proposal. Nothing here is built; `000049_v2_device_sessions.sql` was deliberately not written.
 
+**Decision 2026-11-13 (founder): the proxy is a Cloudflare Worker.** The owner decisions at the end of this file are
+answered in `docs/v2/LAUNCH_PREP_PLAN_2026-11-13.md` section 3: the Worker runs on its own Custom Domain
+`auth.lunchvoice.com` (a Worker on `lunchvoice.com/auth/*` would not run in front of Render while the apex is a
+proxied A record), and the cookie is host-only on that host (`__Host-` prefix), which is same-site with `lunchvoice.com`
+and every tenant host, so no tenant host ever receives it. The build is planned for the week of 2026-11-16.
+
 ## Today
 
 `src/lib/transport.ts` runs Supabase with `persistSession: false`. The KpnIdentity ID token is exchanged by the
