@@ -6,6 +6,14 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-13: 000047 question types)
+
+- **Applied 000047** (SHA-256 `a2ce6408…`) to production through the Management API as the file's own transaction, after
+  `test:pr`, 1703/1703 database checks and 63/63 related e2e. Pre-checks: production's kind list was the base five and no
+  production-only migration (000029–000032, 000036–000038) redefines the replaced functions. Verification: 21 kinds allowed;
+  existing kinds still validated (an off-list choice is refused) and NPS refuses 11; `survey-uploads` private with a 10 MB
+  limit and 2 storage policies; the quiz answer key RPC is not callable by `anon`; `templates` slug reserved.
+
 ### Added (question types, 82 templates and the template gallery; migration 000047)
 
 - **16 new question types.** Free: face scale, dropdown, number, date. Plus (Starter Hub, Creator Plus): NPS with an automatic
