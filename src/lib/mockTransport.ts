@@ -12,6 +12,7 @@ import { COMMUNITY_FNS, COMMUNITY_PUBLIC, communityAfter, communityHandle, type 
 /* ---- track D: api + discord ---- */
 import { INTEGRATION_FNS, integrationsHandle, type IntegrationsCtx } from "./mockIntegrations";
 /* ---- end track D ---- */
+import { TRENDS_FNS, TRENDS_PUBLIC, demoContext, trendsHandle, type TrendsCtx } from "./mockTrends"; // results analytics and Trends (000044)
 import { BRANDING_FNS, BRANDING_PUBLIC, brandingHandle, mockBrandingStorage, type BrandingCtx } from "./mockBranding"; // survey branding (000043)
 
 // DEV-ONLY stand-in for lv_api (excluded from production bundles; see transport.ts and scripts/check-bundle.mjs).
@@ -64,7 +65,7 @@ type Resp = { receipt: string; answers: { question_id: string; value: unknown }[
 type C = {
   campaign_id: string; hub_id: string; title: string; mode: string; anonymity: string; status: string; created_at: string;
   join_code: string; questions: Q[]; responses: Resp[]; opens_at: string | null; closes_at: string | null;
-  audience: string; access?: string; mine_answered?: boolean;
+  audience: string; access?: string; mine_answered?: boolean; activated_at?: string | null;
 };
 type Ent = { id: string; product: string; family: string; scope: string; hub_id?: string; starts_at: string; ends_at: string | null; source: string };
 type Page = { key: string; kind: string; title: string; body?: string | null; position: number; enabled: boolean };
@@ -263,7 +264,8 @@ function seedDemo(s: State, expired: boolean) {
       opens_at: null, closes_at: status === "active" ? iso(Date.now() + 9 * DAY) : null, audience: "members_and_guests", ...extra,
     };
   };
-  s.campaigns.push(mk("cmp-seed-1", hub.hub_id, "Spring route check-in", "active", 14));
+  s.campaigns.push(mk("cmp-seed-0", hub.hub_id, "Winter route check-in", "closed", 18, "identified", { activated_at: iso(Date.now() - 120 * DAY) }));
+  s.campaigns.push(mk("cmp-seed-1", hub.hub_id, "Spring route check-in", "active", 14, "identified", { activated_at: iso(Date.now() - 30 * DAY) }));
   s.campaigns.push(mk("cmp-seed-2", hub.hub_id, "Winter social night", "closed", 22, "anonymous"));
   s.campaigns.push({ ...mk("cmp-seed-3", hub.hub_id, "Kit order sizes", "draft", 0), questions: [] });
   const ps: H = { hub_id: "space-seed", slug: null, name: "Personal space", kind: "personal", about: "", accent: null, visibility: "private", membership_mode: "invite_only", members: [], pages: [] };
@@ -271,6 +273,10 @@ function seedDemo(s: State, expired: boolean) {
   s.campaigns.push(mk("qs-seed-1", ps.hub_id, "Book club: next month's pick", "active", 8, "anonymous", { access: "link" }));
   s.campaigns.push(mk("qs-seed-2", ps.hub_id, "Team lunch Friday?", "closed", 6, "identified", { access: "invite" }));
   s.campaigns.push({ ...mk("qs-seed-3", ps.hub_id, "Neighbourhood clean-up date", "draft", 0, "anonymous", { access: "link" }) });
+  // 000044: one Trend with three runs of the same questions, and coarse context counters for the premium panels.
+  s.campaigns.find((c) => c.campaign_id === "cmp-seed-2")!.activated_at = iso(Date.now() - 75 * DAY);
+  (s as unknown as { trends: unknown[] }).trends = [{ trend_id: "trend-seed-1", hub_id: hub.hub_id, title: "Route check-in", description: "Asked every season.", created_at: iso(Date.now() - 20 * DAY), runs: ["cmp-seed-0", "cmp-seed-2", "cmp-seed-1"] }];
+  (s as unknown as { context: unknown }).context = demoContext(s.campaigns as never, ["cmp-seed-0", "cmp-seed-1", "cmp-seed-2"]);
   s.n = 100;
 }
 
@@ -285,6 +291,7 @@ export function createMockTransport(displayName = "Dana", signedIn: () => boolea
       /* ---- end track C ---- */
       // Survey branding (000043): its own handler, before the shared switch.
       if (BRANDING_FNS.has(fn)) { const b = brandingHandle(brandingCtx(s), fn, a, signedIn()); save(); return b; }
+      if (TRENDS_FNS.has(fn)) { const t = trendsHandle(trendsCtx(s, signedIn()), fn, a); save(); return t; }
       const r = handleTrackA(s, fn, a, signedIn(), () => handle(s, fn, a, signedIn()));
       /* ---- track C: community ---- */
       communityAfter(communityCtx(s, signedIn()), fn, a, r, answeredBefore);
@@ -326,10 +333,31 @@ function brandingCtx(s: State): BrandingCtx {
   };
 }
 
+// Results analytics and Trends (000044).
+function trendsCtx(s: State, authed: boolean): TrendsCtx {
+  const hubOf = (id: string) => s.hubs.find((h) => h.hub_id === id);
+  return {
+    store: s as unknown as TrendsCtx["store"], authed,
+    hubKind: (id) => hubOf(id)?.kind ?? null,
+    canManage: (id) => { const h = hubOf(id); return !!h && (h.kind === "personal" || h.members.some((m) => m.account_id === "mock-account" && m.is_owner)); },
+    personalHub: () => s.hubs.find((h) => h.kind === "personal")?.hub_id ?? null,
+    trendMax: (id) => {
+      if (hubOf(id)?.kind === "personal") return s.me.creator === "creator_pro" ? 10 : s.me.creator === "creator_plus" ? 3 : 0;
+      const f = activeFamily(s, id);
+      return f === "team" ? 5 : f === "starter" ? 3 : 0;
+    },
+    premium: (id) => (hubOf(id)?.kind === "personal" ? s.me.creator === "creator_pro" : activeFamily(s, id) === "team"),
+    exportAllowed: (id) => activeFamily(s, id) !== "free" || !!s.me.creator,
+    distribution: (c, q) => distribution(c as unknown as C, q),
+    nextId: (p) => `${p}-${++s.n}`,
+  };
+}
+
 const PUBLIC = new Set(["lv_plan_limits", "lv_waitlist_status", "lv_hub_get", "lv_invite_preview", "lv_guest_campaign_get", "lv_guest_submit", "lv_hub_reservation_status", "lv_capability_catalog", "lv_hub_pages_get", "lv_report_abuse"]);
 /* ---- track C: community ---- */
 for (const f of COMMUNITY_PUBLIC) PUBLIC.add(f);
 for (const f of BRANDING_PUBLIC) PUBLIC.add(f); // survey branding (000043)
+for (const f of TRENDS_PUBLIC) PUBLIC.add(f); // the player reports its coarse context (000044)
 const communityCtx = (s: State, authed: boolean): CommunityCtx => ({ s: s as unknown as CommunityCtx["s"], authed, family: (hub) => activeFamily(s, hub) });
 /* ---- end track C ---- */
 
@@ -758,6 +786,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
         return err("lv_gate_blocked", "already_closed", { reasons: ["already_closed"] });
       }
       c.status = "active";
+      c.activated_at = new Date().toISOString();
       return { ok: true };
     }
     case "lv_campaign_pause": {
@@ -826,6 +855,13 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (c.anonymity === "anonymous" && (c.status === "active" || c.status === "paused")) return err("lv_policy_undecided", "Anonymous results appear after the Campaign closes");
       const members = c.responses.filter((r) => !r.guest).length;
       const guests = c.responses.filter((r) => r.guest).length;
+      if (a.p_metric === "rating_summary") {
+        const vals = c.responses.flatMap((r) => r.answers.filter((x) => x.question_id === a.p_question && typeof x.value === "number").map((x) => x.value as number));
+        const hide = c.anonymity === "anonymous" && c.responses.length < MIN_COHORT;
+        const part = distribution(c, String(a.p_question)).some((x) => x.suppressed);
+        if (hide || (c.anonymity === "anonymous" && part)) return { ok: true, metric: "rating_summary", question_id: a.p_question, n: null, mean: null, suppressed: true };
+        return { ok: true, metric: "rating_summary", question_id: a.p_question, n: vals.length, mean: vals.length ? Math.round((vals.reduce((x, y) => x + y, 0) / vals.length) * 100) / 100 : null, suppressed: false };
+      }
       if (a.p_metric === "participant_count")
         return { ok: true, metric: "participant_count", n: members >= MIN_COHORT ? members : null, suppressed: members < MIN_COHORT, guest_n: guests >= MIN_COHORT ? guests : null, guest_suppressed: guests < MIN_COHORT };
       {
@@ -864,7 +900,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
     case "lv_analytics_export": {
       const c = camp(a.p_campaign);
       if (!c) return err("lv_not_found", "Campaign not found");
-      if (isPersonal(s, c) || activeFamily(s, c.hub_id) === "free") return err("lv_entitlement_required", "Exports need an active Hub plan", { product: "starter_hub" });
+      if ((isPersonal(s, c) && !s.me.creator) || (!isPersonal(s, c) && activeFamily(s, c.hub_id) === "free")) return err("lv_entitlement_required", isPersonal(s, c) ? "Exports need Creator Plus or Creator Pro." : "Exports need an active Hub plan", { product: isPersonal(s, c) ? "creator_plus" : "starter_hub" });
       if (c.status === "draft") return err("lv_lifecycle_invalid", "Nothing to export yet");
       if (c.anonymity === "anonymous" && c.status !== "closed" && c.status !== "archived") return err("lv_policy_undecided", "Anonymous results appear after the Campaign closes");
       const rows = c.questions.filter((q) => q.kind !== "text").flatMap((q) => distribution(c, q.question_id).map((cell) => ({ question_id: q.question_id, prompt: q.prompt, answer: cell.key, n: cell.n, suppressed: cell.suppressed })));
@@ -998,8 +1034,9 @@ function distribution(c: C, questionId: string) {
     for (const x of r.answers)
       if (x.question_id === questionId)
         for (const v of Array.isArray(x.value) ? x.value : [x.value]) counts.set(String(v), (counts.get(String(v)) ?? 0) + 1);
-  const shown = [...counts].filter(([, k]) => k >= MIN_COHORT).map(([key, k]) => ({ key, n: k, suppressed: false, reason: null }));
-  const hidden = [...counts].some(([, k]) => k > 0 && k < MIN_COHORT) || (shown.length > 0 && shown.length < counts.size);
+  // Like the server: an empty cell is simply empty (n 0); only a cell of 1 to 4 answers is withheld.
+  const shown = [...counts].filter(([, k]) => k >= MIN_COHORT || k === 0).map(([key, k]) => ({ key, n: k, suppressed: false, reason: null }));
+  const hidden = [...counts].some(([, k]) => k > 0 && k < MIN_COHORT);
   return hidden ? [...shown, { key: "withheld", n: null, suppressed: true, reason: "below_min_cohort" }] : shown;
 }
 

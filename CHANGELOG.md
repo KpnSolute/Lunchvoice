@@ -6,6 +6,42 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (Results charts, premium results and Trends, migration 000044, 2026-11-13)
+
+- **Lv chart components** (`src/components/charts/`, import from `.../charts/index`): `LvChartFrame`, `LvBarChart`,
+  `LvStarDistribution`, `LvSplitBar`, `LvLineChart`, `LvKpiCard`, `LvWithheld`. They wrap Recharts 3.10.1 (pinned) so no
+  screen imports it; grey first with LunchVoice amber as the one accent, existing `--lv-*` tokens only, values on bars,
+  bars start at zero, light/dark/high contrast, 375px, an accessible data table behind every chart, "Withheld: fewer than 5
+  answers" as a built-in state, and "N saw, M answered" plus an active-filter label on the frame. Components never total
+  or average anything; the numbers come from the API. Recharts loads only in the lazy results/Trends chunks.
+- **Results page** (all plans): summary cards (responses, completion rate, median time bucket), a star distribution with
+  the server's average, sorted choice bars, a yes/no split, a text list; each chart has a type switcher, a "Show data
+  table" toggle and "Save as image" (PNG, in the browser). CSV export of released results now also opens for Creator Plus
+  and Pro (`analytics.export`, enforced by the server). "Pin to Hub dashboard" is a TODO until a Hub dashboard exists.
+- **Premium results** (Team Hub, Creator Pro; `analytics.premium`): responses over time, device type (phone/tablet/computer
+  only) and where people came from (link, QR, join code, Discord), and a cross-tab of two choice questions. On anonymous
+  surveys every shown cell is at least 5 with complementary suppression (`lv.safe_cells`); a cross-tab is withheld whole
+  unless every cell qualifies and no row or column sits in one cell. The Starter Hub sees what unlocks it.
+- **Coarse capture, counters only**: the device class is read from the request's User-Agent in an `AFTER INSERT` trigger
+  and the source/duration bucket and "started" are reported by the player once per receipt. The User-Agent and IP are never
+  stored, and nothing is stored per response, so it cannot be joined to an answer. QR codes carry `?src=qr`.
+- **Trends**: a series of surveys asked again (a Hub's Campaigns, or a person's Quick Surveys; one space per Trend). The
+  Trend page lists runs in time order with dates and answer counts and compares repeated questions (same kind and wording)
+  as a rating average, a choice share or a yes/no split, from privacy-safe per-run results: withheld is a gap, never zero;
+  answers are never joined across runs. "Ask again" makes a draft copy already in the Trend. Manage with `campaign.manage`
+  (owner of a personal space); reading needs `analytics.read`. `trends.max` (free 0, Creator Plus 3, Creator Pro 10, Starter 3,
+  Team 5; Creator counts PROVISIONAL) and `trends.max_pass` (1 on a Campaign pass). Over the limit nothing is deleted and
+  everything stays readable; creating, adding and asking again are refused (`lv_limit_reached`).
+- Hub tab "Trends"; Quick Surveys page links to `/trends`; routes `/:hub/trends[/:trend]` and `/trends[/:trend]`.
+- Rollback `supabase/rollbacks/000044_v2_trends_and_analytics.down.sql` (refuses while a Trend exists); tests
+  `supabase/tests/44_trends_and_analytics.sql`, `src/lib/chartData.test.ts`, `e2e/analytics.test.mjs`.
+
+### Security (000044)
+
+- "Ask again" refuses a blocked survey (`lv_locked`), a suspended account or space (`lv_suspended`), and a caller over the
+  creation rate limit (`quick.create_per_hour`, `lv_rate_limited`), on top of `campaign.manage`/owner and the Trend limit;
+  creating a Trend also refuses a suspended account or space. Database checks prove each refusal and that no copy is made.
+
 ### Operations (production, 2026-11-13: 000042 Linked Questions)
 
 - **Applied 000042 to production** (`qprfonxvthmaoxfixigk`) from commit `537f180` (file SHA-256 `5a37f889…`) through the

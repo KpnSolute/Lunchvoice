@@ -58,7 +58,7 @@ export function SurveyList() {
         eyebrow="Quick Surveys"
         title="Ask without a Hub"
         sub="Free for everyone. Share a link, a QR code or a six-character code, or invite people by link."
-        actions={<LinkButton to="/surveys/new" variant="primary" icon="plus">New Quick Survey</LinkButton>}
+        actions={<><LinkButton to="/trends" variant="secondary">Trends</LinkButton><LinkButton to="/surveys/new" variant="primary" icon="plus">New Quick Survey</LinkButton></>}
       />
       {list.error && <Notice tone="error">{describeError(list.error)}</Notice>}
       {list.loading && !d && <LoadingRows rows={3} />}
@@ -340,7 +340,7 @@ export function SurveyResults() {
         title={d.data?.campaign.title ?? "Results"}
         actions={<LinkButton to={`/surveys/${id}`} variant="secondary">Open in Studio</LinkButton>}
       />
-      <ResultsView campaignId={id} exportBlocked="Exports come with a Hub or Campaign plan. Quick Surveys show totals and charts here." />
+      <ResultsView campaignId={id} exportBlocked={null} />
     </div>
   );
 }
