@@ -527,6 +527,8 @@ export function createLvApi(transport: LvTransport) {
       call<{ campaign_id: string }>("lv_campaign_create", { p_hub: hub, p_title: title, p_mode: mode, p_anonymity: anonymity }),
     /** 000047: which question types this person can add (to one survey, or overall). */
     kindTier: (campaign?: string) => call<{ tier: PlanTier; quiz: boolean }>("lv_kind_tier", { p_campaign: campaign ?? null }),
+    /** 000047 (managers only): the quiz answer keys of one survey, {question_id: {correct, points}}. Never part of a normal read. */
+    campaignQuiz: (campaign: string) => call<{ quiz: Record<string, { correct: string[]; points?: number }> }>("lv_campaign_quiz", { p_campaign: campaign }),
     questionAdd: (campaign: string, position: number, kind: QuestionKind, prompt: string, config: object = {}) =>
       call<{ question_id: string }>("lv_campaign_question_add", {
         p_campaign: campaign,

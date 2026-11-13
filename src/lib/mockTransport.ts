@@ -180,8 +180,12 @@ function uploadsStorage<T extends { upload(bucket: string, path: string, file: B
 }
 // 000047: the question types this person may add here: their Creator plan or, in a Hub, the Hub's family.
 function kindTier(s: State, hubId?: string): PlanTier {
-  const hubFam = hubId && s.hubs.find((x) => x.hub_id === hubId)?.kind === "community" ? activeFamily(s, hubId) : null;
-  return tierOf(hubFam, s.me.creator ?? null);
+  const community = hubId && s.hubs.find((x) => x.hub_id === hubId)?.kind === "community";
+  const here = community ? tierOf(activeFamily(s, hubId), s.me.creator ?? null) : tierOf(null, s.me.creator ?? null);
+  if (community) return here;
+  // In the personal space the Hubs the person owns count too (a Starter Hub owner has the Plus types).
+  return s.hubs.filter((h) => h.kind === "community" && h.members.some((m) => m.account_id === "mock-account" && m.is_owner))
+    .map((h) => tierOf(activeFamily(s, h.hub_id), null)).reduce<PlanTier>((x, y) => (tierAllows(x, y) ? x : y), here);
 }
 // lv.quick_question_guard (000047): plan gate and the identity rule. Returns an error envelope or null.
 function kindGuard(s: State, c: C, kind: string | null) {
@@ -317,7 +321,15 @@ export function createMockTransport(displayName = "Dana", signedIn: () => boolea
       /* ---- end track C ---- */
       // Survey branding (000043): its own handler, before the shared switch.
       if (BRANDING_FNS.has(fn)) { const b = brandingHandle(brandingCtx(s), fn, a, signedIn()); save(); return b; }
-      const r = handleTrackA(s, fn, a, signedIn(), () => handle(s, fn, a, signedIn()));
+      // 000047: the quiz answer key is read only through lv_campaign_quiz; no other read returns it.
+      if (fn === "lv_campaign_quiz") {
+        const c = s.campaigns.find((x) => x.campaign_id === a.p_campaign);
+        const h = c ? s.hubs.find((x) => x.hub_id === c.hub_id) : undefined;
+        if (!c || !h || !(h.kind === "personal" || h.members.some((m) => m.account_id === "mock-account" && m.is_owner))) return err("lv_not_found", "No such survey.");
+        return { ok: true, quiz: Object.fromEntries(c.questions.filter((q) => (q.config as { quiz?: unknown }).quiz).map((q) => [q.question_id, (q.config as { quiz: unknown }).quiz])) };
+      }
+      const r0 = handleTrackA(s, fn, a, signedIn(), () => handle(s, fn, a, signedIn()));
+      const r = hideQuiz(r0);
       /* ---- track C: community ---- */
       communityAfter(communityCtx(s, signedIn()), fn, a, r, answeredBefore);
       /* ---- end track C ---- */
@@ -336,6 +348,13 @@ export function createMockTransport(displayName = "Dana", signedIn: () => boolea
       return r;
     },
   };
+}
+
+/** A read's questions without their quiz answer key (what lv.campaign_questions.quiz does on the server). */
+function hideQuiz<T>(r: T): T {
+  const o = r as { questions?: { config?: Record<string, unknown> }[] } | null;
+  if (!o || !Array.isArray(o.questions) || !o.questions.some((q) => q.config && "quiz" in q.config)) return r;
+  return { ...o, questions: o.questions.map((q) => (q.config && "quiz" in q.config ? { ...q, config: Object.fromEntries(Object.entries(q.config).filter(([k]) => k !== "quiz")) } : q)) } as T;
 }
 
 const err = (code: string, message: string, extra: object = {}) => ({ ok: false, error: { code, message, ...extra } });
@@ -395,9 +414,8 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
     case "lv_kind_tier": {
       const c = a.p_campaign ? camp(a.p_campaign) : null;
       if (a.p_campaign && !c) return err("lv_not_found", "No such survey.");
-      const best = c ? kindTier(s, c.hub_id) : tierOf(null, s.me.creator ?? null);
-      const hubBest = c ? best : s.hubs.filter((h) => h.kind === "community" && h.members.some((m) => m.account_id === "mock-account" && m.status === "accepted")).map((h) => kindTier(s, h.hub_id)).reduce<PlanTier>((x, y) => (tierAllows(x, y) ? x : y), best);
-      return { ok: true, tier: hubBest, quiz: hubBest === "pro" };
+      const best2 = kindTier(s, c?.hub_id);
+      return { ok: true, tier: best2, quiz: best2 === "pro" };
     }
     case "lv_my_context": {
       const answered = s.campaigns.filter((c) => c.mine_answered);

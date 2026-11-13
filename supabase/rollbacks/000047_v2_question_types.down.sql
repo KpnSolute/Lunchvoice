@@ -5,7 +5,7 @@ do $$ begin
   if exists (select 1 from lv.campaign_questions where kind not in ('rating','single_choice','multi_choice','yes_no','text')) then
     raise exception 'Questions of a v2 kind exist; remove them before rolling back 000047.';
   end if;
-  if exists (select 1 from lv.campaign_questions where config ? 'quiz' and config->'quiz' <> 'null'::jsonb) then
+  if exists (select 1 from lv.campaign_questions where quiz is not null) then
     raise exception 'Quiz questions exist; remove their quiz settings before rolling back 000047.';
   end if;
 end $$;
@@ -143,6 +143,7 @@ as $$
 $$;
 
 
+drop function lv_api.lv_campaign_quiz(uuid), lv_api.lv_quiz_results(uuid), lv.quiz_points(uuid);
 drop function lv_api.lv_kind_tier(uuid), lv_storage.upload_readable(text), lv_storage.upload_writable(text);
 drop function lv.answers_check(), lv.identity_questions_check(), lv.quiz_guard(), lv.answer_keys(text, jsonb), lv.check_answer_value_v2(text, jsonb, jsonb),
   lv.kind_config_problem(text, jsonb), lv.label_ok(jsonb, int), lv.scale_problem(jsonb), lv.j_date(jsonb), lv.j_int(jsonb), lv.j_num(jsonb),
@@ -152,6 +153,7 @@ delete from lv.reserved_slugs where slug = 'templates' and reason = 'platform ro
 delete from lv.plan_limits where key in ('survey.kinds', 'survey.quiz');
 update lv.plan_limits set value = '["rating","single_choice","multi_choice","yes_no","text"]', note = 'Core question kinds.' where key = 'quick.kinds';
 
+alter table lv.campaign_questions drop column quiz;
 alter table lv.campaign_questions drop constraint campaign_questions_kind_check;
 alter table lv.campaign_questions add constraint campaign_questions_kind_check check (kind in ('rating', 'single_choice', 'multi_choice', 'yes_no', 'text'));
 -- The private bucket survey-uploads is left in place: it may hold customers' files.

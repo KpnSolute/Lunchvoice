@@ -1229,3 +1229,43 @@ lapse falls back, player visibility rules, table closed to API roles). New `Surv
 - `banner_style`: `fill` (the color or gradient) | `pattern` | `logo` (logo only, LunchVoice ink behind it).
 - `cosmetics`: `{ pattern: none|dots|grid|waves, progress_tint: bool, glow: bool }`. Corner style is the existing `button_style`.
 - Save rules: text on a gradient is white, so BOTH colors must reach 4.5:1 on white (`lv_invalid_input` otherwise); a gradient needs `color2` and a first color (or `follow_hub`); unknown angle, banner, pattern or style are refused; a solid theme drops `color2`.
+
+
+## Question types and the template gallery (000047)
+
+Question kinds (`lv_campaign_question_add` / `_update`, `p_kind`): the five core kinds plus `face_scale`, `dropdown`, `number`,
+`date` (Free), `nps`, `agree_scale`, `ranking`, `image_choice`, `slider`, `contact` (Plus: Starter Hub, Creator Plus) and
+`agree_grid`, `file_upload`, `consent`, `signature`, `price_ladder`, `before_after` (Pro: Team Hub, Creator Pro). Plan keys are
+`lv.plan_limits` `survey.kinds` per family; a person's personal space also counts the Hubs they own. A kind the plan does not
+include answers `lv_entitlement_required` with `product` = `creator_plus` | `creator_pro`, `feature` = `survey.kinds`, `kind`.
+`contact`, `file_upload`, `consent`, `signature` need an identified survey (`lv_invalid_input`, also checked when a survey leaves
+draft or switches to anonymous).
+
+Settings (all validated by `lv.question_config_problem` -> `lv.kind_config_problem`): `dropdown`/`ranking`/`image_choice`
+`options` (2-50 / 2-10 / 2-6) and optional `images` (https only); `number` `min`/`max`/`integer`/`unit`; `date` `min`/`max`
+(YYYY-MM-DD); `nps` `low_label`/`high_label`; `agree_scale`/`agree_grid`/`before_after` `points` (5|7), `labels`, `rows`,
+`before_label`/`after_label`; `slider` `min`/`max`/`step`/`min_label`/`max_label`; `contact` `fields` (name, email, phone);
+`file_upload` `max_mb` (1-10), `types` (image, pdf, doc); `consent` `statement`; `price_ladder` `prices` (rising), `currency`.
+
+Answers (`lv.check_answer_value`, extending 000042 with every existing branch verbatim): face 1-5; dropdown/image choice one
+option; number/date within bounds; nps 0-10; agree 1..points; ranking a full permutation; slider on a step; contact an object
+with exactly the asked fields; grid `{statement: n}`; before/after `{before, after}`; file `{path, name, size, type}`;
+consent `true`; signature a string; price a ladder price or `"none"`. `lv.kind_options` / `lv.kind_allows_jumps` /
+`lv.kind_is_scale` also cover dropdown and image choice (single-pick) and face scale (1-5).
+
+Results: `lv.question_cells` keys by kind (`ranking` counts first choices, `agree_grid` `"statement: n"`, `before_after`
+`"before: n"` / `"after: n"`); contact, file and signature never become cells. NPS = % promoters - % detractors, computed from
+published cells and withheld with them (minimum cohort).
+
+**Quiz scoring (Pro).** The answer key is NOT in `config`: writers send `config.quiz = {correct: [...], points}` and a trigger
+moves it into `lv.campaign_questions.quiz`, so no respondent, guest or public read can return it. Managers read it with
+`lv_campaign_quiz(p_campaign)` -> `{quiz: {question_id: {correct, points}}}`; `quiz: null` clears it. Totals:
+`lv_quiz_results(p_campaign)` -> `{withheld, max_points, attempts, average, best}`. The key is validated whenever the kind,
+settings or key change, and only a choice kind may have one.
+
+**File answers.** Private bucket `survey-uploads` (10 MB, images/PDF/Word/text only). Path `<survey>/<account>/<file>`. A signed-in
+person may write only to their own folder, only while they could submit (access mode, invite or membership, not suspended or
+blocked, survey open and identified), at most 5 files per person per survey. A file answer is accepted only from that
+submitter (never a guest) and only if the object exists. Managers read through the storage policy.
+
+`lv_kind_tier(p_campaign?)` -> `{tier: free|plus|pro, quiz}`. `/templates` is a reserved slug.

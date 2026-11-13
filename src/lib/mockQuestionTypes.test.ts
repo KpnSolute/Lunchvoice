@@ -75,3 +75,16 @@ test("kindTier follows the survey it is asked about", async () => {
   const none = await api.kindTier("nope");
   assert.ok(!none.ok && none.error.code === "lv_not_found");
 });
+
+test("the quiz answer key is stored with the question but no normal read returns it; managers fetch it on its own", async () => {
+  const api = await mockApi("creatorpro", 5);
+  const id = await draft(api);
+  const q = await api.questionAdd(id, 1, "single_choice", "Capital of France?", { options: ["Paris", "Rome"], quiz: { correct: ["Paris"], points: 2 } });
+  assert.ok(q.ok);
+  const read = await api.campaignGet(id);
+  assert.ok(read.ok);
+  assert.ok(!JSON.stringify(read).includes("quiz") && !JSON.stringify(read).includes("Paris\"]"), "campaign read has no key");
+  const keys = await api.campaignQuiz(id);
+  assert.ok(keys.ok);
+  assert.deepEqual(keys.quiz[q.question_id], { correct: ["Paris"], points: 2 });
+});

@@ -53,13 +53,18 @@ create function lv.kind_identified_only(p_kind text) returns boolean
 language sql immutable set search_path = ''
 as $$ select p_kind in ('contact', 'file_upload', 'consent', 'signature') $$;
 
--- Every kind this Hub family or this person's Creator family may add (a union; Free is always included).
+-- Every kind this Hub family or this person's Creator family may add (a union; Free is always included). In a person's
+-- personal space (Quick Surveys) the families of the Hubs they OWN count too: a Starter Hub owner has the Plus types.
 create function lv.kinds_allowed(p_hub uuid, p_account uuid) returns jsonb
 language sql stable security definer set search_path = ''
 as $$
   select coalesce(lv.plan_limit('free', 'survey.kinds'), '[]'::jsonb)
       || coalesce(lv.plan_limit(lv.hub_family(p_hub), 'survey.kinds'), '[]'::jsonb)
       || coalesce(lv.plan_limit(lv.account_creator_family(p_account), 'survey.kinds'), '[]'::jsonb)
+      || case when p_hub is null or lv.hub_kind(p_hub) = 'personal'
+              then coalesce((select jsonb_agg(distinct e) from lv.hubs h, lateral jsonb_array_elements(coalesce(lv.plan_limit(lv.hub_family(h.id), 'survey.kinds'), '[]'::jsonb)) e
+                              where h.owner_account_id = p_account and h.kind <> 'personal'), '[]'::jsonb)
+              else '[]'::jsonb end
 $$;
 
 -- ---------------------------------------------------------------- 3. settings rules
@@ -234,6 +239,9 @@ declare
 begin
   if p_config is not null and jsonb_typeof(p_config) <> 'object' then return 'Question settings must be an object.'; end if;
   if p_kind is null then return null; end if;
+  if p_kind not in ('single_choice', 'multi_choice') and p_config ? 'quiz' and p_config->'quiz' <> 'null'::jsonb then
+    return 'Quiz scoring is only for single and multiple choice questions.';
+  end if;
   if p_kind in ('single_choice', 'multi_choice') then
     v_opts := p_config->'options';
     if v_opts is null or jsonb_typeof(v_opts) <> 'array' then return 'A choice question needs 2 to 10 options.'; end if;
@@ -304,17 +312,33 @@ begin
 end;
 $$;
 
--- Quiz scoring is a Pro setting on a choice question.
+-- Quiz scoring (Pro) on a choice question. The answer key lives in its OWN column, never in `config`: every
+-- respondent, guest and public read returns `config`, so a key kept there would hand out the answers. Writers still send
+-- `config.quiz` (that is the one write path); this trigger moves it into `quiz`, validates it on every change of kind,
+-- settings or key, and managers read it back through lv_api.lv_campaign_quiz.
+alter table lv.campaign_questions add column quiz jsonb;
+
 create function lv.quiz_guard() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 declare
   v_hub uuid;
+  v_bad text;
 begin
-  if new.kind in ('single_choice', 'multi_choice') and new.config ? 'quiz' and new.config->'quiz' <> 'null'::jsonb
-     and (tg_op = 'INSERT' or (old.config->'quiz') is distinct from (new.config->'quiz')) then
+  if new.config ? 'quiz' then
+    new.quiz := nullif(new.config->'quiz', 'null'::jsonb);
+    new.config := new.config - 'quiz';
+  end if;
+  if new.quiz is null then return new; end if;
+  if new.kind not in ('single_choice', 'multi_choice') then
+    raise exception 'lv_invalid_input: Quiz scoring is only for single and multiple choice questions.' using errcode = '22023';
+  end if;
+  -- Valid against the question as it is NOW (its kind and options), not as it was when the key was written.
+  v_bad := lv.kind_config_problem(new.kind, new.config || jsonb_build_object('quiz', new.quiz));
+  if v_bad is not null then raise exception 'lv_invalid_input: %', v_bad using errcode = '22023'; end if;
+  if tg_op = 'INSERT' or old.quiz is distinct from new.quiz or old.kind is distinct from new.kind then
     select c.hub_id into v_hub from lv.campaigns c where c.id = new.campaign_id;
-    if not lv.feature_allowed(v_hub, lv.current_account_id(), 'survey.quiz') then
+    if not (lv.kinds_allowed(v_hub, lv.current_account_id()) ? 'agree_grid') then -- the Pro tier: Creator Pro, a Team Hub, or owning one
       perform lv.fail('lv_entitlement_required', 'Quiz scoring starts with Creator Pro or a Team Hub.',
                       jsonb_build_object('product', 'creator_pro', 'feature', 'survey.quiz'));
     end if;
@@ -322,8 +346,56 @@ begin
   return new;
 end;
 $$;
-create trigger campaign_questions_quiz_guard before insert or update of config on lv.campaign_questions
+create trigger campaign_questions_quiz_guard before insert or update of kind, config, quiz on lv.campaign_questions
   for each row execute function lv.quiz_guard();
+
+-- Managers read the answer keys of one survey: {question_id: {correct, points}}.
+create function lv_api.lv_campaign_quiz(p_campaign uuid) returns jsonb
+language plpgsql stable security definer set search_path = ''
+as $$
+begin
+  if not coalesce((lv_api.lv_campaign_get(p_campaign) ->> 'can_manage')::boolean, false) then
+    return lv.err('lv_not_found', 'No such survey.');
+  end if;
+  return jsonb_build_object('ok', true, 'quiz', coalesce((select jsonb_object_agg(q.id, q.quiz) from lv.campaign_questions q
+                                                          where q.campaign_id = p_campaign and q.quiz is not null), '{}'::jsonb));
+end;
+$$;
+
+-- Points one submission earned. A multiple choice answer must match the key exactly.
+create function lv.quiz_points(p_submission uuid) returns int
+language sql stable security definer set search_path = ''
+as $$
+  select coalesce(sum(case when (
+           case when jsonb_typeof(a.value) = 'array'
+                then (select coalesce(jsonb_agg(x order by x), '[]') from jsonb_array_elements_text(a.value) x)
+                else jsonb_build_array(a.value #>> '{}') end
+         ) = (select coalesce(jsonb_agg(x order by x), '[]') from jsonb_array_elements_text(q.quiz->'correct') x)
+         then coalesce((q.quiz->>'points')::int, 1) else 0 end), 0)::int
+    from lv.answers a join lv.campaign_questions q on q.id = a.question_id
+   where a.submission_id = p_submission and q.quiz is not null
+$$;
+
+-- Managers see how the quiz went as totals only: attempts, average and best score, withheld below the cohort minimum.
+create function lv_api.lv_quiz_results(p_campaign uuid) returns jsonb
+language plpgsql stable security definer set search_path = ''
+as $$
+declare
+  v_n int;
+  v_min int := coalesce((lv.policy_json('campaign.min_cohort'))::int, 5);
+  v_max int;
+begin
+  if not coalesce((lv_api.lv_campaign_get(p_campaign) ->> 'can_manage')::boolean, false) then
+    return lv.err('lv_not_found', 'No such survey.');
+  end if;
+  select coalesce(sum(coalesce((q.quiz->>'points')::int, 1)), 0) into v_max from lv.campaign_questions q where q.campaign_id = p_campaign and q.quiz is not null;
+  select count(*) into v_n from lv.submissions s where s.campaign_id = p_campaign;
+  if v_n < v_min then return jsonb_build_object('ok', true, 'withheld', true, 'max_points', v_max); end if;
+  return jsonb_build_object('ok', true, 'withheld', false, 'max_points', v_max, 'attempts', v_n,
+    'average', (select round(avg(lv.quiz_points(s.id)), 2) from lv.submissions s where s.campaign_id = p_campaign),
+    'best', (select max(lv.quiz_points(s.id)) from lv.submissions s where s.campaign_id = p_campaign));
+end;
+$$;
 
 -- Leaving draft, or switching to anonymous, with an identity question is refused.
 create function lv.identity_questions_check() returns trigger
@@ -515,6 +587,9 @@ as $$
 declare
   q record;
   v_campaign uuid;
+  v_account uuid;
+  v_guest boolean;
+  v_found boolean;
   v_bad text;
 begin
   select * into q from lv.campaign_questions x where x.id = new.question_id;
@@ -522,9 +597,19 @@ begin
   v_bad := lv.check_answer_value(q.kind, q.config, new.value);
   if v_bad is not null then raise exception 'lv_invalid_input: %', v_bad using errcode = '22023'; end if;
   if q.kind = 'file_upload' then
-    select s.campaign_id into v_campaign from lv.submissions s where s.id = new.submission_id;
-    if (new.value->>'path') not like v_campaign::text || '/%' then
-      raise exception 'lv_invalid_input: That file was not uploaded for this survey.' using errcode = '22023';
+    -- The file must be THIS person's: <survey>/<their account>/<file>, submitted by a signed-in member of an identified
+    -- survey (never a guest), and it must really exist in the private bucket.
+    select s.campaign_id, s.account_id, coalesce(s.is_guest, false) into v_campaign, v_account, v_guest from lv.submissions s where s.id = new.submission_id;
+    if v_account is null or v_guest then
+      raise exception 'lv_invalid_input: Attaching a file needs a signed-in account.' using errcode = '22023';
+    end if;
+    if split_part(new.value->>'path', '/', 1) <> v_campaign::text or split_part(new.value->>'path', '/', 2) <> v_account::text
+       or split_part(new.value->>'path', '/', 3) = '' then
+      raise exception 'lv_invalid_input: That file was not uploaded by you for this survey.' using errcode = '22023';
+    end if;
+    if to_regclass('storage.objects') is not null then
+      execute 'select exists (select 1 from storage.objects o where o.bucket_id = ''survey-uploads'' and o.name = $1)' into v_found using new.value->>'path';
+      if not v_found then raise exception 'lv_invalid_input: That file was not found. Upload it again.' using errcode = '22023'; end if;
     end if;
   end if;
   return new;
@@ -590,9 +675,6 @@ begin
     v_kinds := lv.kinds_allowed(v_hub, v_account);
   else
     v_kinds := lv.kinds_allowed(null, v_account);
-    for v_h in select m.hub_id from lv.hub_memberships m where m.account_id = v_account and m.status = 'accepted' loop
-      v_kinds := v_kinds || lv.kinds_allowed(v_h.hub_id, v_account);
-    end loop;
   end if;
   if v_kinds ? 'agree_grid' then v_tier := 'pro'; elsif v_kinds ? 'nps' then v_tier := 'plus'; end if;
   return jsonb_build_object('ok', true, 'tier', v_tier, 'kinds', (select jsonb_agg(distinct e) from jsonb_array_elements_text(v_kinds) e),
@@ -604,9 +686,11 @@ $$;
 do $$
 begin
   if to_regclass('storage.buckets') is not null then
-    insert into storage.buckets (id, name, public, file_size_limit)
-    values ('survey-uploads', 'survey-uploads', false, 10485760)
-    on conflict (id) do update set public = false, file_size_limit = 10485760;
+    insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+    values ('survey-uploads', 'survey-uploads', false, 10485760,
+            array['image/png', 'image/jpeg', 'image/webp', 'image/heic', 'application/pdf', 'application/msword',
+                  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'])
+    on conflict (id) do update set public = false, file_size_limit = 10485760, allowed_mime_types = excluded.allowed_mime_types;
   end if;
 end $$;
 
@@ -628,19 +712,32 @@ begin
 end;
 $$;
 
--- Who may add one: a signed-in person, into their own folder, for an open identified survey that asks for a file.
+-- Who may add one: the signed-in person, into their own folder, if they could submit to this survey right now (the same
+-- rule as submitting: access mode, invite or membership, not suspended, not blocked) and it asks for a file. At most 5
+-- files per person per survey.
 create function lv_storage.upload_writable(p_path text) returns boolean
 language plpgsql stable security definer set search_path = ''
 as $$
 declare
   v_campaign uuid;
+  v_account uuid := lv.current_account_id();
+  v_used int := 0;
 begin
-  if lv.current_account_id() is null then return false; end if;
+  if v_account is null or lv.account_suspended(v_account) then return false; end if;
   begin v_campaign := split_part(p_path, '/', 1)::uuid; exception when others then return false; end;
-  if split_part(p_path, '/', 2) <> lv.current_account_id()::text then return false; end if;
-  return exists (select 1 from lv.campaigns c
-                  where c.id = v_campaign and c.status = 'active' and c.anonymity = 'identified'
-                    and exists (select 1 from lv.campaign_questions q where q.campaign_id = c.id and q.kind = 'file_upload'));
+  if split_part(p_path, '/', 2) <> v_account::text or split_part(p_path, '/', 3) = '' or p_path like '%/../%' then return false; end if;
+  if not exists (select 1 from lv.campaigns c
+                  where c.id = v_campaign and c.status = 'active' and c.anonymity = 'identified' and c.blocked_at is null
+                    and (c.opens_at is null or c.opens_at <= now()) and (c.closes_at is null or c.closes_at > now())
+                    and not lv.hub_suspended(c.hub_id)
+                    and exists (select 1 from lv.campaign_questions q where q.campaign_id = c.id and q.kind = 'file_upload')) then
+    return false;
+  end if;
+  if not lv.can_participate(v_campaign, v_account) then return false; end if;
+  if to_regclass('storage.objects') is not null then
+    execute 'select count(*) from storage.objects o where o.bucket_id = ''survey-uploads'' and o.name like $1' into v_used using v_campaign::text || '/' || v_account::text || '/%';
+  end if;
+  return v_used < 5;
 end;
 $$;
 
@@ -662,15 +759,15 @@ insert into lv.reserved_slugs (slug, reason) values ('templates', 'platform rout
 -- ---------------------------------------------------------------- grants
 revoke all on function lv.kind_tier(text), lv.kind_identified_only(text), lv.kinds_allowed(uuid, uuid), lv.opts_problem(jsonb, int, int, int, text),
   lv.j_num(jsonb), lv.j_int(jsonb), lv.j_date(jsonb), lv.scale_problem(jsonb), lv.label_ok(jsonb, int), lv.kind_config_problem(text, jsonb),
-  lv.quiz_guard(), lv.identity_questions_check(), lv.check_answer_value_v2(text, jsonb, jsonb),
+  lv.quiz_guard(), lv.quiz_points(uuid), lv.identity_questions_check(), lv.check_answer_value_v2(text, jsonb, jsonb),
   lv.answers_check(), lv.answer_keys(text, jsonb) from public;
-revoke all on function lv_api.lv_kind_tier(uuid), lv_storage.upload_readable(text), lv_storage.upload_writable(text) from public;
+revoke all on function lv_api.lv_kind_tier(uuid), lv_api.lv_campaign_quiz(uuid), lv_api.lv_quiz_results(uuid), lv_storage.upload_readable(text), lv_storage.upload_writable(text) from public;
 do $$ begin
   if exists (select 1 from pg_roles where rolname = 'anon') then
-    execute 'revoke all on function lv_api.lv_kind_tier(uuid) from anon';
+    execute 'revoke all on function lv_api.lv_kind_tier(uuid), lv_api.lv_campaign_quiz(uuid), lv_api.lv_quiz_results(uuid) from anon';
   end if;
   if exists (select 1 from pg_roles where rolname = 'authenticated') then
-    execute 'grant execute on function lv_api.lv_kind_tier(uuid) to authenticated';
+    execute 'grant execute on function lv_api.lv_kind_tier(uuid), lv_api.lv_campaign_quiz(uuid), lv_api.lv_quiz_results(uuid) to authenticated';
     execute 'grant usage on schema lv_storage to authenticated';
     execute 'grant execute on function lv_storage.upload_readable(text), lv_storage.upload_writable(text) to authenticated';
   end if;

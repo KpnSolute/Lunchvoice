@@ -80,6 +80,9 @@ export function QuestionWorkbench({
   // 000047: which question types this person may save here. Until it answers, only the free ones.
   const tierQ = useLv(() => api.kindTier(d.campaign.campaign_id), [api, d.campaign.campaign_id]);
   const tier: PlanTier = tierQ.data?.tier ?? "free";
+  // Quiz answer keys are not part of a normal read (respondents would see them); managers fetch them separately.
+  const quizQ = useLv(() => (qs.some((x) => x.kind === "single_choice" || x.kind === "multi_choice") ? api.campaignQuiz(d.campaign.campaign_id) : Promise.resolve({ ok: true as const, quiz: {} })), [api, d.campaign.campaign_id, qs]);
+  const quizKeys = quizQ.data?.quiz ?? {};
   const [sel, setSel] = useState<string>(() => qs[0]?.question_id ?? (locked ? "" : "new"));
   const [sheet, setSheet] = useState(false);
   // Save race (track A): a new question keeps ONE editor from its first keystroke to after the reload that brings
@@ -187,12 +190,12 @@ export function QuestionWorkbench({
           <section className="lv-qw-editor lv-qw-pro-editor" aria-label="Question editor">
             {locked && <Notice>Published questions can’t change. Close it to stop answers.</Notice>}
             {current ? (
-              <QuestionEditor pro key={aliases.current[current.question_id] ?? current.question_id} q={current} n={index + 1} locked={locked} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} tier={tier} anonymity={d.campaign.anonymity} />
+              <QuestionEditor pro key={aliases.current[current.question_id] ?? current.question_id} q={current} n={index + 1} locked={locked} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} tier={tier} anonymity={d.campaign.anonymity} quizKey={current ? quizKeys[current.question_id] : undefined} />
             ) : effectiveSel === "new" && !locked ? (
               atLimit ? (
                 <Notice tone="warn" title={`This survey has ${qs.length} of ${limit} questions`}>Remove a question to add another.</Notice>
               ) : (
-                <QuestionEditor pro key={`new-${newKey}`} q={null} initialKind={initialKind} n={qs.length + 1} locked={false} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} tier={tier} anonymity={d.campaign.anonymity} />
+                <QuestionEditor pro key={`new-${newKey}`} q={null} initialKind={initialKind} n={qs.length + 1} locked={false} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} tier={tier} anonymity={d.campaign.anonymity} quizKey={undefined} />
               )
             ) : (
               <Card variant="well"><p className="lv-m0">{qs.length ? "Pick a question to see it." : "This survey has no questions."}</p></Card>
@@ -238,12 +241,12 @@ export function QuestionWorkbench({
       <section className="lv-qw-editor" aria-label="Question editor">
         {locked && <Notice>Published questions can’t change. Close it to stop answers.</Notice>}
         {current ? (
-          <QuestionEditor key={aliases.current[current.question_id] ?? current.question_id} q={current} n={index + 1} locked={locked} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} tier={tier} anonymity={d.campaign.anonymity} />
+          <QuestionEditor key={aliases.current[current.question_id] ?? current.question_id} q={current} n={index + 1} locked={locked} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} tier={tier} anonymity={d.campaign.anonymity} quizKey={current ? quizKeys[current.question_id] : undefined} />
         ) : effectiveSel === "new" && !locked ? (
           atLimit ? (
             <Notice tone="warn" title={`This survey has ${qs.length} of ${limit} questions`}>Remove a question to add another.</Notice>
           ) : (
-            <QuestionEditor key={`new-${newKey}`} q={null} initialKind={initialKind} n={qs.length + 1} locked={false} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} tier={tier} anonymity={d.campaign.anonymity} />
+            <QuestionEditor key={`new-${newKey}`} q={null} initialKind={initialKind} n={qs.length + 1} locked={false} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} tier={tier} anonymity={d.campaign.anonymity} quizKey={undefined} />
           )
         ) : (
           <Card variant="well"><p className="lv-m0">{qs.length ? "Pick a question to see it." : "This survey has no questions."}</p></Card>
@@ -404,7 +407,9 @@ function QuestionEditor({
   tier,
   anonymity,
   pro,
+  quizKey,
 }: {
+  quizKey?: { correct: string[]; points?: number };
   tier: PlanTier;
   anonymity: "anonymous" | "identified";
   pro?: boolean;
@@ -430,6 +435,8 @@ function QuestionEditor({
   qRef.current = q;
   const latest = useRef(draft);
   latest.current = draft;
+  // The saved quiz key arrives after the editor opens (it is fetched on its own); show it without saving anything.
+  useEffect(() => { if (quizKey && latest.current.cfg.quiz === undefined) setDraft((x) => ({ ...x, cfg: { ...x.cfg, quiz: quizKey } })); }, [quizKey]);
   const tierRef = useRef(tier);
   tierRef.current = tier;
 

@@ -6,6 +6,40 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (question types, 82 templates and the template gallery; migration 000047)
+
+- **16 new question types.** Free: face scale, dropdown, number, date. Plus (Starter Hub, Creator Plus): NPS with an automatic
+  score, agree scale (5 or 7 points), ranking, image choice, slider, contact fields. Pro (Team Hub, Creator Pro): agree grid,
+  quiz scoring, file upload, consent checkbox, typed signature, price ladder, before/after. Every type has an editor in both
+  the simple and the Creator studio editor, an accessible phone-first answer control (44px targets, light and dark), server
+  settings and per-answer validation, a mock transport and a results shape. Free accounts can preview Plus and Pro types with
+  a lock badge that says what unlocks them. Contact, file, consent and signature are for identified surveys only.
+- **Migration `000047_v2_question_types`** (additive; rollback `supabase/rollbacks/000047_v2_question_types.down.sql`, tests
+  `supabase/tests/47_question_types.sql`). Extends 000042's `lv.check_answer_value`, `lv.kind_options`,
+  `lv.kind_allows_jumps`, `lv.kind_is_scale` with `create or replace`, every existing kind verbatim (proven in the test);
+  `lv.quick_question_guard` adds the plan gate and the identity rule; `lv.capacity_check` accepts the plan's own kinds.
+  New: `lv_kind_tier`, `lv_campaign_quiz`, `lv_quiz_results`, private bucket `survey-uploads`, reserved slug `templates`.
+  Not applied to production.
+- **82 templates, 12 categories** (45 Free, 22 Plus, 15 Pro) stored as data in `src/config/templates.json`; the original 20
+  stay Free. Anonymous by default; identified ones say so on the first line; health templates ask about experience only;
+  dietary options are choices, never allergies (the RSVP's "Nut allergy" option became "Nut-free"); Pro group breakdowns follow
+  the minimum of 5. Trivia night is valid data but flagged (timed rounds and a leaderboard are not built) and hidden from Use.
+- **Public gallery**: `/templates` (search, category and plan filters), `/templates/<category>`, `/templates/<template>`
+  (live preview with the real controls, plan badge, locked templates show the plan needed and link to plans), a
+  "Recommended for" strip on every use-case page, and the Quick Survey picker reads the same data. All 95 pages are in the
+  sitemap, `routes.json`, `render.yaml` and the SEO metadata (app and build checked equal by a test).
+- **Security:** the quiz answer key lives in its own column (`lv.campaign_questions.quiz`), never in `config`, so no
+  respondent, guest or public read can return it; managers fetch it with `lv_campaign_quiz`.
+- **Security:** a file answer must be the submitter's own (`<survey>/<their account>/...`), from a signed-in account (never
+  a guest), and the object must exist in the private bucket.
+- **Security:** uploads follow the submit rules (`lv.can_participate`, open and identified survey, account and Hub not
+  suspended or blocked), the bucket restricts MIME types and size, and one person may store at most 5 files per survey.
+- **Security:** the quiz guard fires on any change of kind, settings or key, validates the key against the question as it is
+  now, rejects a key on a non-choice kind and keeps the Pro entitlement check.
+- Not done / follow-ups: image-choice pictures use https addresses, which the site's CSP (`img-src 'self' data: blob:`) will not
+  load until a picture bucket or host is chosen (words always show); `nps`, `slider` and `ranking` are not yet usable in
+  Linked Questions rules (only dropdown, image choice and face scale are); respondents do not see their quiz score yet.
+
 ### Changed (branding is a full-width step in the Creator studio too)
 
 - The redesigned Branding panel (live preview, Colors/Banner/Logo/Text/Style) did not fit the Creator studio's narrow

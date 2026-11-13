@@ -1,7 +1,7 @@
 /* ---------- Question types (000047) ----------
    Controls for the v2 answer types. Same tokens and surfaces as the five core controls in ui.css; no new values. */
-.lv-kc-wrap { display: flex; flex-direction: column; gap: 10px; }
-.lv-kc-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.lv-kc-wrap { position: relative; display: flex; flex-direction: column; gap: 10px; }
+.lv-kc-sr { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .lv-kc-pick { font: inherit; color: inherit; cursor: pointer; }
 .lv-kc-pick:focus-visible, .lv-kc-field:focus-visible, .lv-kc-range:focus-visible, .lv-kc-file:focus-within { outline: 2px solid var(--lv-focus); outline-offset: 3px; }
 

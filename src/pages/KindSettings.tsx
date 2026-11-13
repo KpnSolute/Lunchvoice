@@ -204,7 +204,7 @@ function Checks({ label, id, options, value, onChange, locked }: { label: string
 export function QuizSettings({ kind, options, cfg, set, locked, allowed, n }: { kind: "single_choice" | "multi_choice"; options: string[]; cfg: Cfg; set: (next: Cfg) => void; locked: boolean; allowed: boolean; n: number }) {
   const quiz = (cfg.quiz && typeof cfg.quiz === "object" ? cfg.quiz : null) as { correct?: string[]; points?: number } | null;
   const correct = quiz?.correct ?? [];
-  const enable = (on: boolean) => set(clean({ ...cfg, quiz: on ? { correct: [], points: 1 } : undefined }));
+  const enable = (on: boolean) => set(clean({ ...cfg, quiz: on ? { correct: [], points: 1 } : null })); // null clears the key on the server; undefined leaves it alone
   const toggle = (o: string) => {
     const next = kind === "single_choice" ? [o] : correct.includes(o) ? correct.filter((x) => x !== o) : [...correct, o];
     set({ ...cfg, quiz: { ...quiz, correct: next } });

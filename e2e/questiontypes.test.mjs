@@ -69,7 +69,7 @@ for (const [width, label] of [[390, "phone"], [1280, "desktop"]]) {
 }
 
 test("Free: a Plus type previews with a lock badge that says what unlocks it, and is not saved", async () => {
-  const { page, go, ctx, errors } = await openPage(app, { width: 1280 });
+  const { page, go, ctx, errors } = await openPage(app, { width: 1280, seed: "" });
   await go("/surveys/new");
   await page.getByLabel("Title").fill("Types");
   await page.getByRole("button", { name: /Create draft/ }).click();
@@ -132,7 +132,7 @@ test("a Pro template creates a draft with its Pro question types", async () => {
   await go("/surveys/new?template=scored-quiz");
   await page.getByRole("button", { name: /Create draft/ }).click();
   await page.getByTestId("quick-editor").waitFor();
-  const items = page.locator(".lv-outline-item:visible");
+  const items = page.locator('.lv-outline-item:visible, [data-testid="rail-thumb"]:visible');
   await items.nth(9).waitFor();
   assert.equal(await items.count(), 10);
   const quiz = await page.evaluate(() => JSON.parse(localStorage.getItem("lv.mock.state")).campaigns.flatMap((c) => c.questions).find((x) => x.prompt === "What is the capital of France?").config.quiz);
@@ -188,25 +188,25 @@ test("gallery: a category page lists its templates; a template page shows a live
   assert.equal(await page.getByTestId("plan-pro").count() >= 1, true);
   await go("/templates/trivia-night");
   await page.getByText("Not ready to use yet").first().waitFor();
-  assert.equal(await page.getByTestId("use-this").count(), 0, "a flagged template cannot be used");
+  assert.equal(await page.locator(".lv-mk > .ui-row").getByTestId("use-this").count(), 0, "a flagged template cannot be used");
   assert.ok(await noHorizontalScroll(page));
   assert.deepEqual(errors, []);
   await ctx.close();
 });
 
 test("gallery: locked templates show the plan needed and link to the plans; the right plan sees Use", async () => {
-  const free = await openPage(app, { width: 1280 });
+  const free = await openPage(app, { width: 1280, seed: "" });
   await free.go("/templates/nps-survey");
   const locked = free.page.getByTestId("use-locked").first();
   await locked.waitFor();
   assert.match(await locked.innerText(), /Needs Plus/);
   assert.equal(await locked.getAttribute("href"), "/pricing");
-  assert.equal(await free.page.getByTestId("use-this").count(), 0);
+  assert.equal(await free.page.locator(".lv-mk > .ui-row").getByTestId("use-this").count(), 0);
   await free.ctx.close();
   const pro = await openPage(app, { width: 1280, seed: "creatorpro" });
   await pro.go("/templates/nps-survey");
-  await pro.page.getByTestId("use-this").first().waitFor();
-  assert.equal(await pro.page.getByTestId("use-this").first().getAttribute("href"), "/surveys/new?template=nps-survey");
+  await pro.page.locator(".lv-mk > .ui-row").getByTestId("use-this").waitFor();
+  assert.equal(await pro.page.locator(".lv-mk > .ui-row").getByTestId("use-this").getAttribute("href"), "/surveys/new?template=nps-survey");
   await pro.ctx.close();
 });
 
@@ -217,5 +217,25 @@ test("use-case pages recommend templates", async () => {
   await strip.waitFor();
   assert.ok(await strip.getByTestId("template-card").count() >= 3);
   assert.ok(await noHorizontalScroll(page));
+  await ctx.close();
+});
+
+test("the Creator studio (pro editor) offers every type, saves settings, and keeps the quiz key out of the editor's read", async () => {
+  const { page, go, ctx, errors } = await openPage(app, { width: 1280, seed: "creatorpro" });
+  await go("/surveys/new");
+  await page.getByLabel("Title").fill("Studio types");
+  await page.getByRole("button", { name: /Create draft/ }).click();
+  await page.getByTestId("canvas").waitFor();
+  await page.getByRole("textbox", { name: "Question", exact: true }).fill("How likely are you to recommend us?");
+  await page.getByTestId("type-picker").click();
+  for (const label of ["Face scale", "NPS 0–10", "Slider", "Ranking", "Agree grid", "Contact details", "File upload"]) assert.ok(await page.getByRole("option", { name: new RegExp(`^${label}`) }).count() >= 1, label);
+  await page.getByRole("option", { name: /^NPS 0–10/ }).click();
+  await page.getByLabel("Label for 10 (optional)").fill("Definitely");
+  await page.getByTestId("kind-preview").getByRole("radiogroup").waitFor();
+  await page.getByTestId("save-state").filter({ hasText: "Draft saved" }).waitFor();
+  const q = await page.evaluate(() => JSON.parse(localStorage.getItem("lv.mock.state")).campaigns.flatMap((c) => c.questions).find((x) => x.kind === "nps"));
+  assert.equal(q.config.high_label, "Definitely");
+  assert.match(await page.locator('[data-testid="rail-thumb"]').first().getAttribute("aria-label"), /NPS 0–10/);
+  assert.deepEqual(errors, []);
   await ctx.close();
 });

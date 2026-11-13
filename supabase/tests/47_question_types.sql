@@ -123,4 +123,80 @@ select t.check('submit: grid, before/after, price and a quiz answer are accepted
   jsonb_build_object('question_id', t.get('pl'), 'value', 10), jsonb_build_object('question_id', t.get('qz'), 'value', 'Paris')))) = 'ok');
 select t.as_pg();
 select t.check('results: a grid adds one key per statement', jsonb_array_length(lv.question_cells(t.id('qp'), t.id('gr'))) = 2);
+
+-- ===================================================================================================
+-- Security: the quiz key never reaches a respondent; uploads belong to their owner and follow the submit rules.
+-- ===================================================================================================
+select t.as_pg();
+select t.check('quiz: the key is stored in its own column, not in config',
+  (select quiz is not null and not (config ? 'quiz') from lv.campaign_questions where id = t.id('qz')));
+select t.as_kpn(1, null, true, 'Creator');
+select t.check('quiz: a manager reads the key through lv_campaign_quiz', (lv_api.lv_campaign_quiz(t.id('qp')) #>> array['quiz', t.get('qz'), 'correct', '0']) = 'Paris');
+select t.check('quiz: the manager read of the survey itself carries no key', position('"quiz"' in lv_api.lv_campaign_get(t.id('qp'))::text) = 0 and position('Paris"]' in lv_api.lv_campaign_get(t.id('qp'))::text) = 0);
+select t.as_kpn(2, null, true, 'Rae');
+select lv_api.lv_my_context();
+select t.check('quiz: a respondent cannot read the keys', t.code(lv_api.lv_campaign_quiz(t.id('qp'))) = 'lv_not_found');
+select t.check('quiz: a respondent read of the survey has no key', position('"quiz"' in lv_api.lv_campaign_get(t.id('qp'))::text) = 0);
+select t.check('quiz: a respondent lookup by code has no key', position('"quiz"' in coalesce(lv_api.lv_campaign_by_code(t.get('code2'))::text, '')) = 0);
+select t.as_anon();
+select t.check('quiz: a guest read has no key', position('"quiz"' in lv_api.lv_guest_campaign_get(t.get('code2'))::text) = 0 and position('"correct"' in lv_api.lv_guest_campaign_get(t.get('code2'))::text) = 0);
+
+-- Quiz guard: the key is checked whenever the kind, settings or key change.
+select t.as_kpn(1, null, true, 'Creator');
+select t.put('qq1', lv_api.lv_campaign_question_add(t.id('qi'), 5, 'single_choice', 'Pick', '{"options":["a","b"],"quiz":{"correct":["a"],"points":2}}') ->> 'question_id');
+select t.check('quiz guard: a valid key is accepted on a draft', t.get('qq1') is not null);
+select t.check('quiz guard: changing the kind to text with a key is refused',
+  t.code(lv_api.lv_campaign_question_update(t.id('qq1'), null, 'text', null, '{}')) = 'lv_invalid_input');
+select t.as_pg();
+select t.check('quiz guard: changing the kind straight in the table is refused (trigger, not wrapper)', t.raises(format($q$update lv.campaign_questions set kind = 'text' where id = %L::uuid$q$, t.get('qq1')), '22023'));
+select t.check('quiz guard: options that no longer contain the right answer are refused', t.raises(format($q$update lv.campaign_questions set config = '{"options":["b","c"]}' where id = %L::uuid$q$, t.get('qq1')), '22023'));
+select t.check('quiz guard: a quiz key on a text question is refused at the settings rule', lv.question_config_problem('text', '{"quiz":{"correct":["a"]}}') is not null);
+update lv.campaign_questions set config = config || '{"quiz":null}' where id = t.id('qq1');
+select t.check('quiz guard: a key can be cleared with null', (select quiz is null from lv.campaign_questions where id = t.id('qq1')));
+select t.as_kpn(1, null, true, 'Creator');
+select t.check('quiz results: withheld while few people answered', (lv_api.lv_quiz_results(t.id('qp')) ->> 'withheld') = 'true');
+
+-- Uploads. A stand-in for Supabase Storage so the real checks run (this throwaway database has none).
+select t.as_pg();
+create schema storage;
+create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text not null, name text not null);
+select t.as_kpn(1, null, true, 'Creator');
+select t.put('me1', t.q($$select lv.current_account_id()::text$$));
+select lv_api.lv_campaign_question_remove(t.id('ct')); select lv_api.lv_campaign_question_remove(t.id('cn')); select lv_api.lv_campaign_question_remove(t.id('sg')); select lv_api.lv_campaign_question_remove(t.id('qq1'));
+select t.check('upload: the survey publishes', t.code(lv_api.lv_campaign_activate(t.id('qi'))) = 'ok');
+select t.as_kpn(2, null, true, 'Rae');
+select lv_api.lv_my_context();
+select t.put('me2', t.q($$select lv.current_account_id()::text$$));
+select t.put('mine', t.get('qi') || '/' || t.get('me2') || '/aa11-proof.png');
+select t.put('theirs', t.get('qi') || '/' || t.get('me1') || '/aa11-proof.png');
+select t.check('upload: I may write into my own folder', lv_storage.upload_writable(t.get('mine')));
+select t.check('upload: I may not write into another person''s folder', not lv_storage.upload_writable(t.get('theirs')));
+select t.check('upload: not for a survey that does not ask for a file', not lv_storage.upload_writable(t.get('qs') || '/' || t.get('me2') || '/x.png'));
+select t.check('upload: an empty file name or a made-up survey is refused', not lv_storage.upload_writable(t.get('qi') || '/' || t.get('me2') || '/') and not lv_storage.upload_writable('nope/' || t.get('me2') || '/x.png'));
+select t.put('fid', t.q(format($q$select id::text from lv.campaign_questions where campaign_id = %L::uuid and kind = 'file_upload'$q$, t.get('qi'))));
+-- Submitting: the file must be mine, must exist, must not come from a guest.
+select t.check('submit file: another person''s path is refused',
+  t.code(lv_api.lv_submit_response(t.id('qi'), jsonb_build_array(jsonb_build_object('question_id', t.get('fid'), 'value', jsonb_build_object('path', t.get('theirs'), 'name', 'proof.png', 'size', 1000, 'type', 'image/png'))), 'Rae')) = 'lv_invalid_input');
+select t.check('submit file: my path without an uploaded object is refused',
+  t.code(lv_api.lv_submit_response(t.id('qi'), jsonb_build_array(jsonb_build_object('question_id', t.get('fid'), 'value', jsonb_build_object('path', t.get('mine'), 'name', 'proof.png', 'size', 1000, 'type', 'image/png'))), 'Rae')) = 'lv_invalid_input');
+select t.as_pg();
+insert into storage.objects (bucket_id, name) values ('survey-uploads', t.get('mine')), ('survey-uploads', t.get('theirs'));
+select t.as_kpn(2, null, true, 'Rae');
+select t.check('submit file: my own uploaded file is accepted',
+  t.code(lv_api.lv_submit_response(t.id('qi'), jsonb_build_array(jsonb_build_object('question_id', t.get('fid'), 'value', jsonb_build_object('path', t.get('mine'), 'name', 'proof.png', 'size', 1000, 'type', 'image/png'))), 'Rae')) = 'ok');
+select t.as_anon();
+select t.put('code3', t.q(format($q$select join_code from lv.campaigns where id = %L::uuid$q$, t.get('qi'))));
+select t.check('submit file: a guest cannot attach a file',
+  t.code(lv_api.lv_guest_submit(t.get('code3'), repeat('f', 40), jsonb_build_array(jsonb_build_object('question_id', t.get('fid'), 'value', jsonb_build_object('path', t.get('theirs'), 'name', 'proof.png', 'size', 1000, 'type', 'image/png'))), 'Guest')) <> 'ok');
+
+-- Cap and suspension: five files per person per survey; a suspended account writes nothing.
+select t.as_pg();
+insert into storage.objects (bucket_id, name) select 'survey-uploads', t.get('qi') || '/' || t.get('me2') || '/f' || g || '.png' from generate_series(1, 4) g;
+select t.as_kpn(2, null, true, 'Rae');
+select t.check('upload: the sixth file for one survey is refused', not lv_storage.upload_writable(t.get('qi') || '/' || t.get('me2') || '/f6.png'));
+select t.as_pg();
+insert into lv.account_suspensions (account_id, reason) values (t.id('me2'), 'test');
+select t.as_kpn(2, null, true, 'Rae');
+select t.check('upload: a suspended account cannot write', not lv_storage.upload_writable(t.get('mine')));
+
 rollback;
