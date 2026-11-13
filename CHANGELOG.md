@@ -6,6 +6,34 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Docs (hostname routing and the lowest-cost rule; founder 2026-11-13)
+
+- **Cost rule recorded** (founder: LunchVoice is built at the lowest possible cost): no new Render custom domains. Render's
+  docs (read today) include 2 custom domains on Hobby, 15 on Pro and 25 on Scale per workspace and charge $0.25 a month for
+  each extra; the workspace is shared with other KpnSolute services. The LunchVoice site keeps exactly two,
+  `lunchvoice.com` and `www`. Decision D-05 in `docs/v2/LAUNCH_PREP_PLAN_2026-11-13.md`; a sentence in `AGENTS.md` and
+  `CLAUDE.md` (edited together); roadmap section 9.
+- **Future routing logged** (`SERVICES_AND_DEPENDENCIES.md` new section 2a, all through Cloudflare, none on Render):
+  `auth.lunchvoice.com` is a Worker for the 30-day sign-in cookie; `create.lunchvoice.com` is a Redirect Rule to
+  `lunchvoice.com/create` (a Worker later if needed); `pay.lunchvoice.com` is proposed as a Worker for the Stripe webhook
+  and return handling (not Stripe's paid custom-domain add-on); `hub.lunchvoice.com` stays the share-preview Worker.
+  Roadmap `create.lunchvoice.com` note corrected (it said a Render custom domain was needed).
+- **Hostnames read from outside** (public DNS and HTTP): the site and `www` are proxied by Cloudflare to Render; `hub` is
+  the Worker; `pay` resolves through Cloudflare but answers 404 (purpose to confirm); `auth` and `create` do not exist;
+  there is **no wildcard DNS** (a made-up subdomain does not resolve).
+- **Corrections to the services log found while checking** (Composio read the Render account and domains): the live Render
+  service is named **Lunchvoice** (`render.yaml` says `lunch-line-survey`) with a different dashboard build command, and
+  has only the two custom domains; the Composio Cloudflare connection reads "active" but its token is rejected for zone and
+  DNS calls (reconnect it); the workspace holding the service is shared with the `kpnsolute-*`, `KpnCompute` and `MJCC-*`
+  services.
+- **Header drift found:** production HSTS has no `includeSubDomains` and `/assets/*` and `/version.json` answer
+  `public, max-age=0, s-maxage=300`, not the `immutable` and `no-store` in `render.yaml`. Free Cloudflare Cache Rules and the
+  HSTS setting would fix both; prep items 6 and 7 and owner action 8 in the launch plan.
+- Launch plan: founder actions 8 and 9, agent prep items 6 and 7, a Cloudflare routing row in build week, questions Q13
+  (what `pay` was for) and Q14 (`create` or `creator`), and the sign-in design no longer assumes tenant subdomains exist.
+- Spelling: the product is "LunchVoice"; no "LunchoVoice" exists in the repository or memory (searched today).
+- No code, migration, DNS or setting changed.
+
 ### Docs (launch prep: services log, decisions, creator-controlled results, Cloudflare sign-in design; founder 2026-11-13)
 
 - **`docs/ops/SERVICES_AND_DEPENDENCIES.md` (new):** every service that runs LunchVoice (GitHub, Render, both Supabase

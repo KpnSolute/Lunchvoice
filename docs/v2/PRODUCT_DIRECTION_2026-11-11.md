@@ -91,7 +91,8 @@ Feedback: the Hub colour and buttons feel wrong; wants a familiar Discord feel w
     decides otherwise.
   - Sign-in must carry across `lunchvoice.com` and `create.lunchvoice.com` (KpnIdentity session and cookie domain).
   - This is a product subdomain, not a tenant subdomain: Hub URLs stay path-based (`lunchvoice.com/{hubSlug}`).
-  - Needs DNS and a Render custom domain, which require owner approval.
+  - Routed through Cloudflare, never a Render custom domain: a Redirect Rule to `lunchvoice.com/create` first, a Worker
+    if it needs its own look. Render charges for each custom domain beyond a plan's allowance (section 9).
   - Builds on the Creator studio work in `docs/v2/handoffs/2026-11-13-names-results-privacy-creator-studio.md`.
 
 ## 9. Platform and services decisions (log)
@@ -109,5 +110,12 @@ Newest last. The full inventory is `docs/ops/SERVICES_AND_DEPENDENCIES.md`; the 
 - **2026-11-13, results visibility is the creator's choice** (founder): Team Hub and Creator Pro creators may choose live
   results for elections and any survey type; respondents are always told first. Builds the week of 2026-11-16
   (migration 000054).
+- **2026-11-13, lowest possible cost** (founder): LunchVoice is built at the lowest cost, so **no new Render custom domains**
+  (Render includes 2 on Hobby, 15 on Pro, 25 on Scale per workspace and charges $0.25 a month for each extra). Render
+  keeps exactly two: `lunchvoice.com` and `www`.
+- **2026-11-13, future routing** (all through Cloudflare, none on Render; table in `SERVICES_AND_DEPENDENCIES.md`
+  section 2a): `auth.lunchvoice.com` is a Worker (30-day sign-in cookie); `create.lunchvoice.com` is a Cloudflare
+  Redirect Rule to `lunchvoice.com/create` (a Worker later if needed); `pay.lunchvoice.com` is proposed as a Worker for
+  the Stripe webhook and return handling; `hub.lunchvoice.com` stays the share-preview Worker. There is no wildcard DNS.
 - **Optional, undecided:** make the apex a proxied CNAME to Render ("O2O") so zone Workers run in front of the whole
   site (true HTTP 404, per-Hub share images, edge headers). A DNS change; decide after launch unless needed sooner.

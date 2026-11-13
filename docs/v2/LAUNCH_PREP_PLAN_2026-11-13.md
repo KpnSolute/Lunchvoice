@@ -15,6 +15,7 @@ confirm those dates still hold (question Q7 below). The service inventory is `do
 | D-02 | **Results visibility is the creator's choice, not the platform's.** Team Hub and Creator Pro creators may choose live results for any survey type, elections and anonymous surveys included. Respondents are always told before they answer | Design in section 2. Opens questions Q1 to Q3 |
 | D-03 | This week is plan and prep; next week is the launch build | Section 4 (this week) and section 5 (next week) |
 | D-04 | `SERVICES_AND_DEPENDENCIES.md` is the one inventory of services, secrets (names only) and dependencies, and is updated in the same commit as any change | Brain files point to it |
+| D-05 | **LunchVoice is built at the lowest possible cost, and no new Render custom domains are added.** Render charges $0.25 a month for each custom domain beyond a plan's allowance. Every future hostname (`auth`, `create`, `pay`) is routed through Cloudflare, so Render keeps exactly two domains (`lunchvoice.com`, `www`) | Routing table and cost ledger: `SERVICES_AND_DEPENDENCIES.md` section 2a. Founder answers Q13 and Q14 |
 
 ## 2. Results visibility: creator-controlled live results
 
@@ -84,7 +85,7 @@ run today, because the apex is a proxied A record to Render and Cloudflare skips
 **Shape**
 
 - `auth.lunchvoice.com` is a Custom Domain served only by a new Worker (`workers/auth-session/`). It never touches Render.
-- `auth.lunchvoice.com` and `lunchvoice.com` (and every `<slug>.lunchvoice.com`) share one registrable domain, so they are
+- `auth.lunchvoice.com` and `lunchvoice.com` (and any future subdomain, such as `create`) share one registrable domain, so they are
   the **same site**: Safari and Chrome treat the cookie as first-party. It is answered by our own Worker, not a CNAME to
   another company's domain, so the 7-day cap on cloaked cookies should not apply (to verify, below).
 - The cookie is **host-only** on `auth.lunchvoice.com`: `__Host-lv_device=<token>; Secure; HttpOnly; SameSite=Strict;
@@ -107,7 +108,8 @@ run today, because the apex is a proxied A record to Render and Cloudflare skips
 1. iOS Safari and macOS Safari: still signed in after more than 7 days (set the cookie, then simulate or wait, or use
    Safari's developer tooling to inspect expiry).
 2. Chrome with third-party cookies blocked, and Firefox: the refresh call carries the cookie.
-3. A tenant host (`<slug>.lunchvoice.com`) refreshes through the same Worker.
+3. A second hostname (`create.lunchvoice.com`, once it exists) refreshes through the same Worker. Hub URLs are paths and
+   there is no wildcard DNS today, so there are no tenant hosts to test.
 4. If Safari caps it, ship 7 days and say so in `SESSIONS.md`; do not fall back to a token in `localStorage`.
 
 **At build time, ask for the go-ahead on:** the new shared secret (a credential), deploying the `session` Edge Function
@@ -130,6 +132,8 @@ header control. It is a DNS change, so it waits for a decision after launch unle
 | 5 | Approve KpnIdentity settings B1 to B6 (email confirmation, Resend SMTP, 12-character passwords, leaked-password check, security emails, current password to change) | Account security |
 | 6 | Answer `SERVICES_AND_DEPENDENCIES.md` section 9 (registrar, Render workspace, Stripe and Resend and Discord secrets, KpnAuth hosting) | An accurate inventory |
 | 7 | Answer the questions in section 6 below (each has a recommended answer: "go with yours" works) | Build week starts without waiting |
+| 8 | Reconnect Cloudflare in Composio: the connection shows active but its token is rejected for zones and DNS (error 9109) | Adding the `auth` hostname's record, Cache Rules, the HSTS setting, a `create` redirect |
+| 9 | Tell me which Render workspace plan you are on, and fill in the "Confirm" rows of the cost ledger (`SERVICES_AND_DEPENDENCIES.md` section 2a) | Keeping recurring cost near zero on purpose |
 
 ### Agent prep (read-only or documentation, no new features)
 
@@ -140,6 +144,8 @@ header control. It is a DNS change, so it waits for a decision after launch unle
 | 3 | Write the launch smoke test: sign in, make a survey, publish, answer as a guest and as a member, read live results, buy in Stripe test mode, refund | A runnable checklist that next week turns into an e2e or manual script |
 | 4 | Backups: compare turning on point-in-time recovery (currently off) with the daily backup, with cost | A recommendation for the owner |
 | 5 | Confirm which KpnAuth items (K1 to K16) are still open and where KpnAuth is deployed | A list for the KpnAuth repo |
+| 6 | Prepare the free Cloudflare header fixes: a Cache Rule (long cache on `/assets/*`, bypass on `/version.json`) and the HSTS include-subdomains setting. Live headers differ from `render.yaml` (`SERVICES_AND_DEPENDENCIES.md` section 2a) | Rule definitions ready to apply once the token works |
+| 7 | Write the Cloudflare Redirect Rule for `create.lunchvoice.com` to `lunchvoice.com/create` and the `pay` Worker outline (Stripe webhook and return handling) | Two small specs, nothing deployed |
 
 ## 5. Next week: build order (starts 2026-11-16)
 
@@ -147,6 +153,7 @@ header control. It is a DNS change, so it waits for a decision after launch unle
 | --- | --- | --- | --- |
 | 1 | Creator-controlled results (section 2): setting, entitlement keys, notices, dialogs, audit | 000054 | Q1 to Q3 answered |
 | 1 to 2 | 30-day sign-in (section 3): Worker, `session` function actions, device sessions, Account devices, CSP | 000049, `session` deploy, Worker | Verification list, secret go-ahead |
+| 2 | Cloudflare routing: Cache Rules and the HSTS fix, the `create` redirect, the `pay` Worker (after Q13 and Q14). Cloudflare only, nothing on Render | Cloudflare | Founder action 8 |
 | 2 | PostHog: seven events, no ids or answers, route-pattern rewriting, CSP, staff dashboard reads | none | Founder action 1 |
 | 2 to 3 | Billing in Stripe test mode: Checkout, webhook, entitlement, refund, Customer Portal, Tax | function deploys | Founder action 2, keys (credential go-ahead) |
 | 3 | KpnAuth: the phone sign-in screen, headers, forgot password, product named on every screen (K1 to K10) | KpnAuth repo | Founder action 6 |
@@ -175,6 +182,8 @@ resources need an explicit go-ahead.
 | Q10 | Charts use the Hub's colour inside a Hub and amber elsewhere | Keep |
 | Q11 | A true HTTP 404 and per-Hub share images need the apex as a proxied CNAME (section 3, optional) | After launch |
 | Q12 | The Team plan copy was rewritten to what exists ("More custom Hub pages", "Aim identified Campaigns at chosen roles"). What should Team actually add? | Decide after launch from usage |
+| Q13 | What was `pay.lunchvoice.com` set up for? It answers 404 today. Proposed: a Cloudflare Worker for the Stripe webhook and checkout and portal returns, not Stripe's paid custom-domain add-on | Worker (free), nothing on Render |
+| Q14 | Is the creator address `create.lunchvoice.com` (as the roadmap says) or `creator.lunchvoice.com`? And should it start as a plain redirect to `lunchvoice.com/create` | `create`, redirect first |
 
 ## 7. Shipped this week (reference)
 

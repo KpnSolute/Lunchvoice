@@ -33,6 +33,9 @@ Dining is one customer use case, not the product.
   change); the launch decisions log is `docs/v2/LAUNCH_PREP_PLAN_2026-11-13.md`.
   Cloudflare Workers is the edge platform for LunchVoice's needs (founder,
   2026-11-13): use it without asking, and log each use in that inventory.
+  Build LunchVoice at the lowest possible cost: add no Render custom domains
+  (each beyond the plan's allowance costs money) and route every new hostname
+  (auth, create, pay) through Cloudflare; see section 2a of that inventory.
 - Supabase refs: Lunchvoice `qprfonxvthmaoxfixigk`, KpnIdentity
   `axzwdbizblfkspduqilj`. Production is not mutated without the approvals below.
 - GitHub: `KpnSolute/Lunchvoice`. Local frontend: `npm run dev`.
