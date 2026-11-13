@@ -15,7 +15,7 @@ import { Waitlist } from "./pages/Waitlist";
 import { GuestCampaign } from "./pages/Player";
 import {
   Analytics, CampaignDetail, Campaigns, HubAddon, HubBilling, HubBuilder, HubDiscover, HubLayout, HubOverview, HubReservation,
-  HubSettings, Invites, Members, NewCampaign, NewSurvey, Results, Roles, Studio, SurveyInvite, SurveyList, SurveyResults, SurveyStudio,
+  HubSettings, HubTrendDetail, HubTrends, Invites, Members, MyTrendDetail, MyTrends, NewCampaign, NewSurvey, Results, Roles, Studio, SurveyInvite, SurveyList, SurveyResults, SurveyStudio,
 } from "./pages/lazy";
 import { Admin, Reserve } from "./pages/lazy"; // track B: commerce
 import { ConnectDiscord, Developers } from "./pages/lazy"; // track D: api + discord
@@ -32,6 +32,7 @@ import "./index.css";
 import "./ui/ui.css";
 import "./ui/app.css";
 import "./ui/questionkinds.css";
+import "./ui/charts.css";
 import "./ui/hub.css";
 import "./ui/motion.css";
 import "./styles/system.css";
@@ -89,6 +90,9 @@ createRoot(document.getElementById("root")!).render(
             <Route path="surveys/:id" element={<RequireSignIn><SurveyStudio /></RequireSignIn>} />
             <Route path="surveys/:id/results" element={<RequireSignIn><SurveyResults /></RequireSignIn>} />
 
+            <Route path="trends" element={<RequireSignIn><MyTrends /></RequireSignIn>} />
+            <Route path="trends/:trend" element={<RequireSignIn><MyTrendDetail /></RequireSignIn>} />
+
             {/* respondents */}
             <Route path="c/:joinCode" element={<GuestCampaign />} />
             <Route path="s/:token" element={<SurveyInvite />} />
@@ -111,6 +115,8 @@ createRoot(document.getElementById("root")!).render(
               <Route path="campaigns/:id/studio" element={<Studio />} />
               <Route path="campaigns/:id/results" element={<Results />} />
               <Route path="analytics" element={<Analytics />} />
+              <Route path="trends" element={<HubTrends />} />
+              <Route path="trends/:trend" element={<HubTrendDetail />} />
               <Route path="members" element={<Members />} />
               <Route path="invites" element={<Invites />} />
               <Route path="roles" element={<Roles />} />

@@ -1269,3 +1269,32 @@ blocked, survey open and identified), at most 5 files per person per survey. A f
 submitter (never a guest) and only if the object exists. Managers read through the storage policy.
 
 `lv_kind_tier(p_campaign?)` -> `{tier: free|plus|pro, quiz}`. `/templates` is a reserved slug.
+
+## Results analytics and Trends (000044)
+
+All functions return the envelope. Results functions go through the same gate as `lv_analytics_query` (draft ->
+`lv_lifecycle_invalid`; an open anonymous survey -> `lv_policy_undecided`; no `analytics.read` -> `lv_forbidden`). A null
+count with `suppressed: true` is withheld, never zero.
+
+- **Map.** `trends.max` (free 0, creator_plus 3, creator_pro 10, starter 3, team 5; Creator values provisional),
+  `trends.max_pass` (1 for starter and team passes), `analytics.premium` (team, creator_pro), `analytics.export`
+  (also creator_plus, creator_pro). `lv_analytics_export` now accepts a person's Creator plan for a personal-space survey.
+- **`lv_analytics_summary(p_campaign)`** -> `{ responses: {n, suppressed, released}, completion: {rate, started, suppressed, measured},
+  median_time: {bucket: lt_1m|1_3m|3_10m|gt_10m|null, measured, suppressed} }`. Completion needs started >= responses.
+- **`lv_analytics_premium(p_campaign)`** (`lv_entitlement_required`, product `team_hub` or `creator_pro`) ->
+  `{ over_time, device, source }`, each `{ cells: [{key, n, suppressed}], withheld, reason }`. Device is mobile/tablet/desktop/unknown,
+  source link/qr/code/discord/unknown. Anonymous surveys: cells >= `campaign.min_cohort` with complementary suppression.
+- **`lv_analytics_crosstab(p_campaign, p_row, p_col)`** (premium) -> `{ n, cells: [{row, col, n, suppressed}], withheld, reason }`;
+  withheld whole on an anonymous survey unless every cell qualifies and no row or column sits in one cell.
+  `lv_analytics_query(..., 'rating_summary', question)` returns `{ n, mean, suppressed }` for the star average.
+- **Trends.** `lv_trend_list(p_hub null = personal space)` -> `{ trends, can_manage, limit: {max, used, over, can_create, can_add, product} }`;
+  `lv_trend_get(p_trend)` -> `{ trend, runs: [{campaign_id, title, status, anonymity, run_at, finished, responses}], questions:
+  [{key, kind, prompt, runs, points: [{campaign_id, question_id, state: released|withheld|no_answers|not_released|draft|absent, mean?, n?, options?: [{key, n, suppressed, share}]}]}], can_manage, limit }`;
+  `lv_trend_create(p_hub, p_title, p_description, p_campaigns[])`, `lv_trend_update`, `lv_trend_delete` (grouping only),
+  `lv_trend_add(p_trend, p_campaign)`, `lv_trend_remove`, `lv_trend_ask_again(p_campaign)` -> `{ campaign_id, trend_id, space }`,
+  `lv_campaign_trend(p_campaign)` -> `{ trend, can_manage, can_ask_again, limit }`. Manage: `campaign.manage` (personal owner);
+  read: `analytics.read`. Over the limit: reads work; create/add/ask again -> `lv_limit_reached`. Ask again also refuses
+  `lv_locked` (blocked survey), `lv_suspended` and `lv_rate_limited` (`quick.create_per_hour`).
+- **Respondent context (anon + authenticated).** `lv_response_context(p_receipt, p_source, p_seconds)` -> `{ recorded }` (once per
+  receipt; only per-Campaign counters are stored, never the User-Agent, IP or a per-response row) and `lv_response_started(p_campaign)`
+  (a vanity counter; completion is shown only when plausible). The device class is captured by a trigger on submissions.
