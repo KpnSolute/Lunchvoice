@@ -80,3 +80,16 @@ Feedback: the Hub colour and buttons feel wrong; wants a familiar Discord feel w
 4. Question types (ranking, NPS, slider), templates, branching.
 5. Live room and reactions.
 6. Image uploads for avatars and backgrounds (storage, size limits, moderation).
+
+## 8. Future (not scheduled)
+
+- **`create.lunchvoice.com`, a dedicated creator app** (founder, 2026-11-13). A separate entry point for building and
+  running surveys, the way Kahoot keeps its creator apart from the player: the studio (question rail, canvas, properties
+  panel), templates, a library of the creator's surveys, Present mode and reports. `lunchvoice.com` stays the place
+  people answer, join with a code and visit Hubs. Notes for when it is scheduled:
+  - Same app and the same `lv_api`, served on the subdomain (a route group, not a second codebase), unless the founder
+    decides otherwise.
+  - Sign-in must carry across `lunchvoice.com` and `create.lunchvoice.com` (KpnIdentity session and cookie domain).
+  - This is a product subdomain, not a tenant subdomain: Hub URLs stay path-based (`lunchvoice.com/{hubSlug}`).
+  - Needs DNS and a Render custom domain, which require owner approval.
+  - Builds on the Creator studio work in `docs/v2/handoffs/2026-11-13-names-results-privacy-creator-studio.md`.
