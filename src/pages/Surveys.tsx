@@ -275,6 +275,8 @@ export function SurveyStudio() {
   if (detail.error && !d) return <div className="ui-page"><Notice tone="error">{describeError(detail.error)}</Notice></div>;
   if (!d) return null;
   const { draft, paused, edit, meaning } = editRules(d);
+  // Creator Plus and above get the studio (rail, canvas, panel); a free creator keeps the simple editor.
+  const pro = Boolean(d.features?.branching);
 
   function onTitle(v: string) {
     setTitle(v);
@@ -284,10 +286,10 @@ export function SurveyStudio() {
   }
 
   return (
-    <div className="ui-page lv-studio-page" data-testid="quick-editor">
-      <StudioHeader d={d} title={title ?? d.campaign.title} backTo="/surveys" crumb="Quick Surveys" resultsTo={`/surveys/${id}/results`} save={save} issues={issues} schedule={schedule} onChanged={reloadAll} quick />
+    <div className={`ui-page lv-studio-page${pro ? " lv-studio-wide" : ""}`} data-testid="quick-editor">
+      <StudioHeader d={d} title={title ?? d.campaign.title} backTo="/surveys" crumb="Quick Surveys" resultsTo={`/surveys/${id}/results`} save={save} issues={issues} schedule={schedule} onChanged={reloadAll} quick pro={pro} />
 
-      <ol className="lv-quick-steps">
+      <ol className={`lv-quick-steps${pro ? " lv-quick-steps-pro" : ""}`}>
         <li>
           <Card>
             <h2 className="lv-share-h"><span className="lv-step-n">1</span>Title</h2>
@@ -300,15 +302,25 @@ export function SurveyStudio() {
             <DescriptionField d={d} save={save} reload={detail.reload} />
           </Card>
         </li>
+        {!pro && (
+          <li>
+            {/* survey branding (000043): the creator's own Creator plan entitles it; no Hub needed */}
+            <SurveyBrandingPanel d={d} save={save} reload={detail.reload} />
+          </li>
+        )}
         <li>
-          {/* survey branding (000043): the creator's own Creator plan entitles it; no Hub needed */}
-          <SurveyBrandingPanel d={d} save={save} reload={detail.reload} />
-        </li>
-        <li>
-          <Card>
-            <h2 className="lv-share-h"><span className="lv-step-n">2</span>Questions</h2>
-            <QuestionWorkbench d={d} locked={!meaning} limit={questionLimit} save={save} reload={detail.reload} />
-          </Card>
+          {pro ? (
+            <div className="lv-studio-canvas" data-testid="pro-studio">
+              <h2 className="lv-share-h"><span className="lv-step-n">2</span>Questions</h2>
+              <QuestionWorkbench layout="pro" d={d} locked={!meaning} limit={questionLimit} save={save} reload={detail.reload} themePanel={<SurveyBrandingPanel d={d} save={save} reload={detail.reload} />} />
+            </div>
+          ) : (
+            <Card>
+              <h2 className="lv-share-h"><span className="lv-step-n">2</span>Questions</h2>
+              <QuestionWorkbench d={d} locked={!meaning} limit={questionLimit} save={save} reload={detail.reload} />
+              <ProTeaser />
+            </Card>
+          )}
         </li>
         <li>
           <div className="lv-stack-16">
@@ -321,13 +333,13 @@ export function SurveyStudio() {
           </div>
         </li>
         <li>
-          <div className="lv-stack-16">
+          <div className="lv-stack-16" id="share-step">
             <h2 className="lv-share-h lv-step-h"><span className="lv-step-n">4</span>{draft ? "Publish" : "Share"}</h2>
             <div className="lv-sections-2">
               {draft ? (
                 <Card>
                   <ReadinessList issues={issues} />
-                  <div className="ui-row"><LifecycleActions d={d} issues={issues} schedule={schedule} onChanged={reloadAll} quick /></div>
+                  {pro ? <p className="ui-help lv-m0">Publish from the bar at the top when this list is clear.</p> : <div className="ui-row"><LifecycleActions d={d} issues={issues} schedule={schedule} onChanged={reloadAll} quick /></div>}
                 </Card>
               ) : (
                 <ShareCard d={d} />
@@ -343,6 +355,20 @@ export function SurveyStudio() {
       </ol>
       <DeleteSurveyCard campaignId={id} title={d.campaign.title} answered={Boolean(d.campaign.has_responses)} />
     </div>
+  );
+}
+
+/** Free creators keep the simple editor; this says what the studio adds, with no purchase button until billing opens. */
+function ProTeaser() {
+  return (
+    <aside className="lv-pro-teaser" data-testid="pro-teaser" aria-label="Creator studio">
+      <div className="lv-pro-teaser-art" aria-hidden="true"><span /><span /><span /></div>
+      <div>
+        <h3 className="lv-qw-h">Creator studio</h3>
+        <p className="ui-help lv-m0">A question rail, a canvas where you edit the question as people see it, colour and shape answer tiles, linked questions and your own theme. Included with Creator Plus.</p>
+        <Link to="/pricing" className="lv-link">See Creator plans</Link>
+      </div>
+    </aside>
   );
 }
 

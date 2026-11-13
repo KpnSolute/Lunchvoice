@@ -6,6 +6,15 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (Creator studio revamp for Creator Plus and Starter Hub)
+- Quick Survey editor shows a three-part studio when `survey.branching` is on: a left rail of question thumbnails (number, kind, linked-rule tag, section dividers, a `...` menu with Duplicate, Move up/down, Move to section and Delete with confirm, drag and Alt+Arrow reorder), a canvas with a grouped type picker (Choose / Rate / Write), Required switch, large prompt and colour-and-shape answer tiles, and a right panel with Question (logic) and Theme (branding) tabs. On a phone the rail is a strip and properties open in a sheet.
+- Free creators keep the simple editor and see a small preview of the studio. Entitlement is still decided by the server; the UI only reads `features.branching`.
+- Fixed a reorder bug where swapping two questions read stale values. New `src/lib/studio.ts` (5 tests), `StudioRail` registered in `/__gallery`, `e2e/studiopro.test.mjs` (3 tests).
+- Not built (no approved path): image on a question, NPS, slider, ranking, word-cloud kinds, text length limit, AI start from a description.
+
+### Worker report 2026-11-13 (names, Present mode, studio)
+Pieces 1, 2, 4 done and checked (db 1535/0, e2e 171/171, brain, build, design, test:pr). Piece 3 not started: needs Loom verdict and founder approval. Not built: question image, NPS, slider, ranking, word cloud, length limit, AI start. Full report at the end of `docs/v2/handoffs/2026-11-13-names-results-privacy-creator-studio.md`.
+
 ### Added (Present mode: live results on a big screen)
 
 - **Present** button on Results opens a full-screen, projector-sized view (`src/ui/PresentMode.tsx`): one question per slide,

@@ -178,3 +178,19 @@ Where this brief was off: ...
 Checks run and results: ...
 Next command: ...
 ```
+
+## Worker report (2026-11-13)
+Objective: pieces 1 (respondent names), 2 (Present mode) and 4 (Creator studio revamp). Piece 3 (results privacy by plan) NOT started: it needs the Loom verdict and founder approval first.
+Branch / commits / PR: `work/names-results-privacy`; commits 705f22f (names, 000052), 587afba (Present mode), plus the Creator studio commit. Merged to main on the founder's "make it live".
+Changed files: `supabase/migrations/000052_v2_respondent_display_name.sql`, its rollback and `supabase/tests/52_*.sql` (06 adjusted); `src/lib/{lvApi,mockTransport,present,studio}.ts` (+tests); `src/pages/{Player,Results,Surveys,Studio,QuestionWorkbench,Gallery}.tsx`; `src/ui/{PresentMode,StudioRail}.tsx`, `src/ui/ui.css`; `scripts/check-gallery.mjs`; e2e `present`, `studiopro`, `studio`, `branding`; API contract, design-system README, CHANGELOG.
+Ready:
+| Piece | What works now | Checked by |
+|---|---|---|
+| 1 Names | Signed-in respondent can change the name on identified answers (1-40 chars, cleaned, label only); ignored on anonymous; creator list shows it | db test 52, e2e studio |
+| 2 Present | Results overlay: live bars, count, join link, word cloud, just-answered; withheld never shown as zero; keyboard + Escape | unit (9), e2e present |
+| 4 Studio | Creator Plus / Starter Hub get rail + canvas + Theme/Question panel; free keeps simple editor + teaser; phone strip and sheet | unit (5), e2e studiopro, screenshots light/dark/phone |
+Linked: migration 000052; API_CONTRACT 3-argument `lv_submit_response`; `/__gallery` "Creator studio" section (PresentMode exempt, covered by e2e).
+Blocked or needs a decision: piece 3 (Loom verdict, founder approval, open questions on respondent-visible results and free text, `AGENTS.md`/`CLAUDE.md` pricing update). Studio items not built, no approved path: question image, NPS, slider, ranking, word-cloud kinds, text length limit, AI start. Type and Required sit in the canvas bar, not the right panel.
+Where this brief was off: the Player name chip is not at ~line 238; the mock showed identified results as hidden until 5 answers while the real API shows from the first, fixed in the mock; `.lv-atile` already existed as a stat tile, studio tiles are now `.lv-ans*`.
+Checks run and results: check:brain, build, check:design, test:pr, full e2e (171/171 after the branding test learned the Theme tab), `scripts/db-test-canonical.sh` 1535/0 with rollback rehearsal.
+Next command: confirm piece 3 approval, then start it from the brief.
