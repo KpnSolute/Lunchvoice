@@ -117,5 +117,13 @@ Newest last. The full inventory is `docs/ops/SERVICES_AND_DEPENDENCIES.md`; the 
   section 2a): `auth.lunchvoice.com` is a Worker (30-day sign-in cookie); `create.lunchvoice.com` is a Cloudflare
   Redirect Rule to `lunchvoice.com/create` (a Worker later if needed); `pay.lunchvoice.com` is proposed as a Worker for
   the Stripe webhook and return handling; `hub.lunchvoice.com` stays the share-preview Worker. There is no wildcard DNS.
+- **2026-11-13, creator dashboard** (founder named `create.lunchvoice.com`): one dashboard for every plan, like Kahoot;
+  the plan changes what is unlocked (plan card, usage meters, locked controls), never the layout. Design in
+  `docs/v2/LAUNCH_PREP_PLAN_2026-11-13.md` section 2b.
+- **2026-11-13, payment site** (founder): `pay.lunchvoice.com` becomes the payment site (Stripe), replacing the old
+  GoDaddy-era site; a Cloudflare Worker, no Render domain.
+- **2026-11-13, how the site deploys:** a Render static site, not Docker. `render.yaml` is not connected (Render has no
+  Blueprint), so production routing and headers are changed through the Render API; today they lag the file (the template
+  gallery is not indexable). Fix planned for the build week. Details in `SERVICES_AND_DEPENDENCIES.md` section 2a.
 - **Optional, undecided:** make the apex a proxied CNAME to Render ("O2O") so zone Workers run in front of the whole
   site (true HTTP 404, per-Hub share images, edge headers). A DNS change; decide after launch unless needed sooner.

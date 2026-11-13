@@ -15,7 +15,10 @@ confirm those dates still hold (question Q7 below). The service inventory is `do
 | D-02 | **Results visibility is the creator's choice, not the platform's.** Team Hub and Creator Pro creators may choose live results for any survey type, elections and anonymous surveys included. Respondents are always told before they answer | Design in section 2. Opens questions Q1 to Q3 |
 | D-03 | This week is plan and prep; next week is the launch build | Section 4 (this week) and section 5 (next week) |
 | D-04 | `SERVICES_AND_DEPENDENCIES.md` is the one inventory of services, secrets (names only) and dependencies, and is updated in the same commit as any change | Brain files point to it |
-| D-05 | **LunchVoice is built at the lowest possible cost, and no new Render custom domains are added.** Render charges $0.25 a month for each custom domain beyond a plan's allowance. Every future hostname (`auth`, `create`, `pay`) is routed through Cloudflare, so Render keeps exactly two domains (`lunchvoice.com`, `www`) | Routing table and cost ledger: `SERVICES_AND_DEPENDENCIES.md` section 2a. Founder answers Q13 and Q14 |
+| D-05 | **LunchVoice is built at the lowest possible cost, and no new Render custom domains are added.** Render charges $0.25 a month for each custom domain beyond a plan's allowance. Every future hostname (`auth`, `create`, `pay`) is routed through Cloudflare, so Render keeps exactly two domains (`lunchvoice.com`, `www`) | Routing table and cost ledger: `SERVICES_AND_DEPENDENCIES.md` section 2a. Q13 and Q14 are answered below |
+| D-06 | **One creator dashboard for every plan, like Kahoot**, at `create.lunchvoice.com` (the founder named the address). The same layout, navigation and screens for everyone; the plan changes what is unlocked, never what you see | Design in section 2b |
+| D-07 | **`pay.lunchvoice.com` is the payment site** (Stripe), replacing the old GoDaddy-era site. A Cloudflare Worker, no Render domain, no paid Stripe custom-domain add-on | Services log section 2a |
+| D-08 | **How the site really deploys:** a Render **static site** built from `main` (`npm install; npm run build`, publish `dist`), **not Docker**. `render.yaml` is not connected (Render has no Blueprint); routing and headers live inside the Render service. Docker is used only for the local and CI database tests | Fixes in agent prep item 6 |
 
 ## 2. Results visibility: creator-controlled live results
 
@@ -75,6 +78,32 @@ on and is written to the audit log with who changed it and when.
 no regressions on suites 24, 42, 44, 53; e2e for the dialogs, the notice and a plan downgrade (the setting falls back,
 nothing is deleted). **Brain files:** `AGENTS.md` and `CLAUDE.md` carry the approved summary (done with this plan).
 
+## 2b. The creator dashboard: one for everyone (D-06)
+
+**Question:** should the dashboard change with the plan, or stay the same for every user like Kahoot? **Recommendation
+(adopted): the same dashboard for everyone.** The plan changes what is unlocked, never what you see.
+
+Why:
+
+- **One thing to build, test and document**, which is the cheapest to run (the cost principle). Per-plan dashboards
+  multiply every screen, test and support answer by five plans.
+- **People see what they could unlock.** A locked control says which plan opens it, never a dead end (the pattern
+  already used for branding, logic and question types). Hiding features from lower plans hides the reason to upgrade.
+- **Upgrading moves nothing.** The layout, navigation and muscle memory stay put; a control just unlocks.
+- **The server decides, the screen explains.** Entitlements stay in the plan map; the dashboard only reads the answer.
+
+What differs by plan, and only this: a **plan card** at the top (plan name, what it unlocks), **usage meters** (active
+surveys 3 of 5, questions per survey, Trends used of allowed), **locked controls** with a one-line unlock note, and the
+**Results setting** choices (section 2). Nothing is rearranged.
+
+Shape of `create.lunchvoice.com`: **Library** (the creator's surveys), **Templates** (the 82), **Create** (the studio:
+question rail, canvas, properties), **Results**, **Trends**, **Present**, **Branding**, and **Plan and billing**. A
+space switcher (personal space or a Hub) swaps the contents, never the screens. `lunchvoice.com` stays where people
+answer, join with a code and visit Hubs; `/me` stays the place for what someone has answered and their Hubs. Staff
+tools stay in `/admin`.
+
+Not doing: a separate dashboard per plan, or removing features from lower plans' screens.
+
 ## 3. Staying signed in for 30 days: Cloudflare Worker design (decided)
 
 `docs/backend/SESSIONS.md` has the threat model and the refresh-credential design. The open question there (which proxy)
@@ -126,7 +155,7 @@ header control. It is a DNS change, so it waits for a decision after launch unle
 | # | Action | Why it blocks |
 | --- | --- | --- |
 | 1 | Create a PostHog Cloud account and connect it in Composio | Analytics events, funnels, the staff dashboard |
-| 2 | Stripe: in the **Lunchvoice** account decide test or live, create the products and prices (Starter Hub, Team Hub, Campaign Starter, Campaign Plus, Hub Name Reservation, Creator Plus, Creator Pro), turn on Stripe Tax | Billing end to end, the audit's top blocker |
+| 2 | Stripe is already set up in **live mode** (read 2026-11-13: 7 products, 9 prices at your amounts, a webhook to `billing-webhook`, the Customer Portal, Tax active). Remaining: set a software tax code on the products (the default is "general tangible goods"), confirm the two function secrets are set, and decide how to test: there are no test-mode copies, so either create them or run one live purchase with a 100% coupon and refund it | Billing end to end, the audit's top blocker |
 | 3 | Legal operator (F-12): is the KpnSolute company formed, and what is its legal name? Privacy and Terms still carry placeholders | Real payments, the legal pages |
 | 4 | Rename the Google sign-in app to "KpnSolute" in Google Cloud | Sign-in trust screen |
 | 5 | Approve KpnIdentity settings B1 to B6 (email confirmation, Resend SMTP, 12-character passwords, leaked-password check, security emails, current password to change) | Account security |
@@ -144,8 +173,9 @@ header control. It is a DNS change, so it waits for a decision after launch unle
 | 3 | Write the launch smoke test: sign in, make a survey, publish, answer as a guest and as a member, read live results, buy in Stripe test mode, refund | A runnable checklist that next week turns into an e2e or manual script |
 | 4 | Backups: compare turning on point-in-time recovery (currently off) with the daily backup, with cost | A recommendation for the owner |
 | 5 | Confirm which KpnAuth items (K1 to K16) are still open and where KpnAuth is deployed | A list for the KpnAuth repo |
-| 6 | Prepare the free Cloudflare header fixes: a Cache Rule (long cache on `/assets/*`, bypass on `/version.json`) and the HSTS include-subdomains setting. Live headers differ from `render.yaml` (`SERVICES_AND_DEPENDENCIES.md` section 2a) | Rule definitions ready to apply once the token works |
-| 7 | Write the Cloudflare Redirect Rule for `create.lunchvoice.com` to `lunchvoice.com/create` and the `pay` Worker outline (Stripe webhook and return handling) | Two small specs, nothing deployed |
+| 6 | Prepare the Render fixes found in production (`SERVICES_AND_DEPENDENCIES.md` section 2a): the header rules (HSTS include-subdomains, `/assets/*` long cache, `/version.json` no-store, the sign-in Worker origin in the CSP) and the `/templates/:slug` and `/use-cases/:slug` rewrites that make the template gallery indexable, with the exact API calls and a rollback | A reviewed change set, applied only on your go-ahead (it changes Render settings) |
+| 7 | Write the specs for `create.lunchvoice.com` (the creator app: a redirect first) and `pay.lunchvoice.com` (the payment site replacing the old GoDaddy-era one) | Two small specs, nothing deployed |
+| 8 | Draft the one-dashboard layout for `create.lunchvoice.com` (section 2b): screens, navigation, the plan card, how locks and usage look | A one-page layout spec |
 
 ## 5. Next week: build order (starts 2026-11-16)
 
@@ -153,9 +183,9 @@ header control. It is a DNS change, so it waits for a decision after launch unle
 | --- | --- | --- | --- |
 | 1 | Creator-controlled results (section 2): setting, entitlement keys, notices, dialogs, audit | 000054 | Q1 to Q3 answered |
 | 1 to 2 | 30-day sign-in (section 3): Worker, `session` function actions, device sessions, Account devices, CSP | 000049, `session` deploy, Worker | Verification list, secret go-ahead |
-| 2 | Cloudflare routing: Cache Rules and the HSTS fix, the `create` redirect, the `pay` Worker (after Q13 and Q14). Cloudflare only, nothing on Render | Cloudflare | Founder action 8 |
+| 2 | Routing: apply the Render header and rewrite fixes (services log section 2a), the `create` redirect, the `pay` Worker and site. Render API and Cloudflare; no new Render domains | Render settings, Cloudflare | Go-ahead for Render settings; founder action 8 |
 | 2 | PostHog: seven events, no ids or answers, route-pattern rewriting, CSP, staff dashboard reads | none | Founder action 1 |
-| 2 to 3 | Billing in Stripe test mode: Checkout, webhook, entitlement, refund, Customer Portal, Tax | function deploys | Founder action 2, keys (credential go-ahead) |
+| 2 to 3 | Billing end to end: one purchase, webhook, entitlement, refund. Add the Creator Plus and Creator Pro prices to the database policy (`billing.stripe_prices` has 6 of 9 today) and make them purchasable (account-scoped); software tax code | function deploys, a policy update | Founder action 2, keys (credential go-ahead) |
 | 3 | KpnAuth: the phone sign-in screen, headers, forgot password, product named on every screen (K1 to K10) | KpnAuth repo | Founder action 6 |
 | 3 to 4 | KpnIdentity settings B1 to B6 through Composio, one approval each | settings | Founder action 5 |
 | 4 | Reconcile production-only migrations with `main` (prep item 1) | none on production | Prep item 1 |
@@ -176,14 +206,14 @@ resources need an explicit go-ahead.
 | Q4 | Creator Trend counts (Plus 3, Pro 10) are provisional in the plan map | Keep 3 and 10 for launch, revisit with usage |
 | Q5 | Image-choice pictures: the site's policy blocks outside image hosts | Store them in a private Supabase bucket like logos (no new service) |
 | Q6 | Officer election template is an anonymous invite-only secret ballot (the brief listed it as identified) | Keep anonymous |
-| Q7 | Do feature-complete 2026-11-21 and public launch 2026-12-01 still hold | Confirm or move |
+| Q7 | Do feature-complete 2026-11-21 and public launch 2026-12-01 still hold? Production policy `billing.launched_at` is already set to 2026-12-12T17:12Z (billing opens then) | Confirm which date is the launch, then make the three match |
 | Q8 | Quiz: show each respondent their score after submitting? Build trivia timing and a leaderboard? | Score yes, trivia timing after launch |
 | Q9 | After sign-in a visitor's survey is published automatically (today) or left as a draft | Leave as a draft |
 | Q10 | Charts use the Hub's colour inside a Hub and amber elsewhere | Keep |
 | Q11 | A true HTTP 404 and per-Hub share images need the apex as a proxied CNAME (section 3, optional) | After launch |
 | Q12 | The Team plan copy was rewritten to what exists ("More custom Hub pages", "Aim identified Campaigns at chosen roles"). What should Team actually add? | Decide after launch from usage |
-| Q13 | What was `pay.lunchvoice.com` set up for? It answers 404 today. Proposed: a Cloudflare Worker for the Stripe webhook and checkout and portal returns, not Stripe's paid custom-domain add-on | Worker (free), nothing on Render |
-| Q14 | Is the creator address `create.lunchvoice.com` (as the roadmap says) or `creator.lunchvoice.com`? And should it start as a plain redirect to `lunchvoice.com/create` | `create`, redirect first |
+| Q13 | **Answered 2026-11-13:** `pay.lunchvoice.com` is the payment site (Stripe), replacing the old GoDaddy-era site | Worker (free), nothing on Render |
+| Q14 | **Answered 2026-11-13:** the address is `create.lunchvoice.com`. Still open: start as a plain redirect to `lunchvoice.com/create` | Redirect first |
 
 ## 7. Shipped this week (reference)
 

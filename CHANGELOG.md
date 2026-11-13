@@ -6,6 +6,37 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Docs (deployment truth, connector retest, payment site and creator dashboard decisions; founder 2026-11-13)
+
+- **Deployment truth found and logged.** LunchVoice is a Render **static site** built from `main` (`npm install; npm run build`,
+  publish `dist`), not Docker (Docker is used only by the local and CI database tests; the `MJCC-*` services on Render use it).
+  **Render has no Blueprint**, so `render.yaml` is not connected and every edit to it since the first setup never reached
+  production. Production holds its own 29 rewrites and 5 header rules (an older copy of the file). Consequences: HSTS lacks
+  `includeSubDomains`; `/assets/*` and `/version.json` are not cached as intended; **the template gallery is not indexable**
+  (`/templates` and template pages without a trailing slash get the generic app shell; with a trailing slash the prerendered
+  page is served, so only the rewrites are missing). A banner in `render.yaml` and a comment in `vite.config.ts` now say so.
+  The fix is a prep item that waits for the founder's go-ahead because it changes Render settings: replace the header rules and
+  add two placeholder rewrites (`/templates/:slug`, `/use-cases/:slug`). `render.yaml` is kept for now: the build's SEO check and
+  three tests parse it. An earlier note blaming Cloudflare for the header drift is corrected: Cloudflare Cache Rules and HSTS are
+  not the fix.
+- **Composio connectors retested with a real call each** (new table in `SERVICES_AND_DEPENDENCIES.md` section 2): render,
+  stripe, supabase (both aliases), github, gmail, googledocs, googledrive, google_search_console, resend, canva, context7,
+  browserbase and jev work. **`cloudflare_api_key` fails**: it shows connected but Cloudflare rejects its token on every zone and
+  DNS call (error 9109, three tries); it needs a new token. Connected in the dashboard does not prove the token works.
+- **Stripe is further along than the plan assumed** (read-only, live mode): 7 products and 9 prices at the founder's amounts, a
+  live webhook to `billing-webhook` (6 events), Customer Portal configured (cancel at period end, no proration), Stripe Tax active
+  but its default product tax code is "general tangible goods" (set a software code). The database maps 6 of 9 prices in
+  `billing.stripe_prices` (Creator Plus and Creator Pro are missing and `purchasable = false`), and `billing.launched_at` is
+  2026-12-12T17:12Z, which differs from the 2026-12-01 in `BUILD_PLAN_2026-11-21.md` (question Q7). Plan updated.
+- **Decisions D-06 to D-08:** one creator dashboard for every plan, like Kahoot, at `create.lunchvoice.com` (section 2b of the
+  launch plan: plan card, usage meters and locked controls differ, the layout never does); `pay.lunchvoice.com` is the payment
+  site (Stripe), replacing the old GoDaddy-era site, as a Cloudflare Worker; the deployment truth above. Q13 and Q14 answered.
+  Roadmap section 9 and the brain files (edited together) record them.
+- **Cleanup:** the repository has no stray or dead tracked files (scanned: sizes by area, unreferenced scripts, odd names);
+  the only inert file is `render.yaml`. Removed 16 finished local worktrees (7 agent, 9 review), all clean and fully in `main`;
+  left the 14 older worktrees from earlier sessions alone (two hold unsaved work).
+- No code behaviour, migration, Render, Stripe or Cloudflare setting changed.
+
 ### Docs (hostname routing and the lowest-cost rule; founder 2026-11-13)
 
 - **Cost rule recorded** (founder: LunchVoice is built at the lowest possible cost): no new Render custom domains. Render's

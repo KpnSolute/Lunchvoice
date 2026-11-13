@@ -31,19 +31,37 @@ Stripe, Resend and Discord talk to Supabase Edge Functions (checkout / billing-w
 | Service | What it does for LunchVoice | Identifier (non-secret) | Where to find it | Status |
 | --- | --- | --- | --- | --- |
 | **GitHub** | Source of truth, pull requests, CI (`pr-checks`, `version-release`: tags every `main` commit `X.X.X`) | `KpnSolute/Lunchvoice` | Composio toolkit `github` (three connections, all the same GitHub user; use the default). External: github.com | Verified 2026-11-13 |
-| **Render** | Hosts the website as a **static site** (free to host: Render's pricing page says "Deploy websites for free, forever"). Auto-deploys on every push to `main` once checks pass. Custom domains on it: `lunchvoice.com` and `www.lunchvoice.com` (redirects to the apex), both verified, **nothing else** | dashboard name **Lunchvoice**, service `srv-d92o4cmrnols73fkioa0`, default URL `interact-3npi.onrender.com` (`render.yaml` still says `lunch-line-survey`) | Composio toolkit `render` (active; it read the service and its domains today). The workspace is shared with the `kpnsolute-*`, `KpnCompute`, `MJCC-*` and other services. The Render MCP needs a workspace chosen first; pick it with the owner. External: dashboard.render.com | Verified 2026-11-13. The dashboard build command is `npm install; npm run build`, not the file's `npm ci && npm run build`; most of the file's headers are live, not all (section 2a) |
+| **Render** | Hosts the website as a **static site** (free to host: Render's pricing page says "Deploy websites for free, forever"). Auto-deploys on every push to `main` once checks pass. Custom domains on it: `lunchvoice.com` and `www.lunchvoice.com` (redirects to the apex), both verified, **nothing else** | dashboard name **Lunchvoice**, service `srv-d92o4cmrnols73fkioa0`, default URL `interact-3npi.onrender.com` (`render.yaml` still says `lunch-line-survey`) | Composio toolkit `render` (active; it read the service and its domains today). The workspace is shared with the `kpnsolute-*`, `KpnCompute`, `MJCC-*` and other services. The Render MCP needs a workspace chosen first; pick it with the owner. External: dashboard.render.com | Verified 2026-11-13. **No Render Blueprint exists** (read through the API), so `render.yaml` is not connected: the live service holds its own 29 rewrites and 5 header rules, an older copy of the file's. Its build command is `npm install; npm run build` (section 2a) |
 | **Supabase: Lunchvoice** | The whole backend: Postgres (`lv` private schema, `lv_api` the only exposed one), RLS, Storage, 7 Edge Functions. This is the MJCCv2 project and the only deployment target | project ref `qprfonxvthmaoxfixigk` | Composio toolkit `supabase`, alias **Lunchvoice**. MCP server `lunchvoice` (`.mcp.json`, token in gitignored `.mcp.env`). External: supabase.com/dashboard | Verified 2026-11-13 |
 | **Supabase: KpnIdentity** | Shared KpnSolute sign-in (one account across LunchVoice, Aftercard, KpnCompute). Not this repo's deploy target | project ref `axzwdbizblfkspduqilj`, issuer `https://auth.kpnsolute.com` | Composio toolkit `supabase`, alias **KpnIdentity**. MCP server `kpnauth`. External: supabase.com/dashboard | Connection verified; settings B1 to B6 Confirm |
 | **KpnAuth** (sign-in screen) | The branded front door people see when signing in | `auth.kpnsolute.com` | Separate repository (not this one). Hosting target Confirm | Confirm |
 | **Cloudflare** | DNS for `lunchvoice.com`; the `lunchvoice-hub-card` Worker; planned home for every other edge need (see section 6) | Worker `lunchvoice-hub-card` (deployed, last changed 2026-11-12), custom domain `hub.lunchvoice.com` | Composio toolkit `cloudflare_api_key` shows **active but its token is rejected for zone and DNS calls** (error 9109 on 2026-11-13): reconnect it before any DNS work. Workers are readable and deployable through this session's Cloudflare MCP (works; marked deprecated in favour of the full Cloudflare API server). `cloudflare_mcp` and `cloudflare_browser_rendering` are also connected. External: dash.cloudflare.com | Workers verified 2026-11-13; DNS records, plan and HSTS setting Confirm (read DNS from outside in section 2a) |
 | **Resend** | Transactional email only (waitlist, Hub created, invites, reservation, orders). Domains `lunchvoice.com` and `kpnsolute.com` are verified, sending enabled, open and click tracking off | domains above | Composio toolkit `resend` (the account is shared with other KpnSolute products). External: resend.com | Domains verified 2026-11-13; `RESEND_API_KEY` set in Supabase? Confirm |
-| **Stripe** | Checkout Sessions, Customer Portal, webhooks, Stripe Tax. Billing fails closed until keys are set (`lv_billing_unavailable`) | Stripe account whose dashboard name is **Lunchvoice** | Composio toolkit `stripe` has three accounts (**Lunchvoice**, Aftercard, Papercliped Connect): LunchVoice must always use the one named Lunchvoice. External: dashboard.stripe.com | Connection verified; test or live mode, products and keys Confirm |
+| **Stripe** | Checkout Sessions, Customer Portal, webhooks, Stripe Tax. Billing fails closed until keys are set (`lv_billing_unavailable`) | Stripe account whose dashboard name is **Lunchvoice** | Composio toolkit `stripe` has three accounts (**Lunchvoice**, Aftercard, Papercliped Connect): LunchVoice must always use the one named Lunchvoice. External: dashboard.stripe.com | Verified 2026-11-13 (read-only): **live mode**; 7 products and 9 prices at the founder's amounts; a live webhook to `billing-webhook` (6 events); Customer Portal configured; Stripe Tax active but its default product tax code is "general tangible goods" (set a software code). Function secrets Confirm |
 | **Discord** | The LunchVoice bot: `/lunchvoice` commands, campaign posting. First-class pairing ("Discord is for discussion. LunchVoice is for deciding.") | application and guild IDs in function secrets | **Not in Composio.** External: discord.com/developers (bot avatar and banner are uploaded there by hand) | Function deployed; secrets and portal Confirm |
 | **Google Cloud (OAuth app)** | The "Continue with Google" sign-in that KpnIdentity uses. The app is still to be renamed "KpnSolute" | OAuth client under the KpnSolute Google project | **Not in Composio.** External: console.cloud.google.com | Confirm |
 | **Domain registrar** | Owns the `lunchvoice.com` registration; nameservers point at Cloudflare | none in the repo | External only | Confirm which registrar |
 | **Google Workspace docs** | Founder specs: "Project Profile - LunchVoice V2", "Survey Templates and Survey UI", "Trends and Creator Plans", the roadmap | read by title | Composio toolkits `googledocs`, `googledrive`, `gmail` (Gmail has two accounts: pass the account explicitly) | Verified 2026-11-13 |
 | **Google Search Console** | SEO for the public pages and `/templates` | `lunchvoice.com` property | Composio toolkit `google_search_console` | Connection verified; property Confirm |
 | **Canva** | Brand kit ("LunchVoice Brand Kit" folder) for social and video | none | Composio toolkit `canva`. The kit page itself is finished by hand | Connection verified |
+
+### Composio connector check (retested 2026-11-13, a real call per toolkit)
+
+"Connected" in the Composio dashboard only means a connection record exists; a real call proves the stored token still works.
+
+| Toolkit | Result | What was read |
+| --- | --- | --- |
+| `render` | Works | services, custom domains, header rules, rewrites, Blueprints (none exist) |
+| `stripe` | Works. Three accounts: pass the account explicitly, **Lunchvoice** is this product's | products, prices, webhook destination, Customer Portal, Tax settings (all live mode) |
+| `supabase` | Works for both aliases | alias **Lunchvoice** sees the Lunchvoice project and MJCCv1 (one organisation); alias **KpnIdentity** sees only KpnIdentity (another organisation) |
+| `github` | Works, but three connections to one user: pass the account (`opensourcx`) | the authenticated user; two-factor is on |
+| `gmail` | Works (two accounts: pass the account) | profile only |
+| `googledocs`, `googledrive` | Work (the Docs search that errored earlier now returns) | document and file search |
+| `google_search_console` | Works | `lunchvoice.com` is a verified domain property with owner access |
+| `resend` | Works | domains `lunchvoice.com` and `kpnsolute.com` verified |
+| `canva`, `context7_mcp`, `browserbase_tool`, `jev` | Work | account, library lookup, session list (empty), model list (`jev` is not used by LunchVoice) |
+| `cloudflare_api_key` | **Fails.** Shows connected, but Cloudflare rejects the stored token on every zone and DNS call (error 9109, "Invalid access token"), tried three times | Needs a new API token pasted into the connection: zone read, DNS edit for `lunchvoice.com`, Workers edit |
+| `cloudflare_mcp`, `cloudflare_browser_rendering` | Connected; no LunchVoice tool surfaced to test | Workers are reachable through this session's separate Cloudflare MCP |
 
 ### Planned, not adopted yet
 
@@ -80,8 +98,8 @@ read the zone, see section 2):
 | `www.lunchvoice.com` | Proxied, answers 301 to the apex | Unchanged | yes (2 of 2) | none |
 | `hub.lunchvoice.com` | Cloudflare Worker `lunchvoice-hub-card`; the bare host redirects to `/discover` | Unchanged: Hub share previews | no | none |
 | `auth.lunchvoice.com` | **Does not exist** (no DNS record) | Worker on a Custom Domain: the 30-day sign-in cookie proxy (week of 2026-11-16, `docs/v2/LAUNCH_PREP_PLAN_2026-11-13.md` section 3) | no | none |
-| `create.lunchvoice.com` | **Does not exist** | A Cloudflare Redirect Rule to `lunchvoice.com/create`: no code, and sign-in stays on one host. If the creator app ever needs its own look at that address, a Worker that serves the same site through Render's default `onrender.com` address. Never a Render domain | no | none |
-| `pay.lunchvoice.com` | Resolves through Cloudflare but answers **404**; what it was set up for is Confirm | A Worker: a stable address for the Stripe webhook and checkout and portal return handling, forwarding to the `billing-webhook` and `checkout` functions. Not Stripe's custom domain for hosted pages, which is a separate paid Stripe add-on (check its price before ever choosing it) | no | none |
+| `create.lunchvoice.com` | **Does not exist** | The creator app (the founder named this address): one dashboard for every plan (decision D-06). It starts as a Cloudflare Redirect Rule to `lunchvoice.com/create`: no code, and sign-in stays on one host. If it later needs its own look at that address, a Worker that serves the same site through Render's default `onrender.com` address. Never a Render domain | no | none |
+| `pay.lunchvoice.com` | Resolves through Cloudflare but answers **404**: a leftover record from the old GoDaddy-era site (founder) | **The payment site** (founder 2026-11-13): a Worker serving branded checkout-start, success and cancel pages that hand the buyer to Stripe. The live Stripe webhook already points straight at the `billing-webhook` function and can stay there. Not Stripe's custom domain for hosted pages, a separate paid Stripe add-on (check its price before ever choosing it). Replacing the old record needs the Cloudflare token reconnected | no | none |
 | any other `<name>.lunchvoice.com` | Does not resolve | Stays unrouted | no | none |
 
 `auth.kpnsolute.com` and the other `kpnsolute.com` hosts belong to KpnSolute's own sites, not to LunchVoice.
@@ -101,12 +119,28 @@ read the zone, see section 2):
 | Composio | By plan | Confirm the plan | none |
 | Domain registration | Yearly | Confirm the registrar | none |
 
-**Header check, read live 2026-11-13.** The site answers with the security headers from `render.yaml` (CSP, X-Frame-Options,
-nosniff, Referrer-Policy, Permissions-Policy), with two differences from the file: HSTS is `max-age=31536000` **without**
-`includeSubDomains`, and `/assets/*` and `/version.json` answer `public, max-age=0, s-maxage=300`, not the file's
-`immutable` and `no-store`. The likely cause is Cloudflare's own HSTS and cache settings in front of Render (or the
-Blueprint not applying path rules). Free Cloudflare fixes: a Cache Rule (long cache on `/assets/*`, bypass on
-`/version.json`) and the HSTS setting. Needs the Cloudflare token reconnected. A prep item in the launch plan.
+**What production actually serves** (read live and through Render's API, 2026-11-13). Render has **no Blueprint**, so
+`render.yaml` is not connected and every edit to it since the first setup never reached production. The Render service
+holds its own settings: 5 header rules, all on `/*` (CSP, HSTS without `includeSubDomains`, X-Frame-Options,
+Referrer-Policy, Permissions-Policy) and 29 rewrites (home, 10 core pages, 10 use cases, 7 product pages, then
+`/*` to `/app.html`). What that breaks today:
+
+1. **The template gallery is not indexable.** `/templates` and every template page without a trailing slash get the
+   generic app shell (page title "LunchVoice") because no rewrite exists for them. With a trailing slash
+   (`/templates/event-feedback/`) Render serves the prerendered page, so the files are deployed; only the rewrites are
+   missing.
+2. `/assets/*` and `/version.json` answer `public, max-age=0, s-maxage=300`, not the long cache and `no-store` the file
+   intends. The update notice still works, with up to a five-minute delay at the edge.
+3. Any new CSP origin, such as the sign-in Worker `https://auth.lunchvoice.com`, must be added in Render's header
+   rules. Editing `render.yaml` does nothing.
+
+**The fix** (free, through the Render API in Composio; it changes Render settings, so it waits for the founder's
+go-ahead): replace the header rules (`RENDER_UPDATE_HEADERS`) and add the missing rewrites ahead of `/*`, preferably two
+placeholder rules (`/templates/:slug` and `/use-cases/:slug` to their `index.html`) instead of about 95 individual
+rules; confirm that Render accepts the placeholder form on one rule before relying on it. Cloudflare Cache Rules and the
+HSTS setting are **not** the fix: the zone's rules may not run in front of Render while the apex is a proxied A record
+(the `hub-card` README found the same for Workers). Longer term, a small script applies the repository's headers and
+rewrites through the API and `render.yaml` is retired, or routing moves to Cloudflare after the O2O change.
 
 ## 3. Supabase Edge Functions (deployed, Verified 2026-11-13)
 
@@ -162,9 +196,9 @@ Workers, which are not LunchVoice's.
 | --- | --- | --- |
 | 2026-11-12 | `lunchvoice-hub-card` Worker on custom domain `hub.lunchvoice.com`: share-link previews for Hubs | Live, Verified 2026-11-13 |
 | 2026-11-13 | Decision: the 30-day sign-in cookie is served by a Worker on `auth.lunchvoice.com` | Planned, builds the week of 2026-11-16 |
-| 2026-11-13 | Decision: `create.lunchvoice.com` is a Cloudflare Redirect Rule (or a Worker), never a Render custom domain (cost principle, section 2a) | Planned |
-| 2026-11-13 | Proposal: `pay.lunchvoice.com` is a Worker for the Stripe webhook and return handling, not Stripe's paid custom-domain add-on | Proposed (question Q13 in the launch plan) |
-| 2026-11-13 | Proposal: Cloudflare Cache Rules for `/assets/*` and `/version.json`, and the HSTS include-subdomains setting | Proposed; needs the token reconnected |
+| 2026-11-13 | Decision: `create.lunchvoice.com` is the creator app (founder named it): a Cloudflare Redirect Rule to `lunchvoice.com/create` first, a Worker later if needed, never a Render custom domain (cost principle, section 2a) | Planned |
+| 2026-11-13 | Decision: `pay.lunchvoice.com` becomes the payment site (Stripe), replacing the old GoDaddy-era site; a Worker, not Stripe's paid custom-domain add-on. Replacing its DNS record needs the Cloudflare token reconnected | Planned |
+| 2026-11-13 | Checked: Cloudflare Cache Rules and HSTS are not the fix for the header drift; Render's own rules are (section 2a) | Closed |
 
 ## 7. JavaScript dependencies (`package.json`, Node 22.12 or newer; lockfile `package-lock.json`)
 
@@ -205,7 +239,7 @@ Where to find any of them: npmjs.com. Versions are exactly what `package.json` s
 | Tool | Used for | Where |
 | --- | --- | --- |
 | GitHub Actions (`actions/checkout@v4`, `actions/setup-node@v4`) | PR checks and the version and tag pipeline | `.github/workflows/` |
-| Docker with `postgres:15-alpine` | the canonical database suite (`scripts/db-test-canonical.sh`), rollback rehearsal | local and CI |
+| Docker with `postgres:15-alpine` | the canonical database suite (`scripts/db-test-canonical.sh`) and rollback rehearsal **only**. LunchVoice is not deployed with Docker (the `MJCC-*` services on Render are) | local and CI |
 | Supabase CLI 2.x | migrations and local database | `~/bin/supabase` |
 | `wrangler` 4 (via `npx`) | builds the Worker bundle (deploys go through the Cloudflare API in Composio) | `workers/hub-card/` |
 | Playwright Chromium | the e2e suite | `npx playwright install chromium` |
@@ -218,7 +252,7 @@ Where to find any of them: npmjs.com. Versions are exactly what `package.json` s
 1. Which registrar holds `lunchvoice.com`, and who can log in.
 2. Which Render workspace plan you are on (it sets how many custom domains are included: 2 Hobby, 15 Pro, 25 Scale;
    each extra is $0.25 a month). Also reconnect the Cloudflare connection in Composio (its token is rejected for DNS).
-3. Stripe: test or live mode, which products exist, whether the two function secrets are set.
+3. Stripe: whether `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are set in Supabase (everything else was read: live mode, products, prices, webhook, portal, tax).
 4. Whether `RESEND_API_KEY` and the three Discord secrets are set in Supabase.
 5. The Google OAuth app rename and whether KpnIdentity settings B1 to B6 are applied.
 6. Where KpnAuth is hosted and who deploys it.

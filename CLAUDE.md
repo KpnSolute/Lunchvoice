@@ -36,6 +36,9 @@ Dining is one customer use case, not the product.
   Build LunchVoice at the lowest possible cost: add no Render custom domains
   (each beyond the plan's allowance costs money) and route every new hostname
   (auth, create, pay) through Cloudflare; see section 2a of that inventory.
+  The site deploys as a Render static site, not Docker, and `render.yaml` is not
+  connected to Render (no Blueprint): production routing and headers live in the
+  Render service, so change them through the Render API, not by editing the file.
 - Supabase refs: Lunchvoice `qprfonxvthmaoxfixigk`, KpnIdentity
   `axzwdbizblfkspduqilj`. Production is not mutated without the approvals below.
 - GitHub: `KpnSolute/Lunchvoice`. Local frontend: `npm run dev`.

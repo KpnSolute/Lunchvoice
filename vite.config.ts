@@ -5,7 +5,8 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 // Build identity for the "new version available" notice (src/components/UpdateNotice.tsx). The app embeds its own
-// id; /version.json (served no-store, see render.yaml) carries the id of whatever is live now.
+// id; /version.json carries the id of whatever is live now. It is meant to be served no-store, but production does not
+// carry that rule yet (render.yaml is not connected to Render; see docs/ops/SERVICES_AND_DEPENDENCIES.md section 2a).
 function gitId(): string {
   const fromEnv = process.env.RENDER_GIT_COMMIT || process.env.GITHUB_SHA;
   if (fromEnv) return fromEnv.slice(0, 12);
