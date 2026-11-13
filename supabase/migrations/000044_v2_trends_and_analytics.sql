@@ -486,7 +486,11 @@ begin
     v_ua := nullif(current_setting('request.headers', true), '')::jsonb ->> 'user-agent';
   exception when others then v_ua := null;
   end;
-  perform lv.bump_context(new.campaign_id, 'device', lv.device_class(v_ua));
+  -- A counter must never cost someone their answer: any failure here is swallowed (review 2026-11-13).
+  begin
+    perform lv.bump_context(new.campaign_id, 'device', lv.device_class(v_ua));
+  exception when others then null;
+  end;
   return null;
 end;
 $$;
