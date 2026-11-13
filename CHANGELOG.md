@@ -6,6 +6,19 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (who is answering: sign in or answer as a guest, founder request 2026-11-13, 000050)
+
+- **Survey links offer sign-in.** On `/c/<code>` a signed-out visitor sees "Have a LunchVoice account? Sign in" next to
+  the guest name field (when the creator asks for one); signing in returns them to the same survey.
+- **Signed-in people answer with their account.** A signed-in visitor on a survey link is no longer treated as an
+  unverified guest: `lv_api.lv_campaign_by_code` (000050, signed-in only) returns the Campaign id when they may take part
+  (or manage it), and the player shows "Answering as {name}" on identified surveys. Non-managers get the same
+  visibility as the player (published, not blocked, Hub not suspended); others get `lv_not_found`.
+- **The builder Preview shows the start step** with "As a guest" and "Signed in" views, so the name and sign-in step no
+  longer looks missing when a creator previews their own survey.
+- Tests: `supabase/tests/50_campaign_by_code.sql`; `e2e/studio.test.mjs` runs the guest path in a signed-out browser and
+  the signed-in path with "Answering as".
+
 ### Operations (production, 2026-11-13: 000042 Linked Questions)
 
 - **Applied 000042 to production** (`qprfonxvthmaoxfixigk`) from commit `537f180` (file SHA-256 `5a37f889…`) through the

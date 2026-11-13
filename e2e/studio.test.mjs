@@ -377,22 +377,30 @@ test("Guest names: an identified survey can ask guests for a name; the creator s
   await page.getByTestId("publish").click();
   const code = (await page.getByTestId("share").getByText(/^[A-Z0-9]{6}$/).first().innerText()).trim();
 
-  // A guest (signed out) opens the code: the name is required before they can start, and signing in is offered.
-  const session = await page.evaluate(() => { const v = localStorage.getItem("lv.session"); localStorage.removeItem("lv.session"); return v; });
-  await go(`/c/${code}`);
-  await page.getByTestId("guest-name").waitFor();
-  await page.getByTestId("guest-signin").getByRole("link", { name: "Sign in" }).waitFor();
-  assert.equal(await page.getByTestId("player-start").isDisabled(), true, "Start waits for a required name");
-  await page.getByLabel(/Your name/).fill("  Sam  Lee ");
-  assert.equal(await page.getByTestId("player-start").isDisabled(), false);
-  await page.getByTestId("player-start").click();
-  await page.getByRole("radio", { name: /Reds/ }).click();
-  await page.getByRole("button", { name: "Review" }).click();
-  await page.getByRole("button", { name: "Submit" }).click();
-  await page.getByTestId("player-thanks").getByText(/under the name “Sam Lee”/).waitFor();
+  // A guest (signed out, in their own browser holding the same mock data) opens the code: the name is required before
+  // they can start, and signing in is offered.
+  const shared = await page.evaluate(() => localStorage.getItem("lv.mock.state"));
+  const guest = await openPage(app, { width: 1280, signedIn: false });
+  await guest.ctx.addInitScript((st) => {
+    if (!sessionStorage.getItem("copied")) { localStorage.setItem("lv.mock.state", st); sessionStorage.setItem("copied", "1"); }
+  }, shared);
+  await guest.go(`/c/${code}`);
+  const gp = guest.page;
+  await gp.getByTestId("guest-name").waitFor();
+  await gp.getByTestId("guest-signin").getByRole("link", { name: "Sign in" }).waitFor();
+  assert.equal(await gp.getByTestId("player-start").isDisabled(), true, "Start waits for a required name");
+  await gp.getByLabel(/Your name/).fill("  Sam  Lee ");
+  assert.equal(await gp.getByTestId("player-start").isDisabled(), false);
+  await gp.getByTestId("player-start").click();
+  await gp.getByRole("radio", { name: /Reds/ }).click();
+  await gp.getByRole("button", { name: "Review" }).click();
+  await gp.getByRole("button", { name: "Submit" }).click();
+  await gp.getByTestId("player-thanks").getByText(/under the name “Sam Lee”/).waitFor();
+  const after = await gp.evaluate(() => localStorage.getItem("lv.mock.state"));
+  await guest.ctx.close();
+  await page.evaluate((st) => localStorage.setItem("lv.mock.state", st), after);
 
-  // Signed in again, the same link answers with the account: no name field, no sign-in prompt, "Answering as".
-  await page.evaluate((v) => localStorage.setItem("lv.session", v), session);
+  // Signed in, the same link answers with the account: no name field, no sign-in prompt, "Answering as".
   await go(`/c/${code}`);
   await page.getByTestId("answering-as").getByText("Dana Reyes").waitFor();
   assert.equal(await page.getByTestId("guest-name").count(), 0, "a signed-in person types no guest name");
