@@ -6,6 +6,31 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (Linked Questions, migration 000042, 2026-11-13)
+
+- **Per-question "show only if" rules and "end survey"**, for Creator Plus or a Starter Hub and above (the existing
+  `survey.branching` entitlement, enforced on the server). A question can depend on EARLIER questions, joined with all
+  or any: choice and multi choice "is any of / none of", yes/no "is", rating "at least / at most / between". An answer
+  can also end the survey. Section rules (000041) keep working. Builder: a "Logic" panel on each question (locked, with
+  what unlocks it, for the free plan), a rule tag on the outline, a plain-language publish check and a min/max path
+  summary. Player: only the questions on the person's path, progress that follows it, Back keeps every answer, and
+  answers to hidden questions are never sent or stored. Results: "N saw, M answered" per question on surveys with paths
+  (withheld under 5 on anonymous surveys).
+- `lv_analytics_question` (seen/answered and an optional filter by an earlier answer; the filter has no UI yet).
+- **Creator limits for Quick Surveys**: `quick.max_questions` and `quick.max_active` for Creator Plus (30 / 15) and Creator
+  Pro (100 / 100), kinds/modes as free; the question guard, activation gate and Quick Surveys list resolve the owner's
+  Creator family and fall back to free. Founder perks, one `update lv.plan_limits` to change.
+- Not in this release (follow-up PR): skip-to-question jumps, answer piping, randomization, results filter control, the full
+  click-through path preview. The pure logic for them is already in `src/lib/logic.ts` but the server refuses skip-to.
+
+### Security (migration 000042)
+
+- **Security: answer validation for sectioned campaigns now applies every core check.** The 000041 validator skipped the
+  per-answer checks for sectioned Campaigns (option membership, yes/no boolean, text length, multi choice rules). Every shown
+  answer now goes through `lv.check_answer_value`, and every path (elections and Campaigns without logic included)
+  rejects entries without a question id, ids from another survey and duplicate ids. pgTAP `42_linked_questions.sql`
+  proves each rejection.
+
 ### Fixed (MCP: the KpnIdentity wrapper the tests expect is now committed, 2026-11-13)
 
 - `scripts/mcp/supabase-kpnidentity.sh` (the `kpnauth` server) was referenced by `.mcp.json` and tested by

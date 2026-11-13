@@ -248,7 +248,8 @@ export function SurveyStudio() {
   const timer = useRef<number | null>(null);
   const d = detail.data;
   useEffect(() => { if (d && title === null) setTitle(d.campaign.title); }, [d, title]);
-  const questionLimit = ctx.data?.quick_surveys.question_limit ?? null;
+  // 000042: the survey's own limit (a Creator plan raises it); the context still shows the free number.
+  const questionLimit = d?.campaign.question_limit ?? ctx.data?.quick_surveys.question_limit ?? null;
   const schedule: ScheduleState = useMemo(() => ({ start: { mode: "now" }, end: { mode: "none" } }), []);
   const issues = useReadiness(d ?? null, title ?? d?.campaign.title ?? "", schedule, questionLimit);
   const reloadAll = () => { detail.reload(); list.reload(); };
