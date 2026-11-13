@@ -25,6 +25,18 @@ function realTransport(getToken: () => string | null, onAuthFailure?: () => void
       if (error) return rpcFailure(error, status, Boolean(getToken()), onAuthFailure);
       return data;
     },
+    // Survey branding images (000043): Supabase Storage with the same session token, so the storage.objects policies
+    // decide (lv_storage.branding_writable / branding_readable). Downloads become blob: URLs (CSP img-src allows blob:).
+    storage: {
+      async upload(bucket, path, file, contentType) {
+        const { error } = await client.storage.from(bucket).upload(path, file, { contentType, upsert: false, cacheControl: "3600" });
+        return error ? { ok: false, message: error.message } : { ok: true };
+      },
+      async download(bucket, path) {
+        const { data, error } = await client.storage.from(bucket).download(path);
+        return error ? null : data;
+      },
+    },
     /* ---- track B: commerce ---- */
     // Edge Functions (checkout, Customer Portal). Expected failures come back as {ok:false,error} with a 4xx/5xx.
     async invoke(fn, body) {

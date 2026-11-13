@@ -14,6 +14,7 @@ import { QuestionInput, summarize } from "../ui/QuestionControls";
 import { StateScreen } from "../ui/StateScreen";
 import { hasSections, longestPath, sectionsOf, visibleQuestions } from "../lib/sections";
 import { START_SURVEY } from "../lib/billingState";
+import { BrandMedia, usePlayerTheme } from "../ui/PlayerTheme"; // survey branding (000043)
 
 /**
  * The respondent player (L9): welcome, one question per screen, review, thanks.
@@ -52,6 +53,8 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   useEffect(() => { try { localStorage.setItem(nameKey, guestName); } catch { /* ignore */ } }, [guestName, nameKey]);
 
   const d = detail.data;
+  // Survey branding (000043): the survey's own theme, or none. Never changes questions, answers or anonymity.
+  const pt = usePlayerTheme(d?.campaign.campaign_id);
   const allQuestions = d?.questions ?? [];
   // 000041: only the sections this person's earlier answers open. Rules look back, so earlier steps never move.
   const questions = visibleQuestions(allQuestions, answers);
@@ -96,9 +99,9 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   }
 
   const frame = (children: React.ReactNode, tone: "light" | "ink" = "light") => (
-    <div className={`lv-player lv-player-${tone}${embedded ? " lv-player-embedded" : ""}`}>
+    <div className={`lv-player lv-player-${tone}${embedded ? " lv-player-embedded" : ""}${pt.frameProps.className}`} style={pt.frameProps.style} data-buttons={pt.frameProps["data-buttons"]}>
       <div className="lv-player-body">{children}</div>
-      <PoweredBy />
+      {!pt.hideFooter && <PoweredBy />}
     </div>
   );
 
@@ -129,6 +132,8 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   if (receipt || d.has_responded) {
     return frame(
       <div className="lv-thanks" data-testid="player-thanks">
+        {/* survey branding (000043): the logo above the check */}
+        {pt.logoUrl && <BrandMedia t={pt} cover={false} />}
         <span className="lv-thanks-mark" aria-hidden="true">
           <span className="lv-burst">{Array.from({ length: 12 }, (_, i) => <i key={i} style={{ "--a": `${i * 30}deg`, "--d": `${i % 3}` } as React.CSSProperties} />)}</span>
           <span className="lv-thanks-check">
@@ -136,6 +141,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
           </span>
         </span>
         <h1 className="lv-thanks-title">{receipt?.duplicate || (!receipt && d.has_responded) ? <>Already in.<br /><em>Thanks.</em></> : <>Thanks.<br /><em>You're heard.</em></>}</h1>
+        {pt.theme?.thank_you && !(receipt?.duplicate || (!receipt && d.has_responded)) && <p className="lv-pt-message" data-testid="brand-thanks">{pt.theme.thank_you}</p>}
         <p className="lv-thanks-copy">
           {receipt?.duplicate || (!receipt && d.has_responded)
             ? "You had already answered, so we kept your original response and didn't store a second one."
@@ -194,9 +200,11 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   if (view === "welcome") {
     return frame(
       <>
-        <div className="lv-player-hero lv-enter" style={{ "--i": 0 } as React.CSSProperties}>
+        <div className={`lv-player-hero lv-enter${pt.theme ? " lv-pt-hero" : ""}`} style={{ "--i": 0 } as React.CSSProperties} data-testid="player-hero">
+          <BrandMedia t={pt} />
           <span className="lv-eyebrow-mono" style={{ color: "var(--lv-accent)" }}>{guest ? "Open to guests" : "You're invited"}</span>
-          <h1 className="lv-player-title">{d.campaign.title}</h1>
+          <h1 className="lv-player-title">{pt.theme?.welcome_headline || d.campaign.title}</h1>
+          {pt.theme?.welcome_headline && <p className="lv-pt-subtitle">{d.campaign.title}</p>}
           <div className="lv-player-hero-foot">
             <span className="lv-row-sub" style={{ color: "inherit", opacity: 0.8 }}>{hasSections(allQuestions) && planned !== allQuestions.length ? "Up to " : ""}{planned} {planned === 1 ? "question" : "questions"} · ~{minutes} min</span>
             <Button variant="primary" onClick={() => { setDir("fwd"); setStep(0); setView("question"); }} disabled={total === 0 || nameMissing} data-testid="player-start">

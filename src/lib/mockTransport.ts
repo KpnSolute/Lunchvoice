@@ -1,5 +1,6 @@
 import { isLinkToken, questionConfigProblem, type LvTransport, type Question, type SectionConfig } from "./lvApi";
-import { rulesProblem, visibleQuestions } from "./sections";
+import { rulesProblem } from "./sections";
+import { walk } from "./logic";
 import { slugProblem } from "./reservedSlugs";
 import { ACCENTS } from "./accent";
 import { commerceInvoke, commerceMock } from "./mockCommerce"; // track B: commerce
@@ -11,6 +12,7 @@ import { COMMUNITY_FNS, COMMUNITY_PUBLIC, communityAfter, communityHandle, type 
 /* ---- track D: api + discord ---- */
 import { INTEGRATION_FNS, integrationsHandle, type IntegrationsCtx } from "./mockIntegrations";
 /* ---- end track D ---- */
+import { BRANDING_FNS, BRANDING_PUBLIC, brandingHandle, mockBrandingStorage, type BrandingCtx } from "./mockBranding"; // survey branding (000043)
 
 // DEV-ONLY stand-in for lv_api (excluded from production bundles; see transport.ts and scripts/check-bundle.mjs).
 // It mirrors the documented shapes and the launch rules in docs/v2/LAUNCH_PLAN.md closely enough to click through
@@ -157,17 +159,42 @@ function windowProblem(opens: string | null, closes: string | null): string | nu
   if (closes && new Date(closes).getTime() <= Date.now()) return "The close time must be in the future.";
   return null;
 }
+// 000042: the Quick Survey question limit for this person (their Creator plan or free).
+const qLimit = (s: State) => (s.me.creator === "creator_pro" ? 100 : s.me.creator === "creator_plus" ? 30 : LIMITS.free.quick_survey_questions);
 // lv.feature_allowed (000041): the Hub's active family or the person's Creator plan.
 function featureAllowed(s: State, hubId: string): boolean {
   return activeFamily(s, hubId) !== "free" || !!s.me.creator;
+}
+// 000042: logic keys in a question's settings (show_if, jumps).
+const logicPart = (cfg: unknown) => { const c = (cfg ?? {}) as { show_if?: unknown; jumps?: unknown[] }; return { show_if: c.show_if ?? null, jumps: c.jumps?.length ? c.jumps : null }; };
+const hasLogicConfig = (cfg: unknown) => { const l = logicPart(cfg); return l.show_if !== null || l.jumps !== null; };
+// lv.check_answer_value (000042): the one per-kind value check.
+function valueProblem(q: Q, v: unknown): string | null {
+  const cfg = q.config as { options?: string[]; max?: number };
+  const opts = cfg.options ?? [];
+  switch (q.kind) {
+    case "rating": return typeof v !== "number" ? "rating must be a number" : v < 1 || v > 5 ? "rating out of range" : null;
+    case "single_choice": return typeof v === "string" && opts.includes(v) ? null : "choose one of the options";
+    case "multi_choice":
+      if (!Array.isArray(v) || !v.length) return "choose at least one option";
+      if (v.some((x) => typeof x !== "string" || !opts.includes(x))) return "choose only from the options";
+      if (new Set(v).size !== v.length) return "choose each option once";
+      return typeof cfg.max === "number" && v.length > cfg.max ? `choose at most ${cfg.max} options` : null;
+    case "yes_no": return typeof v === "boolean" ? null : "answer yes or no";
+    case "text": return typeof v !== "string" ? "a text answer must be text" : v.length > 280 ? "keep a text answer to 280 characters" : null;
+    default: return null;
+  }
 }
 // lv.validate_answers (000017, sections 000041): required unless optional or hidden; never an answer to a hidden question.
 function answersProblem(c: C, answers: unknown): string | null {
   if (!Array.isArray(answers)) return "answers must be an array";
   let seen = 0;
   const list = answers as { question_id: string; value: unknown }[];
+  if (list.some((x) => !x || typeof x.question_id !== "string")) return "every answer needs a question_id";
+  if (list.some((x) => !c.questions.some((q) => q.question_id === x.question_id))) return "answer given for a question that is not in this survey";
+  if (new Set(list.map((x) => x.question_id)).size !== list.length) return "each question can be answered once";
   const given: Record<string, unknown> = Object.fromEntries(list.map((x) => [x.question_id, x.value]));
-  const shown = new Set(visibleQuestions(c.questions as Question[], given).map((q) => q.question_id));
+  const shown = new Set(walk(c.questions as Question[], given).visible.map((q) => q.question_id));
   for (const q of [...c.questions].sort((x, y) => x.position - y.position)) {
     const v = list.find((x) => x.question_id === q.question_id)?.value;
     const empty = v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
@@ -179,6 +206,8 @@ function answersProblem(c: C, answers: unknown): string | null {
       if ((q.config as { optional?: boolean }).optional) continue;
       return `missing answer for question ${q.position}`;
     }
+    const bad = valueProblem(q, v);
+    if (bad) return `${bad} (question ${q.position})`;
     seen++;
   }
   return seen === 0 ? "answer at least one question" : null;
@@ -254,6 +283,8 @@ export function createMockTransport(displayName = "Dana", signedIn: () => boolea
       /* ---- track C: community ---- */
       const answeredBefore = Boolean(s.campaigns.find((c) => c.campaign_id === a.p_campaign)?.mine_answered);
       /* ---- end track C ---- */
+      // Survey branding (000043): its own handler, before the shared switch.
+      if (BRANDING_FNS.has(fn)) { const b = brandingHandle(brandingCtx(s), fn, a, signedIn()); save(); return b; }
       const r = handleTrackA(s, fn, a, signedIn(), () => handle(s, fn, a, signedIn()));
       /* ---- track C: community ---- */
       communityAfter(communityCtx(s, signedIn()), fn, a, r, answeredBefore);
@@ -263,6 +294,7 @@ export function createMockTransport(displayName = "Dana", signedIn: () => boolea
       await new Promise((res) => setTimeout(res, 60));
       return r;
     },
+    storage: mockBrandingStorage(() => brandingCtx(load(displayName)), signedIn, save), // survey branding (000043)
     /* ---- track B: commerce ---- */
     async invoke(fn, body) {
       const s = load(displayName);
@@ -276,9 +308,28 @@ export function createMockTransport(displayName = "Dana", signedIn: () => boolea
 
 const err = (code: string, message: string, extra: object = {}) => ({ ok: false, error: { code, message, ...extra } });
 
+// Survey branding (000043): the theme is the survey's own; the Hub's color is only offered (or followed on request).
+function brandingCtx(s: State): BrandingCtx {
+  return {
+    store: s as unknown as BrandingCtx["store"],
+    campaign(id) {
+      const c = s.campaigns.find((x) => x.campaign_id === id);
+      const h = c && s.hubs.find((x) => x.hub_id === c.hub_id);
+      if (!c || !h) return null;
+      const manage = h.kind === "personal" || h.members.some((m) => m.account_id === "mock-account" && m.is_owner);
+      return { hub_id: h.hub_id, status: c.status, hubKind: h.kind, hubAccent: h.kind === "community" ? (ACCENTS.find((p) => p.key === h.accent)?.hex.toLowerCase() ?? null) : null, canManage: manage };
+    },
+    allowed(hubId, key) {
+      if (key === "survey.branding") return featureAllowed(s, hubId);
+      return activeFamily(s, hubId) === "team" || s.me.creator === "creator_pro";
+    },
+  };
+}
+
 const PUBLIC = new Set(["lv_plan_limits", "lv_waitlist_status", "lv_hub_get", "lv_invite_preview", "lv_guest_campaign_get", "lv_guest_submit", "lv_hub_reservation_status", "lv_capability_catalog", "lv_hub_pages_get", "lv_report_abuse", "lv_hub_public_poll"]);
 /* ---- track C: community ---- */
 for (const f of COMMUNITY_PUBLIC) PUBLIC.add(f);
+for (const f of BRANDING_PUBLIC) PUBLIC.add(f); // survey branding (000043)
 const communityCtx = (s: State, authed: boolean): CommunityCtx => ({ s: s as unknown as CommunityCtx["s"], authed, family: (hub) => activeFamily(s, hub) });
 /* ---- end track C ---- */
 
@@ -582,7 +633,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (h.kind === "personal") {
         const used = s.campaigns.filter((x) => isPersonal(s, x) && (x.status === "active" || x.status === "paused") && x !== c).length;
         if (used >= LIMITS.free.quick_surveys_active) { reasons.push("limit_reached"); Object.assign(detail, { limit: LIMITS.free.quick_surveys_active, used, limit_key: "quick.max_active" }); }
-        if (c.questions.length > LIMITS.free.quick_survey_questions) reasons.push("too_many_questions");
+        if (c.questions.length > qLimit(s)) reasons.push("too_many_questions");
       } else {
         const fam = activeFamily(s, h.hub_id);
         if (fam === "free") reasons.push("entitlement_required");
@@ -616,8 +667,8 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (!c) return err("lv_not_found", "Campaign not found");
       if (c.status !== "draft" && !(c.status === "paused" && c.responses.length === 0)) return err("lv_locked", "Questions cannot change once a Campaign has answers or has been closed");
       if (!CORE_KINDS.includes(String(a.p_kind))) return err("lv_invalid_input", "That question kind isn't available");
-      if (isPersonal(s, c) && c.questions.length >= LIMITS.free.quick_survey_questions)
-        return err("lv_limit_reached", "Quick Surveys have up to 10 questions", { limit: LIMITS.free.quick_survey_questions, used: c.questions.length });
+      if (isPersonal(s, c) && c.questions.length >= qLimit(s))
+        return err("lv_limit_reached", `Quick Surveys have up to ${qLimit(s)} questions`, { limit: qLimit(s), used: c.questions.length });
       if (!String(a.p_prompt ?? "").trim()) return err("lv_invalid_input", "A question needs a prompt.");
       if (c.questions.some((x) => x.position === Number(a.p_position))) return err("lv_conflict", "Another question already has that position");
       const q = { question_id: id("q"), position: Number(a.p_position), kind: String(a.p_kind), prompt: String(a.p_prompt).trim(), config: (a.p_config as object) ?? {} };
@@ -788,6 +839,27 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (c.anonymity === "anonymous" && c.responses.length < MIN_COHORT)
         return { ok: true, metric: "answer_distribution", question_id: a.p_question, cells: [], withheld: true };
       return { ok: true, metric: "answer_distribution", question_id: a.p_question, cells: distribution(c, String(a.p_question)) };
+    }
+    case "lv_analytics_question": {
+      // 000042: seen beside answered; anonymous groups under the cohort are withheld, like the server.
+      const c = camp(a.p_campaign);
+      if (!c) return err("lv_not_found", "Campaign not found");
+      if (c.status === "draft") return err("lv_lifecycle_invalid", "Results are not available for a draft");
+      if (c.anonymity === "anonymous" && (c.status === "active" || c.status === "paused")) return err("lv_policy_undecided", "Anonymous results appear after the Campaign closes");
+      const qid = String(a.p_question);
+      const filter = a.p_filter as { question_id: string; any_of: string[] } | null;
+      const rows = c.responses.map((r) => Object.fromEntries(r.answers.map((x) => [x.question_id, x.value])));
+      const inGroup = (ans: Record<string, unknown>) => { if (!filter) return true; const v = ans[filter.question_id]; return (Array.isArray(v) ? v : [v]).some((x) => filter.any_of.includes(String(x))); };
+      const group = rows.filter(inGroup);
+      const anon = c.anonymity === "anonymous";
+      const low = (n: number) => anon && n > 0 && n < MIN_COHORT;
+      // 000042 (security review): anonymous surveys refuse filters, so two queries can never be compared to single people out.
+      if (filter && anon) return err("lv_invalid_input", "Filtering results is not available on anonymous surveys.");
+      const seen = group.filter((ans) => walk(c.questions as Question[], ans).visible.some((q) => q.question_id === qid)).length;
+      const answered = group.filter((ans) => ans[qid] !== undefined && ans[qid] !== null).length;
+      const seenW = low(seen) || low(group.length - seen);
+      const ansW = seenW || low(answered) || low(seen - answered);
+      return { ok: true, metric: "question_logic", question_id: qid, filter, filter_withheld: false, seen: seenW ? null : seen, answered: ansW ? null : answered, seen_withheld: seenW, cells: ansW ? [] : distribution(c, qid), withheld: ansW };
     }
     case "lv_analytics_export": {
       const c = camp(a.p_campaign);
@@ -1008,11 +1080,12 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
     case "lv_campaign_question_add": {
       // Same order as the backend: the Quick Survey size guard first, then the option rule, then the body.
       const c = camp(a.p_campaign);
-      if (c && isPersonal(s, c) && c.questions.length >= LIMITS.free.quick_survey_questions) return base();
+      if (c && isPersonal(s, c) && c.questions.length >= qLimit(s)) return base();
       const bad = questionConfigProblem(String(a.p_kind), a.p_config ?? {});
       if (bad && c) return err("lv_invalid_input", bad);
       const sec = (a.p_config as { section?: SectionConfig } | null)?.section;
       if (c && sec && !featureAllowed(s, c.hub_id)) return err("lv_entitlement_required", "Sections and “show only if” rules start with Creator Plus or a Starter Hub.", { product: "creator_plus", feature: "survey.branching" });
+      if (c && hasLogicConfig(a.p_config) && !featureAllowed(s, c.hub_id)) return err("lv_entitlement_required", "Question logic starts with Creator Plus or a Starter Hub.", { product: "creator_plus", feature: "survey.branching" });
       return base();
     }
     case "lv_campaign_question_update": {
@@ -1028,6 +1101,8 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
         if (JSON.stringify(sec) !== JSON.stringify((q.config as { section?: unknown }).section) && !featureAllowed(s, c.hub_id))
           return err("lv_entitlement_required", "Sections and “show only if” rules start with Creator Plus or a Starter Hub.", { product: "creator_plus", feature: "survey.branching" });
       }
+      if (c && q && hasLogicConfig(a.p_config) && JSON.stringify(logicPart(a.p_config)) !== JSON.stringify(logicPart(q.config)) && !featureAllowed(s, c.hub_id))
+        return err("lv_entitlement_required", "Question logic starts with Creator Plus or a Starter Hub.", { product: "creator_plus", feature: "survey.branching" });
       return base();
     }
     case "lv_campaign_get": {
@@ -1035,7 +1110,7 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
       const c = camp(a.p_campaign);
       if (!r.ok || !c) return r;
       const h = hubOf(c);
-      const out: Record<string, unknown> = { ...r, campaign: { ...r.campaign, description: c.description ?? null, ...(r.can_manage ? { has_responses: c.responses.length > 0, guest_names: c.guest_names ?? "off" } : {}) } };
+      const out: Record<string, unknown> = { ...r, campaign: { ...r.campaign, description: c.description ?? null, ...(r.can_manage ? { has_responses: c.responses.length > 0, guest_names: c.guest_names ?? "off" } : {}), ...(r.can_manage && h?.kind === "personal" ? { question_limit: qLimit(s) } : {}) } };
       if (r.can_manage) {
         out.features = { branching: featureAllowed(s, c.hub_id), branding: featureAllowed(s, c.hub_id) };
         out.link_token = c.link_token;
