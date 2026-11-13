@@ -399,3 +399,36 @@ a.lv-row:hover .lv-row-title { text-decoration: underline; text-underline-offset
 .lv-identity-chip-wrap { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
 .lv-linklike { background: none; border: 0; padding: 0 0 0 4px; font: inherit; color: var(--lv-ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: 24px; }
 .lv-linklike:focus-visible { outline: 2px solid var(--lv-ink); outline-offset: 2px; border-radius: 4px; }
+
+/* Present mode (live results on a projector). Ink surface with the inverse text token, so it flips with the theme. */
+.lv-present { position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; gap: var(--lv-space-6); padding: clamp(16px, 3vw, 40px); background: var(--lv-ink-bg); color: var(--lv-on-primary); font-family: var(--lv-font-ui); overflow: auto; }
+.lv-present:focus { outline: none; }
+.lv-present-top { display: flex; align-items: center; gap: var(--lv-space-4); justify-content: space-between; flex-wrap: wrap; }
+.lv-present-title { margin: 0; font: 600 clamp(16px, 1.6vw, 24px)/1.2 var(--lv-font-ui); }
+.lv-present-count { margin: 0; font: 500 clamp(18px, 2vw, 28px)/1 var(--lv-font-ui); margin-left: auto; }
+.lv-present-count strong { font: 700 clamp(28px, 4vw, 56px)/1 var(--lv-font-display); }
+.lv-present-stage { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: var(--lv-space-5); min-height: 0; }
+.lv-present-step { margin: 0; font: 500 clamp(14px, 1.4vw, 20px)/1 var(--lv-font-mono); }
+.lv-present-q { margin: 0; font: 700 clamp(28px, 5vw, 72px)/1.1 var(--lv-font-display); text-wrap: balance; }
+.lv-present-wait { margin: 0; font: 500 clamp(22px, 3vw, 44px)/1.2 var(--lv-font-ui); }
+.lv-present-hint { font: 400 clamp(14px, 1.4vw, 20px)/1.4 var(--lv-font-ui); }
+.lv-present-bars ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--lv-space-4); }
+.lv-present-bars li { display: grid; grid-template-columns: minmax(80px, 18%) 1fr minmax(96px, auto); align-items: center; gap: var(--lv-space-4); font: 600 clamp(18px, 2.4vw, 36px)/1.2 var(--lv-font-ui); }
+.lv-present-track { height: clamp(24px, 4vw, 52px); border-radius: var(--lv-radius-pill); background: color-mix(in srgb, var(--lv-on-primary) 18%, transparent); overflow: hidden; }
+.lv-present-fill { display: block; height: 100%; border-radius: var(--lv-radius-pill); background: var(--lv-on-primary); transition: width 600ms var(--lv-ease-out); }
+.lv-present-bar-n { text-align: right; font-variant-numeric: tabular-nums; }
+.lv-present-avg { margin: 0 0 var(--lv-space-4); font: 500 clamp(18px, 2.4vw, 32px)/1.2 var(--lv-font-ui); }
+.lv-present-text { display: grid; grid-template-columns: 1fr minmax(240px, 34%); gap: var(--lv-space-6); align-items: start; }
+.lv-present-cloud { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem; align-items: baseline; font-family: var(--lv-font-display); font-weight: 700; line-height: 1.1; }
+.lv-present-answers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--lv-space-3); max-height: 50vh; overflow: auto; font: 400 clamp(16px, 1.6vw, 24px)/1.35 var(--lv-font-ui); }
+.lv-present-answers li { padding: var(--lv-space-3) var(--lv-space-4); border-radius: var(--lv-radius-field); background: color-mix(in srgb, var(--lv-on-primary) 14%, transparent); }
+.lv-present-bottom { display: flex; align-items: center; gap: var(--lv-space-5); justify-content: space-between; flex-wrap: wrap; }
+.lv-present-join { display: flex; align-items: center; gap: var(--lv-space-4); }
+.lv-present-join-label, .lv-present-code { margin: 0; font: 500 clamp(13px, 1.2vw, 18px)/1.3 var(--lv-font-ui); }
+.lv-present-link { margin: 0; font: 700 clamp(20px, 2.4vw, 36px)/1.1 var(--lv-font-mono); }
+.lv-present-just { margin: 0; font: 500 clamp(14px, 1.5vw, 22px)/1.3 var(--lv-font-ui); }
+.lv-present-nav { display: flex; gap: var(--lv-space-3); }
+.lv-present .ui-btn:focus-visible, .lv-present button:focus-visible { outline: 3px solid var(--lv-accent); outline-offset: 3px; }
+@media (max-width: 720px) { .lv-present-text { grid-template-columns: 1fr; } .lv-present-bars li { grid-template-columns: 1fr auto; } .lv-present-track { grid-column: 1 / -1; order: 3; } }
+@media (prefers-reduced-motion: reduce) { .lv-present-fill { transition: none; } }
+.lv-btn-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--lv-space-3); }

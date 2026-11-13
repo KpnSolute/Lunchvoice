@@ -98,6 +98,8 @@ const fresh = (name: string): State => ({
 });
 
 let state: State | null = null;
+// Dev mock only: another tab of the same browser changed the saved state (a second person answering), so reload it.
+if (typeof window !== "undefined") window.addEventListener("storage", (e) => { if (e.key === "lv.mock.state") state = null; });
 
 function load(name: string): State {
   if (state) return state;
@@ -839,8 +841,11 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (c.anonymity === "anonymous" && (c.status === "active" || c.status === "paused")) return err("lv_policy_undecided", "Anonymous results appear after the Campaign closes");
       const members = c.responses.filter((r) => !r.guest).length;
       const guests = c.responses.filter((r) => r.guest).length;
-      if (a.p_metric === "participant_count")
-        return { ok: true, metric: "participant_count", n: members >= MIN_COHORT ? members : null, suppressed: members < MIN_COHORT, guest_n: guests >= MIN_COHORT ? guests : null, guest_suppressed: guests < MIN_COHORT };
+      if (a.p_metric === "participant_count") {
+        // As in the real API (000005): identified totals show from the first answer, anonymous ones wait for the minimum.
+        const min = c.anonymity === "identified" ? 1 : MIN_COHORT;
+        return { ok: true, metric: "participant_count", n: members >= min ? members : null, suppressed: members < min, guest_n: guests >= min ? guests : null, guest_suppressed: guests < min };
+      }
       {
         const q = c.questions.find((x) => x.question_id === a.p_question);
         if (q?.kind === "text") {
@@ -1011,8 +1016,11 @@ function distribution(c: C, questionId: string) {
     for (const x of r.answers)
       if (x.question_id === questionId)
         for (const v of Array.isArray(x.value) ? x.value : [x.value]) counts.set(String(v), (counts.get(String(v)) ?? 0) + 1);
-  const shown = [...counts].filter(([, k]) => k >= MIN_COHORT).map(([key, k]) => ({ key, n: k, suppressed: false, reason: null }));
-  const hidden = [...counts].some(([, k]) => k > 0 && k < MIN_COHORT) || (shown.length > 0 && shown.length < counts.size);
+  // Identified results show every option from the first answer (000005); only anonymous ones are thresholded.
+  if (c.anonymity === "identified") return [...counts].map(([key, k]) => ({ key, n: k, suppressed: false, reason: null }));
+  const min = MIN_COHORT;
+  const shown = [...counts].filter(([, k]) => k >= min).map(([key, k]) => ({ key, n: k, suppressed: false, reason: null }));
+  const hidden = [...counts].some(([, k]) => k > 0 && k < min) || (shown.length > 0 && shown.length < counts.size);
   return hidden ? [...shown, { key: "withheld", n: null, suppressed: true, reason: "below_min_cohort" }] : shown;
 }
 

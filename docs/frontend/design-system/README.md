@@ -101,6 +101,7 @@ Utilities in `src/ui/shadcn.css` (usable only inside `src/components/shadcn/`, w
 | Charts and results | result blocks, charts with an accessible table and a withheld state | `shadcn/blocks/results.tsx`, `components/charts.tsx` |
 | Survey controls | `QuestionInput` (rating, choice, yes/no, text) | `ui/QuestionControls.tsx` |
 | QR | `QrCode` | `shadcn/blocks/qr.tsx` |
+| Live results on a projector | `PresentMode` (opened by **Present** on Results; one question per slide, keys, polling, withheld messages) | `ui/PresentMode.tsx`, helpers in `lib/present.ts` |
 
 Every reusable component is shown at `/__gallery` (dev builds only; `src/pages/Gallery.tsx`). `npm run check:design`
 fails if a reusable component is missing from it.

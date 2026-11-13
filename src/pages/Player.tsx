@@ -256,7 +256,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
                 <label htmlFor="account-name-input" className="lv-guest-name-label">Name on your answers</label>
                 <Input id="account-name-input" value={nameDraft} maxLength={40} autoComplete="nickname" autoFocus onChange={(e) => setNameDraft(e.target.value)} aria-describedby="account-name-help" />
                 <p id="account-name-help" className="lv-row-sub lv-m0">The creator sees this next to your answers, tagged as an account. Your account stays the same.</p>
-                <div className="lv-row">
+                <div className="lv-btn-row">
                   <Button type="submit" variant="primary">Use this name</Button>
                   <Button type="button" variant="secondary" onClick={() => setEditingName(false)}>Cancel</Button>
                 </div>

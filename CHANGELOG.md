@@ -6,6 +6,23 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (Present mode: live results on a big screen)
+
+- **Present** button on Results opens a full-screen, projector-sized view (`src/ui/PresentMode.tsx`): one question per slide,
+  arrow/space/page keys and on-screen buttons to move, Escape to leave. Choice and yes/no questions show bars with count and
+  percent, ratings a bar per score and the average, text questions a word cloud plus the answers (identified surveys only).
+  A live answer counter, QR code, short link and join code stay in the corner so people can still join; identified surveys
+  show a quiet "Just answered: Ana, Jordan" line, anonymous ones never show names.
+- It reads the same released results as the Results page and polls every 4 seconds, paused while the tab is hidden. Anything
+  the server withholds says "Waiting for more answers" or "Shown when the survey closes", never zero, and no percentage is
+  guessed from a partly hidden total. Growing bars stop under reduced motion; colours use the ink/inverse tokens, so it flips
+  with light, dark and high contrast. The responses list (audited) is only re-read when the count changes.
+- Mock fix: the dev mock now matches the real API for identified surveys (totals and every option show from the first
+  answer; only anonymous ones wait for the minimum) and reloads when another tab changes its saved state.
+- Tests: `src/lib/present.test.ts` (bars, withheld never zero, ratings, word cloud, names), `e2e/present.test.mjs`
+  (a second tab answers under a chosen name and appears within one poll; keys; anonymous shows the withheld message, no
+  names, no bars). No migration, no entitlement change.
+
 ### Added (respondent names: a signed-in person can change the name on their answers, migration 000052)
 
 - **Change the name on your answers.** On an identified survey the "Answering as {name}" chip has a **Change** button that
