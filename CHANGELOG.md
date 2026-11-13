@@ -12,6 +12,8 @@ categories and the repository's decimal `X.X.X` release policy.
   respondents change their display name, a Kahoot-style Present mode for results, plan-based results privacy (results wait
   for 5 answers on free and Starter; Creator Plus sees responses live, anonymous included, per founder 2026-11-13) and
   a rail-canvas-panel Creator studio. The plan rule needs a Loom verdict and founder approval before any migration.
+- Roadmap: added "Future (not scheduled)" to `docs/v2/PRODUCT_DIRECTION_2026-11-11.md` with `create.lunchvoice.com`,
+  a dedicated Kahoot-style creator app (founder, 2026-11-13). Hub URLs stay path-based.
 
 ### Operations (production, 2026-11-13: 000045 and 000046)
 
