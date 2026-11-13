@@ -156,6 +156,8 @@
 
 /* Quick Survey editor */
 .lv-quick-steps { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 20px; }
+/* P8: deleting a Quick Survey sits apart from the four steps, after them. */
+.lv-qs-delete { margin-top: var(--lv-space-8); }
 .lv-step-n { display: inline-grid; place-items: center; width: 28px; height: 28px; margin-right: 10px; border-radius: 999px; background: var(--lv-ink-bg); color: var(--lv-on-primary); font: 700 13px/1 var(--lv-font-mono); vertical-align: middle; }
 .lv-step-h { margin: 0; }
 

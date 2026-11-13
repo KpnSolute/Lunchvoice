@@ -28,7 +28,7 @@
         { "label": "Shop items", "key": "shop.max_items" },
         { "label": "Apply for Discover at this many members", "key": "discover.min_members" }
       ],
-      "fits": "A Hub is where Campaigns run. Connect it to your Discord server to post them where people already talk, and use the API to run it from your own tools.",
+      "fits": "A Hub is a community with members, and its plan belongs to that community. (Creator plans are different: they belong to one person.) A Hub is where Campaigns run. Connect it to your Discord server to post them where people already talk, and use the API to run it from your own tools.",
       "plans": ["starter", "team"],
       "cta": "hub",
       "demo": "hub-card",
@@ -59,7 +59,7 @@
         { "label": "Anonymous or identified", "cells": [true, true, true] },
         { "label": "Totals and charts", "cells": [true, true, true] }
       ],
-      "fits": "When the same people keep answering, give them a Hub and run your feedback as Campaigns: scheduled, aimed at your members, and followed by what you did about it.",
+      "fits": "Writing surveys on your own? Creator Plus ($5/month) and Creator Pro ($15/month) are per-person plans that open with billing. Linked Questions, custom branding and Trends are coming soon. When the same people keep answering, give them a Hub and run your feedback as Campaigns: scheduled, aimed at your members, and followed by what you did about it.",
       "plans": ["free"],
       "cta": "survey",
       "demo": "questions",

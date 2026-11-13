@@ -18,6 +18,7 @@ import { Badge } from "@/components/shadcn/badge";
 import { RadioCard, RadioGroup } from "@/components/shadcn/radio-group";
 import { EmptyState, Field, LoadingRows, Notice, PageHeader, PhaseBadge, QuotaMeter, RowItem, RowList, Segmented, ToggleRow } from "@/components/shadcn/blocks";
 import {
+  ConfirmAction,
   DescriptionField,
   GuestsGroup,
   IdentityGroup,
@@ -34,6 +35,8 @@ import {
 import { QuestionWorkbench } from "./QuestionWorkbench";
 import { ResultsView } from "./Results";
 import { Player } from "./Player";
+import { ResumeVisitorDraft, VisitorSurveyBuilder } from "./SurveyDraft";
+import { loadSurveyDraft } from "../lib/surveyDraft";
 
 // Quick Surveys: free questions without a Hub (LAUNCH_PLAN founder direction 2). They live in the account's personal
 // space and reuse the Campaign Studio, player and results. Limits come from the API: 5 active, 10 questions.
@@ -92,7 +95,7 @@ export function SurveyList() {
           <aside className="lv-rail" aria-label="Limits">
             <Card>
               <h2 className="lv-share-h">Your free limits</h2>
-              <QuotaMeter label="Active Quick Surveys" used={d.active} limit={d.limit} hint="Archiving a survey frees a slot." />
+              <QuotaMeter label="Active Quick Surveys" used={d.active} limit={d.limit} hint="Archiving or deleting a survey frees a slot." />
               <p className="ui-muted lv-m0">Up to 10 questions each: rating, single choice, multiple choice, yes/no and short text.</p>
             </Card>
             <Card variant="dashed">
@@ -112,7 +115,20 @@ export function SurveyList() {
 /** How many templates "All" lists before "Show all"; Blank is always first. */
 const TEMPLATES_AT_FIRST = 5;
 
+/**
+ * F6 (audit 2026-11-12): /surveys/new is open to visitors. Signed out, they build the survey in this browser
+ * (src/pages/SurveyDraft.tsx) and sign in at Publish; back here signed in with a saved draft, it is created on the
+ * server and published. Signed in with no saved draft, this is the usual form below.
+ */
 export function NewSurvey() {
+  const { session } = useIdentity();
+  const [params] = useSearchParams();
+  if (!session) return <VisitorSurveyBuilder />;
+  if (params.get("draft") === "resume" && loadSurveyDraft()) return <ResumeVisitorDraft />;
+  return <NewSurveyForm />;
+}
+
+function NewSurveyForm() {
   const { api } = useIdentity();
   const nav = useNavigate();
   // /surveys/new?template=event-feedback preselects a starter template (shareable, and kept through sign-in).
@@ -319,7 +335,43 @@ export function SurveyStudio() {
           </div>
         </li>
       </ol>
+      <DeleteSurveyCard campaignId={id} title={d.campaign.title} answered={Boolean(d.campaign.has_responses)} />
     </div>
+  );
+}
+
+/** P8 (audit 2026-11-12): delete a Quick Survey and every answer to it, after one plain confirmation (000045). */
+function DeleteSurveyCard({ campaignId, title, answered }: { campaignId: string; title: string; answered: boolean }) {
+  const { api } = useIdentity();
+  const nav = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <Card className="lv-qs-delete" data-testid="survey-delete">
+      <h2 className="lv-share-h">Delete this survey</h2>
+      <p className="ui-muted lv-m0">
+        {answered
+          ? "This deletes the survey and every answer to it, for good. Its results can’t be recovered afterwards."
+          : "This deletes the survey for good. Nobody has answered it yet."}
+      </p>
+      {error && <Notice tone="error">{error}</Notice>}
+      <div className="ui-row">
+        <ConfirmAction
+          trigger={<Button variant="danger" data-testid="survey-delete-open">Delete survey</Button>}
+          title={`Delete “${title}”?`}
+          body={answered
+            ? "The survey, its link and every answer and result are deleted. People with the link will see that it no longer exists. This can’t be undone."
+            : "The survey and its link are deleted. This can’t be undone."}
+          action={answered ? "Delete survey and results" : "Delete survey"}
+          onConfirm={async () => {
+            setError(null);
+            const r = await api.quickSurveyDelete(campaignId);
+            if (!r.ok) return setError(describeError(r.error));
+            toast.success("Survey deleted");
+            nav("/surveys");
+          }}
+        />
+      </div>
+    </Card>
   );
 }
 

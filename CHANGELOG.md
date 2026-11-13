@@ -6,6 +6,40 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (audit polish: 404, Hub head, public poll, delete survey, build before sign-in, Creator plans; migrations 000045, 000046)
+
+- **F8, real 404.** An unknown address shows the "This page isn't here." page with the title "Page not found", `noindex` and
+  no canonical. Render's static hosting answers every unknown path with the SPA shell through the catch-all rewrite
+  (Hub slugs are dynamic, so it cannot tell a missing page from a Hub), so the HTTP status stays 200; the page is
+  `noindex` in both the shell and at runtime. No `404.html` was added: Render only serves it when no rewrite matches.
+- **F4, per-Hub head.** A Hub's pages set their own title ("<Hub> on LunchVoice"), description (member count and the
+  about line) and matching Open Graph/Twitter tags (`useHubHead`, `src/ui/Seo.tsx`), the same text the
+  `workers/hub-card` share page shows. Hubs stay `noindex`. The share **image** is still the LunchVoice card: per-Hub
+  images are not generated.
+- **F5, the Kitchen's poll for visitors (000046).** `lv_hub_public_poll(p_slug)`, callable signed out, returns a public,
+  unsuspended Hub's most recent open Campaign that guests may answer (title, description, mode, anonymity, question
+  count, closing time, link token); never results, counts or members-only Campaigns. A Hub's page shows it as an
+  "Open now" card with "Answer this poll". Private, missing and suspended Hubs answer `poll: null`.
+- **P8, delete a Quick Survey (000045).** `lv_quick_survey_delete(p_campaign)` deletes one of the caller's Quick Surveys and
+  every answer to it, after one plain confirmation on the survey page. Refused while staff review it (blocked or an open
+  report). Also repairs a cascade bug: 000027 had dropped 000015's deletion bypass in `lv.freeze_questions_after_draft`,
+  so deleting a published Campaign (Hub, personal space or account deletion) raised `lv_locked`.
+- **F6, build before signing in.** `/surveys/new` is open to visitors: they build a Quick Survey (title, up to 10
+  questions, or a template) kept only in their browser (`src/lib/surveyDraft.ts`, `src/pages/SurveyDraft.tsx`). Publish
+  sends them to sign in and back to `/surveys/new?draft=resume`, where the survey is created, published and opened; if
+  publishing is refused it stays a draft in the editor. Nothing is sent to the server before sign-in.
+- **Pricing and product pages.** Creator Plus ($5/month) and Creator Pro ($15/month) are shown on `/pricing` as "Opens
+  with billing" per-person plans (cannot be bought until their Stripe products exist), with the difference spelled out:
+  Creator is one person's own surveys, a Hub is a community with members. Linked Questions (conditional logic),
+  custom branding and Trends/results charts appear only as "coming soon". The Team plan no longer says "Enhanced
+  Campaign modes" or "Advanced targeting and analytics" (the billing audit found neither delivered): it now says "More
+  custom Hub pages" and "Aim identified Campaigns at chosen roles"; the compare table's "Starter/Advanced analytics" cells
+  say "Totals and charts" for every plan. The Feedback and Hubs product pages and the home pricing footnote mention the
+  Creator plans.
+- Tests: `src/lib/surveyDraft.test.ts`, `e2e/auditpolish.test.mjs` (desktop and 390px), the template-link e2e, pgTAP
+  `supabase/tests/45_survey_delete.sql` and `46_hub_public_poll.sql`; `14_entitlements.sql` allow-list updated.
+  Rollbacks: `supabase/rollbacks/000045_*.down.sql`, `000046_*.down.sql`. Migrations are **not applied** to production.
+
 ### Fixed (MCP: the KpnIdentity wrapper the tests expect is now committed, 2026-11-13)
 
 - `scripts/mcp/supabase-kpnidentity.sh` (the `kpnauth` server) was referenced by `.mcp.json` and tested by

@@ -2,12 +2,13 @@ import { Link } from "react-router-dom";
 import { Icon } from "../components/Icon";
 import { LinkButton } from "../components/ui";
 import { useState } from "react";
-import { CAPABILITY_COLUMNS, PLANS, PRICING_NOTES, capabilityRows, type Plan } from "../config/pricing";
+import { CAPABILITY_COLUMNS, CREATOR_PLANS, PLANS, PRICING_NOTES, capabilityRows, type Plan } from "../config/pricing";
 import { useBilling } from "../lib/useBilling";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
 import { Card } from "@/components/shadcn/card";
 import { Badge } from "@/components/shadcn/badge";
+import { Button } from "@/components/shadcn/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/shadcn/table";
 import { Eyebrow, Notice } from "@/components/shadcn/blocks";
 import { PricingAction } from "../components/Checkout"; // track B: commerce
@@ -100,6 +101,28 @@ export function Pricing() {
         </div>
         <div className="lv-price-cards lv-price-cards-2" data-testid="campaign-plans">
           {(["campaign_starter", "campaign_plus"] as const).map((id) => <PlanCard key={id} p={plan(id)} />)}
+        </div>
+      </section>
+
+      <section aria-labelledby="creator-h" className="lv-stack-16" data-testid="creator-plans">
+        <div>
+          <h2 id="creator-h" className="lv-mk-card-title">Creator plans <Badge>Opens with billing</Badge></h2>
+          <p className="lv-mk-card-body">
+            A Creator plan is for <b>one person’s own surveys</b>. Its perks go with you, into your Quick Surveys and every Hub you help run.
+            A Hub plan is different: a Hub is <b>a community with members</b>, and its plan belongs to that community.
+            Creator plans cannot be bought yet, and nothing here is available until billing opens.
+          </p>
+        </div>
+        <div className="lv-price-cards lv-price-cards-2">
+          {CREATOR_PLANS.map((p) => (
+            <Card key={p.id} data-testid={`plan-${p.id}`}>
+              <div className="ui-spread"><strong>{p.name}</strong><Badge>Opens with billing</Badge></div>
+              <div className="lv-price-figure"><strong>{p.priceLabel}</strong><span>{p.cadence}</span></div>
+              <p className="lv-m0 lv-dim">{p.blurb}</p>
+              <ul className="lv-price-list">{p.features.map((f) => <li key={f}><Icon name="check" size={15} />{f}</li>)}</ul>
+              <Button variant="secondary" block disabled>Opens with billing</Button>
+            </Card>
+          ))}
         </div>
       </section>
 

@@ -41,7 +41,7 @@ export const PLANS: Plan[] = [
   {
     id: "team", product: "team_hub", name: "Team Hub", priceLabel: "$29", cadence: "per month",
     blurb: "More roles, pages, modes and analytics.",
-    features: ["6 custom roles", "Expanded community pages", "Enhanced Campaign modes", "Advanced targeting and analytics", "5 active surveys", "A survey stops counting toward that limit once 20% of members have answered", "Apply for Discover at 700 active members"],
+    features: ["6 custom roles", "More custom Hub pages", "Aim identified Campaigns at chosen roles", "5 active surveys", "A survey stops counting toward that limit once 20% of members have answered", "Apply for Discover at 700 active members"],
   },
   {
     id: "reservation", product: "hub_reservation", name: "Reserve your Hub URL", priceLabel: "$25", cadence: "per 12 months, renews at $25",
@@ -66,15 +66,15 @@ const STATIC_ROWS: Row[] = [
   { label: "Feature family", cells: ["Free", "Starter", "Team", "Starter", "Team"] },
   { label: "Active surveys", cells: ["5 Quick Surveys, up to 10 questions each", "2", "5", "2", "5"] },
   { label: "Custom roles", cells: [false, "3", "6", "3", "6"] },
-  { label: "Custom Hub pages", cells: [false, "3", "Expanded", "3", "Expanded"] },
+  { label: "Custom Hub pages", cells: [false, "3", "More than Starter", "3", "More than Starter"] },
   { label: "When a survey stops counting toward the limit", cells: [false, "Once more than half of members answer", "Once 20% of members answer", "Once more than half of members answer", "Once 20% of members answer"] },
   { label: "Members, roles and Hub pages", cells: [false, true, true, "During your window", "During your window"] },
   { label: "Link, QR and join code", cells: [true, true, true, true, true] },
   { label: "Invite-only access", cells: [true, true, true, true, true] },
   { label: "Anonymous or identified", cells: [true, true, true, true, true] },
-  { label: "Results", cells: ["Totals and charts", "Starter analytics", "Advanced analytics", "Starter analytics", "Advanced analytics"] },
+  { label: "Results", cells: ["Totals and charts", "Totals and charts", "Totals and charts", "Totals and charts", "Totals and charts"] },
   { label: "Export of released results", cells: [false, true, true, true, true] },
-  { label: "Advanced role targeting", cells: [false, false, true, false, true] },
+  { label: "Aim identified Campaigns at chosen roles", cells: [false, false, true, false, true] },
   { label: "Discover listing", cells: [false, false, "Apply at 700 members", false, false] },
   { label: "Branding", cells: ["LunchVoice", "Your Hub color", "Your Hub color", "As Starter Hub", "As Team Hub"] },
 ];
@@ -94,6 +94,27 @@ export function capabilityRows(families?: Families | null): Row[] {
   const at = STATIC_ROWS.findIndex((r) => r.label === "Active surveys") + 1;
   return [...STATIC_ROWS.slice(0, at), row, ...STATIC_ROWS.slice(at)];
 }
+
+/**
+ * Creator Plus and Creator Pro (founder 2026-11-12): per-PERSON plans. The perks go with the person into their own
+ * Quick Surveys and every Hub they edit, unlike a Hub plan, which belongs to one community and its members. They exist
+ * in the entitlement map (migration 000041) but cannot be bought until their Stripe products exist, so they are shown as
+ * "opens with billing". The perks listed are the founder's, all still being built: nothing here is available today and
+ * Pro's own extras are not decided.
+ */
+export interface CreatorPlan { id: "creator_plus" | "creator_pro"; name: string; priceLabel: string; cadence: string; blurb: string; features: string[] }
+export const CREATOR_PLANS: CreatorPlan[] = [
+  {
+    id: "creator_plus", name: "Creator Plus", priceLabel: "$5", cadence: "per month, per person",
+    blurb: "For one person who writes a lot of surveys.",
+    features: ["Linked Questions (conditional logic): coming soon", "Custom branding on your surveys: coming soon", "Trends and results charts: coming soon"],
+  },
+  {
+    id: "creator_pro", name: "Creator Pro", priceLabel: "$15", cadence: "per month, per person",
+    blurb: "Everything in Creator Plus, with more room.",
+    features: ["Everything in Creator Plus", "Pro’s extra limits are set before billing opens"],
+  },
+];
 
 export const CHECKOUT_DISABLED_REASON =
   "Billing opens soon. Nothing can be bought yet. Founding seats keep Starter features free until 30 days after billing opens.";

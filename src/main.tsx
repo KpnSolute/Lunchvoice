@@ -79,7 +79,7 @@ createRoot(document.getElementById("root")!).render(
 
             {/* Quick Surveys (personal space) */}
             <Route path="surveys" element={<RequireSignIn><SurveyList /></RequireSignIn>} />
-            <Route path="surveys/new" element={<RequireSignIn><NewSurvey /></RequireSignIn>} />
+            <Route path="surveys/new" element={<NewSurvey />} />
             <Route path="surveys/:id" element={<RequireSignIn><SurveyStudio /></RequireSignIn>} />
             <Route path="surveys/:id/results" element={<RequireSignIn><SurveyResults /></RequireSignIn>} />
 

@@ -300,6 +300,18 @@ export interface CampaignDetailData {
   audience?: CampaignAudience;
 }
 
+/** A public Hub's open guest Campaign, as lv_hub_public_poll returns it (000046). Never results or counts. */
+export interface PublicPoll {
+  title: string;
+  description: string | null;
+  mode: CampaignMode;
+  anonymity: Anonymity;
+  closes_at: string | null;
+  question_count: number;
+  /** Opens the guest player at /c/<link_token>. */
+  link_token: string;
+}
+
 export interface CampaignInvite {
   /** Shown once, only in the lv_campaign_invite_create result (000018, NEW-05). */
   token?: string;
@@ -430,6 +442,9 @@ export function createLvApi(transport: LvTransport) {
         const hub: HubInfo = { ...r.hub, accent_palette: palette, accent_hex: accentHex(r.hub.accent, palette), plan: r.hub.plan ?? r.membership?.plan };
         return { ...r, hub };
       }),
+    // lv_hub_public_poll(p_slug) (000046), signed out allowed: a public Hub's latest open Campaign that guests may
+    // answer, or null. Private, missing and suspended Hubs answer null too.
+    hubPublicPoll: (slug: string) => call<{ poll: PublicPoll | null }>("lv_hub_public_poll", { p_slug: slug }),
     hubUpdate: (
       hub: string,
       patch: { display_name?: string; visibility?: Visibility; membership_mode?: MembershipMode; about?: string; accent?: string },
@@ -525,6 +540,9 @@ export function createLvApi(transport: LvTransport) {
         p_guests: access === "link" ? guests : false,
       }),
     quickSurveyList: () => call<{ surveys: CampaignRow[]; active: number; limit: number | null }>("lv_quick_survey_list"),
+    // lv_quick_survey_delete(p_campaign) (000045): the creator deletes a Quick Survey and every answer to it. Refused
+    // (lv_locked) while staff review it; anything not the caller's Quick Survey is lv_not_found.
+    quickSurveyDelete: (campaign: string) => call<{ deleted: true }>("lv_quick_survey_delete", { p_campaign: campaign }),
     campaignInviteCreate: (campaign: string, maxUses?: number | null, expiresAt?: string | null) =>
       call<{ invite: CampaignInvite }>("lv_campaign_invite_create", { p_campaign: campaign, p_max_uses: maxUses ?? null, p_expires_at: expiresAt ?? null }),
     campaignInviteList: (campaign: string) => call<{ invites: CampaignInvite[] }>("lv_campaign_invite_list", { p_campaign: campaign }),
