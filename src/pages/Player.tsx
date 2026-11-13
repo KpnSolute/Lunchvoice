@@ -10,6 +10,7 @@ import { Input } from "@/components/shadcn/input";
 import { ReportSurvey } from "./ReportSurvey";
 import { Icon } from "../components/Icon";
 import { describeError } from "../lib/errors";
+import { useBusy } from "../lib/busy";
 import { QuestionInput, summarize } from "../ui/QuestionControls";
 import { StateScreen } from "../ui/StateScreen";
 import { hasSections, longestPath, sectionsOf, visibleQuestions } from "../lib/sections";
@@ -46,6 +47,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   const [busy, setBusy] = useState(false);
   // Direction of the last move, so the question stage slides the right way (Back slides from the left).
   const [dir, setDir] = useState<"fwd" | "back">("fwd");
+  useBusy("player", true); // keeps the "new version" notice from appearing while someone is answering
   const draftKey = `lv-draft-${guest?.joinCode ?? campaignId}`;
   // 000028: an identified survey may ask guests for a name (optional or required). Kept on this device between visits.
   const nameKey = `lv-guest-name-${guest?.joinCode ?? campaignId}`;

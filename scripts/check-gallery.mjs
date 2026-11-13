@@ -27,7 +27,9 @@ export const EXEMPT = {
   StaffMenuItem: "staff-only menu entry",
   AccountSuspendedNotice: "shown only for a suspended account",
   TemplateQuestions: "renders a template's questions on use-case pages",
-  HubShareRedirect: "a route, not a visual component",
+  UpdateNotice: "headless poller that raises a toast on a new deploy; covered by e2e/update.test.mjs",
+  ChunkErrorBoundary: "error boundary shown only when a route chunk vanished; covered by e2e/update.test.mjs",
+  HubShareRedirect:"a route, not a visual component",
   MakerMark: "shown through MadeBy",
   // app chrome and plumbing
   Seo: "document head only",

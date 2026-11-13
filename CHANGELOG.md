@@ -6,6 +6,25 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (new-version notice)
+
+- **"A new version of LunchVoice is ready." notice** with Refresh and dismiss (`src/components/UpdateNotice.tsx`, a Sonner
+  toast). The build emits `/version.json` (git SHA + build time, `vite.config.ts`) and embeds the same id in the bundle;
+  `render.yaml` serves `/version.json` with `Cache-Control: no-store`. The open app checks every 5 minutes while the tab is
+  visible (backoff to 30 minutes on failures, no polling while hidden) and on focus / returning to the tab.
+- It never reloads by itself and waits while someone is answering a survey (`useBusy("player", true)` in `Player.tsx`) or
+  has a text field focused (`src/lib/busy.ts`), then appears. Survey drafts already persist to localStorage on every
+  change, so a refresh keeps them. A lazy route chunk that vanished in a deploy now shows the same Refresh prompt
+  (`ChunkErrorBoundary`, `vite:preloadError`) instead of a blank page.
+- Tests: `src/lib/updateCheck.test.ts` and `e2e/update.test.mjs`.
+
+### Design report (not implemented): 30-day device sessions
+
+- `docs/backend/SESSIONS.md` records why the first-party HttpOnly refresh cookie was not built: it needs a first-party
+  route to the Edge Function, and neither Render rewrites (cookie/POST pass-through undocumented) nor a Supabase custom
+  domain (CNAME cloaking, Safari 7-day cap) can be relied on. Options and owner decisions are listed there. No migration,
+  Edge Function or setting changed.
+
 ### Operations (production, 2026-11-13: 000043 survey branding)
 
 - **Applied 000043 to production** (`qprfonxvthmaoxfixigk`) from commit `e8c0406` (file SHA-256 `a11dc233…`) through the
