@@ -6,6 +6,21 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-13, founder approval in session)
+
+- **Applied 000040 and 000041 to production** (`qprfonxvthmaoxfixigk`) from commit `75cf270` (SHA-256 `8f0f2231…`
+  and `0a082d1f…`), through the Management API, one transaction each. Backup on record: daily physical backup
+  `2244167446` (2026-11-12 10:45 UTC; point-in-time recovery is off). Pre-check: production runs 7 migrations not on
+  `main` (000029–000032, 000036–000038); 000041 was made merge-safe for the elections validator and rehearsed on
+  production's exact chain first (see the 000041 entry). Verification: all 15 changed functions hash-identical to the
+  rehearsal; none executable by `anon`; `survey.branching`/`survey.branding` rows, Creator products and the publish
+  trigger present; migration history corrected to `000040` and `000041`. The P3 data-fix script was **not** run.
+- **Founder access grant** (exact SQL shown and approved first): the founder's account received Creator Pro
+  (account-scoped, `grant`, no end date) and one unused Team Hub credit, with one audit event
+  (`founder-grant-2026-11-13`). Already in place: staff access, the Kitchen on Team Hub.
+- **Not deployed:** the frontend for sections lives on `claude/confident-euler-e4uri9`; lunchvoice.com shows it after
+  the branch is merged and Render deploys.
+
 ### Added (sections and "show only if" rules; Creator plans; founder 2026-11-13)
 
 - **One survey, different questions per person.** A question can start a **section** with a title, an optional line
