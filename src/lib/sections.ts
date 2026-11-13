@@ -1,6 +1,7 @@
 // Sections and "show only if" rules (000041). The server (lv.validate_answers) is the authority; this mirrors it so
 // the player shows the right questions and the builder can explain a broken rule before publishing.
 import type { Question, SectionRule } from "./lvApi";
+import { logicProblem, pathLengths, walk } from "./logic";
 
 export interface SectionView { start: number; title: string; description: string | null; rule: SectionRule | null; questions: Question[] }
 
@@ -28,8 +29,9 @@ export function ruleMet(rule: SectionRule | null | undefined, answers: Record<st
 }
 
 /** The questions this person sees, in order, given the answers so far. Rules only look back, so earlier answers decide. */
+// 000042: the full Linked Questions walk (sections, question rules, skips, end survey) lives in logic.ts.
 export function visibleQuestions(questions: Question[], answers: Record<string, unknown>): Question[] {
-  return sectionsOf(questions).flatMap((s) => (ruleMet(s.rule, answers) ? s.questions : []));
+  return walk(questions, answers).visible;
 }
 
 export function hasSections(questions: Question[]): boolean {
@@ -50,7 +52,7 @@ export function rulesProblem(questions: Question[]): string | null {
     if (s.show_if.any_of.length === 0) return `Section “${s.title}” needs at least one answer to match.`;
     if (s.show_if.any_of.some((m) => !allowed.includes(m))) return `Section “${s.title}” matches an answer that is not an option any more.`;
   }
-  return null;
+  return logicProblem(questions); // 000042
 }
 
 /** Plain words for a rule, e.g. “Shown when ‘What is your role?’ is Staff or Manager”. */
@@ -63,15 +65,7 @@ export function describeRule(rule: SectionRule, questions: Question[]): string {
   return t ? `Shown when “${t.prompt}” is ${list}` : "Shown when a removed question matches";
 }
 
-/** How many questions one person answers at most (exact when the rules hang off one question, a fair estimate else). */
+/** How many questions one person answers at most (000042: every path through sections, rules and skips). */
 export function longestPath(questions: Question[]): number {
-  const drivers = new Map<string, string[]>();
-  for (const s of sectionsOf(questions)) {
-    if (!s.rule) continue;
-    const t = questions.find((q) => q.question_id === s.rule!.question_id);
-    if (t) drivers.set(t.question_id, t.kind === "yes_no" ? ["true", "false"] : (t.config.options ?? []));
-  }
-  let best = visibleQuestions(questions, {}).length;
-  for (const [id, opts] of drivers) for (const o of opts) best = Math.max(best, visibleQuestions(questions, { [id]: o }).length);
-  return best;
+  return pathLengths(questions).max;
 }
