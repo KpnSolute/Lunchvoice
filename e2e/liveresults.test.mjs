@@ -22,17 +22,17 @@ async function publish(page, go, { title, identified }) {
   return (await page.getByTestId("share").getByText(/^[A-Z0-9]{6}$/).first().innerText()).trim();
 }
 
-// Two answers, one from a signed-in member and one from a guest, written into the mock state.
-async function addAnswers(page, identified) {
-  await page.evaluate((ident) => {
+// `count` answers (the first from a signed-in member, the rest guests), written into the mock state.
+async function addAnswers(page, identified, count = 2) {
+  await page.evaluate(([ident, n]) => {
     const st = JSON.parse(localStorage.getItem("lv.mock.state"));
     const c = st.campaigns[st.campaigns.length - 1];
     const q = c.questions[0].question_id;
     const at = new Date(Date.now() - 3 * 3600_000).toISOString();
     c.responses.push({ receipt: "r-a", answers: [{ question_id: q, value: "Reds" }], at, guest: false, name: ident ? "Maurice" : undefined });
-    c.responses.push({ receipt: "r-b", answers: [{ question_id: q, value: "Blues" }], at, guest: true, name: ident ? "Visitor" : undefined });
+    for (let i = 1; i < n; i++) c.responses.push({ receipt: `r-${i}`, answers: [{ question_id: q, value: i % 2 ? "Blues" : "Reds" }], at, guest: true, name: ident ? "Visitor" : undefined });
     localStorage.setItem("lv.mock.state", JSON.stringify(st));
-  }, identified);
+  }, [identified, count]);
   await page.reload();
 }
 
@@ -42,22 +42,27 @@ async function openResults(page, go, title) {
   await page.getByRole("link", { name: /Results/ }).first().click();
 }
 
-test("Creator Plus: an anonymous survey shows totals and 2 individual responses live, with no names or times", async () => {
+test("Creator Plus: an anonymous survey shows live totals and releases individual responses in groups of 5, with no names or times", async () => {
   const { page, go } = await openPage(app, { width: 1280, seed: "creator" });
   await publish(page, go, { title: "Plus anon", identified: false });
-  await addAnswers(page, false);
+  await addAnswers(page, false, 2);
   await openResults(page, go, "Plus anon");
   await page.getByTestId("live-note").waitFor();
+  await page.getByTestId("anon-waiting").waitFor();
+  assert.equal(await page.getByTestId("anon-response-row").count(), 0, "2 answers release no row");
+  assert.ok(/appears at 5 answers/.test(await page.getByTestId("anon-waiting").innerText()));
+  assert.equal(await page.getByTestId("question-withheld").count(), 0, "totals and charts are live from the first answers");
+  assert.equal(await page.getByTestId("live-upsell").count(), 0);
+
+  await addAnswers(page, false, 7);
+  await openResults(page, go, "Plus anon");
   const card = page.getByTestId("anon-responses");
   await card.waitFor();
   await page.getByTestId("anon-response-row").first().waitFor();
-  assert.equal(await page.getByTestId("anon-response-row").count(), 2);
+  assert.equal(await page.getByTestId("anon-response-row").count(), 5, "7 answers release one group of 5");
   const text = await card.innerText();
-  assert.ok(/Reds/.test(text) && /Blues/.test(text), "both answers are listed");
   assert.ok(!/Maurice|Visitor|Dana|Account|Guest|AM|PM|20\d\d/.test(text.replace(/Individual responses|Opening this list is recorded\./g, "")), `no name or time in: ${text}`);
-  assert.equal(await page.getByTestId("question-withheld").count(), 0, "nothing is withheld");
-  assert.equal(await page.getByTestId("live-upsell").count(), 0);
-  await page.getByText("2 responses").first().waitFor();
+  assert.ok(!/7 responses/.test(text), "no exact live total next to the rows");
 });
 
 test("Free creator: an anonymous survey still waits and offers Creator Plus quietly", async () => {
@@ -77,7 +82,7 @@ test("The respondent of an anonymous survey is told the creator sees results as 
   await plus.go(`/c/${code}`);
   await plus.page.getByTestId("results-live-note").waitFor();
   assert.ok(/results as they come in/.test(await plus.page.getByTestId("results-live-note").innerText()));
-  assert.ok(/not linked/.test(await plus.page.getByTestId("results-live-note").innerText()));
+  assert.ok(/groups of 5 and never with your name/.test(await plus.page.getByTestId("results-live-note").innerText()));
 
   const free = await openPage(app, { width: 390, seed: "demo" });
   const code2 = await publish(free.page, free.go, { title: "Notice free", identified: false });

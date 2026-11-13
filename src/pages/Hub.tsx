@@ -137,7 +137,7 @@ export function HubLayout() {
   const tabs = [
     { to: base, label: "Overview", end: true },
     { to: `${base}/campaigns`, label: "Campaigns" },
-    ...(can(membership, "analytics.read") ? [{ to: `${base}/analytics`, label: "Analytics" }] : []),
+    ...(can(membership, "analytics.read") ? [{ to: `${base}/analytics`, label: "Analytics" }, { to: `${base}/trends`, label: "Trends" }] : []),
     ...(can(membership, "admin.members.admit") || can(membership, "admin.members.remove") ? [{ to: `${base}/members`, label: "Members" }] : []),
     ...(can(membership, "admin.members.admit") ? [{ to: `${base}/invites`, label: "Invites" }] : []),
     ...(can(membership, "admin.roles.manage") ? [{ to: `${base}/roles`, label: "Roles" }] : []),

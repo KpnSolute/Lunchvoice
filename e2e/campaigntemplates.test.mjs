@@ -116,7 +116,7 @@ test("the pricing page shows what templates each plan comes with", async () => {
   await go("/pricing");
   const section = page.getByTestId("plan-templates");
   await section.getByText("Free Quick Survey").waitFor();
-  await section.getByText(/20 templates/).waitFor();
+  await section.getByText(/45 free templates/).waitFor();
   for (const name of ["Starter Hub", "Team Hub", "Time-bounded"]) await section.getByText(name, { exact: true }).waitFor();
   await section.getByText("Role pulse").waitFor();
   await section.getByText("Weekly poll").waitFor();

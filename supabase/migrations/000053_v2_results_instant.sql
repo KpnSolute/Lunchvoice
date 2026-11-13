@@ -18,8 +18,11 @@
 --     Safeguards (they keep "anonymous" honest without holding results back):
 --       - no account, guest name, timestamp, receipt id, submission id or arrival order is returned; rows come in a stable
 --         hash order that does not follow submission time; an opaque row key replaces the id;
+--       - while the survey is open, rows (and free text) are released in batches of 5 by batch of 5, never an exact live total;
 --       - every read is written to lv.audit_events and lv.analytics_query_log;
 --       - free text is included, shuffled, without metadata (lv.analytics_core text answers use random order).
+--   * Security: metadata (summary cards, responses per day, device, source, duration, cross-tabs, webhook milestones) keeps the
+--     anonymous rules (finished, minimum cohort, frozen population) even here; live applies to answer results only.
 --   * Filters on anonymous surveys stay refused (000042 security decision): live totals must not be differenced.
 --   * The respondent is told before answering: campaign.results_instant is returned to the player of an anonymous
 --     survey, and the start screen says "The creator can see results as they come in."
@@ -43,6 +46,56 @@ as $$
                      from lv.campaigns c join lv.hubs h on h.id = c.hub_id where c.id = p_campaign), false)
 $$;
 
+-- Individual answers (rows and free text) of an ANONYMOUS survey that is still open are released in batches of the
+-- cohort minimum, so one arrival never adds one visible row (set-difference defence). An anonymous submission keeps no
+-- arrival time (created_at is stored to the day) and its id is random, so the batch it belongs to is fixed when it is
+-- written: batch_no = floor(rows already in the survey / k) + 1, under a per-survey lock. A batch is released only when it
+-- is complete (n >= batch_no * k); rows are always shown in a hash order. The column is private (no API role reads
+-- lv.submissions) and is NULL on identified surveys.
+alter table lv.submissions add column batch_no int;
+
+create function lv.assign_anon_batch() returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_k int := coalesce((lv.policy_json('campaign.min_cohort'))::int, 5);
+begin
+  if new.batch_no is null and exists (select 1 from lv.campaigns c where c.id = new.campaign_id and c.anonymity = 'anonymous') then
+    perform pg_advisory_xact_lock(hashtextextended('lv_batch:' || new.campaign_id::text, 0));
+    new.batch_no := (select count(*) from lv.submissions x where x.campaign_id = new.campaign_id) / v_k + 1;
+  end if;
+  return new;
+end;
+$$;
+create trigger submissions_assign_batch before insert on lv.submissions for each row execute function lv.assign_anon_batch();
+
+-- Existing anonymous answers: batches by hash order (their arrival order was never kept).
+update lv.submissions s set batch_no = (x.rn - 1) / coalesce((lv.policy_json('campaign.min_cohort'))::int, 5) + 1
+  from (select y.id, row_number() over (partition by y.campaign_id order by md5(y.id::text)) rn
+          from lv.submissions y join lv.campaigns c on c.id = y.campaign_id where c.anonymity = 'anonymous') x
+ where s.id = x.id;
+
+-- Rows released so far on an open anonymous survey (a multiple of k), or NULL when nothing is batched (identified
+-- surveys, and anonymous ones that have finished).
+create function lv.anon_batch_limit(p_campaign uuid) returns bigint
+language sql stable security definer set search_path = ''
+as $$
+  select case when c.anonymity = 'anonymous' and not lv.campaign_finished(c.status, c.closes_at)
+              then (select count(*) from lv.submissions s where s.campaign_id = c.id)
+                   / coalesce((lv.policy_json('campaign.min_cohort'))::int, 5) * coalesce((lv.policy_json('campaign.min_cohort'))::int, 5) end
+    from lv.campaigns c where c.id = p_campaign
+$$;
+
+-- The submissions whose answers may be shown individually (rows and free text) right now.
+create function lv.released_submissions(p_campaign uuid) returns setof uuid
+language sql stable security definer set search_path = ''
+as $$
+  select s.id from lv.submissions s
+   where s.campaign_id = p_campaign
+     and (lv.anon_batch_limit(p_campaign) is null
+          or s.batch_no <= lv.anon_batch_limit(p_campaign) / coalesce((lv.policy_json('campaign.min_cohort'))::int, 5))
+$$;
+
 -- ---------------------------------------------------------------- 2. the analytics engine
 -- The existing engine keeps every rule for the waiting plans, unchanged, under a new name. The wrapper takes the
 -- results.instant path only; everything else (drafts, unknown Campaigns, waiting plans) goes straight to it.
@@ -61,6 +114,7 @@ declare
   v_cells jsonb;
   v_mean numeric;
   v_total bigint;
+  v_lim bigint;
 begin
   select * into c from lv.campaigns where id = p_campaign;
   if c.id is null or c.status = 'draft' or not lv.results_instant(p_campaign) then
@@ -91,15 +145,22 @@ begin
     if q.id is null then return lv.err('lv_invalid_input', 'Choose a question of this Campaign.'); end if;
   end if;
 
-  -- Free text: every answer, in random order, never with a person, time or submission.
+  -- Free text: in random order, never with a person, time or submission. On an open anonymous survey only the
+  -- released batch (see lv.anon_batch_limit) is included.
   if (p_metric = 'text_responses' or p_metric = 'answer_distribution') and q.kind = 'text' then
-    v_total := lv.question_total(p_campaign, p_question);
-    insert into lv.analytics_query_log (campaign_id, caller, metric, question_id, outcome) values (p_campaign, p_caller, p_metric, p_question, 'published');
+    v_lim := lv.anon_batch_limit(p_campaign);
+    insert into lv.analytics_query_log (campaign_id, caller, metric, question_id, outcome) values (p_campaign, p_caller, p_metric, p_question,
+      case when v_lim = 0 then 'suppressed' else 'published' end);
+    if v_lim = 0 then
+      return jsonb_build_object('ok', true, 'metric', p_metric, 'question_id', p_question, 'kind', 'text',
+        'n', null, 'texts_withheld', true, 'suppressed', true, 'texts', null, 'responses', null);
+    end if;
     v_cells := (select coalesce(jsonb_agg(x.v order by random()), '[]'::jsonb) from (
-                  select a.value #>> '{}' as v from lv.answers a join lv.submissions s on s.id = a.submission_id
-                   where s.campaign_id = p_campaign and a.question_id = p_question) x);
+                  select a.value #>> '{}' as v from lv.answers a
+                   where a.question_id = p_question
+                     and a.submission_id in (select lv.released_submissions(p_campaign))) x);
     return jsonb_build_object('ok', true, 'metric', p_metric, 'question_id', p_question, 'kind', 'text',
-      'n', v_total, 'texts_withheld', false, 'suppressed', false, 'texts', v_cells, 'responses', v_cells);
+      'n', jsonb_array_length(v_cells), 'texts_withheld', false, 'suppressed', false, 'texts', v_cells, 'responses', v_cells);
   end if;
   if p_metric = 'text_responses' then return lv.err('lv_invalid_input', 'text_responses needs a text question.'); end if;
 
@@ -141,6 +202,7 @@ declare
   v_sensitive boolean;
   v_instant boolean;
   v_withhold_text boolean;
+  v_lim bigint;
   v_filter jsonb := nullif(p_filter, 'null'::jsonb);
   v_subs jsonb;
   v_all bigint;
@@ -218,10 +280,17 @@ begin
     'seen', case when v_seen_w then null else v_seen end, 'answered', case when v_ans_w then null else v_answered end, 'seen_withheld', v_seen_w);
 
   if q.kind = 'text' then
-    v_withhold_text := v_answered < v_text_min and not v_instant;        -- 000053
+    v_lim := case when v_instant then lv.anon_batch_limit(p_campaign) end;   -- 000053: batches on an open anonymous survey
+    v_withhold_text := (v_answered < v_text_min and not v_instant) or v_lim = 0;        -- 000053
     insert into lv.analytics_query_log (campaign_id, caller, metric, question_id, outcome)
     values (p_campaign, v_account, 'question_logic', p_question, case when v_withhold_text then 'suppressed' else 'published' end);
     if v_withhold_text then return v_out || jsonb_build_object('cells', '[]'::jsonb, 'texts', null, 'texts_withheld', true); end if;
+    if v_lim is not null then
+      return v_out || jsonb_build_object('cells', '[]'::jsonb, 'texts_withheld', false,
+        'texts', (select coalesce(jsonb_agg(a.value #>> '{}' order by random()), '[]'::jsonb) from lv.answers a
+                   where a.question_id = p_question
+                     and a.submission_id in (select lv.released_submissions(p_campaign))));
+    end if;
     return v_out || jsonb_build_object('cells', '[]'::jsonb, 'texts_withheld', false,
       'texts', (select coalesce(jsonb_agg(x->'ans'->>v_qid order by random()), '[]'::jsonb)
                   from jsonb_array_elements(v_subs) x where (x->>'in')::boolean and not lv.answer_empty(x->'ans'->v_qid)));
@@ -243,6 +312,47 @@ begin
 end;
 $$;
 
+-- ---------------------------------------------------------------- 3b. metadata stays behind the anonymous rules
+-- Security: summary cards, responses per day, device, source, duration, cross-tabs (000044) and webhook milestones
+-- (000024) are arrival-linked or metadata. They keep the existing anonymous rules (survey finished, minimum cohort,
+-- frozen population) EVEN where results.instant holds: results.instant applies to answer results only (totals, charts,
+-- per-question cells, NPS, free text in batches). lv.results_gate is the 000044 body except that it calls the waiting
+-- engine, so none of those endpoints can take the live path.
+create or replace function lv.results_gate(p_campaign uuid, p_account uuid) returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  c lv.campaigns;
+  v_core jsonb;
+begin
+  if p_account is null then return lv.err('lv_unauthenticated', 'Sign in with KpnIdentity first.'); end if;
+  select * into c from lv.campaigns x where x.id = p_campaign;
+  if c.id is null or lv.membership_of(p_account, c.hub_id) is null then return lv.err('lv_not_found', 'No such Campaign.'); end if;
+  if not lv.has_capability(p_account, c.hub_id, 'analytics.read') then
+    return lv.err('lv_forbidden', 'Reading results requires analytics.read.');
+  end if;
+  v_core := lv.analytics_core_waiting(p_campaign, p_account, 'participant_count', null);   -- 000053: never the live path
+  if not coalesce((v_core->>'ok')::boolean, false) then return v_core; end if;
+  return jsonb_build_object('ok', true, 'hub', c.hub_id, 'sensitive', c.anonymity = 'anonymous',
+                            'min', case when c.anonymity = 'anonymous' then (lv.analytics_policy_state()->>'min_cohort')::int else 1 end);
+end;
+$$;
+
+-- Webhook milestones count participants: same 000024 body, but through the waiting engine (anonymous: after the end).
+create or replace function lv.released_participants(p_campaign uuid) returns bigint
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  v jsonb;
+  v_owner uuid;
+begin
+  select h.owner_account_id into v_owner from lv.campaigns c join lv.hubs h on h.id = c.hub_id where c.id = p_campaign;
+  v := lv.analytics_core_waiting(p_campaign, v_owner, 'participant_count', null);
+  if not coalesce((v->>'ok')::boolean, false) or coalesce((v->>'suppressed')::boolean, true) then return null; end if;
+  return (v->>'n')::bigint;
+end;
+$$;
+
 -- ---------------------------------------------------------------- 4. individual responses of an anonymous survey
 -- Offset pages over a stable hash order. Returns each submission's answers and an opaque row key; nothing that could
 -- place a row in time or on a person (no account, name, timestamp, receipt id, submission id or arrival order).
@@ -254,6 +364,8 @@ declare
   c lv.campaigns;
   v_limit int := least(greatest(coalesce(p_limit, 50), 1), 100);
   v_offset int := greatest(coalesce(p_offset, 0), 0);
+  v_k int := coalesce((lv.policy_json('campaign.min_cohort'))::int, 5);
+  v_lim bigint;
   v_rows jsonb;
 begin
   if v_account is null then return lv.err('lv_unauthenticated', 'Sign in with KpnIdentity first.'); end if;
@@ -270,6 +382,10 @@ begin
                     jsonb_build_object('product', 'creator_plus', 'feature', 'results.instant'));
   end if;
 
+  -- Security: while the survey is open, rows are released in batches of the cohort minimum (the first floor(n / k) * k
+  -- submissions by arrival, shown in a hash order), so one arrival never adds one visible row. No exact total while
+  -- live. After it finishes, every row.
+  v_lim := lv.anon_batch_limit(c.id);
   select coalesce(jsonb_agg(r.j order by r.k), '[]'::jsonb) into v_rows
     from (
       select md5(s.id::text || c.id::text) as k, jsonb_build_object(
@@ -278,15 +394,18 @@ begin
                  select jsonb_agg(jsonb_build_object('question_id', q.id, 'prompt', q.prompt, 'kind', q.kind, 'value', an.value) order by q.position)
                    from lv.answers an join lv.campaign_questions q on q.id = an.question_id
                   where an.submission_id = s.id), '[]'::jsonb)) as j
-        from lv.submissions s
-       where s.campaign_id = c.id
+        from (select lv.released_submissions(c.id) as id) s
        order by md5(s.id::text || c.id::text) limit v_limit offset v_offset) r;
 
   -- Every read of anonymous individual responses is audited, on every page.
   perform lv.audit(v_account, c.hub_id, 'campaign.responses_viewed', c.id::text, jsonb_build_object('anonymous', true, 'offset', v_offset));
   insert into lv.analytics_query_log (campaign_id, caller, metric, outcome) values (c.id, v_account, 'individual_responses', 'published');
-  return jsonb_build_object('ok', true, 'responses', v_rows,
-    'total', (select count(*) from lv.submissions s where s.campaign_id = c.id));
+  if v_lim is null then
+    return jsonb_build_object('ok', true, 'responses', v_rows, 'live', false,
+                              'released', (select count(*) from lv.submissions s where s.campaign_id = c.id),
+                              'total', (select count(*) from lv.submissions s where s.campaign_id = c.id));
+  end if;
+  return jsonb_build_object('ok', true, 'responses', v_rows, 'live', true, 'released', v_lim, 'next_batch_at', v_lim + v_k);
 end;
 $$;
 
@@ -355,15 +474,15 @@ $$;
 
 -- ---------------------------------------------------------------- 6. grants: lv stays private; one new lv_api entry point
 revoke all on function lv.results_instant(uuid), lv.analytics_core(uuid, uuid, text, uuid), lv.analytics_core_waiting(uuid, uuid, text, uuid),
-  lv.api_analytics_question(uuid, uuid, jsonb), lv.api_campaign_responses_anon(uuid, int, int) from public;
+  lv.api_analytics_question(uuid, uuid, jsonb), lv.api_campaign_responses_anon(uuid, int, int), lv.results_gate(uuid, uuid), lv.anon_batch_limit(uuid), lv.released_submissions(uuid), lv.assign_anon_batch(), lv.released_participants(uuid) from public;
 revoke all on function lv_api.lv_campaign_responses_anon(uuid, int, int) from public;
 do $$ begin
   if exists (select 1 from pg_roles where rolname = 'anon') then
-    execute 'revoke all on function lv.results_instant(uuid), lv.analytics_core(uuid, uuid, text, uuid), lv.analytics_core_waiting(uuid, uuid, text, uuid), lv.api_analytics_question(uuid, uuid, jsonb), lv.api_campaign_responses_anon(uuid, int, int) from anon';
+    execute 'revoke all on function lv.results_instant(uuid), lv.analytics_core(uuid, uuid, text, uuid), lv.analytics_core_waiting(uuid, uuid, text, uuid), lv.api_analytics_question(uuid, uuid, jsonb), lv.api_campaign_responses_anon(uuid, int, int), lv.results_gate(uuid, uuid), lv.anon_batch_limit(uuid), lv.released_submissions(uuid), lv.assign_anon_batch(), lv.released_participants(uuid) from anon';
     execute 'revoke all on function lv_api.lv_campaign_responses_anon(uuid, int, int) from anon';
   end if;
   if exists (select 1 from pg_roles where rolname = 'authenticated') then
-    execute 'revoke all on function lv.results_instant(uuid), lv.analytics_core(uuid, uuid, text, uuid), lv.analytics_core_waiting(uuid, uuid, text, uuid), lv.api_analytics_question(uuid, uuid, jsonb), lv.api_campaign_responses_anon(uuid, int, int) from authenticated';
+    execute 'revoke all on function lv.results_instant(uuid), lv.analytics_core(uuid, uuid, text, uuid), lv.analytics_core_waiting(uuid, uuid, text, uuid), lv.api_analytics_question(uuid, uuid, jsonb), lv.api_campaign_responses_anon(uuid, int, int), lv.results_gate(uuid, uuid), lv.anon_batch_limit(uuid), lv.released_submissions(uuid), lv.assign_anon_batch(), lv.released_participants(uuid) from authenticated';
     execute 'grant execute on function lv_api.lv_campaign_responses_anon(uuid, int, int) to authenticated';
   end if;
 end $$;

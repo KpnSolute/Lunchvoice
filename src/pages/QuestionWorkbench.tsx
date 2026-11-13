@@ -3,7 +3,11 @@ import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { describeError } from "../lib/errors";
 import { questionConfigProblem, type CampaignDetailData, type LvResult, type Question, type QuestionConfig, type QuestionKind } from "../lib/lvApi";
-import { isChoice, MAX_OPTIONS, MIN_OPTIONS } from "../lib/readiness";
+import { hasOptions, MAX_OPTIONS, MIN_OPTIONS } from "../lib/readiness";
+import { CORE_KINDS, defaultConfig, IDENTIFIED_ONLY, KIND_INFO, kindPlan, PLAN_LABEL, PLAN_UNLOCK, tierAllows, type PlanTier } from "../lib/questionKinds";
+import { useLv } from "../lib/useLv";
+import { KindSettings, QuizSettings } from "./KindSettings";
+import { Link } from "react-router-dom";
 import { Icon } from "../components/Icon";
 import { QuestionInput } from "../ui/QuestionControls";
 import { describeRule } from "../lib/sections";
@@ -38,13 +42,7 @@ import { Eyebrow, Field, Notice, ToggleRow } from "@/components/shadcn/blocks";
  * caller's `save` tracker; the backend validates again on publish.
  */
 
-export const KINDS: { key: QuestionKind; label: string }[] = [
-  { key: "rating", label: "Rating 1–5" },
-  { key: "single_choice", label: "Single choice" },
-  { key: "multi_choice", label: "Multiple choice" },
-  { key: "yes_no", label: "Yes / No" },
-  { key: "text", label: "Short text" },
-];
+export const KINDS: { key: QuestionKind; label: string; plan: PlanTier }[] = KIND_INFO.map((k) => ({ key: k.kind, label: k.label, plan: k.plan }));
 export const kindLabel = (k: string) => KINDS.find((x) => x.key === k)?.label ?? k;
 const TEXT_WARNING = "Text answers can identify people. We only show them once enough people have answered.";
 
@@ -79,6 +77,12 @@ export function QuestionWorkbench({
 }) {
   const { api } = useIdentity();
   const qs = d.questions;
+  // 000047: which question types this person may save here. Until it answers, only the free ones.
+  const tierQ = useLv(() => api.kindTier(d.campaign.campaign_id), [api, d.campaign.campaign_id]);
+  const tier: PlanTier = tierQ.data?.tier ?? "free";
+  // Quiz answer keys are not part of a normal read (respondents would see them); managers fetch them separately.
+  const quizQ = useLv(() => (qs.some((x) => x.kind === "single_choice" || x.kind === "multi_choice") ? api.campaignQuiz(d.campaign.campaign_id) : Promise.resolve({ ok: true as const, quiz: {} })), [api, d.campaign.campaign_id, qs]);
+  const quizKeys = quizQ.data?.quiz ?? {};
   const [sel, setSel] = useState<string>(() => qs[0]?.question_id ?? (locked ? "" : "new"));
   const [sheet, setSheet] = useState(false);
   // Save race (track A): a new question keeps ONE editor from its first keystroke to after the reload that brings
@@ -186,12 +190,12 @@ export function QuestionWorkbench({
           <section className="lv-qw-editor lv-qw-pro-editor" aria-label="Question editor">
             {locked && <Notice>Published questions can’t change. Close it to stop answers.</Notice>}
             {current ? (
-              <QuestionEditor pro key={aliases.current[current.question_id] ?? current.question_id} q={current} n={index + 1} locked={locked} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} />
+              <QuestionEditor pro key={aliases.current[current.question_id] ?? current.question_id} q={current} n={index + 1} locked={locked} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} tier={tier} anonymity={d.campaign.anonymity} quizKey={current ? quizKeys[current.question_id] : undefined} />
             ) : effectiveSel === "new" && !locked ? (
               atLimit ? (
                 <Notice tone="warn" title={`This survey has ${qs.length} of ${limit} questions`}>Remove a question to add another.</Notice>
               ) : (
-                <QuestionEditor pro key={`new-${newKey}`} q={null} initialKind={initialKind} n={qs.length + 1} locked={false} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} />
+                <QuestionEditor pro key={`new-${newKey}`} q={null} initialKind={initialKind} n={qs.length + 1} locked={false} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} tier={tier} anonymity={d.campaign.anonymity} quizKey={undefined} />
               )
             ) : (
               <Card variant="well"><p className="lv-m0">{qs.length ? "Pick a question to see it." : "This survey has no questions."}</p></Card>
@@ -237,12 +241,12 @@ export function QuestionWorkbench({
       <section className="lv-qw-editor" aria-label="Question editor">
         {locked && <Notice>Published questions can’t change. Close it to stop answers.</Notice>}
         {current ? (
-          <QuestionEditor key={aliases.current[current.question_id] ?? current.question_id} q={current} n={index + 1} locked={locked} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} />
+          <QuestionEditor key={aliases.current[current.question_id] ?? current.question_id} q={current} n={index + 1} locked={locked} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} tier={tier} anonymity={d.campaign.anonymity} quizKey={current ? quizKeys[current.question_id] : undefined} />
         ) : effectiveSel === "new" && !locked ? (
           atLimit ? (
             <Notice tone="warn" title={`This survey has ${qs.length} of ${limit} questions`}>Remove a question to add another.</Notice>
           ) : (
-            <QuestionEditor key={`new-${newKey}`} q={null} initialKind={initialKind} n={qs.length + 1} locked={false} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} />
+            <QuestionEditor key={`new-${newKey}`} q={null} initialKind={initialKind} n={qs.length + 1} locked={false} save={save} reload={reload} campaignId={d.campaign.campaign_id} nextPos={nextPosition(qs)} onCreated={onCreated} tier={tier} anonymity={d.campaign.anonymity} quizKey={undefined} />
           )
         ) : (
           <Card variant="well"><p className="lv-m0">{qs.length ? "Pick a question to see it." : "This survey has no questions."}</p></Card>
@@ -363,21 +367,29 @@ function OutlineList({
 
 /* ------------------------------------------------------------------ editor */
 
-type Draft = { kind: QuestionKind; prompt: string; options: string[]; optional: boolean; max: number | null };
+/** `cfg` holds the settings of the v2 kinds (min, step, points, rows, fields, quiz...), see KindSettings. */
+type Draft = { kind: QuestionKind; prompt: string; options: string[]; optional: boolean; max: number | null; cfg: Record<string, unknown> };
+// Keys this editor owns. Everything else in a question's settings (sections, rules, jumps...) passes through untouched.
+const OWNED = ["min", "max", "step", "integer", "unit", "low_label", "high_label", "points", "labels", "rows", "before_label", "after_label", "min_label", "max_label", "fields", "max_mb", "types", "statement", "prices", "currency", "images", "quiz"];
 const fromQuestion = (q: Question | null, start: QuestionKind = "single_choice"): Draft => ({
   kind: q?.kind ?? start,
   prompt: q?.prompt ?? "",
-  options: q ? (q.config.options ?? []) : isChoice(start) ? ["", ""] : [],
+  options: q ? (q.config.options ?? []) : hasOptions(start) ? ["", ""] : [],
   optional: Boolean(q?.config.optional),
-  max: typeof q?.config.max === "number" ? q.config.max : null,
+  max: q?.kind === "multi_choice" && typeof q?.config.max === "number" ? q.config.max : null,
+  cfg: q ? Object.fromEntries(Object.entries(q.config).filter(([k]) => OWNED.includes(k) && !(k === "max" && q.kind === "multi_choice"))) : defaultConfig(start),
 });
 function toConfig(base: QuestionConfig | undefined, d: Draft): QuestionConfig {
-  const { options: _o, max: _m, optional: _p, ...rest } = base ?? {};
+  const rest = Object.fromEntries(Object.entries(base ?? {}).filter(([k]) => k !== "options" && k !== "optional" && !OWNED.includes(k)));
+  const quizOk = d.kind === "single_choice" || d.kind === "multi_choice";
+  const own = Object.fromEntries(Object.entries(d.cfg).filter(([k]) => (k === "quiz" ? quizOk : k !== "quiz")));
+  const opts = d.options.map((o) => o.trim()).filter(Boolean);
   return {
     ...rest,
-    // Empty rows are editor-only; the server stores 2-10 different, non-empty options (000018).
-    ...(isChoice(d.kind) ? { options: d.options.map((o) => o.trim()).filter(Boolean) } : {}),
-    ...(d.kind === "multi_choice" && d.max !== null && d.max <= d.options.filter((o) => o.trim()).length ? { max: d.max } : {}),
+    ...own,
+    // Empty rows are editor-only; the server stores the non-empty, different options (000018, 000047).
+    ...(hasOptions(d.kind) ? { options: opts } : {}),
+    ...(d.kind === "multi_choice" && d.max !== null && d.max <= opts.length ? { max: d.max } : {}),
     ...(d.optional ? { optional: true } : {}),
   };
 }
@@ -392,8 +404,14 @@ function QuestionEditor({
   campaignId,
   nextPos,
   onCreated,
+  tier,
+  anonymity,
   pro,
+  quizKey,
 }: {
+  quizKey?: { correct: string[]; points?: number };
+  tier: PlanTier;
+  anonymity: "anonymous" | "identified";
   pro?: boolean;
   q: Question | null;
   n: number;
@@ -417,6 +435,10 @@ function QuestionEditor({
   qRef.current = q;
   const latest = useRef(draft);
   latest.current = draft;
+  // The saved quiz key arrives after the editor opens (it is fetched on its own); show it without saving anything.
+  useEffect(() => { if (quizKey && latest.current.cfg.quiz === undefined) setDraft((x) => ({ ...x, cfg: { ...x.cfg, quiz: quizKey } })); }, [quizKey]);
+  const tierRef = useRef(tier);
+  tierRef.current = tier;
 
   // Debounced autosave of the whole draft. A new question is created once it has a question text.
   function schedule(next: Draft, delay = 600) {
@@ -428,6 +450,8 @@ function QuestionEditor({
   async function persist(): Promise<void> {
     const d = latest.current;
     if (!d.prompt.trim()) return; // the backend refuses an empty question text; the checklist says so
+    if (!tierAllows(tierRef.current, kindPlan(d.kind))) return; // a preview of a type this plan does not include
+    if (IDENTIFIED_ONLY.includes(d.kind) && anonymity === "anonymous") return;
     const base = qRef.current?.config;
     const config = toConfig(base, d);
     // The server refuses invalid options (000018); the editor shows why and saves once they are valid.
@@ -458,9 +482,12 @@ function QuestionEditor({
 
   function changeKind(kind: QuestionKind) {
     if (kind === draft.kind) return;
-    const drops = isChoice(draft.kind) && !isChoice(kind) && draft.options.some((o) => o.trim());
+    const drops = hasOptions(draft.kind) && !hasOptions(kind) && draft.options.some((o) => o.trim());
     if (drops) return setPendingKind(kind);
-    schedule({ ...draft, kind, options: isChoice(kind) && draft.options.length === 0 ? ["", ""] : draft.options, max: kind === "multi_choice" ? draft.max : null }, 0);
+    const keepsOptions = hasOptions(kind);
+    // Settings belong to a kind: a new kind starts from its own defaults (a quiz carries over between the two choice kinds).
+    const quiz = (kind === "single_choice" || kind === "multi_choice") && draft.cfg.quiz ? { quiz: draft.cfg.quiz } : {};
+    schedule({ ...draft, kind, options: keepsOptions && draft.options.length === 0 ? ["", ""] : draft.options, max: kind === "multi_choice" ? draft.max : null, cfg: { ...defaultConfig(kind), ...quiz } }, 0);
   }
   const setOption = (i: number, v: string) => schedule({ ...draft, options: draft.options.map((o, j) => (j === i ? v : o)) });
   const moveOption = (from: number, to: number) => {
@@ -471,17 +498,41 @@ function QuestionEditor({
     schedule({ ...draft, options: o }, 300);
   };
   const filled = draft.options.filter((o) => o.trim()).length;
-  const optionProblem = isChoice(draft.kind) && filled >= MIN_OPTIONS ? questionConfigProblem(draft.kind, toConfig(undefined, draft)) : null;
+  const optionProblem = hasOptions(draft.kind) && filled >= MIN_OPTIONS ? questionConfigProblem(draft.kind, toConfig(undefined, draft)) : null;
+  const settingsProblem = !hasOptions(draft.kind) ? questionConfigProblem(draft.kind, toConfig(undefined, draft)) : null;
+  const needs = kindPlan(draft.kind);
+  const locksKind = !tierAllows(tier, needs);
+  const wrongSurvey = IDENTIFIED_ONLY.includes(draft.kind) && anonymity === "anonymous";
   const previewQ: Question = useMemo(
     () => ({ question_id: q?.question_id ?? "preview", position: n - 1, kind: draft.kind, prompt: draft.prompt, config: toConfig(q?.config, { ...draft, options: draft.options.filter((o) => o.trim()) }) }),
     [draft, q, n],
   );
 
+  const kindExtras = (
+    <>
+      <KindSettings kind={draft.kind} n={n} cfg={draft.cfg} set={(cfg) => schedule({ ...draft, cfg })} locked={locked} />
+      {settingsProblem && !locksKind && <p className="lv-field-error lv-m0" role="status" data-testid="settings-problem">{settingsProblem}</p>}
+      {(draft.kind === "single_choice" || draft.kind === "multi_choice") && (
+        <QuizSettings kind={draft.kind} n={n} options={draft.options.map((o) => o.trim()).filter(Boolean)} cfg={draft.cfg} locked={locked} allowed={tierAllows(tier, "pro")} set={(cfg) => schedule({ ...draft, cfg })} />
+      )}
+      {locksKind && (
+        <Notice tone="warn" title={`${PLAN_LABEL[needs]} question type: preview only`}>
+          <span data-testid="kind-locked">{kindLabel(draft.kind)} is a {PLAN_LABEL[needs]} type. {PLAN_UNLOCK[needs]} You can try it out below; it will not be saved.</span>{" "}
+          <Link to="/pricing" className="lv-link">See plans</Link>
+        </Notice>
+      )}
+      {wrongSurvey && !locksKind && (
+        <Notice tone="warn" title="Needs an identified survey"><span data-testid="kind-identified">{kindLabel(draft.kind)} collects who someone is, so it only works when the survey is identified. Change who can see answers in the survey details.</span></Notice>
+      )}
+    </>
+  );
+
   if (pro) {
     const typeGroups: { label: string; kinds: QuestionKind[] }[] = [
-      { label: "Choose", kinds: ["single_choice", "multi_choice", "yes_no"] },
-      { label: "Rate", kinds: ["rating"] },
-      { label: "Write", kinds: ["text"] },
+      { label: "Choose", kinds: ["single_choice", "multi_choice", "yes_no", "dropdown", "image_choice", "ranking"] },
+      { label: "Rate", kinds: ["rating", "face_scale", "nps", "agree_scale", "slider", "agree_grid", "before_after"] },
+      { label: "Write and enter", kinds: ["text", "number", "date", "price_ladder"] },
+      { label: "People and files", kinds: ["contact", "consent", "signature", "file_upload"] },
     ];
     const promptInvalid = !draft.prompt.trim() && (Boolean(q) || draft.options.some((o) => o.trim()));
     return (
@@ -496,7 +547,7 @@ function QuestionEditor({
                   {typeGroups.map((g) => (
                     <SelectGroup key={g.label}>
                       <SelectLabel>{g.label}</SelectLabel>
-                      {g.kinds.map((k) => <SelectItem key={k} value={k}>{kindLabel(k)}</SelectItem>)}
+                      {g.kinds.map((k) => <SelectItem key={k} value={k}>{kindLabel(k)}{kindPlan(k) !== "free" && !tierAllows(tier, kindPlan(k)) ? ` · ${PLAN_LABEL[kindPlan(k)]}` : ""}</SelectItem>)}
                     </SelectGroup>
                   ))}
                 </SelectContent>
@@ -516,7 +567,7 @@ function QuestionEditor({
             <Input className="lv-canvas-prompt" id={`prompt-${n}`} value={draft.prompt} maxLength={200} disabled={locked} onChange={(e) => schedule({ ...draft, prompt: e.target.value })} placeholder="Type your question" aria-invalid={promptInvalid || undefined} autoFocus={!q} />
           </Field>
 
-          {isChoice(draft.kind) && (
+          {hasOptions(draft.kind) && (
             <fieldset className="lv-fieldset" aria-describedby={`opts-${n}-note`}>
               <legend className="lv-legend">Answers</legend>
               <ol className="lv-ans-list" data-testid="option-rows">
@@ -598,6 +649,14 @@ function QuestionEditor({
             </>
           )}
 
+          {kindExtras}
+          {!CORE_KINDS.includes(draft.kind as never) && (
+            <div className="lv-canvas-live" data-testid="kind-preview">
+              <Eyebrow>What people see</Eyebrow>
+              <QuestionInput q={previewQ} value={preview} onChange={setPreview} />
+            </div>
+          )}
+
           {!locked && q && (
             <div className="lv-btn-row">
               <RemoveQuestion n={n} onRemove={async () => { const r = await save.run(api.questionRemove(q.question_id)); if (r.ok) { toast.success("Question removed"); reload(); } else toast.error(describeError(r.error)); }} />
@@ -613,7 +672,7 @@ function QuestionEditor({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Keep {kindLabel(draft.kind)}</AlertDialogCancel>
-              <AlertDialogAction onClick={() => { if (pendingKind) schedule({ ...draft, kind: pendingKind, options: [], max: null }, 0); setPendingKind(null); }}>Change type</AlertDialogAction>
+              <AlertDialogAction onClick={() => { if (pendingKind) schedule({ ...draft, kind: pendingKind, options: [], max: null, cfg: defaultConfig(pendingKind) }, 0); setPendingKind(null); }}>Change type</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -631,7 +690,7 @@ function QuestionEditor({
         <Field label="Type" htmlFor={`kind-${n}`}>
           <Select value={draft.kind} onValueChange={(v) => changeKind(v as QuestionKind)} disabled={locked}>
             <SelectTrigger id={`kind-${n}`}><SelectValue /></SelectTrigger>
-            <SelectContent>{KINDS.map((k) => <SelectItem key={k.key} value={k.key}>{k.label}</SelectItem>)}</SelectContent>
+            <SelectContent>{KINDS.map((k) => <SelectItem key={k.key} value={k.key}>{k.label}{k.plan !== "free" && !tierAllows(tier, k.plan) ? ` · ${PLAN_LABEL[k.plan]}` : ""}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
         {/* A new question saves only once it has question text. Say so on the field as soon as anything else has been
@@ -650,7 +709,7 @@ function QuestionEditor({
           <Input id={`prompt-${n}`} value={draft.prompt} maxLength={200} disabled={locked} onChange={(e) => schedule({ ...draft, prompt: e.target.value })} placeholder="Type your question" aria-invalid={!draft.prompt.trim() && (Boolean(q) || draft.options.some((o) => o.trim())) || undefined} aria-describedby={`prompt-${n}-help`} autoFocus={!q} />
         </Field>
 
-        {isChoice(draft.kind) && (
+        {hasOptions(draft.kind) && (
           <fieldset className="lv-fieldset" aria-describedby={`opts-${n}-note`}>
             <legend className="lv-legend">Options</legend>
             <ol className="lv-options-edit" data-testid="option-rows">
@@ -715,6 +774,8 @@ function QuestionEditor({
 
         {draft.kind === "text" && <Notice tone="warn">{TEXT_WARNING}</Notice>}
 
+        {kindExtras}
+
         <ToggleRow
           title="Required"
           description={draft.optional ? "People can skip this question." : "People must answer this question to submit."}
@@ -743,7 +804,7 @@ function QuestionEditor({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep {kindLabel(draft.kind)}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (pendingKind) schedule({ ...draft, kind: pendingKind, options: [], max: null }, 0); setPendingKind(null); }}>Change type</AlertDialogAction>
+            <AlertDialogAction onClick={() => { if (pendingKind) schedule({ ...draft, kind: pendingKind, options: [], max: null, cfg: defaultConfig(pendingKind) }, 0); setPendingKind(null); }}>Change type</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -1,3 +1,4 @@
+import { kindConfigProblem, type AnyKind, type PlanTier } from "./questionKinds";
 import { accentHex, normalizePalette, type AccentOption } from "./accent";
 // Typed client for the v2 `lv_api` functions. Shapes follow docs/backend/API_CONTRACT.md and the launch contract in
 // docs/v2/LAUNCH_PLAN.md ("API contract"). Every expected application failure arrives as {ok:false,error}.
@@ -205,7 +206,7 @@ export interface Role {
 export type CampaignMode = "survey" | "poll" | "rating" | "feedback";
 export type Anonymity = "anonymous" | "identified";
 export type CampaignStatus = "draft" | "active" | "paused" | "closed" | "archived";
-export type QuestionKind = "rating" | "single_choice" | "multi_choice" | "yes_no" | "text";
+export type QuestionKind = AnyKind; // the five core kinds (000003) and the v2 set (000047), see questionKinds.ts
 export type SurveyAccess = "link" | "invite";
 
 export interface CampaignRow {
@@ -392,6 +393,43 @@ export type AnalyticsResult =
       texts_withheld?: boolean;
     };
 
+/* ------------------------------------------------------------------ 000044: results analytics and Trends */
+
+/** A released-or-withheld count: null with suppressed true is withheld, never zero. */
+export interface ReleasedCount { n: number | null; suppressed: boolean }
+export interface AnalyticsSummary {
+  responses: ReleasedCount & { released: boolean };
+  completion: { rate: number | null; started: number | null; suppressed: boolean; measured: boolean };
+  median_time: { bucket: "lt_1m" | "1_3m" | "3_10m" | "gt_10m" | null; measured: number | null; suppressed: boolean };
+}
+export interface RatingSummary { metric: "rating_summary"; question_id: string; n: number | null; mean: number | null; suppressed: boolean }
+export interface PremiumCell { key: string | null; n: number | null; suppressed?: boolean; reason?: string | null }
+export interface PremiumBlock { cells: PremiumCell[]; withheld: boolean; reason: string | null }
+export interface AnalyticsPremium { over_time: PremiumBlock; device: PremiumBlock; source: PremiumBlock }
+export interface Crosstab {
+  row_question_id: string; col_question_id: string; n: number | null; withheld: boolean; reason: string | null;
+  cells: { row: string; col: string; n: number; suppressed: boolean }[];
+}
+export interface TrendInfo {
+  trend_id: string; hub_id: string; title: string; description: string | null; space: "personal" | "community";
+  created_at: string; run_count: number; latest_at: string | null;
+}
+export interface TrendLimit { max: number; used: number; over: boolean; can_create: boolean; can_add: boolean; product: "creator_plus" | "starter_hub" }
+export interface TrendRun {
+  campaign_id: string; title: string; status: string; anonymity: Anonymity; run_at: string; activated_at: string | null;
+  closed_at: string | null; closes_at: string | null; finished: boolean;
+  responses: ReleasedCount & { released: boolean; reason?: string };
+}
+export type TrendPointState = "released" | "withheld" | "no_answers" | "not_released" | "draft" | "absent";
+export interface TrendPoint {
+  campaign_id: string; question_id: string | null; state: TrendPointState;
+  mean?: number; n?: number | null; any_withheld?: boolean;
+  options?: { key: string; n: number | null; suppressed: boolean; share: number | null }[];
+}
+export interface TrendQuestion { key: string; kind: QuestionKind; prompt: string; runs: number; points: TrendPoint[] }
+export interface TrendDetail { trend: TrendInfo; runs: TrendRun[]; questions: TrendQuestion[]; can_manage: boolean; limit: TrendLimit }
+export type ResponseSource = "link" | "qr" | "code" | "discord";
+
 export interface ExportRow {
   question_id: string;
   prompt: string;
@@ -535,6 +573,10 @@ export function createLvApi(transport: LvTransport) {
     campaignGet: (campaign: string) => call<CampaignDetailData>("lv_campaign_get", { p_campaign: campaign }),
     campaignCreate: (hub: string, title: string, mode: CampaignMode, anonymity: Anonymity = "anonymous") =>
       call<{ campaign_id: string }>("lv_campaign_create", { p_hub: hub, p_title: title, p_mode: mode, p_anonymity: anonymity }),
+    /** 000047: which question types this person can add (to one survey, or overall). */
+    kindTier: (campaign?: string) => call<{ tier: PlanTier; quiz: boolean }>("lv_kind_tier", { p_campaign: campaign ?? null }),
+    /** 000047 (managers only): the quiz answer keys of one survey, {question_id: {correct, points}}. Never part of a normal read. */
+    campaignQuiz: (campaign: string) => call<{ quiz: Record<string, { correct: string[]; points?: number }> }>("lv_campaign_quiz", { p_campaign: campaign }),
     questionAdd: (campaign: string, position: number, kind: QuestionKind, prompt: string, config: object = {}) =>
       call<{ question_id: string }>("lv_campaign_question_add", {
         p_campaign: campaign,
@@ -625,7 +667,7 @@ export function createLvApi(transport: LvTransport) {
       call<{ guest_names: GuestNamesMode }>("lv_campaign_set_guest_names", { p_campaign: campaign, p_mode: mode }),
     // 000053: individual responses of an ANONYMOUS survey on a plan with live results. Offset pages in a hash order.
     campaignResponsesAnon: (campaign: string, limit = 50, offset = 0) =>
-      call<{ responses: AnonResponseRow[]; total: number }>("lv_campaign_responses_anon", { p_campaign: campaign, p_limit: limit, p_offset: offset }),
+      call<{ responses: AnonResponseRow[]; live: boolean; released: number; next_batch_at?: number; total?: number }>("lv_campaign_responses_anon", { p_campaign: campaign, p_limit: limit, p_offset: offset }),
     campaignResponses: (campaign: string, limit = 50, before: string | null = null) =>
       call<{ responses: ResponseRow[]; total: number }>("lv_campaign_responses", { p_campaign: campaign, p_limit: limit, p_before: before }),
 
@@ -636,6 +678,31 @@ export function createLvApi(transport: LvTransport) {
     analyticsQuestion: (campaign: string, question: string, filter: LogicFilter | null = null) =>
       call<QuestionLogicResult>("lv_analytics_question", { p_campaign: campaign, p_question: question, p_filter: filter }),
     analyticsExport: (campaign: string) => call<{ rows: ExportRow[] }>("lv_analytics_export", { p_campaign: campaign }),
+    /** 000044 */
+    ratingSummary: (campaign: string, question: string) =>
+      call<RatingSummary>("lv_analytics_query", { p_campaign: campaign, p_metric: "rating_summary", p_question: question }),
+    analyticsSummary: (campaign: string) => call<AnalyticsSummary>("lv_analytics_summary", { p_campaign: campaign }),
+    analyticsPremium: (campaign: string) => call<AnalyticsPremium>("lv_analytics_premium", { p_campaign: campaign }),
+    analyticsCrosstab: (campaign: string, row: string, col: string) =>
+      call<Crosstab>("lv_analytics_crosstab", { p_campaign: campaign, p_row: row, p_col: col }),
+    trendList: (hub: string | null = null) =>
+      call<{ trends: TrendInfo[]; can_manage: boolean; limit: TrendLimit }>("lv_trend_list", { p_hub: hub }),
+    trendGet: (trend: string) => call<TrendDetail>("lv_trend_get", { p_trend: trend }),
+    trendCreate: (hub: string | null, title: string, description: string | null = null, campaigns: string[] = []) =>
+      call<{ trend: TrendInfo }>("lv_trend_create", { p_hub: hub, p_title: title, p_description: description, p_campaigns: campaigns }),
+    trendUpdate: (trend: string, title: string | null, description: string | null = null) =>
+      call<{ trend: TrendInfo }>("lv_trend_update", { p_trend: trend, p_title: title, p_description: description }),
+    trendDelete: (trend: string) => call<object>("lv_trend_delete", { p_trend: trend }),
+    trendAdd: (trend: string, campaign: string) => call<{ trend: TrendInfo }>("lv_trend_add", { p_trend: trend, p_campaign: campaign }),
+    trendRemove: (trend: string, campaign: string) => call<{ trend: TrendInfo }>("lv_trend_remove", { p_trend: trend, p_campaign: campaign }),
+    trendAskAgain: (campaign: string) =>
+      call<{ campaign_id: string; trend_id: string; space: "personal" | "community" }>("lv_trend_ask_again", { p_campaign: campaign }),
+    campaignTrend: (campaign: string) =>
+      call<{ trend: TrendInfo | null; can_manage: boolean; can_ask_again: boolean; limit: TrendLimit }>("lv_campaign_trend", { p_campaign: campaign }),
+    /** Player: where the person came from and roughly how long it took (bucketed server-side). */
+    responseContext: (receipt: string, source: ResponseSource | null, seconds: number | null) =>
+      call<{ recorded: boolean }>("lv_response_context", { p_receipt: receipt, p_source: source, p_seconds: seconds }),
+    responseStarted: (campaign: string) => call<object>("lv_response_started", { p_campaign: campaign }),
 
     /* ---- membership ---- */
     hubJoin: (hub: string) => call<{ membership_id: string; status: "accepted" | "pending" }>("lv_hub_join", { p_hub: hub }),
@@ -692,6 +759,17 @@ export function createLvApi(transport: LvTransport) {
     ...integrationsApi(call),
     /* ---- end track D ---- */
     ...brandingApi(transport, call), // survey branding (000043)
+    /** 000047: store a file for a file-upload answer in the private bucket, under <survey>/<me>/. Signed-in people only. */
+    uploadAnswerFile: async (campaign: string, file: File): Promise<{ ok: boolean; path?: string; message?: string }> => {
+      if (!transport.storage) return { ok: false, message: "Uploads are not available here." };
+      const me = await call<MyContext>("lv_my_context");
+      if (!me.ok) return { ok: false, message: "Sign in to attach a file." };
+      const safe = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-").replace(/^-+|-+$/g, "").slice(-60) || "file";
+      const rand = Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, "0")).join("");
+      const path = `${campaign}/${me.account_id}/${rand}-${safe}`;
+      const r = await transport.storage.upload("survey-uploads", path, file, file.type);
+      return r.ok ? { ok: true, path } : { ok: false, message: r.message };
+    },
   };
 }
 
@@ -739,7 +817,7 @@ export interface OwnerOffer {
 /** The rule lv.question_config_problem (000018) enforces, shared by the editor and the dev mock. */
 export function questionConfigProblem(kind: string, config: unknown): string | null {
   if (config !== null && config !== undefined && (typeof config !== "object" || Array.isArray(config))) return "Question settings must be an object.";
-  if (kind !== "single_choice" && kind !== "multi_choice") return null;
+  if (kind !== "single_choice" && kind !== "multi_choice") return kindConfigProblem(kind, config);
   const c = (config ?? {}) as { options?: unknown; max?: unknown };
   if (!Array.isArray(c.options) || c.options.length < 2 || c.options.length > 10) return "A choice question needs 2 to 10 options.";
   if (c.options.some((o) => typeof o !== "string" || !o.trim())) return "Every option needs text.";
@@ -748,7 +826,7 @@ export function questionConfigProblem(kind: string, config: unknown): string | n
   if (new Set(opts.map((o) => o.trim().toLowerCase())).size < opts.length) return "Options must all be different.";
   if (c.max !== undefined && c.max !== null && (typeof c.max !== "number" || !Number.isInteger(c.max) || c.max < 1 || c.max > opts.length))
     return "The most choices a person can pick must be between 1 and the number of options.";
-  return null;
+  return kindConfigProblem(kind, config);
 }
 
 /** A 32-character hex link token (LC-10) rather than a 6-character join code. */

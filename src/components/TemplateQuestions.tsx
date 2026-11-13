@@ -1,12 +1,15 @@
 import type { TemplateQuestion } from "../config/surveyTemplates";
 
-const KIND_LABEL: Record<TemplateQuestion["kind"], string> = {
+import { kindInfo } from "../lib/questionKinds";
+
+const KIND_LABEL: Partial<Record<TemplateQuestion["kind"], string>> = {
   rating: "Rating, 1 to 5",
   single_choice: "Choose one",
   multi_choice: "Choose any",
   yes_no: "Yes or no",
   text: "Short answer",
 };
+const labelOf = (k: TemplateQuestion["kind"]) => KIND_LABEL[k] ?? kindInfo(k)?.label ?? k;
 
 /** The questions a template will create, as the person will see them. Shared by use-case pages and the Campaign picker. */
 export function TemplateQuestions({ questions, testId }: { questions: TemplateQuestion[]; testId?: string }) {
@@ -18,7 +21,7 @@ export function TemplateQuestions({ questions, testId }: { questions: TemplateQu
           <div>
             <p className="lv-uc-prompt">{q.prompt}</p>
             <span className="lv-uc-kind">
-              {KIND_LABEL[q.kind]}
+              {labelOf(q.kind)}
               {q.max ? ` · up to ${q.max}` : ""}
               {q.optional ? " · optional" : ""}
             </span>

@@ -2,16 +2,20 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
 import { CountUp } from "../ui/motion";
-import { useLv } from "../lib/useLv";
+import { SKIP, useLv } from "../lib/useLv";
 import { describeError } from "../lib/errors";
-import type { AnalyticsResult, AnonResponseRow, ExportRow, LvError, Question, ResponseRow } from "../lib/lvApi";
+import type { AnalyticsResult, AnonResponseRow, ExportRow, LvError, Question, RatingSummary, ResponseRow } from "../lib/lvApi";
 import { summarize } from "../ui/QuestionControls";
 import { Icon } from "../components/Icon";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
 import { Badge } from "@/components/shadcn/badge";
-import { DisabledAction, Eyebrow, LoadingRows, Metric, Notice, SectionTitle } from "@/components/shadcn/blocks";
-import { ResultBars, TextAnswers, WITHHELD_EXPLAINER } from "@/components/shadcn/blocks/results";
+import { DisabledAction, Eyebrow, LoadingRows, Metric, Notice, SectionTitle, Segmented } from "@/components/shadcn/blocks";
+import { TextAnswers, WITHHELD_EXPLAINER } from "@/components/shadcn/blocks/results";
+import { LvBarChart, LvChartFrame, LvKpiCard, LvSplitBar, LvStarDistribution, LvWithheld } from "../components/charts/index";
+import { answerLabel, dataTable, findingTitle, percent, TIME_BUCKET, toData } from "../lib/chartData";
+import { ResultsPremium } from "./ResultsPremium";
+import { TrendPanel } from "./TrendPanel";
 import { ANON_MIN_ANSWERS } from "../config/privacy";
 import { PresentMode } from "../ui/PresentMode";
 
@@ -23,12 +27,6 @@ export function explainResultsError(e: Pick<LvError, "code" | "message">): strin
   if (e.code === "lv_policy_undecided") return `This survey is anonymous and still open. Results appear once it closes with at least ${ANON_MIN_ANSWERS} answers, so early answers can’t be matched to people.`;
   if (e.code === "lv_lifecycle_invalid") return "No results yet. Publish it first; drafts never report results.";
   return describeError(e);
-}
-
-function label(q: Question, key: string) {
-  if (q.kind === "yes_no") return key === "true" ? "Yes" : key === "false" ? "No" : key;
-  if (q.kind === "rating") return `${key} ★`;
-  return key;
 }
 
 /** `exportBlocked`: a reason string disables export with that reason; null enables it. */
@@ -94,6 +92,10 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
         )}
       </Card>
 
+      <SummaryCards campaignId={campaignId} />
+
+      <TrendPanel campaignId={campaignId} />
+
       {anonymous && instant && <AnonResponsesCard campaignId={campaignId} questions={questions} answered={answered} />}
       {detail.data?.campaign.anonymity === "identified" && <ResponsesCard campaignId={campaignId} questions={questions} />}
 
@@ -118,6 +120,34 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
       {detail.error && <Notice tone="error">{describeError(detail.error)}</Notice>}
       {questions.map((q) => <QuestionResult key={q.question_id} campaignId={campaignId} q={q} showSeen={hasPaths} answered={answered} />)}
       {detail.data && questions.length === 0 && <Notice>This survey has no questions yet.</Notice>}
+
+      {/* TODO(hub-dashboard): "Pin to Hub dashboard" belongs on each chart frame (LvChartFrame `actions`) once a Hub dashboard exists. */}
+      {questions.length > 0 && <ResultsPremium campaignId={campaignId} questions={questions} />}
+    </div>
+  );
+}
+
+/** Responses, completion rate and median time. Every plan. A withheld or unmeasured card says which, never zero. */
+function SummaryCards({ campaignId }: { campaignId: string }) {
+  const { api } = useIdentity();
+  const r = useLv(() => api.analyticsSummary(campaignId), [api, campaignId]);
+  const d = r.data;
+  if (!d) return null;
+  return (
+    <div className="lv-kpi-row" data-testid="summary-cards">
+      <LvKpiCard label="Responses" value={d.responses.n === null ? null : d.responses.n} withheld={d.responses.suppressed} />
+      <LvKpiCard
+        label="Completion rate"
+        value={d.completion.rate === null ? null : percent(d.completion.rate)}
+        withheld={d.completion.suppressed}
+        note={d.completion.rate !== null ? `${d.responses.n} of ${d.completion.started} who started` : "Measured for people who open the survey after this feature launched."}
+      />
+      <LvKpiCard
+        label="Median time"
+        value={d.median_time.bucket ? TIME_BUCKET[d.median_time.bucket] ?? d.median_time.bucket : null}
+        withheld={d.median_time.suppressed}
+        note={d.median_time.bucket ? `From ${d.median_time.measured} timed answers, shown as a range.` : "Not enough timed answers yet."}
+      />
     </div>
   );
 }
@@ -184,6 +214,7 @@ function AnonResponsesCard({ campaignId, questions, answered }: { campaignId: st
   const { api } = useIdentity();
   const [rows, setRows] = useState<AnonResponseRow[]>([]);
   const [total, setTotal] = useState<number | null>(null);
+  const [next, setNext] = useState<number | null>(null);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const byId = new Map(questions.map((q) => [q.question_id, q]));
@@ -193,7 +224,8 @@ function AnonResponsesCard({ campaignId, questions, answered }: { campaignId: st
     setBusy(false);
     if (!r.ok) { setError(explainResultsError(r.error)); return; }
     setError(null);
-    setTotal(r.total);
+    setTotal(r.released);
+    setNext(r.live ? r.next_batch_at ?? null : null);
     setRows((prev) => (offset ? [...prev, ...r.responses] : r.responses));
   }
   // Reload from the top only when the number of answers changes, so each refresh is one audited read, not one per poll.
@@ -202,11 +234,11 @@ function AnonResponsesCard({ campaignId, questions, answered }: { campaignId: st
     <Card data-testid="anon-responses">
       <div className="ui-spread">
         <h3 className="lv-q-result-title">Individual responses</h3>
-        {total !== null && <Badge>{total} {total === 1 ? "response" : "responses"}</Badge>}
+        {total !== null && total > 0 && <Badge>{total} {total === 1 ? "response" : "responses"} shown</Badge>}
       </div>
-      <p className="ui-help lv-m0">This survey is anonymous. Each response is shown on its own, in no particular order, with no name, account or time. Opening this list is recorded.</p>
+      <p className="ui-help lv-m0">This survey is anonymous. Each response is shown on its own, in no particular order, with no name, account or time. Opening this list is recorded.{next !== null && ` While the survey is open, responses appear in groups of ${ANON_MIN_ANSWERS}, so one answer never shows up by itself. The next group appears at ${next} answers.`}</p>
       {error && <Notice tone="error">{error}</Notice>}
-      {!error && !busy && rows.length === 0 && <p className="ui-muted lv-m0">No responses yet.</p>}
+      {!error && !busy && rows.length === 0 && <p className="ui-muted lv-m0" data-testid="anon-waiting">{next !== null ? `The first group of ${ANON_MIN_ANSWERS} responses appears at ${next} answers. Totals and charts below are already live.` : "No responses yet."}</p>}
       <ul className="lv-resp-list">
         {rows.map((r) => (
           <li key={r.response_id} className="lv-resp" data-testid="anon-response-row">
@@ -233,53 +265,78 @@ function AnonResponsesCard({ campaignId, questions, answered }: { campaignId: st
   );
 }
 
+type ChartKind = "stars" | "split" | "bars" | "columns";
+const CHART_OPTIONS: Record<string, { value: ChartKind; label: string }[]> = {
+  rating: [{ value: "stars", label: "Stars" }, { value: "bars", label: "Bars" }],
+  yes_no: [{ value: "split", label: "Split" }, { value: "bars", label: "Bars" }],
+  single_choice: [{ value: "bars", label: "Bars" }, { value: "columns", label: "Columns" }],
+  multi_choice: [{ value: "bars", label: "Bars" }, { value: "columns", label: "Columns" }],
+};
+
 function QuestionResult({ campaignId, q, showSeen, answered }: { campaignId: string; q: Question; showSeen: boolean; answered: number | null }) {
   const { api } = useIdentity();
   const r = useLv(() => api.analytics(campaignId, "answer_distribution", q.question_id), [api, campaignId, q.question_id, answered]);
+  const rating = useLv(() => (q.kind === "rating" ? api.ratingSummary(campaignId, q.question_id) : SKIP), [api, campaignId, q.question_id, q.kind]);
+  // 000042: on a survey where people take different paths, the chart also says how many saw the question.
+  const seen = useLv(() => (showSeen ? api.analyticsQuestion(campaignId, q.question_id) : SKIP), [api, campaignId, q.question_id, showSeen]);
+  const options = CHART_OPTIONS[q.kind];
+  const [kind, setKind] = useState<ChartKind | null>(null);
   const d = r.data as Extract<AnalyticsResult, { metric: "answer_distribution" }> | null;
+  const mean = (rating.data as RatingSummary | null)?.mean ?? null;
+  const filter = seen.data?.filter ? "Filtered" : null;
+
+  if (r.loading && !d) return <Card><LoadingRows rows={2} label="Loading answers" /></Card>;
+  if (r.error) return <Card><h3 className="lv-q-result-title">{q.prompt}</h3><p className="ui-muted lv-m0">{explainResultsError(r.error)}</p></Card>;
+  if (q.kind === "text") {
+    return (
+      <Card>
+        <div className="ui-spread"><h3 className="lv-q-result-title">{q.prompt}</h3><Badge>{KIND_LABEL.text}</Badge></div>
+        {showSeen && seen.data && <SeenOnly seen={seen.data.seen} answered={seen.data.answered} />}
+        <TextAnswers texts={d?.texts_withheld ? null : (d?.texts ?? null)} />
+      </Card>
+    );
+  }
+  if (!d || (d.cells.length === 0 && !d.withheld)) {
+    return <Card><h3 className="lv-q-result-title">{q.prompt}</h3><p className="ui-muted lv-m0">No answers yet.</p></Card>;
+  }
+  const data = d.withheld && d.cells.length === 0 ? [] : toData(q.kind, d.cells);
+  const current: ChartKind = kind ?? options?.[0]?.value ?? "bars";
+  const title = findingTitle(q.kind, q.prompt, data, mean);
+  const yes = data.find((x) => x.key === "true");
+  const no = data.find((x) => x.key === "false");
+  const asBars = data.map((x) => ({ ...x, label: x.suppressed ? "Other answers" : answerLabel(q.kind, x.key) }));
   return (
     <Card>
-      <div className="ui-spread">
-        <h3 className="lv-q-result-title">{q.prompt}</h3>
-        <Badge>{KIND_LABEL[q.kind] ?? q.kind}</Badge>
-      </div>
-      {showSeen && <SeenLine campaignId={campaignId} q={q} />}
-      {r.loading && !d ? (
-        <LoadingRows rows={2} label="Loading answers" />
-      ) : r.error ? (
-        <p className="ui-muted lv-m0">{explainResultsError(r.error)}</p>
-      ) : q.kind === "text" ? (
-        <TextAnswers texts={d?.texts_withheld ? null : (d?.texts ?? null)} />
-      ) : d && (d.cells.length > 0 || d.withheld) ? (
-        <>
-        {d.withheld && d.cells.length === 0 && <p className="ui-muted lv-m0" data-testid="question-withheld">Withheld: this question has fewer than {ANON_MIN_ANSWERS} answers, so showing them could point at someone. It is not zero.</p>}
-        <ResultBars
-          caption={q.prompt}
-          cells={
-            d.withheld && d.cells.length === 0
-              ? [{ key: "withheld", label: "Withheld", n: null, suppressed: true }]
-              : d.cells.map((x) => ({ key: x.key ?? "withheld", label: x.suppressed || x.key === null ? "Withheld" : label(q, x.key), n: x.n, suppressed: x.suppressed }))
-          }
-        />
-        </>
-      ) : (
-        <p className="ui-muted lv-m0">No answers yet.</p>
-      )}
+      <LvChartFrame
+        title={title}
+        subtitle={<><Badge>{KIND_LABEL[q.kind] ?? q.kind}</Badge></>}
+        seen={showSeen && seen.data ? { seen: seen.data.seen, answered: seen.data.answered } : null}
+        filterLabel={filter}
+        table={dataTable(q.prompt, q.kind, data)}
+        exportName={q.prompt}
+        testId="question-chart"
+        switcher={options && (
+          <Segmented<ChartKind> label={`Chart type for ${q.prompt}`} value={current} onValueChange={setKind} options={options} />
+        )}
+      >
+        {data.length === 0 ? (
+          <LvWithheld testId="question-withheld" />
+        ) : current === "stars" ? (
+          <LvStarDistribution data={data} mean={mean} label={q.prompt} />
+        ) : current === "split" ? (
+          <LvSplitBar yes={yes?.suppressed ? null : (yes?.n ?? 0)} no={no?.suppressed ? null : (no?.n ?? 0)} label={q.prompt} />
+        ) : (
+          <LvBarChart data={asBars} orientation={current === "columns" ? "columns" : "bars"} label={q.prompt} />
+        )}
+      </LvChartFrame>
     </Card>
   );
 }
 
-/** 000042: "N saw, M answered". Withheld on an anonymous survey when a group is under the minimum, never shown as zero. */
-function SeenLine({ campaignId, q }: { campaignId: string; q: Question }) {
-  const { api } = useIdentity();
-  const r = useLv(() => api.analyticsQuestion(campaignId, q.question_id), [api, campaignId, q.question_id]);
-  const d = r.data;
-  if (!d) return null;
+function SeenOnly({ seen, answered }: { seen: number | null; answered: number | null }) {
   return (
     <p className="ui-help lv-m0" data-testid="seen-line">
-      {d.seen === null || d.answered === null
-        ? `Withheld: fewer than ${ANON_MIN_ANSWERS} people saw or answered this, so counts could point at someone. It is not zero.`
-        : `${d.seen} saw, ${d.answered} answered`}
+      {seen === null || answered === null ? `Withheld: fewer than ${ANON_MIN_ANSWERS} people saw or answered this, so counts could point at someone. It is not zero.` : `${seen} saw, ${answered} answered`}
     </p>
   );
 }

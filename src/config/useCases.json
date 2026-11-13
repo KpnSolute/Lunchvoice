@@ -17,7 +17,17 @@
         "Comments appear as a plain list, not linked to anyone, once enough people have answered."
       ],
       "setup": "Recommended: anonymous answers, link or invite-only access, closed after a set date.",
-      "related": ["weekly-team-pulse-survey", "community-suggestion-box", "meeting-and-workshop-feedback"]
+      "related": [
+        "weekly-team-pulse-survey",
+        "community-suggestion-box",
+        "meeting-and-workshop-feedback"
+      ],
+      "recommended": [
+        "enps",
+        "exit-survey",
+        "start-stop-continue",
+        "employee-engagement"
+      ]
     },
     {
       "slug": "event-feedback-form",
@@ -35,7 +45,17 @@
         "Close the survey when you are done and keep the totals."
       ],
       "setup": "Recommended: anonymous answers, anyone with the link, guests allowed.",
-      "related": ["meeting-and-workshop-feedback", "customer-feedback-questionnaire", "member-questionnaire"]
+      "related": [
+        "meeting-and-workshop-feedback",
+        "customer-feedback-questionnaire",
+        "member-questionnaire"
+      ],
+      "recommended": [
+        "conference-feedback",
+        "event-registration",
+        "concert-feedback",
+        "webinar-feedback"
+      ]
     },
     {
       "slug": "club-and-committee-votes",
@@ -54,7 +74,16 @@
       ],
       "setup": "Recommended: invite-only, anonymous answers. The template sets this for you.",
       "caveat": "A LunchVoice poll is a straightforward vote, not a certified election. If your bylaws require a specific procedure, such as ranked choice, proxy votes or an independent returning officer, check them before treating the result as binding. A dedicated Election mode is planned.",
-      "related": ["group-scheduling-poll", "member-questionnaire", "community-suggestion-box"]
+      "related": [
+        "group-scheduling-poll",
+        "member-questionnaire",
+        "community-suggestion-box"
+      ],
+      "recommended": [
+        "officer-election",
+        "group-poll",
+        "club-satisfaction"
+      ]
     },
     {
       "slug": "weekly-team-pulse-survey",
@@ -72,7 +101,16 @@
         "Totals only, with small groups withheld rather than shown as zero."
       ],
       "setup": "Recommended: anonymous answers, invite-only for a known team.",
-      "related": ["anonymous-employee-survey", "meeting-and-workshop-feedback", "community-suggestion-box"]
+      "related": [
+        "anonymous-employee-survey",
+        "meeting-and-workshop-feedback",
+        "community-suggestion-box"
+      ],
+      "recommended": [
+        "wellbeing-pulse",
+        "start-stop-continue",
+        "shift-preferences"
+      ]
     },
     {
       "slug": "customer-feedback-questionnaire",
@@ -90,7 +128,17 @@
         "Edit any question, add your own, or start from blank."
       ],
       "setup": "Recommended: anonymous answers, anyone with the link, guests allowed.",
-      "related": ["menu-and-dining-feedback", "event-feedback-form", "community-suggestion-box"]
+      "related": [
+        "menu-and-dining-feedback",
+        "event-feedback-form",
+        "community-suggestion-box"
+      ],
+      "recommended": [
+        "csat-survey",
+        "nps-survey",
+        "customer-effort-score",
+        "website-feedback"
+      ]
     },
     {
       "slug": "meeting-and-workshop-feedback",
@@ -108,7 +156,16 @@
         "Run the same form each time and compare."
       ],
       "setup": "Recommended: anonymous answers, anyone with the link.",
-      "related": ["weekly-team-pulse-survey", "event-feedback-form", "anonymous-employee-survey"]
+      "related": [
+        "weekly-team-pulse-survey",
+        "event-feedback-form",
+        "anonymous-employee-survey"
+      ],
+      "recommended": [
+        "webinar-feedback",
+        "exit-ticket",
+        "course-evaluation"
+      ]
     },
     {
       "slug": "group-scheduling-poll",
@@ -126,7 +183,16 @@
         "No account needed for guests, if you allow them."
       ],
       "setup": "Recommended: anyone with the link for a casual poll; invite-only if the result matters.",
-      "related": ["club-and-committee-votes", "member-questionnaire", "community-suggestion-box"]
+      "related": [
+        "club-and-committee-votes",
+        "member-questionnaire",
+        "community-suggestion-box"
+      ],
+      "recommended": [
+        "event-ideas",
+        "shift-preferences",
+        "this-or-that"
+      ]
     },
     {
       "slug": "community-suggestion-box",
@@ -144,7 +210,16 @@
         "Ideas arrive as a plain list, never linked to a name."
       ],
       "setup": "Recommended: anonymous answers, anyone with the link, left open for weeks.",
-      "related": ["anonymous-employee-survey", "member-questionnaire", "group-scheduling-poll"]
+      "related": [
+        "anonymous-employee-survey",
+        "member-questionnaire",
+        "group-scheduling-poll"
+      ],
+      "recommended": [
+        "feature-requests",
+        "local-issues-poll",
+        "residents-survey"
+      ]
     },
     {
       "slug": "menu-and-dining-feedback",
@@ -162,7 +237,17 @@
         "Run it weekly and watch the trend."
       ],
       "setup": "Recommended: anonymous answers, anyone with the link, guests allowed.",
-      "related": ["customer-feedback-questionnaire", "event-feedback-form", "community-suggestion-box"]
+      "related": [
+        "customer-feedback-questionnaire",
+        "event-feedback-form",
+        "community-suggestion-box"
+      ],
+      "recommended": [
+        "quick-visit-rating",
+        "menu-vote",
+        "dietary-preferences",
+        "table-qr-feedback"
+      ]
     },
     {
       "slug": "member-questionnaire",
@@ -180,7 +265,16 @@
         "Share it with a link, a QR code or invite links."
       ],
       "setup": "Recommended: identified answers if you want to follow up, anonymous if you want candour.",
-      "related": ["club-and-committee-votes", "group-scheduling-poll", "community-suggestion-box"]
+      "related": [
+        "club-and-committee-votes",
+        "group-scheduling-poll",
+        "community-suggestion-box"
+      ],
+      "recommended": [
+        "club-satisfaction",
+        "volunteer-feedback",
+        "donor-feedback"
+      ]
     }
   ]
 }

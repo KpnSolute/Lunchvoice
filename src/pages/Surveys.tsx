@@ -10,7 +10,8 @@ import type { SaveTracker } from "./QuestionWorkbench";
 import { Icon } from "../components/Icon";
 import { campaignPhase, LinkButton } from "../components/ui";
 import { StateScreen } from "../ui/StateScreen";
-import { SURVEY_TEMPLATES, TEMPLATE_CATEGORIES, templateById, templateConfig, type TemplateCategory } from "../config/surveyTemplates";
+import { SURVEY_TEMPLATES, TEMPLATE_CATEGORIES, templateById, templateConfig, templateUsable, type TemplateCategory } from "../config/surveyTemplates";
+import { PLAN_LABEL, tierAllows, type PlanTier } from "../lib/questionKinds";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
 import { Input } from "@/components/shadcn/input";
@@ -61,7 +62,7 @@ export function SurveyList() {
         eyebrow="Quick Surveys"
         title="Ask without a Hub"
         sub="Free for everyone. Share a link, a QR code or a six-character code, or invite people by link."
-        actions={<LinkButton to="/surveys/new" variant="primary" icon="plus">New Quick Survey</LinkButton>}
+        actions={<><LinkButton to="/trends" variant="secondary">Trends</LinkButton><LinkButton to="/surveys/new" variant="primary" icon="plus">New Quick Survey</LinkButton></>}
       />
       {list.error && <Notice tone="error">{describeError(list.error)}</Notice>}
       {list.loading && !d && <LoadingRows rows={3} />}
@@ -134,9 +135,14 @@ function NewSurveyForm() {
   const nav = useNavigate();
   // /surveys/new?template=event-feedback preselects a starter template (shareable, and kept through sign-in).
   const [params] = useSearchParams();
-  const fromLink = templateById(params.get("template"));
+  // Question types follow the plan: a Plus or Pro template is listed with its plan and opens once the plan is there.
+  const tierQ = useLv(() => api.kindTier(), [api]);
+  const tier: PlanTier = tierQ.data?.tier ?? "free";
+  const fromLinkRaw = templateById(params.get("template"));
+  const fromLink = fromLinkRaw && templateUsable(fromLinkRaw) ? fromLinkRaw : null;
   const [tplId, setTplId] = useState<string>(fromLink?.id ?? "blank");
   const tpl = templateById(tplId);
+  const needsPlan = tpl && !tierQ.loading && !tierAllows(tier, tpl.plan) ? tpl.plan : null;
   const [cat, setCat] = useState<"All" | TemplateCategory>(fromLink?.category ?? "All");
   const [showAll, setShowAll] = useState(false);
   const [title, setTitle] = useState(fromLink?.title ?? "");
@@ -156,7 +162,7 @@ function NewSurveyForm() {
   }
 
   async function create() {
-    if (busy) return;
+    if (busy || needsPlan) return;
     setBusy(true);
     setError(null);
     const r = await api.quickSurveyCreate(title.trim(), access, anonymity, access === "link" && guests);
@@ -203,7 +209,7 @@ function NewSurveyForm() {
               <RadioCard value="blank" title="Blank" description="Write your own questions." />
               {/* The chosen template stays visible when the filter changes, so the selection never disappears. */}
               {visibleTemplates.map((t) => (
-                <RadioCard key={t.id} value={t.id} title={t.name} description={`${t.blurb} ${t.questions.length} questions.`} />
+                <RadioCard key={t.id} value={t.id} title={t.name} disabled={!templateUsable(t)} badge={t.plan !== "free" ? <Badge variant={t.plan === "pro" ? "ink" : "accent"}>{PLAN_LABEL[t.plan]}</Badge> : undefined} description={`${t.blurb} ${t.questions.length} ${t.questions.length === 1 ? "question" : "questions"}${t.anonymity === "identified" ? ", identified" : ""}${templateUsable(t) ? "" : ". Not ready yet."}`} />
               ))}
             </RadioGroup>
             {hiddenCount > 0 && (
@@ -213,6 +219,12 @@ function NewSurveyForm() {
             )}
           </fieldset>
 
+          {needsPlan && (
+            <Notice tone="warn" title={`${tpl!.name} is a ${PLAN_LABEL[needsPlan]} template`}>
+              <span data-testid="template-locked">It uses question types that start with {needsPlan === "plus" ? "Creator Plus or a Starter Hub" : "Creator Pro or a Team Hub"}.</span>{" "}
+              <Link to="/pricing" className="lv-link">See plans</Link>, or pick a free template.
+            </Notice>
+          )}
           <Field label="Title" htmlFor="qs-title" counter={{ value: title.length, max: 120 }}>
             <Input id="qs-title" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} placeholder="Book club: next month’s pick" autoFocus />
           </Field>
@@ -241,7 +253,7 @@ function NewSurveyForm() {
             />
           )}
           {error && <Notice tone="error">{error}</Notice>}
-          <div className="ui-row"><Button type="submit" variant="primary" size="lg" disabled={!title.trim() || busy}>{busy ? "Creating…" : "Create draft"} <Icon name="arrow" size={16} /></Button></div>
+          <div className="ui-row"><Button type="submit" variant="primary" size="lg" disabled={!title.trim() || busy || Boolean(needsPlan)}>{busy ? "Creating…" : "Create draft"} <Icon name="arrow" size={16} /></Button></div>
         </form>
       </Card>
     </div>
@@ -417,7 +429,7 @@ export function SurveyResults() {
         title={d.data?.campaign.title ?? "Results"}
         actions={<LinkButton to={`/surveys/${id}`} variant="secondary">Open in Studio</LinkButton>}
       />
-      <ResultsView campaignId={id} exportBlocked="Exports come with a Hub or Campaign plan. Quick Surveys show totals and charts here." />
+      <ResultsView campaignId={id} exportBlocked={null} />
     </div>
   );
 }

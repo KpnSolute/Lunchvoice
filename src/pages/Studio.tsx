@@ -871,7 +871,7 @@ export function ShareCard({ d, shareBase = "https://lunchvoice.com" }: { d: Camp
       {open ? (
         <>
           <CopyField label="Direct link" value={url} />
-          <QrCode value={url} label={`QR code for ${d.campaign.title}`} size={180} />
+          <QrCode value={`${url}?src=qr`} label={`QR code for ${d.campaign.title}`} size={180} />
           <ul className="lv-facts"><li><span>Join code</span><strong className="lv-code">{d.join_code}</strong></li></ul>
           <p className="ui-help lv-m0">Anyone with the link, QR or code can answer. It’s never listed publicly.</p>
         </>

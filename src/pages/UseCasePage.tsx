@@ -7,6 +7,7 @@ import { templateHref, useCaseBySlug, type UseCase } from "../config/useCases";
 import { templateById } from "../config/surveyTemplates";
 import { TemplateQuestions } from "../components/TemplateQuestions";
 import { Head, NotFoundPage } from "./Marketing";
+import { RecommendedTemplates } from "./TemplateGallery";
 
 // One page per use case (/use-cases/:slug). Content lives in src/config/useCases.json, which also feeds the search
 // metadata and the sitemap, and its sample questions come straight from the template the button opens, so the page
@@ -44,6 +45,8 @@ export function UseCasePage() {
           {u.caveat && <Notice tone="info" title="Before you rely on it">{u.caveat}</Notice>}
         </div>
       </div>
+
+      <RecommendedTemplates ids={u.recommended} useCase={u.name.toLowerCase()} />
 
       <section className="lv-stack-16" aria-labelledby="uc-more">
         <h2 id="uc-more" className="lv-mk-card-title">More ways to use LunchVoice</h2>

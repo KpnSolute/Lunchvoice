@@ -35,6 +35,22 @@
       "milestone": "M2"
     },
     {
+      "path": "/templates",
+      "name": "Template gallery (search, category and plan filters)",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M2"
+    },
+    {
+      "path": "/templates/:slug",
+      "name": "Template category or template (live preview, Use this template)",
+      "layout": "L1",
+      "shell": "public",
+      "access": "public",
+      "milestone": "M2"
+    },
+    {
       "path": "/products",
       "name": "Products (the six product pages)",
       "layout": "L1",
@@ -236,6 +252,22 @@
       "milestone": "M1"
     },
     {
+      "path": "/trends",
+      "name": "Trends (Quick Surveys)",
+      "layout": "L7",
+      "shell": "account",
+      "access": "signed-in",
+      "milestone": "M1"
+    },
+    {
+      "path": "/trends/:trend",
+      "name": "Trend (Quick Surveys)",
+      "layout": "L7",
+      "shell": "account",
+      "access": "signed-in",
+      "milestone": "M1"
+    },
+    {
       "path": "/reserve",
       "name": "Reserve your Hub URL (check, buy, renew)",
       "layout": "L2",
@@ -318,6 +350,22 @@
     {
       "path": "/:hub/analytics",
       "name": "Analytics",
+      "layout": "L7",
+      "shell": "hub",
+      "access": "manager",
+      "milestone": "M1"
+    },
+    {
+      "path": "/:hub/trends",
+      "name": "Trends",
+      "layout": "L7",
+      "shell": "hub",
+      "access": "manager",
+      "milestone": "M1"
+    },
+    {
+      "path": "/:hub/trends/:trend",
+      "name": "Trend",
       "layout": "L7",
       "shell": "hub",
       "access": "manager",

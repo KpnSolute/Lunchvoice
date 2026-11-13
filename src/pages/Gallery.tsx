@@ -5,6 +5,7 @@ import { MadeBy } from "../components/MakerMark";
 import { campaignPhase } from "../components/ui";
 import { ThemeControl } from "../ui/ThemeControl";
 import { QuestionInput } from "../ui/QuestionControls";
+import { KindInput } from "../ui/KindControls";
 import { StateScreen, type StateKind } from "../ui/StateScreen";
 import { HubMark } from "../ui/HubMark";
 import { HubProfile } from "../ui/HubProfile";
@@ -75,6 +76,26 @@ const SAMPLE_QS: Question[] = [
   { question_id: "g1", position: 0, kind: "rating", prompt: "How was the long run?", config: {} },
   { question_id: "g2", position: 1, kind: "single_choice", prompt: "Which night works?", config: { options: ["Tuesday", "Thursday", "Saturday"] } },
   { question_id: "g3", position: 2, kind: "yes_no", prompt: "Bring a friend?", config: {} },
+];
+
+// The v2 question types (000047), one sample each.
+const KIND_QS: Question[] = [
+  { question_id: "k1", position: 0, kind: "face_scale", prompt: "How was lunch?", config: {} },
+  { question_id: "k2", position: 1, kind: "dropdown", prompt: "Which room?", config: { options: ["North", "South", "East", "West"] } },
+  { question_id: "k3", position: 2, kind: "number", prompt: "How many came?", config: { min: 0, max: 50, integer: true, unit: "people" } },
+  { question_id: "k4", position: 3, kind: "date", prompt: "When did you visit?", config: {} },
+  { question_id: "k5", position: 4, kind: "nps", prompt: "Would you recommend us?", config: {} },
+  { question_id: "k6", position: 5, kind: "agree_scale", prompt: "I felt heard.", config: { points: 5 } },
+  { question_id: "k7", position: 6, kind: "ranking", prompt: "Rank the soups.", config: { options: ["Tomato", "Lentil", "Leek"] } },
+  { question_id: "k8", position: 7, kind: "image_choice", prompt: "Pick a plate.", config: { options: ["Plate A", "Plate B"] } },
+  { question_id: "k9", position: 8, kind: "slider", prompt: "How spicy?", config: { min: 0, max: 10, step: 1, min_label: "Mild", max_label: "Hot" } },
+  { question_id: "k10", position: 9, kind: "contact", prompt: "Your details", config: { fields: ["name", "email"] } },
+  { question_id: "k11", position: 10, kind: "agree_grid", prompt: "Rate each.", config: { points: 5, rows: ["Food", "Speed"] } },
+  { question_id: "k12", position: 11, kind: "before_after", prompt: "Then and now", config: { points: 5 } },
+  { question_id: "k13", position: 12, kind: "price_ladder", prompt: "Top price?", config: { prices: [5, 10, 15], currency: "USD" } },
+  { question_id: "k14", position: 13, kind: "consent", prompt: "Agree", config: { statement: "I agree to be contacted." } },
+  { question_id: "k15", position: 14, kind: "signature", prompt: "Sign", config: {} },
+  { question_id: "k16", position: 15, kind: "file_upload", prompt: "Attach a file", config: { max_mb: 5, types: ["image", "pdf"] } },
 ];
 
 // Development-only: every reusable component (design system 3), in its main states. Not routed in production.
@@ -185,6 +206,17 @@ export function Gallery() {
             <Card key={q.question_id} size="sm">
               <strong>{q.prompt}</strong>
               <QuestionInput q={q} value={qv[q.question_id]} onChange={(v) => setQv((s) => ({ ...s, [q.question_id]: v }))} />
+            </Card>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Question types (Plus and Pro included)">
+        <div className="ui-grid-3">
+          {KIND_QS.map((q) => (
+            <Card key={q.question_id} size="sm">
+              <strong>{q.prompt}</strong>
+              <KindInput q={q} value={qv[q.question_id]} onChange={(v) => setQv((s) => ({ ...s, [q.question_id]: v }))} upload={async () => ({ ok: false, message: "Uploads are off in the gallery." })} />
             </Card>
           ))}
         </div>

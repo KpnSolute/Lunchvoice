@@ -11,7 +11,7 @@ const template = readFileSync("index.html", "utf8");
 
 test("every indexable page is a real public route", () => {
   for (const p of seo.pages) {
-    const r = routes.find((x) => x.path === p.path || (p.path.startsWith("/use-cases/") && x.path === "/use-cases/:slug") || (p.path.startsWith("/products/") && x.path === "/products/:slug"));
+    const r = routes.find((x) => x.path === p.path || (p.path.startsWith("/use-cases/") && x.path === "/use-cases/:slug") || (p.path.startsWith("/products/") && x.path === "/products/:slug") || (p.path.startsWith("/templates/") && x.path === "/templates/:slug"));
     assert.ok(r, `${p.path} is not in routes.json`);
     assert.equal(r.access, "public", `${p.path} must be public to be indexed`);
   }
@@ -128,4 +128,15 @@ test("a $ in page text never acts as a replacement pattern (the $13/month link-p
   }
   const odd = { ...seo.pages[1], description: "Costs $13/month, $& and $1$2 and $$ stay as typed, here." };
   assert.match(renderPage(template, seo, odd), /content="Costs \$13\/month, \$&amp; and \$1\$2 and \$\$ stay as typed, here\."/);
+});
+
+test("the template gallery is indexable: index, 12 categories, 82 templates, and the app and the build agree on their metadata", async () => {
+  const pages = seo.pages.filter((p) => p.path === "/templates" || p.path.startsWith("/templates/"));
+  assert.equal(pages.length, 1 + 12 + 82);
+  const { templates } = JSON.parse(readFileSync("src/config/templates.json", "utf8"));
+  assert.equal(templates.length, 82);
+  // src/ui/Seo.tsx builds the same pages at runtime; compare through tsx so the TypeScript copy is the one under test.
+  const { execFileSync } = await import("node:child_process");
+  const out = execFileSync(process.execPath, ["--import", "tsx", "-e", `import { templatePages } from "./src/ui/Seo.tsx"; import t from "./src/config/templates.json" with { type: "json" }; console.log(JSON.stringify(templatePages(t.templates)));`], { encoding: "utf8" });
+  assert.deepEqual(JSON.parse(out), pages);
 });

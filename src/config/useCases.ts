@@ -15,6 +15,8 @@ export interface UseCase {
   setup: string;
   caveat?: string;
   related: string[];
+  /** Template slugs for the "Recommended for" strip (src/config/templates.json). */
+  recommended: string[];
 }
 
 export const USE_CASES = useCaseData.useCases as UseCase[];

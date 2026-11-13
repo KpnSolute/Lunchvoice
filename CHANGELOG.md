@@ -25,8 +25,67 @@ categories and the repository's decimal `X.X.X` release policy.
 - Tests: `supabase/tests/53_results_instant.sql` (every plan family, anonymous and identified, live and closed, below and
   above 5, responses, flag, filters, grants); `24` and `42` updated where a Team Hub or Creator Plus survey now reports live;
   `e2e/liveresults.test.mjs`; `src/lib/livePricing.test.ts`. Rollback `supabase/rollbacks/000053_v2_results_instant.down.sql`.
-  Known trade-off: on live anonymous results a creator who polls can see which answer is new (the founder accepted this
-  with the notice to respondents); order, time and identity are never exposed.
+- Security: individual rows (and free text) of an OPEN anonymous survey are released in groups of 5 (`floor(n / 5) * 5`),
+  the group fixed when the answer is written (`lv.submissions.batch_no`, private; anonymous rows keep no arrival time), shown
+  in a hash order, with no exact live total (`released` and `next_batch_at` only); after close every row. A single arrival
+  therefore never adds a single visible row. The respondent notice says "The creator can see results as they come in.
+  Individual answers are shown in groups of 5 and never with your name."
+- Security: metadata (summary cards, responses per day, device, source, duration, cross-tabs, quiz totals, webhook
+  milestones) keeps the existing anonymous rules (finished, minimum cohort, frozen population) even on a live plan: live
+  applies to answer results only (totals, charts, per-question cells, NPS, Trend points, export). `lv.results_gate` and
+  `lv.released_participants` read the waiting engine. Totals and charts stay live from the first answer (founder decision).
+- Merged with 000044 (Trends, analytics) and 000047 (question types); `supabase/tests/44` expectations for Creator Plus Trend
+  points updated. Known trade-off: live totals and charts still change per arrival (founder decision).
+### Operations (production, 2026-11-13: 000047 question types)
+
+- **Applied 000047** (SHA-256 `a2ce6408…`) to production through the Management API as the file's own transaction, after
+  `test:pr`, 1703/1703 database checks and 63/63 related e2e. Pre-checks: production's kind list was the base five and no
+  production-only migration (000029–000032, 000036–000038) redefines the replaced functions. Verification: 21 kinds allowed;
+  existing kinds still validated (an off-list choice is refused) and NPS refuses 11; `survey-uploads` private with a 10 MB
+  limit and 2 storage policies; the quiz answer key RPC is not callable by `anon`; `templates` slug reserved.
+
+### Added (question types, 82 templates and the template gallery; migration 000047)
+
+- **16 new question types.** Free: face scale, dropdown, number, date. Plus (Starter Hub, Creator Plus): NPS with an automatic
+  score, agree scale (5 or 7 points), ranking, image choice, slider, contact fields. Pro (Team Hub, Creator Pro): agree grid,
+  quiz scoring, file upload, consent checkbox, typed signature, price ladder, before/after. Every type has an editor in both
+  the simple and the Creator studio editor, an accessible phone-first answer control (44px targets, light and dark), server
+  settings and per-answer validation, a mock transport and a results shape. Free accounts can preview Plus and Pro types with
+  a lock badge that says what unlocks them. Contact, file, consent and signature are for identified surveys only.
+- **Migration `000047_v2_question_types`** (additive; rollback `supabase/rollbacks/000047_v2_question_types.down.sql`, tests
+  `supabase/tests/47_question_types.sql`). Extends 000042's `lv.check_answer_value`, `lv.kind_options`,
+  `lv.kind_allows_jumps`, `lv.kind_is_scale` with `create or replace`, every existing kind verbatim (proven in the test);
+  `lv.quick_question_guard` adds the plan gate and the identity rule; `lv.capacity_check` accepts the plan's own kinds.
+  New: `lv_kind_tier`, `lv_campaign_quiz`, `lv_quiz_results`, private bucket `survey-uploads`, reserved slug `templates`.
+  Not applied to production.
+- **82 templates, 12 categories** (45 Free, 22 Plus, 15 Pro) stored as data in `src/config/templates.json`; the original 20
+  stay Free. Anonymous by default; identified ones say so on the first line; health templates ask about experience only;
+  dietary options are choices, never allergies (the RSVP's "Nut allergy" option became "Nut-free"); Pro group breakdowns follow
+  the minimum of 5. Trivia night is valid data but flagged (timed rounds and a leaderboard are not built) and hidden from Use.
+- **Public gallery**: `/templates` (search, category and plan filters), `/templates/<category>`, `/templates/<template>`
+  (live preview with the real controls, plan badge, locked templates show the plan needed and link to plans), a
+  "Recommended for" strip on every use-case page, and the Quick Survey picker reads the same data. All 95 pages are in the
+  sitemap, `routes.json`, `render.yaml` and the SEO metadata (app and build checked equal by a test).
+- **Security:** the quiz answer key lives in its own column (`lv.campaign_questions.quiz`), never in `config`, so no
+  respondent, guest or public read can return it; managers fetch it with `lv_campaign_quiz`.
+- **Security:** a file answer must be the submitter's own (`<survey>/<their account>/...`), from a signed-in account (never
+  a guest), and the object must exist in the private bucket.
+- **Security:** uploads follow the submit rules (`lv.can_participate`, open and identified survey, account and Hub not
+  suspended or blocked), the bucket restricts MIME types and size, and one person may store at most 5 files per survey.
+- **Security:** the quiz guard fires on any change of kind, settings or key, validates the key against the question as it is
+  now, rejects a key on a non-choice kind and keeps the Pro entitlement check.
+- Not done / follow-ups: image-choice pictures use https addresses, which the site's CSP (`img-src 'self' data: blob:`) will not
+  load until a picture bucket or host is chosen (words always show); `nps`, `slider` and `ranking` are not yet usable in
+  Linked Questions rules (only dropdown, image choice and face scale are); respondents do not see their quiz score yet.
+
+### Operations (production, 2026-11-13: 000044 Trends and analytics)
+
+- **Applied 000044** (SHA-256 `e49363a8…`) to production through the Management API as the file's own transaction, after
+  `test:pr`, 1634/1634 database checks and 40/40 related e2e. Review change before applying: the device counter trigger on
+  `lv.submissions` swallows its own errors, so a counter can never fail a submission. Pre-check: only `000016` defines
+  `lv.api_analytics_export` (no production-only migration touched it). Verification: RLS on all four new tables, no
+  API-role table access, `lv_trend_create` not callable by `anon`, the guarded device trigger enabled, `trends.max`
+  rows live (free 0, Creator Plus 3, Creator Pro 10, Starter 3, Team 5; Creator counts provisional).
 
 ### Changed (branding is a full-width step in the Creator studio too)
 
@@ -110,6 +169,8 @@ Pieces 1, 2, 4 done and checked (db 1535/0, e2e 171/171, brain, build, design, t
   respondents change their display name, a Kahoot-style Present mode for results, plan-based results privacy (results wait
   for 5 answers on free and Starter; Creator Plus sees responses live, anonymous included, per founder 2026-11-13) and
   a rail-canvas-panel Creator studio. The plan rule needs a Loom verdict and founder approval before any migration.
+- Roadmap: added "Future (not scheduled)" to `docs/v2/PRODUCT_DIRECTION_2026-11-11.md` with `create.lunchvoice.com`,
+  a dedicated Kahoot-style creator app (founder, 2026-11-13). Hub URLs stay path-based.
 
 ### Operations (production, 2026-11-13: 000052)
 - Applied `000052_v2_respondent_display_name` to Lunchvoice `qprfonxvthmaoxfixigk` as its own transaction, on the founder's "make it live", before the frontend deploy. Pre-check: history ended at 000051. Verified: history ends at 000052; `lv_api.lv_submit_response(uuid, jsonb, text)` executable by `authenticated` only (not `anon`); internal `lv.submit_response` not exposed; the two-argument function still callable.
@@ -209,6 +270,42 @@ Pieces 1, 2, 4 done and checked (db 1535/0, e2e 171/171, brain, build, design, t
   000042 moved every Quick Survey guard to `lv.quick_limit`, but `lv_api.lv_my_context` still reported the free numbers.
   000051 keeps the wrapper body and overrides `quick_surveys.limit` and `question_limit` with the caller's own limits.
   Tests: `supabase/tests/51_context_creator_limits.sql` (free 5/10, Creator Plus 15/30, Creator Pro 100/100).
+
+### Added (Results charts, premium results and Trends, migration 000044, 2026-11-13)
+
+- **Lv chart components** (`src/components/charts/`, import from `.../charts/index`): `LvChartFrame`, `LvBarChart`,
+  `LvStarDistribution`, `LvSplitBar`, `LvLineChart`, `LvKpiCard`, `LvWithheld`. They wrap Recharts 3.10.1 (pinned) so no
+  screen imports it; grey first with LunchVoice amber as the one accent, existing `--lv-*` tokens only, values on bars,
+  bars start at zero, light/dark/high contrast, 375px, an accessible data table behind every chart, "Withheld: fewer than 5
+  answers" as a built-in state, and "N saw, M answered" plus an active-filter label on the frame. Components never total
+  or average anything; the numbers come from the API. Recharts loads only in the lazy results/Trends chunks.
+- **Results page** (all plans): summary cards (responses, completion rate, median time bucket), a star distribution with
+  the server's average, sorted choice bars, a yes/no split, a text list; each chart has a type switcher, a "Show data
+  table" toggle and "Save as image" (PNG, in the browser). CSV export of released results now also opens for Creator Plus
+  and Pro (`analytics.export`, enforced by the server). "Pin to Hub dashboard" is a TODO until a Hub dashboard exists.
+- **Premium results** (Team Hub, Creator Pro; `analytics.premium`): responses over time, device type (phone/tablet/computer
+  only) and where people came from (link, QR, join code, Discord), and a cross-tab of two choice questions. On anonymous
+  surveys every shown cell is at least 5 with complementary suppression (`lv.safe_cells`); a cross-tab is withheld whole
+  unless every cell qualifies and no row or column sits in one cell. The Starter Hub sees what unlocks it.
+- **Coarse capture, counters only**: the device class is read from the request's User-Agent in an `AFTER INSERT` trigger
+  and the source/duration bucket and "started" are reported by the player once per receipt. The User-Agent and IP are never
+  stored, and nothing is stored per response, so it cannot be joined to an answer. QR codes carry `?src=qr`.
+- **Trends**: a series of surveys asked again (a Hub's Campaigns, or a person's Quick Surveys; one space per Trend). The
+  Trend page lists runs in time order with dates and answer counts and compares repeated questions (same kind and wording)
+  as a rating average, a choice share or a yes/no split, from privacy-safe per-run results: withheld is a gap, never zero;
+  answers are never joined across runs. "Ask again" makes a draft copy already in the Trend. Manage with `campaign.manage`
+  (owner of a personal space); reading needs `analytics.read`. `trends.max` (free 0, Creator Plus 3, Creator Pro 10, Starter 3,
+  Team 5; Creator counts PROVISIONAL) and `trends.max_pass` (1 on a Campaign pass). Over the limit nothing is deleted and
+  everything stays readable; creating, adding and asking again are refused (`lv_limit_reached`).
+- Hub tab "Trends"; Quick Surveys page links to `/trends`; routes `/:hub/trends[/:trend]` and `/trends[/:trend]`.
+- Rollback `supabase/rollbacks/000044_v2_trends_and_analytics.down.sql` (refuses while a Trend exists); tests
+  `supabase/tests/44_trends_and_analytics.sql`, `src/lib/chartData.test.ts`, `e2e/analytics.test.mjs`.
+
+### Security (000044)
+
+- "Ask again" refuses a blocked survey (`lv_locked`), a suspended account or space (`lv_suspended`), and a caller over the
+  creation rate limit (`quick.create_per_hour`, `lv_rate_limited`), on top of `campaign.manage`/owner and the Trend limit;
+  creating a Trend also refuses a suspended account or space. Database checks prove each refusal and that no copy is made.
 
 ### Operations (production, 2026-11-13: 000042 Linked Questions)
 

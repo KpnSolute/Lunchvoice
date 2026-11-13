@@ -1,9 +1,9 @@
 import { LvMark } from "../components/LvMark";
-import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
 import { useLv } from "../lib/useLv";
-import type { Answer, GuestNamesMode } from "../lib/lvApi";
+import type { Answer, GuestNamesMode, ResponseSource } from "../lib/lvApi";
 import { Loading, campaignPhase, LinkButton } from "../components/ui";
 import { Button } from "@/components/shadcn/button";
 import { Input } from "@/components/shadcn/input";
@@ -12,6 +12,7 @@ import { Icon } from "../components/Icon";
 import { describeError } from "../lib/errors";
 import { useBusy } from "../lib/busy";
 import { QuestionInput, summarize } from "../ui/QuestionControls";
+import { answerValueProblem, CORE_KINDS, IDENTIFIED_ONLY } from "../lib/questionKinds"; // v2 question types (000047)
 import { StateScreen } from "../ui/StateScreen";
 import { hasSections, longestPath, sectionsOf, visibleQuestions } from "../lib/sections";
 import { START_SURVEY } from "../lib/billingState";
@@ -47,6 +48,9 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   const [busy, setBusy] = useState(false);
   // Direction of the last move, so the question stage slides the right way (Back slides from the left).
   const [dir, setDir] = useState<"fwd" | "back">("fwd");
+  // 000044: coarse context for the owner's results. Only the channel and a time bucket leave this device, never an identity.
+  const [search] = useSearchParams();
+  const startedAt = useRef<number | null>(null);
   useBusy("player", true); // keeps the "new version" notice from appearing while someone is answering
   const draftKey = `lv-draft-${guest?.joinCode ?? campaignId}`;
   // 000028: an identified survey may ask guests for a name (optional or required). Kept on this device between visits.
@@ -72,6 +76,8 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   const q = questions[step];
   const section = q ? sectionStarts.get(q.question_id) : undefined;
   const namesMode: GuestNamesMode = guest && d?.campaign.anonymity === "identified" ? (d.campaign.guest_names ?? "off") : "off";
+  // File answers go to the private bucket and need a signed-in person (guests have no folder of their own).
+  const uploadFile = guest ? undefined : (f: File) => api.uploadAnswerFile(campaignId, f);
   const cleanName = guestName.replace(/\s+/g, " ").trim();
   const nameMissing = namesMode === "required" && !cleanName;
 
@@ -92,18 +98,25 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   }, [draftKey, allQuestions.length]);
 
   useEffect(() => {
-    try { localStorage.setItem(draftKey, JSON.stringify(answers)); } catch { /* ignore */ }
+    // Names, contact details, consent and signatures are not kept on the device between visits.
+    try { localStorage.setItem(draftKey, JSON.stringify(Object.fromEntries(Object.entries(answers).filter(([id]) => !allQuestions.some((x) => x.question_id === id && IDENTIFIED_ONLY.includes(x.kind)))))); } catch { /* ignore */ }
   }, [answers, draftKey]);
 
   async function submit() {
     if (busy) return;
     setBusy(true);
     setError(null);
-    const payload: Answer[] = questions.map((qq) => ({ question_id: qq.question_id, value: answers[qq.question_id] ?? null }));
+    const payload: Answer[] = questions.map((qq) => { const v = answers[qq.question_id] ?? null; return { question_id: qq.question_id, value: v !== null && !(CORE_KINDS as readonly string[]).includes(qq.kind) && answerValueProblem(qq.kind, qq.config, v) ? null : v }; });
     const r = guest ? await api.guestSubmit(guest.joinCode, guest.guestKey, payload, namesMode === "off" ? null : cleanName || null) : await api.submit(campaignId, payload, d?.campaign.anonymity === "identified" && session ? cleanAccountName || null : null);
     setBusy(false);
     if (r.ok) {
       setReceipt({ id: r.receipt_id, duplicate: r.duplicate });
+      if (!r.duplicate) {
+        const raw = search.get("src");
+        const source: ResponseSource = raw === "qr" || raw === "discord" || raw === "code" ? raw : "link";
+        const seconds = startedAt.current === null ? null : Math.round((Date.now() - startedAt.current) / 1000);
+        void api.responseContext(r.receipt_id, source, seconds);
+      }
       try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
     } else setError(describeError(r.error));
   }
@@ -196,8 +209,11 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
   const minutes = Math.max(1, Math.round(planned * 0.3));
   const anonymous = d.campaign.anonymity === "anonymous";
   const answered = (i: number) => {
-    const v = answers[questions[i]!.question_id];
-    return v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0);
+    const q = questions[i]!;
+    const v = answers[q.question_id];
+    const some = v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0);
+    // The v2 kinds are only answered when the whole value is valid (a half-filled grid or contact form is not an answer).
+    return some && ((CORE_KINDS as readonly string[]).includes(q.kind) || answerValueProblem(q.kind, q.config, v) === null);
   };
   // Compliance LC-03: every question is required unless its config says optional; the promises must be true.
   const optional = (i: number) => Boolean((questions[i]?.config as { optional?: boolean } | undefined)?.optional);
@@ -219,7 +235,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
           {pt.theme?.welcome_headline && <p className="lv-pt-subtitle">{d.campaign.title}</p>}
           <div className="lv-player-hero-foot">
             <span className="lv-row-sub" style={{ color: "inherit", opacity: 0.8 }}>{hasSections(allQuestions) && planned !== allQuestions.length ? "Up to " : ""}{planned} {planned === 1 ? "question" : "questions"} · ~{minutes} min</span>
-            <Button variant="primary" onClick={() => { setDir("fwd"); setStep(0); setView("question"); }} disabled={total === 0 || nameMissing} data-testid="player-start">
+            <Button variant="primary" onClick={() => { setDir("fwd"); setStep(0); setView("question"); if (startedAt.current === null) { startedAt.current = Date.now(); void api.responseStarted(d?.campaign.campaign_id ?? campaignId); } }} disabled={total === 0 || nameMissing} data-testid="player-start">
               Start <Icon name="arrow" size={16} />
             </Button>
           </div>
@@ -271,7 +287,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
         )}
         {anonymous && d.campaign.results_instant && (
           <p className="lv-identity-chip lv-enter" style={{ "--i": 1 } as React.CSSProperties} data-testid="results-live-note">
-            <Icon name="lock" size={16} /> The creator can see results as they come in. Your answers are not linked to your name.
+            <Icon name="lock" size={16} /> The creator can see results as they come in. Individual answers are shown in groups of 5 and never with your name.
           </p>
         )}
         <ul className="lv-promises">
@@ -345,7 +361,7 @@ export function Player({ campaignId, guest, embedded = false }: { campaignId: st
         )}
         <h1 className="lv-q-title">{q?.prompt}</h1>
         <div className="lv-q-controls">
-          {q && <QuestionInput q={q} value={answers[q.question_id]} onChange={(v) => setAnswers((a) => ({ ...a, [q.question_id]: v }))} />}
+          {q && <QuestionInput q={q} value={answers[q.question_id]} onChange={(v) => setAnswers((a) => ({ ...a, [q.question_id]: v }))} upload={uploadFile} />}
         </div>
       </div>
       <div className="lv-player-nav">

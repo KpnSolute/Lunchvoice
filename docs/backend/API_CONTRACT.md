@@ -1250,14 +1250,91 @@ answer except free text (5).
   `texts_withheld: false`. Free text is shuffled and carries no metadata. **Filters on anonymous surveys stay refused**
   (`lv_invalid_input`) on every plan. `lv_analytics_export` is unchanged (Starter or Team, as before).
 - **`lv_campaign_responses_anon(p_campaign, p_limit default 50, p_offset default 0)`** (authenticated; needs
-  `analytics.read`): `{ ok, total, responses: [{ response_id, answers: [{ question_id, prompt, kind, value }] }] }`.
-  Anonymous surveys only (`lv_not_available` for identified ones: use `lv_campaign_responses`). Without `results.instant`:
-  `lv_entitlement_required` with `error.product = "creator_plus"`. Rows carry **no** account, name, kind, timestamp,
-  receipt id, submission id or arrival order; `response_id` is an opaque 16-character key; order is a stable hash that does
-  not follow submission time; page with `p_offset`. Every call is written to `lv.audit_events`
-  (`campaign.responses_viewed`, `detail.anonymous = true`) and to `lv.analytics_query_log` (`individual_responses`).
+  `analytics.read`): `{ ok, live, released, next_batch_at?, total?, responses: [{ response_id, answers: [{ question_id,
+  prompt, kind, value }] }] }`. Anonymous surveys only (`lv_not_available` for identified ones: use
+  `lv_campaign_responses`). Without `results.instant`: `lv_entitlement_required`, `error.product = "creator_plus"`.
+  **Security: batches.** While the survey is open, rows are released in groups of `campaign.min_cohort` (5): only complete
+  groups (`released = floor(n / 5) * 5`, `live: true`, `next_batch_at = released + 5`), so one arrival never adds one
+  visible row; there is NO `total` while live. After the survey finishes every row is released and `total` is present. The
+  group a submission belongs to is fixed when it is written (`lv.submissions.batch_no`, private), because anonymous rows keep
+  no arrival time. Rows carry **no** account, name, kind, timestamp, receipt id, submission id or arrival order;
+  `response_id` is an opaque 16-character key; order is a stable hash; page with `p_offset`. Every call is written to
+  `lv.audit_events` (`campaign.responses_viewed`, `detail.anonymous = true`) and to `lv.analytics_query_log`.
+  Free text on an open anonymous survey follows the same groups (`texts_withheld: true` until the first group).
+- **Security: metadata keeps the anonymous rules.** `lv_analytics_summary`, `lv_analytics_premium` (responses per day, device,
+  source), `lv_analytics_crosstab`, duration, quiz totals and webhook/Discord milestone counts stay behind "survey finished,
+  minimum cohort, frozen population" on anonymous surveys even where `results.instant` holds. Live applies to answer results
+  only: `lv_analytics_query`, `lv_analytics_overview`, `lv_analytics_question`, Trend points, export, per-question cells and NPS.
 - Identified surveys keep `lv_campaign_responses` (names, `kind: member` shown as Account, `kind: guest` shown as Guest,
   unverified), unchanged.
 - The REST API `results.get` and `released_participants` go through the same engine, so a Team Hub's results are live there
   too; the API still never returns free text.
 - A lapsed plan returns the survey to the waiting rules at once (nothing is stored differently).
+
+## Question types and the template gallery (000047)
+
+Question kinds (`lv_campaign_question_add` / `_update`, `p_kind`): the five core kinds plus `face_scale`, `dropdown`, `number`,
+`date` (Free), `nps`, `agree_scale`, `ranking`, `image_choice`, `slider`, `contact` (Plus: Starter Hub, Creator Plus) and
+`agree_grid`, `file_upload`, `consent`, `signature`, `price_ladder`, `before_after` (Pro: Team Hub, Creator Pro). Plan keys are
+`lv.plan_limits` `survey.kinds` per family; a person's personal space also counts the Hubs they own. A kind the plan does not
+include answers `lv_entitlement_required` with `product` = `creator_plus` | `creator_pro`, `feature` = `survey.kinds`, `kind`.
+`contact`, `file_upload`, `consent`, `signature` need an identified survey (`lv_invalid_input`, also checked when a survey leaves
+draft or switches to anonymous).
+
+Settings (all validated by `lv.question_config_problem` -> `lv.kind_config_problem`): `dropdown`/`ranking`/`image_choice`
+`options` (2-50 / 2-10 / 2-6) and optional `images` (https only); `number` `min`/`max`/`integer`/`unit`; `date` `min`/`max`
+(YYYY-MM-DD); `nps` `low_label`/`high_label`; `agree_scale`/`agree_grid`/`before_after` `points` (5|7), `labels`, `rows`,
+`before_label`/`after_label`; `slider` `min`/`max`/`step`/`min_label`/`max_label`; `contact` `fields` (name, email, phone);
+`file_upload` `max_mb` (1-10), `types` (image, pdf, doc); `consent` `statement`; `price_ladder` `prices` (rising), `currency`.
+
+Answers (`lv.check_answer_value`, extending 000042 with every existing branch verbatim): face 1-5; dropdown/image choice one
+option; number/date within bounds; nps 0-10; agree 1..points; ranking a full permutation; slider on a step; contact an object
+with exactly the asked fields; grid `{statement: n}`; before/after `{before, after}`; file `{path, name, size, type}`;
+consent `true`; signature a string; price a ladder price or `"none"`. `lv.kind_options` / `lv.kind_allows_jumps` /
+`lv.kind_is_scale` also cover dropdown and image choice (single-pick) and face scale (1-5).
+
+Results: `lv.question_cells` keys by kind (`ranking` counts first choices, `agree_grid` `"statement: n"`, `before_after`
+`"before: n"` / `"after: n"`); contact, file and signature never become cells. NPS = % promoters - % detractors, computed from
+published cells and withheld with them (minimum cohort).
+
+**Quiz scoring (Pro).** The answer key is NOT in `config`: writers send `config.quiz = {correct: [...], points}` and a trigger
+moves it into `lv.campaign_questions.quiz`, so no respondent, guest or public read can return it. Managers read it with
+`lv_campaign_quiz(p_campaign)` -> `{quiz: {question_id: {correct, points}}}`; `quiz: null` clears it. Totals:
+`lv_quiz_results(p_campaign)` -> `{withheld, max_points, attempts, average, best}`. The key is validated whenever the kind,
+settings or key change, and only a choice kind may have one.
+
+**File answers.** Private bucket `survey-uploads` (10 MB, images/PDF/Word/text only). Path `<survey>/<account>/<file>`. A signed-in
+person may write only to their own folder, only while they could submit (access mode, invite or membership, not suspended or
+blocked, survey open and identified), at most 5 files per person per survey. A file answer is accepted only from that
+submitter (never a guest) and only if the object exists. Managers read through the storage policy.
+
+`lv_kind_tier(p_campaign?)` -> `{tier: free|plus|pro, quiz}`. `/templates` is a reserved slug.
+
+## Results analytics and Trends (000044)
+
+All functions return the envelope. Results functions go through the same gate as `lv_analytics_query` (draft ->
+`lv_lifecycle_invalid`; an open anonymous survey -> `lv_policy_undecided`; no `analytics.read` -> `lv_forbidden`). A null
+count with `suppressed: true` is withheld, never zero.
+
+- **Map.** `trends.max` (free 0, creator_plus 3, creator_pro 10, starter 3, team 5; Creator values provisional),
+  `trends.max_pass` (1 for starter and team passes), `analytics.premium` (team, creator_pro), `analytics.export`
+  (also creator_plus, creator_pro). `lv_analytics_export` now accepts a person's Creator plan for a personal-space survey.
+- **`lv_analytics_summary(p_campaign)`** -> `{ responses: {n, suppressed, released}, completion: {rate, started, suppressed, measured},
+  median_time: {bucket: lt_1m|1_3m|3_10m|gt_10m|null, measured, suppressed} }`. Completion needs started >= responses.
+- **`lv_analytics_premium(p_campaign)`** (`lv_entitlement_required`, product `team_hub` or `creator_pro`) ->
+  `{ over_time, device, source }`, each `{ cells: [{key, n, suppressed}], withheld, reason }`. Device is mobile/tablet/desktop/unknown,
+  source link/qr/code/discord/unknown. Anonymous surveys: cells >= `campaign.min_cohort` with complementary suppression.
+- **`lv_analytics_crosstab(p_campaign, p_row, p_col)`** (premium) -> `{ n, cells: [{row, col, n, suppressed}], withheld, reason }`;
+  withheld whole on an anonymous survey unless every cell qualifies and no row or column sits in one cell.
+  `lv_analytics_query(..., 'rating_summary', question)` returns `{ n, mean, suppressed }` for the star average.
+- **Trends.** `lv_trend_list(p_hub null = personal space)` -> `{ trends, can_manage, limit: {max, used, over, can_create, can_add, product} }`;
+  `lv_trend_get(p_trend)` -> `{ trend, runs: [{campaign_id, title, status, anonymity, run_at, finished, responses}], questions:
+  [{key, kind, prompt, runs, points: [{campaign_id, question_id, state: released|withheld|no_answers|not_released|draft|absent, mean?, n?, options?: [{key, n, suppressed, share}]}]}], can_manage, limit }`;
+  `lv_trend_create(p_hub, p_title, p_description, p_campaigns[])`, `lv_trend_update`, `lv_trend_delete` (grouping only),
+  `lv_trend_add(p_trend, p_campaign)`, `lv_trend_remove`, `lv_trend_ask_again(p_campaign)` -> `{ campaign_id, trend_id, space }`,
+  `lv_campaign_trend(p_campaign)` -> `{ trend, can_manage, can_ask_again, limit }`. Manage: `campaign.manage` (personal owner);
+  read: `analytics.read`. Over the limit: reads work; create/add/ask again -> `lv_limit_reached`. Ask again also refuses
+  `lv_locked` (blocked survey), `lv_suspended` and `lv_rate_limited` (`quick.create_per_hour`).
+- **Respondent context (anon + authenticated).** `lv_response_context(p_receipt, p_source, p_seconds)` -> `{ recorded }` (once per
+  receipt; only per-Campaign counters are stored, never the User-Agent, IP or a per-response row) and `lv_response_started(p_campaign)`
+  (a vanity counter; completion is shown only when plausible). The device class is captured by a trigger on submissions.

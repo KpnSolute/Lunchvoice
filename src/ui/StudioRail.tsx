@@ -7,6 +7,7 @@ import type { Question, QuestionKind } from "../lib/lvApi";
 import { describeRule } from "../lib/sections";
 import { describeLogicRule } from "../lib/logic";
 import { moveTargets } from "../lib/studio";
+import { kindInfo } from "../lib/questionKinds";
 
 /** A small glyph per question type, so the rail reads at a glance. Decorative: the type is also written out. */
 export function KindGlyph({ kind, size = 18 }: { kind: QuestionKind | string; size?: number }) {
@@ -94,11 +95,11 @@ export function StudioRail({ qs, sel, locked, atLimit, limit, onSelect, onAdd, o
               onDragLeave={() => setOver(null)}
               onDrop={(e: DragEvent) => { e.preventDefault(); const from = drag.current; drag.current = null; setOver(null); if (from !== null) onMove(from, i); }}
             >
-              <button type="button" className="lv-thumb" aria-current={sel === q.question_id ? "true" : undefined} onClick={() => onSelect(q.question_id)} onKeyDown={(e) => onKey(e, i)} data-testid="rail-thumb" aria-label={`Question ${i + 1}: ${q.prompt}. ${KIND_WORD[q.kind] ?? q.kind}${q.config.optional ? ", optional" : ""}`}>
+              <button type="button" className="lv-thumb" aria-current={sel === q.question_id ? "true" : undefined} onClick={() => onSelect(q.question_id)} onKeyDown={(e) => onKey(e, i)} data-testid="rail-thumb" aria-label={`Question ${i + 1}: ${q.prompt}. ${KIND_WORD[q.kind] ?? kindInfo(q.kind)?.label ?? q.kind}${q.config.optional ? ", optional" : ""}`}>
                 <span className="lv-thumb-n">{i + 1}</span>
                 <span className="lv-thumb-text">
                   <span className="lv-thumb-prompt">{q.prompt}</span>
-                  <span className="lv-thumb-kind"><KindGlyph kind={q.kind} size={14} />{KIND_WORD[q.kind] ?? q.kind}{q.config.show_if ? " · linked" : ""}</span>
+                  <span className="lv-thumb-kind"><KindGlyph kind={q.kind} size={14} />{KIND_WORD[q.kind] ?? kindInfo(q.kind)?.label ?? q.kind}{q.config.show_if ? " · linked" : ""}</span>
                   {q.config.show_if && <span className="lv-thumb-rule" data-testid="outline-rule">{describeLogicRule(q.config.show_if, qs)}</span>}
                 </span>
               </button>

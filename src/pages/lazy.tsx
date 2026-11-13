@@ -18,6 +18,7 @@ const hub = () => import("./Hub");
 const campaigns = () => import("./Campaigns");
 const analytics = () => import("./Analytics");
 const surveys = () => import("./Surveys");
+const trends = () => import("./Trends");
 
 export const HubLayout = pick(hub, "HubLayout");
 export const HubOverview = pick(hub, "HubOverview");
@@ -34,6 +35,10 @@ export const CampaignDetail = pick(campaigns, "CampaignDetail");
 export const Studio = pick(campaigns, "Studio");
 export const Results = pick(campaigns, "Results");
 export const Analytics = pick(analytics, "Analytics");
+export const HubTrends = pick(trends, "HubTrends");
+export const HubTrendDetail = pick(trends, "HubTrendDetail");
+export const MyTrends = pick(trends, "MyTrends");
+export const MyTrendDetail = pick(trends, "MyTrendDetail");
 export const SurveyList = pick(surveys, "SurveyList");
 export const NewSurvey = pick(surveys, "NewSurvey");
 export const SurveyStudio = pick(surveys, "SurveyStudio");

@@ -3,8 +3,30 @@ import { useLocation } from "react-router-dom";
 import seo from "../config/seo.json";
 import useCaseData from "../config/useCases.json";
 import productData from "../config/products.json";
+import templateData from "../config/templates.json";
 
 export type SeoPage = (typeof seo.pages)[number];
+
+const PLAN_LINE: Record<string, string> = { free: "Free with any account.", plus: "Included with Creator Plus or a Starter Hub.", pro: "Included with Creator Pro or a Team Hub." };
+const catSlug = (c: string) => c.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+/** The template gallery's pages. Mirrors templatePages() in scripts/seo-prerender.mjs; seo-prerender.test.mjs checks they agree. */
+export function templatePages(templates: { slug: string; name: string; blurb: string; intro: string; category: string; plan: string; anonymity: string; questions: { prompt: string }[] }[]) {
+  const cats = [...new Set(templates.map((t) => t.category))];
+  const noun = (n: number) => (n === 1 ? "question" : "questions");
+  return [
+    { path: "/templates", title: `${templates.length} survey templates for any group`, description: `Browse ${templates.length} ready-made survey templates in ${cats.length} categories. Preview every question, then use one for free or with Creator Plus and Pro.`, h1: "Survey templates", body: `Ready-made surveys for customers, teams, events, schools, dining, communities and more. ${cats.join(", ")}.`, changefreq: "weekly", priority: 0.7 },
+    ...cats.map((c) => {
+      const inCat = templates.filter((t) => t.category === c);
+      return { path: `/templates/${catSlug(c)}`, title: `${c} survey templates`, description: `${inCat.length} ready-made ${c.toLowerCase()} survey templates. Preview every question, then use one and change anything you like.`, h1: `${c} survey templates`, body: inCat.map((t) => `${t.name}: ${t.blurb}`).join(" "), changefreq: "monthly", priority: 0.6 };
+    }),
+    ...templates.map((t) => ({
+      path: `/templates/${t.slug}`, title: `${t.name} survey template`,
+      description: `${t.blurb} ${t.questions.length} ${noun(t.questions.length)}, ${t.anonymity === "identified" ? "identified" : "anonymous"}. ${PLAN_LINE[t.plan]} Preview it, then edit anything.`,
+      h1: `${t.name} survey template`, body: `${t.intro} Questions: ${t.questions.map((q) => q.prompt).join(" ")}`, changefreq: "monthly", priority: 0.5,
+    })),
+  ];
+}
 
 /** Hand-written pages plus one per product and one per use case (the same merge scripts/seo-prerender.mjs does for the build). */
 const PAGES: SeoPage[] = [
@@ -15,6 +37,7 @@ const PAGES: SeoPage[] = [
   ...useCaseData.useCases.map((u) => ({
     path: `/use-cases/${u.slug}`, title: u.title, description: u.description, h1: u.h1, body: u.lede, changefreq: "monthly", priority: 0.7,
   })),
+  ...templatePages(templateData.templates),
 ];
 
 /** Strip a trailing slash so "/pricing/" and "/pricing" share one canonical entry. */

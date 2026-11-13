@@ -77,6 +77,8 @@ select t.check('free: a second live anonymous survey with 2 answers is withheld'
 select t.check('free: the respondent is not told results are live (flag false)',
   (lv_api.lv_guest_campaign_get(t.get('a2_code')) #>> '{campaign,results_instant}') = 'false');
 
+select t.check('free: summary cards wait too (000044 gate)', t.code(lv_api.lv_analytics_summary(t.id('an2'))) = 'lv_policy_undecided');
+
 -- ===== CREATOR PLUS: the same surveys now report live ===========================================================
 select t.as_pg();
 insert into lv.entitlements (scope, account_id, family, product, source) values ('account', t.id('me'), 'creator_plus', 'creator_plus', 'grant');
@@ -89,27 +91,48 @@ select t.check('plus: the anonymous rating shows its cells and mean (2 answers, 
   (t.ov('an2') #>> '{questions,0,result,withheld}') = 'false'
   and jsonb_array_length(t.ov('an2') #> '{questions,0,result,cells}') = 2
   and (t.ov('an2') #>> '{questions,0,result,summary,mean}') = '3.50');
-select t.check('plus: anonymous free text is included, with no metadata',
-  (t.ov('an2') #>> '{questions,1,result,texts_withheld}') = 'false'
-  and jsonb_array_length(t.ov('an2') #> '{questions,1,result,texts}') = 2
-  and (t.ov('an2') #> '{questions,1,result,texts}') @> '"Too cold"'::jsonb
-  and (t.ov('an2') #>> '{questions,1,result}') !~* '(account|receipt|at":|name)');
+select t.check('plus: anonymous free text waits for the first batch of 5 (set-difference defence)',
+  (t.ov('an2') #>> '{questions,1,result,texts_withheld}') = 'true' and (t.ov('an2') #> '{questions,1,result,texts}') = 'null'::jsonb);
 select t.check('plus: per-question counts show from the first answer',
   (lv_api.lv_analytics_question(t.id('an2'), t.id('a2_r')) ->> 'seen') = '2' and (lv_api.lv_analytics_question(t.id('an2'), t.id('a2_r')) ->> 'answered') = '2'
   and (lv_api.lv_analytics_question(t.id('an2'), t.id('a2_r')) ->> 'seen_withheld') = 'false');
-select t.check('plus: per-question free text shows from the first answer',
-  jsonb_array_length(lv_api.lv_analytics_question(t.id('an2'), t.id('a2_t')) -> 'texts') = 2
-  and (lv_api.lv_analytics_question(t.id('an2'), t.id('a2_t')) ->> 'texts_withheld') = 'false');
+select t.check('plus: per-question free text also waits for the first batch',
+  (lv_api.lv_analytics_question(t.id('an2'), t.id('a2_t')) ->> 'texts_withheld') = 'true');
 select t.check('plus: a filter on an anonymous survey is refused (the Team survey below proves the reason)',
   t.code(lv_api.lv_analytics_question(t.id('an2'), t.id('a2_t'), jsonb_build_object('question_id', t.get('a2_r'), 'any_of', jsonb_build_array('5')))) = 'lv_invalid_input');
 
+-- Security: metadata (summary cards, per day, device, source, duration, cross-tabs, milestones) keeps the anonymous
+-- rules while the survey is open, even on a live plan.
+select t.check('plus: summary cards (metadata) stay behind the anonymous rules while the survey is open',
+  t.code(lv_api.lv_analytics_summary(t.id('an2'))) = 'lv_policy_undecided');
+select t.check('plus: webhook milestone counts stay behind the anonymous rules while open',
+  (t.q(format($q$select lv.released_participants(%L::uuid) is null$q$, t.get('an2')))) = 'true');
+
+-- Security: individual rows of an open anonymous survey come in batches of 5 by arrival; never a live total.
+select t.put('r2', lv_api.lv_campaign_responses_anon(t.id('an2'))::text);
+select t.check('batches: 2 answers release 0 rows, no live total, next batch at 5',
+  jsonb_array_length(t.get('r2')::jsonb -> 'responses') = 0 and (t.get('r2')::jsonb ->> 'released') = '0'
+  and not (t.get('r2')::jsonb ? 'total') and (t.get('r2')::jsonb ->> 'next_batch_at') = '5' and (t.get('r2')::jsonb ->> 'live') = 'true');
+select t.as_anon();
+select t.gs3(t.get('a2_code'), 'g' || n, jsonb_build_array(jsonb_build_object('question_id', t.get('a2_r'), 'value', 1 + n % 5), jsonb_build_object('question_id', t.get('a2_t'), 'value', 'Note ' || n))) from generate_series(3, 4) n;
+select t.as_kpn(1);
+select t.check('batches: 4 answers still release 0 rows and no total',
+  jsonb_array_length(lv_api.lv_campaign_responses_anon(t.id('an2')) -> 'responses') = 0 and not (lv_api.lv_campaign_responses_anon(t.id('an2')) ? 'total'));
+select t.as_anon();
+select t.gs3(t.get('a2_code'), 'g5', jsonb_build_array(jsonb_build_object('question_id', t.get('a2_r'), 'value', 3), jsonb_build_object('question_id', t.get('a2_t'), 'value', 'Note 5')));
+select t.as_kpn(1);
 -- Individual responses of the anonymous survey: answers only, no person, time, receipt or arrival order.
 select t.put('ra', lv_api.lv_campaign_responses_anon(t.id('an2'))::text);
-select t.check('plus: both individual responses are listed (a member and a guest)',
-  (t.get('ra')::jsonb ->> 'total') = '2' and jsonb_array_length(t.get('ra')::jsonb -> 'responses') = 2);
+select t.check('batches: 5 answers release exactly 5 rows (a member and guests), still no live total',
+  (t.get('ra')::jsonb ->> 'released') = '5' and jsonb_array_length(t.get('ra')::jsonb -> 'responses') = 5 and not (t.get('ra')::jsonb ? 'total')
+  and (t.get('ra')::jsonb ->> 'next_batch_at') = '10');
+select t.check('batches: free text now shows the first batch of 5 and the per-question rows follow',
+  jsonb_array_length(t.ov('an2') #> '{questions,1,result,texts}') = 5 and (t.ov('an2') #> '{questions,1,result,texts}') @> '"Too cold"'::jsonb
+  and (t.ov('an2') #>> '{questions,1,result}') !~* '(account|receipt|at":|name)'
+  and jsonb_array_length(lv_api.lv_analytics_question(t.id('an2'), t.id('a2_t')) -> 'texts') = 5);
 select t.check('plus: each row carries answers including free text',
   (t.get('ra')::jsonb #>> '{responses,0,answers,0,prompt}') = 'How was it?'
-  and t.get('ra') ~ 'Loved the soup' and t.get('ra') ~ 'Too cold');
+  and t.get('ra') ~ 'Loved the soup');
 select t.check('plus: a row has only an opaque key and answers (no kind, name, time, account or receipt)',
   (select bool_and((select array_agg(k order by k) from jsonb_object_keys(r) k) = array['answers', 'response_id']) from jsonb_array_elements(t.get('ra')::jsonb -> 'responses') r)
   and t.get('ra') !~* '(receipt|"at"|created|guest|member|verified|"name"|account)');
@@ -118,13 +141,25 @@ select t.check('plus: the row key is not a submission id',
 select t.check('plus: the order is stable between reads and follows a hash, not submission time',
   (lv_api.lv_campaign_responses_anon(t.id('an2')) -> 'responses') = (t.get('ra')::jsonb -> 'responses')
   and (select string_agg(r->>'response_id', ',' order by ord) from jsonb_array_elements(t.get('ra')::jsonb -> 'responses') with ordinality x(r, ord))
-    = t.q(format($q$select string_agg(left(md5(s.id::text || %L), 16), ',' order by md5(s.id::text || %L)) from lv.submissions s where s.campaign_id = %L::uuid$q$, t.get('an2'), t.get('an2'), t.get('an2'))));
+    = t.q(format($q$select string_agg(left(md5(s.id::text || %L), 16), ',' order by md5(s.id::text || %L)) from lv.submissions s where s.campaign_id = %L::uuid and s.batch_no = 1$q$, t.get('an2'), t.get('an2'), t.get('an2'))));
+-- Four more arrivals (6..9): the visible set must not change by even one row until the 10th.
+select t.as_anon();
+select t.gs3(t.get('a2_code'), 'g' || n, jsonb_build_array(jsonb_build_object('question_id', t.get('a2_r'), 'value', 1 + n % 5), jsonb_build_object('question_id', t.get('a2_t'), 'value', 'Note ' || n))) from generate_series(6, 9) n;
+select t.as_kpn(1);
+select t.check('batches: 6 to 9 answers still release the same 5 rows (one arrival adds no visible row)',
+  (lv_api.lv_campaign_responses_anon(t.id('an2')) -> 'responses') = (t.get('ra')::jsonb -> 'responses')
+  and (lv_api.lv_campaign_responses_anon(t.id('an2')) ->> 'released') = '5'
+  and jsonb_array_length(lv_api.lv_analytics_question(t.id('an2'), t.id('a2_t')) -> 'texts') = 5,
+  (lv_api.lv_campaign_responses_anon(t.id('an2')) ->> 'released') || ' / ' || jsonb_array_length(lv_api.lv_analytics_question(t.id('an2'), t.id('a2_t')) -> 'texts') || ' / ' ||
+  (select string_agg(r->>'response_id', ',') from jsonb_array_elements(lv_api.lv_campaign_responses_anon(t.id('an2')) -> 'responses') r) || ' | ' || (select string_agg(r->>'response_id', ',') from jsonb_array_elements(t.get('ra')::jsonb -> 'responses') r));
+select t.check('batches: totals and charts stay live per answer (founder decision)',
+  (t.ov('an2') #>> '{guest_n}') = '8' and jsonb_array_length(t.ov('an2') #> '{questions,0,result,cells}') >= 2);
 select t.check('plus: pagination works (offset 1 returns the second row only)',
   jsonb_array_length(lv_api.lv_campaign_responses_anon(t.id('an2'), 1, 1) -> 'responses') = 1
   and (lv_api.lv_campaign_responses_anon(t.id('an2'), 1, 1) #>> '{responses,0,response_id}') = (t.get('ra')::jsonb #>> '{responses,1,response_id}'));
 select t.check('plus: every read of anonymous responses is audited and logged',
-  (t.q(format($q$select count(*) from lv.audit_events where action = 'campaign.responses_viewed' and target = %L and (detail->>'anonymous') = 'true'$q$, t.get('an2'))))::int >= 4
-  and (t.q(format($q$select count(*) from lv.analytics_query_log where campaign_id = %L::uuid and metric = 'individual_responses'$q$, t.get('an2'))))::int >= 4);
+  (t.q(format($q$select count(*) from lv.audit_events where action = 'campaign.responses_viewed' and target = %L and (detail->>'anonymous') = 'true'$q$, t.get('an2'))))::int >= 5
+  and (t.q(format($q$select count(*) from lv.analytics_query_log where campaign_id = %L::uuid and metric = 'individual_responses'$q$, t.get('an2'))))::int >= 5);
 select t.check('plus: the identified-only Responses list still refuses an anonymous survey',
   t.code(lv_api.lv_campaign_responses(t.id('an2'))) = 'lv_not_available');
 select t.check('plus: the anonymous read refuses an identified survey', t.code(lv_api.lv_campaign_responses_anon(t.id('idn'))) = 'lv_not_available');
@@ -153,14 +188,18 @@ select t.check('plus: identified individual responses keep the member and guest 
 
 -- A closed anonymous survey on Creator Plus keeps reporting from the first answer too.
 select t.check('plus: the survey closes', t.code(lv_api.lv_campaign_close(t.id('an2'))) = 'ok');
-select t.check('plus: closed anonymous results with 2 answers are shown, not withheld',
+select t.check('plus: closed anonymous results are shown, not withheld',
   (t.ov('an2') #>> '{participant_count,n}') = '1' and (t.ov('an2') #>> '{questions,0,result,withheld}') = 'false');
-select t.check('plus: closed anonymous individual responses still read', jsonb_array_length(lv_api.lv_campaign_responses_anon(t.id('an2')) -> 'responses') = 2);
+select t.check('batches: after it closes every row is released, with the total',
+  jsonb_array_length(lv_api.lv_campaign_responses_anon(t.id('an2')) -> 'responses') = 9 and (lv_api.lv_campaign_responses_anon(t.id('an2')) ->> 'total') = '9'
+  and (lv_api.lv_campaign_responses_anon(t.id('an2')) ->> 'live') = 'false');
 
 -- ===== Creator Pro is the same; a lapsed plan falls back to the waiting rules =================================
 select t.as_pg();
 update lv.entitlements set family = 'creator_pro', product = 'creator_pro' where account_id = t.id('me') and family = 'creator_plus';
 select t.as_kpn(1);
+select t.check('pro: responses per day stay withheld under the minimum cohort on an anonymous survey, even on a live plan',
+  (lv_api.lv_analytics_premium(t.id('an')) #>> '{over_time,withheld}') = 'true');
 select t.check('pro: results are live too', (lv_api.lv_campaign_get(t.id('an')) #>> '{campaign,results_instant}') = 'true' and t.code(t.ov('an')) = 'ok');
 select t.as_pg();
 update lv.entitlements set starts_at = now() - interval '2 days', ends_at = now() - interval '1 minute' where account_id = t.id('me');
@@ -201,8 +240,10 @@ select t.as_kpn(4);
 select t.check('team hub: anonymous results are live with one answer (and a Team survey is flagged)',
   t.code(t.ov('c4')) = 'ok' and (t.ov('c4') #>> '{participant_count,n}') = '1' and (t.ov('c4') #>> '{questions,0,result,withheld}') = 'false'
   and (lv_api.lv_campaign_get(t.id('c4')) #>> '{campaign,results_instant}') = 'true');
-select t.check('team hub: the single anonymous response can be read',
-  jsonb_array_length(lv_api.lv_campaign_responses_anon(t.id('c4')) -> 'responses') = 1);
+select t.check('team hub: one anonymous response releases 0 rows (batches of 5)',
+  jsonb_array_length(lv_api.lv_campaign_responses_anon(t.id('c4')) -> 'responses') = 0 and (lv_api.lv_campaign_responses_anon(t.id('c4')) ->> 'released') = '0');
+select t.check('team hub: premium metadata stays behind the anonymous rules while open',
+  t.code(lv_api.lv_analytics_premium(t.id('c4'))) = 'lv_policy_undecided');
 select t.as_kpn(5);
 select t.check('starter hub: anonymous results still wait', t.code(t.ov('c5')) = 'lv_policy_undecided'
   and (lv_api.lv_campaign_get(t.id('c5')) #>> '{campaign,results_instant}') = 'false');

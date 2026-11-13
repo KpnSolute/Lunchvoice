@@ -7,6 +7,7 @@ import { AuthCallback, RequireSignIn, Shell, SignIn } from "./pages/Public";
 import { Landing } from "./pages/Landing";
 import { About, Beta, Discover, Guidelines, HowItWorks, NotFoundPage, Privacy, Status, Support, Terms, UseCases } from "./pages/Marketing";
 import { UseCasePage } from "./pages/UseCasePage";
+import { TemplateGallery, TemplateRoute } from "./pages/TemplateGallery";
 import { ProductPage, Products } from "./pages/Products";
 import { CreateHub, Join, Me, RedeemInvite, Settings } from "./pages/Account";
 import { Pricing } from "./pages/Pricing";
@@ -14,7 +15,7 @@ import { Waitlist } from "./pages/Waitlist";
 import { GuestCampaign } from "./pages/Player";
 import {
   Analytics, CampaignDetail, Campaigns, HubAddon, HubBilling, HubBuilder, HubDiscover, HubLayout, HubOverview, HubReservation,
-  HubSettings, Invites, Members, NewCampaign, NewSurvey, Results, Roles, Studio, SurveyInvite, SurveyList, SurveyResults, SurveyStudio,
+  HubSettings, HubTrendDetail, HubTrends, Invites, Members, MyTrendDetail, MyTrends, NewCampaign, NewSurvey, Results, Roles, Studio, SurveyInvite, SurveyList, SurveyResults, SurveyStudio,
 } from "./pages/lazy";
 import { Admin, Reserve } from "./pages/lazy"; // track B: commerce
 import { ConnectDiscord, Developers } from "./pages/lazy"; // track D: api + discord
@@ -30,6 +31,8 @@ import "./ui/shadcn.css";
 import "./index.css";
 import "./ui/ui.css";
 import "./ui/app.css";
+import "./ui/questionkinds.css";
+import "./ui/charts.css";
 import "./ui/hub.css";
 import "./ui/motion.css";
 import "./styles/system.css";
@@ -54,6 +57,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="how-it-works" element={<HowItWorks />} />
             <Route path="use-cases" element={<UseCases />} />
             <Route path="use-cases/:slug" element={<UseCasePage />} />
+            <Route path="templates" element={<TemplateGallery />} />
+            <Route path="templates/:slug" element={<TemplateRoute />} />
             <Route path="products" element={<Products />} />
             <Route path="products/:slug" element={<ProductPage />} />
             <Route path="pricing" element={<Pricing />} />
@@ -85,6 +90,9 @@ createRoot(document.getElementById("root")!).render(
             <Route path="surveys/:id" element={<RequireSignIn><SurveyStudio /></RequireSignIn>} />
             <Route path="surveys/:id/results" element={<RequireSignIn><SurveyResults /></RequireSignIn>} />
 
+            <Route path="trends" element={<RequireSignIn><MyTrends /></RequireSignIn>} />
+            <Route path="trends/:trend" element={<RequireSignIn><MyTrendDetail /></RequireSignIn>} />
+
             {/* respondents */}
             <Route path="c/:joinCode" element={<GuestCampaign />} />
             <Route path="s/:token" element={<SurveyInvite />} />
@@ -107,6 +115,8 @@ createRoot(document.getElementById("root")!).render(
               <Route path="campaigns/:id/studio" element={<Studio />} />
               <Route path="campaigns/:id/results" element={<Results />} />
               <Route path="analytics" element={<Analytics />} />
+              <Route path="trends" element={<HubTrends />} />
+              <Route path="trends/:trend" element={<HubTrendDetail />} />
               <Route path="members" element={<Members />} />
               <Route path="invites" element={<Invites />} />
               <Route path="roles" element={<Roles />} />

@@ -1,5 +1,6 @@
 import { isLinkToken, questionConfigProblem, type LvTransport, type Question, type SectionConfig } from "./lvApi";
 import { rulesProblem } from "./sections";
+import { answerKeys, answerValueProblem, IDENTIFIED_ONLY, isKnownKind, kindInfo, PLAN_PRODUCT, tierAllows, tierOf, type PlanTier } from "./questionKinds"; // question types (000047)
 import { walk } from "./logic";
 import { slugProblem } from "./reservedSlugs";
 import { ACCENTS } from "./accent";
@@ -12,6 +13,7 @@ import { COMMUNITY_FNS, COMMUNITY_PUBLIC, communityAfter, communityHandle, type 
 /* ---- track D: api + discord ---- */
 import { INTEGRATION_FNS, integrationsHandle, type IntegrationsCtx } from "./mockIntegrations";
 /* ---- end track D ---- */
+import { TRENDS_FNS, TRENDS_PUBLIC, demoContext, trendsHandle, type TrendsCtx } from "./mockTrends"; // results analytics and Trends (000044)
 import { BRANDING_FNS, BRANDING_PUBLIC, brandingHandle, mockBrandingStorage, type BrandingCtx } from "./mockBranding"; // survey branding (000043)
 
 // DEV-ONLY stand-in for lv_api (excluded from production bundles; see transport.ts and scripts/check-bundle.mjs).
@@ -64,7 +66,7 @@ type Resp = { receipt: string; answers: { question_id: string; value: unknown }[
 type C = {
   campaign_id: string; hub_id: string; title: string; mode: string; anonymity: string; status: string; created_at: string;
   join_code: string; questions: Q[]; responses: Resp[]; opens_at: string | null; closes_at: string | null;
-  audience: string; access?: string; mine_answered?: boolean;
+  audience: string; access?: string; mine_answered?: boolean; activated_at?: string | null;
 };
 type Ent = { id: string; product: string; family: string; scope: string; hub_id?: string; starts_at: string; ends_at: string | null; source: string };
 type Page = { key: string; kind: string; title: string; body?: string | null; position: number; enabled: boolean };
@@ -116,6 +118,8 @@ function load(name: string): State {
     if (seed === "team") { seedDemo(state, false); for (const e of state.ents) if (e.scope === "hub") e.family = "team"; }
     // "creator": the demo plus a Creator Plus plan on the person (000041), so Quick Surveys can use sections.
     if (seed === "creator") { seedDemo(state, false); state.me.creator = "creator_plus"; }
+    // "creatorpro": the demo plus a Creator Pro plan on the person (000041/000047), so every question type is open.
+    if (seed === "creatorpro") { seedDemo(state, false); state.me.creator = "creator_pro"; }
     /* ---- end track D ---- */
   } catch { /* ignore */ }
   return state;
@@ -163,6 +167,37 @@ function windowProblem(opens: string | null, closes: string | null): string | nu
 }
 // 000042: the Quick Survey question limit for this person (their Creator plan or free).
 const qLimit = (s: State) => (s.me.creator === "creator_pro" ? 100 : s.me.creator === "creator_plus" ? 30 : LIMITS.free.quick_survey_questions);
+// 000047: answer files (bucket survey-uploads). The dev mock keeps nothing: it checks the path and size, then says ok.
+function uploadsStorage<T extends { upload(bucket: string, path: string, file: Blob, contentType: string): Promise<{ ok: boolean; message?: string }> }>(inner: T, authed: () => boolean): T {
+  return {
+    ...inner,
+    async upload(bucket: string, path: string, file: Blob, contentType: string) {
+      if (bucket !== "survey-uploads") return inner.upload(bucket, path, file, contentType);
+      if (!authed()) return { ok: false, message: "new row violates row-level security policy" };
+      if (!/^[^/]+\/[^/]+\/[0-9a-f]{8,}-[a-z0-9.-]+$/.test(path)) return { ok: false, message: "Invalid object name." };
+      return file.size > 10 * 1024 * 1024 ? { ok: false, message: "The object exceeded the maximum allowed size" } : { ok: true };
+    },
+  };
+}
+// 000047: the question types this person may add here: their Creator plan or, in a Hub, the Hub's family.
+function kindTier(s: State, hubId?: string): PlanTier {
+  const community = hubId && s.hubs.find((x) => x.hub_id === hubId)?.kind === "community";
+  const here = community ? tierOf(activeFamily(s, hubId), s.me.creator ?? null) : tierOf(null, s.me.creator ?? null);
+  if (community) return here;
+  // In the personal space the Hubs the person owns count too (a Starter Hub owner has the Plus types).
+  return s.hubs.filter((h) => h.kind === "community" && h.members.some((m) => m.account_id === "mock-account" && m.is_owner))
+    .map((h) => tierOf(activeFamily(s, h.hub_id), null)).reduce<PlanTier>((x, y) => (tierAllows(x, y) ? x : y), here);
+}
+// lv.quick_question_guard (000047): plan gate and the identity rule. Returns an error envelope or null.
+function kindGuard(s: State, c: C, kind: string | null) {
+  if (kind === null) return null;
+  if (!isKnownKind(kind)) return err("lv_invalid_input", "That question type does not exist.");
+  const need = kindInfo(kind)!.plan;
+  if (!tierAllows(kindTier(s, c.hub_id), need))
+    return err("lv_entitlement_required", need === "plus" ? "This question type starts with Creator Plus or a Starter Hub." : "This question type starts with Creator Pro or a Team Hub.", { product: PLAN_PRODUCT[need], feature: "survey.kinds", kind });
+  if (IDENTIFIED_ONLY.includes(kind as never) && c.anonymity === "anonymous") return err("lv_invalid_input", "This question type collects who someone is, so it needs an identified survey.");
+  return null;
+}
 // lv.feature_allowed (000041): the Hub's active family or the person's Creator plan.
 function featureAllowed(s: State, hubId: string): boolean {
   return activeFamily(s, hubId) !== "free" || !!s.me.creator;
@@ -189,7 +224,7 @@ function valueProblem(q: Q, v: unknown): string | null {
       return typeof cfg.max === "number" && v.length > cfg.max ? `choose at most ${cfg.max} options` : null;
     case "yes_no": return typeof v === "boolean" ? null : "answer yes or no";
     case "text": return typeof v !== "string" ? "a text answer must be text" : v.length > 280 ? "keep a text answer to 280 characters" : null;
-    default: return null;
+    default: return answerValueProblem(q.kind, q.config, v); // the v2 kinds (000047)
   }
 }
 // lv.validate_answers (000017, sections 000041): required unless optional or hidden; never an answer to a hidden question.
@@ -270,7 +305,8 @@ function seedDemo(s: State, expired: boolean) {
       opens_at: null, closes_at: status === "active" ? iso(Date.now() + 9 * DAY) : null, audience: "members_and_guests", ...extra,
     };
   };
-  s.campaigns.push(mk("cmp-seed-1", hub.hub_id, "Spring route check-in", "active", 14));
+  s.campaigns.push(mk("cmp-seed-0", hub.hub_id, "Winter route check-in", "closed", 18, "identified", { activated_at: iso(Date.now() - 120 * DAY) }));
+  s.campaigns.push(mk("cmp-seed-1", hub.hub_id, "Spring route check-in", "active", 14, "identified", { activated_at: iso(Date.now() - 30 * DAY) }));
   s.campaigns.push(mk("cmp-seed-2", hub.hub_id, "Winter social night", "closed", 22, "anonymous"));
   s.campaigns.push({ ...mk("cmp-seed-3", hub.hub_id, "Kit order sizes", "draft", 0), questions: [] });
   const ps: H = { hub_id: "space-seed", slug: null, name: "Personal space", kind: "personal", about: "", accent: null, visibility: "private", membership_mode: "invite_only", members: [], pages: [] };
@@ -278,6 +314,10 @@ function seedDemo(s: State, expired: boolean) {
   s.campaigns.push(mk("qs-seed-1", ps.hub_id, "Book club: next month's pick", "active", 8, "anonymous", { access: "link" }));
   s.campaigns.push(mk("qs-seed-2", ps.hub_id, "Team lunch Friday?", "closed", 6, "identified", { access: "invite" }));
   s.campaigns.push({ ...mk("qs-seed-3", ps.hub_id, "Neighbourhood clean-up date", "draft", 0, "anonymous", { access: "link" }) });
+  // 000044: one Trend with three runs of the same questions, and coarse context counters for the premium panels.
+  s.campaigns.find((c) => c.campaign_id === "cmp-seed-2")!.activated_at = iso(Date.now() - 75 * DAY);
+  (s as unknown as { trends: unknown[] }).trends = [{ trend_id: "trend-seed-1", hub_id: hub.hub_id, title: "Route check-in", description: "Asked every season.", created_at: iso(Date.now() - 20 * DAY), runs: ["cmp-seed-0", "cmp-seed-2", "cmp-seed-1"] }];
+  (s as unknown as { context: unknown }).context = demoContext(s.campaigns as never, ["cmp-seed-0", "cmp-seed-1", "cmp-seed-2"]);
   s.n = 100;
 }
 
@@ -292,7 +332,16 @@ export function createMockTransport(displayName = "Dana", signedIn: () => boolea
       /* ---- end track C ---- */
       // Survey branding (000043): its own handler, before the shared switch.
       if (BRANDING_FNS.has(fn)) { const b = brandingHandle(brandingCtx(s), fn, a, signedIn()); save(); return b; }
-      const r = handleTrackA(s, fn, a, signedIn(), () => handle(s, fn, a, signedIn()));
+      // 000047: the quiz answer key is read only through lv_campaign_quiz; no other read returns it.
+      if (fn === "lv_campaign_quiz") {
+        const c = s.campaigns.find((x) => x.campaign_id === a.p_campaign);
+        const h = c ? s.hubs.find((x) => x.hub_id === c.hub_id) : undefined;
+        if (!c || !h || !(h.kind === "personal" || h.members.some((m) => m.account_id === "mock-account" && m.is_owner))) return err("lv_not_found", "No such survey.");
+        return { ok: true, quiz: Object.fromEntries(c.questions.filter((q) => (q.config as { quiz?: unknown }).quiz).map((q) => [q.question_id, (q.config as { quiz: unknown }).quiz])) };
+      }
+      if (TRENDS_FNS.has(fn)) { const t = trendsHandle(trendsCtx(s, signedIn()), fn, a); save(); return hideQuiz(t); }
+      const r0 = handleTrackA(s, fn, a, signedIn(), () => handle(s, fn, a, signedIn()));
+      const r = hideQuiz(r0);
       /* ---- track C: community ---- */
       communityAfter(communityCtx(s, signedIn()), fn, a, r, answeredBefore);
       /* ---- end track C ---- */
@@ -301,7 +350,7 @@ export function createMockTransport(displayName = "Dana", signedIn: () => boolea
       await new Promise((res) => setTimeout(res, 60));
       return r;
     },
-    storage: mockBrandingStorage(() => brandingCtx(load(displayName)), signedIn, save), // survey branding (000043)
+    storage: uploadsStorage(mockBrandingStorage(() => brandingCtx(load(displayName)), signedIn, save), signedIn), // survey branding (000043), answer files (000047)
     /* ---- track B: commerce ---- */
     async invoke(fn, body) {
       const s = load(displayName);
@@ -311,6 +360,13 @@ export function createMockTransport(displayName = "Dana", signedIn: () => boolea
       return r;
     },
   };
+}
+
+/** A read's questions without their quiz answer key (what lv.campaign_questions.quiz does on the server). */
+function hideQuiz<T>(r: T): T {
+  const o = r as { questions?: { config?: Record<string, unknown> }[] } | null;
+  if (!o || !Array.isArray(o.questions) || !o.questions.some((q) => q.config && "quiz" in q.config)) return r;
+  return { ...o, questions: o.questions.map((q) => (q.config && "quiz" in q.config ? { ...q, config: Object.fromEntries(Object.entries(q.config).filter(([k]) => k !== "quiz")) } : q)) } as T;
 }
 
 const err = (code: string, message: string, extra: object = {}) => ({ ok: false, error: { code, message, ...extra } });
@@ -333,10 +389,31 @@ function brandingCtx(s: State): BrandingCtx {
   };
 }
 
+// Results analytics and Trends (000044).
+function trendsCtx(s: State, authed: boolean): TrendsCtx {
+  const hubOf = (id: string) => s.hubs.find((h) => h.hub_id === id);
+  return {
+    store: s as unknown as TrendsCtx["store"], authed,
+    hubKind: (id) => hubOf(id)?.kind ?? null,
+    canManage: (id) => { const h = hubOf(id); return !!h && (h.kind === "personal" || h.members.some((m) => m.account_id === "mock-account" && m.is_owner)); },
+    personalHub: () => s.hubs.find((h) => h.kind === "personal")?.hub_id ?? null,
+    trendMax: (id) => {
+      if (hubOf(id)?.kind === "personal") return s.me.creator === "creator_pro" ? 10 : s.me.creator === "creator_plus" ? 3 : 0;
+      const f = activeFamily(s, id);
+      return f === "team" ? 5 : f === "starter" ? 3 : 0;
+    },
+    premium: (id) => (hubOf(id)?.kind === "personal" ? s.me.creator === "creator_pro" : activeFamily(s, id) === "team"),
+    exportAllowed: (id) => activeFamily(s, id) !== "free" || !!s.me.creator,
+    distribution: (c, q) => distribution(c as unknown as C, q),
+    nextId: (p) => `${p}-${++s.n}`,
+  };
+}
+
 const PUBLIC = new Set(["lv_plan_limits", "lv_waitlist_status", "lv_hub_get", "lv_invite_preview", "lv_guest_campaign_get", "lv_guest_submit", "lv_hub_reservation_status", "lv_capability_catalog", "lv_hub_pages_get", "lv_report_abuse", "lv_hub_public_poll"]);
 /* ---- track C: community ---- */
 for (const f of COMMUNITY_PUBLIC) PUBLIC.add(f);
 for (const f of BRANDING_PUBLIC) PUBLIC.add(f); // survey branding (000043)
+for (const f of TRENDS_PUBLIC) PUBLIC.add(f); // the player reports its coarse context (000044)
 const communityCtx = (s: State, authed: boolean): CommunityCtx => ({ s: s as unknown as CommunityCtx["s"], authed, family: (hub) => activeFamily(s, hub) });
 /* ---- end track C ---- */
 
@@ -367,6 +444,12 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
   /* ---- end track D ---- */
   switch (fn) {
     /* ---------------- context and entitlements ---------------- */
+    case "lv_kind_tier": {
+      const c = a.p_campaign ? camp(a.p_campaign) : null;
+      if (a.p_campaign && !c) return err("lv_not_found", "No such survey.");
+      const best2 = kindTier(s, c?.hub_id);
+      return { ok: true, tier: best2, quiz: best2 === "pro" };
+    }
     case "lv_my_context": {
       const answered = s.campaigns.filter((c) => c.mine_answered);
       return {
@@ -673,7 +756,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       const c = camp(a.p_campaign);
       if (!c) return err("lv_not_found", "Campaign not found");
       if (c.status !== "draft" && !(c.status === "paused" && c.responses.length === 0)) return err("lv_locked", "Questions cannot change once a Campaign has answers or has been closed");
-      if (!CORE_KINDS.includes(String(a.p_kind))) return err("lv_invalid_input", "That question kind isn't available");
+      if (!isKnownKind(String(a.p_kind))) return err("lv_invalid_input", "That question kind isn't available");
       if (isPersonal(s, c) && c.questions.length >= qLimit(s))
         return err("lv_limit_reached", `Quick Surveys have up to ${qLimit(s)} questions`, { limit: qLimit(s), used: c.questions.length });
       if (!String(a.p_prompt ?? "").trim()) return err("lv_invalid_input", "A question needs a prompt.");
@@ -689,7 +772,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (!c || !q) return err("lv_not_found", "Question not found");
       if (c.status !== "draft" && !(c.status === "paused" && c.responses.length === 0)) return err("lv_locked", "Questions cannot change once a Campaign has answers or has been closed");
       if (a.p_prompt != null && !String(a.p_prompt).trim()) return err("lv_invalid_input", "A question needs a prompt.");
-      if (a.p_kind != null && !CORE_KINDS.includes(String(a.p_kind))) return err("lv_invalid_input", "That question kind isn't available");
+      if (a.p_kind != null && !isKnownKind(String(a.p_kind))) return err("lv_invalid_input", "That question kind isn't available");
       if (a.p_position != null && c.questions.some((x) => x !== q && x.position === Number(a.p_position)))
         return err("lv_conflict", "Another question already has that position");
       if (a.p_prompt != null) q.prompt = String(a.p_prompt).trim();
@@ -765,6 +848,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
         return err("lv_gate_blocked", "already_closed", { reasons: ["already_closed"] });
       }
       c.status = "active";
+      c.activated_at = new Date().toISOString();
       return { ok: true };
     }
     case "lv_campaign_pause": {
@@ -847,6 +931,13 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       if (!instant && c.anonymity === "anonymous" && (c.status === "active" || c.status === "paused")) return err("lv_policy_undecided", "Anonymous results appear after the Campaign closes");
       const members = c.responses.filter((r) => !r.guest).length;
       const guests = c.responses.filter((r) => r.guest).length;
+      if (a.p_metric === "rating_summary") {
+        const vals = c.responses.flatMap((r) => r.answers.filter((x) => x.question_id === a.p_question && typeof x.value === "number").map((x) => x.value as number));
+        const hide = c.anonymity === "anonymous" && c.responses.length < MIN_COHORT;
+        const part = distribution(c, String(a.p_question)).some((x) => x.suppressed);
+        if (hide || (c.anonymity === "anonymous" && part)) return { ok: true, metric: "rating_summary", question_id: a.p_question, n: null, mean: null, suppressed: true };
+        return { ok: true, metric: "rating_summary", question_id: a.p_question, n: vals.length, mean: vals.length ? Math.round((vals.reduce((x, y) => x + y, 0) / vals.length) * 100) / 100 : null, suppressed: false };
+      }
       if (a.p_metric === "participant_count") {
         // As in the real API (000005): identified totals show from the first answer, anonymous ones wait for the minimum.
         const min = instant || c.anonymity === "identified" ? 1 : MIN_COHORT;
@@ -889,7 +980,7 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
     case "lv_analytics_export": {
       const c = camp(a.p_campaign);
       if (!c) return err("lv_not_found", "Campaign not found");
-      if (isPersonal(s, c) || activeFamily(s, c.hub_id) === "free") return err("lv_entitlement_required", "Exports need an active Hub plan", { product: "starter_hub" });
+      if ((isPersonal(s, c) && !s.me.creator) || (!isPersonal(s, c) && activeFamily(s, c.hub_id) === "free")) return err("lv_entitlement_required", isPersonal(s, c) ? "Exports need Creator Plus or Creator Pro." : "Exports need an active Hub plan", { product: isPersonal(s, c) ? "creator_plus" : "starter_hub" });
       if (c.status === "draft") return err("lv_lifecycle_invalid", "Nothing to export yet");
       if (c.anonymity === "anonymous" && c.status !== "closed" && c.status !== "archived") return err("lv_policy_undecided", "Anonymous results appear after the Campaign closes");
       const rows = c.questions.filter((q) => q.kind !== "text").flatMap((q) => distribution(c, q.question_id).map((cell) => ({ question_id: q.question_id, prompt: q.prompt, answer: cell.key, n: cell.n, suppressed: cell.suppressed })));
@@ -1019,21 +1110,27 @@ function distribution(c: C, questionId: string) {
   for (const opt of (q?.config as { options?: string[] })?.options ?? []) counts.set(opt, 0);
   if (q?.kind === "rating") for (const k of ["1", "2", "3", "4", "5"]) counts.set(k, 0);
   if (q?.kind === "yes_no") for (const k of ["true", "false"]) counts.set(k, 0);
+  if (q?.kind === "nps") for (let k = 0; k <= 10; k++) counts.set(String(k), 0);
+  if (q?.kind === "face_scale") for (let k = 1; k <= 5; k++) counts.set(String(k), 0);
   for (const r of c.responses)
     for (const x of r.answers)
       if (x.question_id === questionId)
-        for (const v of Array.isArray(x.value) ? x.value : [x.value]) counts.set(String(v), (counts.get(String(v)) ?? 0) + 1);
+        for (const v of q && !CORE_KINDS.includes(q.kind) ? answerKeys(q.kind, x.value) : Array.isArray(x.value) ? x.value : [x.value]) counts.set(String(v), (counts.get(String(v)) ?? 0) + 1);
   // Identified results show every option from the first answer (000005); only anonymous ones are thresholded.
   if (c.anonymity === "identified") return [...counts].map(([key, k]) => ({ key, n: k, suppressed: false, reason: null }));
   const min = MIN_COHORT;
-  const shown = [...counts].filter(([, k]) => k >= min).map(([key, k]) => ({ key, n: k, suppressed: false, reason: null }));
-  const hidden = [...counts].some(([, k]) => k > 0 && k < min) || (shown.length > 0 && shown.length < counts.size);
+  const shown = [...counts].filter(([, k]) => k >= min || k === 0).map(([key, k]) => ({ key, n: k, suppressed: false, reason: null }));
+  const hidden = [...counts].some(([, k]) => k > 0 && k < min);
   return hidden ? [...shown, { key: "withheld", n: null, suppressed: true, reason: "below_min_cohort" }] : shown;
 }
 
 // L-10: free-text answers are released as an unordered list only once the Campaign has enough answers.
 function texts(c: C, questionId: string, instant = false): string[] | null {
-  const all = c.responses.flatMap((r) => r.answers.filter((x) => x.question_id === questionId && typeof x.value === "string" && x.value.trim()).map((x) => String(x.value)));
+  // 000053: on an open anonymous survey with live results, only complete batches of MIN_COHORT answers (by arrival).
+  const open = c.anonymity === "anonymous" && (c.status === "active" || c.status === "paused");
+  const pool = instant && open ? c.responses.slice(0, Math.floor(c.responses.length / MIN_COHORT) * MIN_COHORT) : c.responses;
+  const all = pool.flatMap((r) => r.answers.filter((x) => x.question_id === questionId && typeof x.value === "string" && x.value.trim()).map((x) => String(x.value)));
+  if (instant && open && pool.length === 0) return null;
   if (!instant && c.responses.length < MIN_COHORT) return null;
   return all.sort(() => Math.random() - 0.5);
 }
@@ -1108,6 +1205,8 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
     case "lv_campaign_question_add": {
       // Same order as the backend: the Quick Survey size guard first, then the option rule, then the body.
       const c = camp(a.p_campaign);
+      const gated = c ? kindGuard(s, c, String(a.p_kind)) : null;
+      if (gated) return gated;
       if (c && isPersonal(s, c) && c.questions.length >= qLimit(s)) return base();
       const bad = questionConfigProblem(String(a.p_kind), a.p_config ?? {});
       if (bad && c) return err("lv_invalid_input", bad);
@@ -1119,6 +1218,10 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
     case "lv_campaign_question_update": {
       const c = s.campaigns.find((x) => x.questions.some((q) => q.question_id === a.p_question));
       const q = c?.questions.find((x) => x.question_id === a.p_question);
+      const gated = c && a.p_kind != null ? kindGuard(s, c, String(a.p_kind)) : null;
+      if (gated) return gated;
+      if (c && q && a.p_config != null && (q.config as { quiz?: unknown }).quiz === undefined && (a.p_config as { quiz?: unknown }).quiz && !tierAllows(kindTier(s, c.hub_id), "pro"))
+        return err("lv_entitlement_required", "Quiz scoring starts with Creator Pro or a Team Hub.", { product: "creator_pro", feature: "survey.quiz" });
       if (q && (a.p_kind != null || a.p_config != null)) {
         const bad = questionConfigProblem(String(a.p_kind ?? q.kind), a.p_config ?? q.config);
         if (bad) return err("lv_invalid_input", bad);
@@ -1266,11 +1369,16 @@ function handleTrackA(s: State, fn: string, a: Record<string, unknown>, authed: 
       if (!resultsInstant(s, c.hub_id)) return err("lv_entitlement_required", "Individual responses on an anonymous survey need Creator Plus or a Team Hub.", { product: "creator_plus", feature: "results.instant" });
       const limit = Math.min(Math.max(Number(a.p_limit ?? 50), 1), 100);
       const offset = Math.max(Number(a.p_offset ?? 0), 0);
+      // Security (000053): while open, rows come in batches of MIN_COHORT (by arrival), never a live total; all rows after close.
+      const open = c.status === "active" || c.status === "paused";
+      const released = open ? Math.floor(c.responses.length / MIN_COHORT) * MIN_COHORT : c.responses.length;
       const hash = (t: string) => { let h = 2166136261; for (let k = 0; k < t.length; k++) { h ^= t.charCodeAt(k); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16).padStart(8, "0"); };
-      const rows = c.responses.map((r, i) => ({ r, key: hash(`${c.campaign_id}:${r.receipt}:${i}`) })).sort((x, y) => (x.key < y.key ? -1 : x.key > y.key ? 1 : 0)).slice(offset, offset + limit);
+      const rows = c.responses.slice(0, released).map((r, i) => ({ r, key: hash(`${c.campaign_id}:${r.receipt}:${i}`) })).sort((x, y) => (x.key < y.key ? -1 : x.key > y.key ? 1 : 0)).slice(offset, offset + limit);
       return {
         ok: true,
-        total: c.responses.length,
+        live: open,
+        released,
+        ...(open ? { next_batch_at: released + MIN_COHORT } : { total: c.responses.length }),
         responses: rows.map(({ r, key }) => ({
           response_id: key,
           answers: r.answers.map((an) => { const q = c.questions.find((x) => x.question_id === an.question_id); return { question_id: an.question_id, prompt: q?.prompt ?? "", kind: q?.kind ?? "text", value: an.value }; }),

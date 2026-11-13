@@ -6,6 +6,11 @@ drop function if exists lv.api_campaign_responses_anon(uuid, int, int);
 drop function if exists lv.analytics_core(uuid, uuid, text, uuid);
 alter function lv.analytics_core_waiting(uuid, uuid, text, uuid) rename to analytics_core;
 drop function if exists lv.results_instant(uuid);
+drop function if exists lv.released_submissions(uuid);
+drop function if exists lv.anon_batch_limit(uuid);
+drop trigger if exists submissions_assign_batch on lv.submissions;
+drop function if exists lv.assign_anon_batch();
+alter table lv.submissions drop column if exists batch_no;
 delete from lv.plan_limits where key = 'results.instant';
 -- 000042 lv.api_analytics_question
 create or replace function lv.api_analytics_question(p_campaign uuid, p_question uuid, p_filter jsonb) returns jsonb
@@ -166,6 +171,41 @@ begin
     end if;
   end if;
   return v;
+end;
+$$;
+-- 000044 results gate
+create or replace function lv.results_gate(p_campaign uuid, p_account uuid) returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  c lv.campaigns;
+  v_core jsonb;
+begin
+  if p_account is null then return lv.err('lv_unauthenticated', 'Sign in with KpnIdentity first.'); end if;
+  select * into c from lv.campaigns x where x.id = p_campaign;
+  if c.id is null or lv.membership_of(p_account, c.hub_id) is null then return lv.err('lv_not_found', 'No such Campaign.'); end if;
+  if not lv.has_capability(p_account, c.hub_id, 'analytics.read') then
+    return lv.err('lv_forbidden', 'Reading results requires analytics.read.');
+  end if;
+  v_core := lv.analytics_core(p_campaign, p_account, 'participant_count', null);
+  if not coalesce((v_core->>'ok')::boolean, false) then return v_core; end if;
+  return jsonb_build_object('ok', true, 'hub', c.hub_id, 'sensitive', c.anonymity = 'anonymous',
+                            'min', case when c.anonymity = 'anonymous' then (lv.analytics_policy_state()->>'min_cohort')::int else 1 end);
+end;
+$$;
+
+-- 000024 released_participants
+create or replace function lv.released_participants(p_campaign uuid) returns bigint
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  v jsonb;
+  v_owner uuid;
+begin
+  select h.owner_account_id into v_owner from lv.campaigns c join lv.hubs h on h.id = c.hub_id where c.id = p_campaign;
+  v := lv.analytics_core(p_campaign, v_owner, 'participant_count', null);
+  if not coalesce((v->>'ok')::boolean, false) or coalesce((v->>'suppressed')::boolean, true) then return null; end if;
+  return (v->>'n')::bigint;
 end;
 $$;
 commit;

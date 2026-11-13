@@ -26,3 +26,6 @@ export function useLv<T>(fn: () => Promise<LvResult<T>>, deps: DependencyList): 
   }, [run, tick]);
   return { ...state, reload: () => setTick((t) => t + 1) };
 }
+
+/** For a read that is not needed right now: resolves to a quiet failure that callers ignore. */
+export const SKIP: Promise<LvResult<never>> = Promise.resolve({ ok: false, error: { code: "lv_not_found", message: "" } });
