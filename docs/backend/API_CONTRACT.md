@@ -1148,6 +1148,49 @@ same (a neutral card), so private Hubs stay indistinguishable from missing ones.
 - **Answers.** `lv_submit_response` and `lv_guest_submit` refuse (`lv_invalid_input`) an answer to a question whose
   section is not shown to that person, and require a required question only when its section is shown.
 
+## Linked Questions: per-question rules, end survey, validator fix, Creator limits (000042)
+
+Gated by the existing `survey.branching` feature (Creator Plus, or a Starter Hub and above). Enforced on the server;
+the dev mock mirrors it. Skip-to jumps, answer piping and randomization are **not** in this release (see below).
+
+- **Rule shape** (in a question's `config`): `show_if: { match: "all"|"any", conditions: [1–10 of { question_id: uuid, op, values?, min?, max? }] }`.
+  `op` is `any_of` / `none_of` (choice, multi choice; yes/no uses `"true"`/`"false"`) with `values` (1–10 strings),
+  or `at_least` (`min`) / `at_most` (`max`) / `between` (`min`, `max`) for a rating. A condition on a question the
+  person did not see (or did not answer) is never met, "none of" included. Rules only look at **earlier** questions.
+- **End survey**: `jumps: [{ when: <option or "true"/"false">, to: "end" }]` on a single-choice or yes/no question.
+  After that answer, nothing later is shown. (`to` must be `"end"` in this release.)
+- **Writes**: `lv_campaign_question_add` / `lv_campaign_question_update` check the shape (`lv_invalid_input`) and the plan
+  (`lv_entitlement_required`, `product: "creator_plus"`, `feature: "survey.branching"`) whenever logic is added or
+  changed; removing logic is always allowed. Elections refuse logic.
+- **Publishing** (`draft → live`, and `paused → active`): `lv_invalid_input` with a plain sentence for a rule that looks
+  forward or at a missing question, an option that no longer exists, a rating comparison on a non-rating question, or a
+  skip on the wrong kind.
+- **`lv.validate_answers`** (used by `lv_submit_response` and both `lv_guest_submit`): walks the path (section rules,
+  question rules, end survey) and rejects an answer to a question the person was not shown ("answer given for a
+  question this person was not shown"); a shown question is required unless optional.
+- **SECURITY: answer validation for sectioned campaigns now applies every core check.** 000041's wrapper skipped the
+  per-answer checks for Campaigns with sections. Now every shown answer goes through one per-kind function,
+  `lv.check_answer_value(kind, config, value) → reason | null` (single choice in options; multi choice a non-empty,
+  distinct list within the options and `max`; yes/no a boolean; rating a number in range; text a string up to 280
+  characters), and **every** path rejects entries without a `question_id`, a `question_id` that is not in this Campaign
+  and a question answered twice. `lv.answer_matches(kind, value, any_of)` is the matcher rules use. Elections and
+  Campaigns without logic or sections otherwise still use the previously installed validator unchanged.
+- **`lv_analytics_question(p_campaign, p_question, p_filter?)`** (needs `analytics.read`, same gates as every results call,
+  logged): `{ ok, metric: "question_logic", question_id, filter, filter_withheld, seen, answered, seen_withheld, cells, withheld, texts?, texts_withheld? }`.
+  `seen` is how many people's paths showed the question; `answered` how many answered it. `p_filter` is
+  `{ question_id, any_of }` (a choice or yes/no question): only people who gave one of those answers. On an anonymous
+  Campaign a count (or a group, or the people left outside a group) under `campaign.min_cohort` is withheld
+  (`null` with `*_withheld`), never shown as zero. The Results page uses `seen`/`answered` ("N saw, M answered"); the
+  filter control is a follow-up.
+- **Quick Survey limits for Creator accounts** (the install only defined `free`): `lv.plan_limits` now has
+  `quick.max_questions` and `quick.max_active` for `creator_plus` (30, 15) and `creator_pro` (100, 100), and
+  `quick.kinds` / `quick.modes` copied from `free`. The question guard, the activation gate (`lv.capacity_check`) and
+  `lv_quick_survey_list` use the larger of the free value and the owner's Creator family (`lv.quick_limit(hub, key)`).
+  `lv_campaign_get` (managers, personal space) returns `campaign.question_limit`. `lv_my_context().quick_surveys` still
+  shows the free numbers. Change a perk with one `update lv.plan_limits`.
+- **Not built (follow-up)**: skip-to-question jumps, `{{q:id}}` piping, option and question randomization, filtering
+  the Results page by an earlier answer (the API supports it), the full click-through path preview.
+
 ## Survey branding (000043)
 
 Paid feature `survey.branding` (starter, team, creator_plus, creator_pro); `survey.remove_footer` (team, creator_pro). The

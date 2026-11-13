@@ -38,6 +38,8 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
   const [exporting, setExporting] = useState(false);
   const c = count.data as Extract<AnalyticsResult, { metric: "participant_count" }> | null;
   const questions = detail.data?.questions ?? [];
+  // 000042: on a survey where people take different paths, each question also says how many saw it.
+  const hasPaths = questions.some((q) => q.config.show_if || q.config.jumps?.length || q.config.section?.show_if);
 
   async function exportCsv() {
     setExporting(true);
@@ -86,7 +88,7 @@ export function ResultsView({ campaignId, exportBlocked }: { campaignId: string;
 
       {detail.loading && !detail.data && <LoadingRows rows={3} />}
       {detail.error && <Notice tone="error">{describeError(detail.error)}</Notice>}
-      {questions.map((q) => <QuestionResult key={q.question_id} campaignId={campaignId} q={q} />)}
+      {questions.map((q) => <QuestionResult key={q.question_id} campaignId={campaignId} q={q} showSeen={hasPaths} />)}
       {detail.data && questions.length === 0 && <Notice>This survey has no questions yet.</Notice>}
     </div>
   );
@@ -149,7 +151,7 @@ function ResponsesCard({ campaignId, questions }: { campaignId: string; question
   );
 }
 
-function QuestionResult({ campaignId, q }: { campaignId: string; q: Question }) {
+function QuestionResult({ campaignId, q, showSeen }: { campaignId: string; q: Question; showSeen: boolean }) {
   const { api } = useIdentity();
   const r = useLv(() => api.analytics(campaignId, "answer_distribution", q.question_id), [api, campaignId, q.question_id]);
   const d = r.data as Extract<AnalyticsResult, { metric: "answer_distribution" }> | null;
@@ -159,6 +161,7 @@ function QuestionResult({ campaignId, q }: { campaignId: string; q: Question }) 
         <h3 className="lv-q-result-title">{q.prompt}</h3>
         <Badge>{KIND_LABEL[q.kind] ?? q.kind}</Badge>
       </div>
+      {showSeen && <SeenLine campaignId={campaignId} q={q} />}
       {r.loading && !d ? (
         <LoadingRows rows={2} label="Loading answers" />
       ) : r.error ? (
@@ -181,6 +184,21 @@ function QuestionResult({ campaignId, q }: { campaignId: string; q: Question }) 
         <p className="ui-muted lv-m0">No answers yet.</p>
       )}
     </Card>
+  );
+}
+
+/** 000042: "N saw, M answered". Withheld on an anonymous survey when a group is under the minimum, never shown as zero. */
+function SeenLine({ campaignId, q }: { campaignId: string; q: Question }) {
+  const { api } = useIdentity();
+  const r = useLv(() => api.analyticsQuestion(campaignId, q.question_id), [api, campaignId, q.question_id]);
+  const d = r.data;
+  if (!d) return null;
+  return (
+    <p className="ui-help lv-m0" data-testid="seen-line">
+      {d.seen === null || d.answered === null
+        ? `Withheld: fewer than ${ANON_MIN_ANSWERS} people saw or answered this, so counts could point at someone. It is not zero.`
+        : `${d.seen} saw, ${d.answered} answered`}
+    </p>
   );
 }
 
