@@ -137,10 +137,13 @@ declare
   v_account uuid := lv.current_account_id();
 begin
   if v_campaign is null then return false; end if;
-  select x.hub_id, x.status, x.blocked_at into c from lv.campaigns x where x.id = v_campaign;
+  select x.hub_id, x.status, x.blocked_at, x.access into c from lv.campaigns x where x.id = v_campaign;
   if c.hub_id is null then return false; end if;
   if v_account is not null and lv.has_capability(v_account, c.hub_id, 'campaign.manage') then return true; end if;
   if c.status = 'draft' or c.blocked_at is not null then return false; end if;
+  -- Same visibility as the player: never for a suspended Hub; only link-open Campaigns or people who may take part.
+  if lv.hub_suspended(c.hub_id) then return false; end if;
+  if not (c.access = 'link' or lv.can_participate(v_campaign, v_account)) then return false; end if;
   select * into b from lv.campaign_branding x where x.campaign_id = v_campaign;
   if b.campaign_id is null then return false; end if;
   if not ((p_bucket = 'survey-logos' and b.logo_path = p_name) or (p_bucket = 'survey-covers' and b.cover_path = p_name)) then
@@ -310,11 +313,15 @@ declare
   b lv.campaign_branding;
   v_color text;
 begin
-  select x.id, x.hub_id, x.status, x.blocked_at into c from lv.campaigns x where x.id = p_campaign;
+  select x.id, x.hub_id, x.status, x.blocked_at, x.access into c from lv.campaigns x where x.id = p_campaign;
   if c.id is null then return jsonb_build_object('ok', true, 'theme', null); end if;
-  if (c.status = 'draft' or c.blocked_at is not null)
-     and not (v_account is not null and lv.has_capability(v_account, c.hub_id, 'campaign.manage')) then
-    return jsonb_build_object('ok', true, 'theme', null);
+  -- Managers always see their own theme. Everyone else gets the same visibility as the player: published, not
+  -- blocked, Hub not suspended, and the Campaign is link-open or this person may take part (member/invited).
+  if not (v_account is not null and lv.has_capability(v_account, c.hub_id, 'campaign.manage')) then
+    if c.status = 'draft' or c.blocked_at is not null or lv.hub_suspended(c.hub_id)
+       or not (c.access = 'link' or lv.can_participate(c.id, v_account)) then
+      return jsonb_build_object('ok', true, 'theme', null);
+    end if;
   end if;
   select * into b from lv.campaign_branding x where x.campaign_id = p_campaign;
   if b.campaign_id is null or not lv.feature_allowed(c.hub_id, b.updated_by, 'survey.branding') then

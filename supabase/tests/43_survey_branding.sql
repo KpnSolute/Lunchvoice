@@ -91,6 +91,29 @@ select t.as_kpn(1);
 select t.check('creator pro: the footer can go', t.code(lv_api.lv_campaign_branding_set(t.id('qs'), '{"color":"#0f766e","hide_footer":true}'::jsonb)) = 'ok');
 select t.check('creator pro: the player drops the footer', (lv_api.lv_campaign_theme(t.id('qs')) #>> '{theme,hide_footer}') = 'true');
 
+-- Visibility follows the player (security review 2026-11-13): no theme or images for a suspended Hub, or for a
+-- Campaign the caller could not open (not link-open and not eligible). Managers still see their own.
+select t.as_anon();
+select t.check('visibility: a published link survey shows its theme to the public', (lv_api.lv_campaign_theme(t.id('qs')) -> 'theme') <> 'null'::jsonb);
+select t.as_pg();
+update lv.campaigns set access = 'invite', audience = 'members' where id = t.id('qs');
+select t.as_anon();
+select t.check('visibility: an invite-only survey hides its theme from the public', (lv_api.lv_campaign_theme(t.id('qs')) -> 'theme') = 'null'::jsonb);
+select t.check('visibility: an invite-only survey hides its logo from the public', not lv_storage.branding_readable('survey-logos', t.get('logo')));
+select t.as_kpn(2);
+select t.check('visibility: a signed-in person who was not invited gets no theme', (lv_api.lv_campaign_theme(t.id('qs')) -> 'theme') = 'null'::jsonb
+  and not lv_storage.branding_readable('survey-logos', t.get('logo')));
+select t.as_kpn(1);
+select t.check('visibility: the owner still sees an invite-only theme', (lv_api.lv_campaign_theme(t.id('qs')) -> 'theme') <> 'null'::jsonb);
+select t.as_pg();
+update lv.campaigns set access = 'link', audience = 'members_and_guests' where id = t.id('qs');
+insert into lv.hub_suspensions (hub_id, reason) select hub_id, 'test suspension' from lv.campaigns where id = t.id('qs');
+select t.as_anon();
+select t.check('visibility: a suspended Hub shows no theme', (lv_api.lv_campaign_theme(t.id('qs')) -> 'theme') = 'null'::jsonb);
+select t.check('visibility: a suspended Hub serves no logo', not lv_storage.branding_readable('survey-logos', t.get('logo')));
+select t.as_pg();
+delete from lv.hub_suspensions where hub_id = (select hub_id from lv.campaigns where id = t.id('qs'));
+
 -- A Hub Campaign: its own theme is independent of the Hub; following is an explicit choice.
 select t.as_kpn(3, null, true, 'Hub owner'); select lv_api.lv_my_context();
 select t.put('owner', t.q($$select lv.current_account_id()::text$$));

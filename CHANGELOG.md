@@ -8,6 +8,11 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Added (survey branding, paid, 000043)
 
+- **Security (review 2026-11-13):** the public theme (`lv_campaign_theme`) and branding image reads
+  (`lv_storage.branding_readable`) now follow the player's visibility: nothing for a suspended Hub, and only for
+  link-open Campaigns or people who may take part (`lv.can_participate`). Before, anyone holding a Campaign id could
+  read the logo and welcome/thank-you text of an invite-only or members-only survey. Managers still see their own.
+  Seven new checks in `supabase/tests/43_survey_branding.sql`.
 - **Custom survey branding** for Quick Surveys and Campaigns: brand color (WCAG AA 4.5:1 on white enforced in the editor and
   on save, with a one-click readable shade), logo, optional cover image, welcome headline, thank-you message, rounded or pill
   buttons, and a live start/thank-you preview at 375px and desktop (`src/pages/SurveyBranding.tsx`). Free users see the panel
