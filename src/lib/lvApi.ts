@@ -6,6 +6,7 @@ import { communityApi } from "./communityApi";
 /* ---- end track C ---- */
 /* ---- track D: api + discord ---- */
 import { integrationsApi } from "./integrationsApi";
+import { brandingApi, type BrandingStorage } from "./surveyBrandingApi"; // survey branding (000043)
 /* ---- end track D ---- */
 
 export type LvErrorCode =
@@ -233,12 +234,44 @@ export interface QuestionConfig {
   optional?: boolean;
   /** 000041: this question starts a section. Questions up to the next section start belong to it. */
   section?: SectionConfig | null;
+  /** 000042 Linked Questions: show this question only when the rule is met (rules only look back). */
+  show_if?: LogicRule | null;
+  /** 000042: single choice or yes/no answers that skip forward to a question, or to the end ("end"). */
+  jumps?: LogicJump[];
+  /** 000042: show the options in a stable random order per person; keep_last pins the last one ("Other", "None"). */
+  shuffle?: boolean;
+  keep_last?: boolean;
   [key: string]: unknown;
 }
 
+/** 000042: one condition on an earlier answer. any_of/none_of: choice and yes/no ("true"/"false");
+ *  at_least/at_most/between: rating (min/max). An unanswered or hidden source never meets a condition. */
+export type ConditionOp = "any_of" | "none_of" | "at_least" | "at_most" | "between";
+export interface LogicCondition { question_id: string; op: ConditionOp; values?: string[]; min?: number; max?: number }
+export interface LogicRule { match: "all" | "any"; conditions: LogicCondition[] }
+/** `when` is an option (or "true"/"false"); `to` is a later question id or "end". */
+export interface LogicJump { when: string; to: string }
+/** 000042: per-question results on a survey with logic. Counts are null when withheld (anonymous, under 5). */
+export interface QuestionLogicResult {
+  metric: "question_logic";
+  question_id: string;
+  filter: LogicFilter | null;
+  /** The filter group is under 5 (or leaves fewer than 5 outside it): nothing about it may be shown. */
+  filter_withheld?: boolean;
+  seen: number | null;
+  answered: number | null;
+  seen_withheld: boolean;
+  cells: Cell[];
+  withheld?: boolean;
+  texts?: string[] | null;
+  texts_withheld?: boolean;
+}
+/** Only respondents whose answer to an earlier choice or yes/no question is one of any_of. */
+export interface LogicFilter { question_id: string; any_of: string[] }
+
 /** 000041: show the section only when an earlier choice or yes/no answer is one of any_of ("true"/"false" for yes/no). */
 export interface SectionRule { question_id: string; any_of: string[] }
-export interface SectionConfig { title: string; description?: string | null; show_if?: SectionRule | null }
+export interface SectionConfig { title: string; description?: string | null; show_if?: SectionRule | null; /** 000042: random question order inside the section */ shuffle?: boolean }
 
 export interface Question {
   question_id: string;
@@ -381,6 +414,8 @@ export interface ReservationStatus {
 
 export interface LvTransport {
   rpc(fn: string, args?: Record<string, unknown>): Promise<unknown>;
+  /** Survey branding images (000043); absent where uploads are not available. */
+  storage?: BrandingStorage;
 }
 
 function normalize<T>(raw: unknown): LvResult<T> {
@@ -560,6 +595,9 @@ export function createLvApi(transport: LvTransport) {
     /* ---- analytics ---- */
     analytics: (campaign: string, metric: "participant_count" | "answer_distribution", question?: string) =>
       call<AnalyticsResult>("lv_analytics_query", { p_campaign: campaign, p_metric: metric, p_question: question ?? null }),
+    /** 000042: seen/answered counts and the distribution, optionally only for people who gave an earlier answer. */
+    analyticsQuestion: (campaign: string, question: string, filter: LogicFilter | null = null) =>
+      call<QuestionLogicResult>("lv_analytics_question", { p_campaign: campaign, p_question: question, p_filter: filter }),
     analyticsExport: (campaign: string) => call<{ rows: ExportRow[] }>("lv_analytics_export", { p_campaign: campaign }),
 
     /* ---- membership ---- */
@@ -616,6 +654,7 @@ export function createLvApi(transport: LvTransport) {
     /* ---- track D: api + discord ---- */
     ...integrationsApi(call),
     /* ---- end track D ---- */
+    ...brandingApi(transport, call), // survey branding (000043)
   };
 }
 

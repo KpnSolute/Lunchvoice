@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { SurveyBrandingPanel } from "./SurveyBranding"; // survey branding (000043)
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useIdentity } from "../identity/IdentityProvider";
@@ -248,7 +249,8 @@ export function SurveyStudio() {
   const timer = useRef<number | null>(null);
   const d = detail.data;
   useEffect(() => { if (d && title === null) setTitle(d.campaign.title); }, [d, title]);
-  const questionLimit = ctx.data?.quick_surveys.question_limit ?? null;
+  // 000042: the survey's own limit (a Creator plan raises it); the context still shows the free number.
+  const questionLimit = d?.campaign.question_limit ?? ctx.data?.quick_surveys.question_limit ?? null;
   const schedule: ScheduleState = useMemo(() => ({ start: { mode: "now" }, end: { mode: "none" } }), []);
   const issues = useReadiness(d ?? null, title ?? d?.campaign.title ?? "", schedule, questionLimit);
   const reloadAll = () => { detail.reload(); list.reload(); };
@@ -281,6 +283,10 @@ export function SurveyStudio() {
             </Field>
             <DescriptionField d={d} save={save} reload={detail.reload} />
           </Card>
+        </li>
+        <li>
+          {/* survey branding (000043): the creator's own Creator plan entitles it; no Hub needed */}
+          <SurveyBrandingPanel d={d} save={save} reload={detail.reload} />
         </li>
         <li>
           <Card>

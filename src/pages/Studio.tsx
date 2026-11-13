@@ -11,6 +11,7 @@ import { readiness, type ReadinessIssue, type StudioSection } from "../lib/readi
 import { Icon } from "../components/Icon";
 import { campaignPhase, LinkButton } from "../components/ui";
 import { QuestionInput } from "../ui/QuestionControls";
+import { SurveyBrandingPanel } from "./SurveyBranding"; // survey branding (000043)
 import { kindLabel, QuestionWorkbench, type SaveTracker } from "./QuestionWorkbench";
 import { Button } from "@/components/shadcn/button";
 import { Card } from "@/components/shadcn/card";
@@ -190,6 +191,8 @@ export function StudioView({ campaignId, backTo, crumb, resultsTo, hubId, hubNam
 
         <TabsContent value="details">
           <DetailsSection d={d} title={title ?? ""} setTitle={setTitle} save={save} reload={detail.reload} />
+          {/* survey branding (000043): per-survey theme; the Hub's color is only an optional starting point */}
+          <SurveyBrandingPanel d={d} save={save} reload={detail.reload} />
         </TabsContent>
         {/* forceMount: the workbench stays mounted (hidden) on other tabs, so a new question that is not saved yet
             (for example while its options are still invalid) is not lost by switching sections. */}

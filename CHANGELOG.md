@@ -6,6 +6,75 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-13: 000042 Linked Questions)
+
+- **Applied 000042 to production** (`qprfonxvthmaoxfixigk`) from commit `537f180` (file SHA-256 `5a37f889…`) through the
+  Management API as the file's own single transaction, after `test:pr`, 152/152 e2e and 1461/1461 database checks
+  (with 000043). Pre-check: `lv.capacity_check` present, `capacity_check_core` absent, latest `000043`. Verification:
+  history `000040`–`000043`; `lv.check_answer_value` rejects an off-list choice and a non-boolean yes/no; the elections
+  validator (`validate_answers_core`) kept; no new function executable by `anon`; Creator Quick Survey limits live
+  (Plus 30 questions / 15 active, Pro 100 / 100). Founder authority: migrations may be applied once tests pass.
+
+### Added (Linked Questions, migration 000042, 2026-11-13)
+
+- **Per-question "show only if" rules and "end survey"**, for Creator Plus or a Starter Hub and above (the existing
+  `survey.branching` entitlement, enforced on the server). A question can depend on EARLIER questions, joined with all
+  or any: choice and multi choice "is any of / none of", yes/no "is", rating "at least / at most / between". An answer
+  can also end the survey. Section rules (000041) keep working. Builder: a "Logic" panel on each question (locked, with
+  what unlocks it, for the free plan), a rule tag on the outline, a plain-language publish check and a min/max path
+  summary. Player: only the questions on the person's path, progress that follows it, Back keeps every answer, and
+  answers to hidden questions are never sent or stored. Results: "N saw, M answered" per question on surveys with paths
+  (withheld under 5 on anonymous surveys).
+- `lv_analytics_question` (seen/answered and an optional filter by an earlier answer; the filter has no UI yet).
+- **Creator limits for Quick Surveys**: `quick.max_questions` and `quick.max_active` for Creator Plus (30 / 15) and Creator
+  Pro (100 / 100), kinds/modes as free; the question guard, activation gate and Quick Surveys list resolve the owner's
+  Creator family and fall back to free. Founder perks, one `update lv.plan_limits` to change.
+- Not in this release (follow-up PR): skip-to-question jumps, answer piping, randomization, results filter control, the full
+  click-through path preview. The pure logic for them is already in `src/lib/logic.ts` but the server refuses skip-to.
+
+### Security (migration 000042)
+
+- **Security: answer validation for sectioned campaigns now applies every core check.** The 000041 validator skipped the
+  per-answer checks for sectioned Campaigns (option membership, yes/no boolean, text length, multi choice rules). Every shown
+  answer now goes through `lv.check_answer_value`, and every path (elections and Campaigns without logic included)
+  rejects entries without a question id, ids from another survey and duplicate ids. pgTAP `42_linked_questions.sql`
+  proves each rejection.
+
+### Operations (production, 2026-11-13: 000043 survey branding)
+
+- **Security (review 2026-11-13):** `lv_analytics_question` refuses a filter on anonymous Campaigns (`lv_invalid_input`).
+  A filter let two queries differ by a few respondents or isolate free text, which the minimum cohort cannot fully
+  prevent. Filters remain on identified Campaigns; a cohort-safe partition design is future work.
+- **Applied 000043 to production** (`qprfonxvthmaoxfixigk`) from commit `e8c0406` (file SHA-256 `a11dc233…`) through the
+  Management API in one transaction (the file's own `begin`/`commit` lines stripped), after `test:pr`, 147/147 e2e and
+  1389/1389 database checks. Founder authority: migrations may be applied once tests pass. Verification: RLS on
+  `lv.campaign_branding` with no API-role table access; `anon` may call only `lv_campaign_theme`; buckets
+  `survey-logos` (1 MB) and `survey-covers` (3 MB) private; 4 storage policies; history version corrected to `000043`.
+  Security advisor: no new finding types (definer functions and RLS-without-policy are the established `lv_api` pattern).
+
+### Added (survey branding, paid, 000043)
+
+- **Security (review 2026-11-13):** the public theme (`lv_campaign_theme`) and branding image reads
+  (`lv_storage.branding_readable`) now follow the player's visibility: nothing for a suspended Hub, and only for
+  link-open Campaigns or people who may take part (`lv.can_participate`). Before, anyone holding a Campaign id could
+  read the logo and welcome/thank-you text of an invite-only or members-only survey. Managers still see their own.
+  Seven new checks in `supabase/tests/43_survey_branding.sql`.
+- **Custom survey branding** for Quick Surveys and Campaigns: brand color (WCAG AA 4.5:1 on white enforced in the editor and
+  on save, with a one-click readable shade), logo, optional cover image, welcome headline, thank-you message, rounded or pill
+  buttons, and a live start/thank-you preview at 375px and desktop (`src/pages/SurveyBranding.tsx`). Free users see the panel
+  locked with what unlocks it. The player applies the theme through `--pt-*` variables scoped to `.lv-ptheme`
+  (`src/ui/player-theme.css`, `src/ui/PlayerTheme.tsx`); no global token changes; light and dark derive their own shades; high
+  contrast keeps LunchVoice colors. The "Powered by LunchVoice" footer stays unless `survey.remove_footer` (Team, Creator Pro).
+- Founder rule: themes work without Hubs and are stored per survey. "Use the Hub's color" is only a preset; `follow_hub` is an
+  explicit toggle, so later Hub changes never silently change a survey with its own theme. A downgraded plan keeps the data and
+  the player falls back to default styling.
+- Migration `000043_v2_survey_branding.sql` (rollback in `supabase/rollbacks/`, tests `supabase/tests/43_survey_branding.sql`):
+  `lv.campaign_branding` (RLS, no grants), `lv_campaign_branding_get/_set/_theme`, buckets `survey-logos` (1 MB) and
+  `survey-covers` (3 MB) with png/jpg/webp only and storage policies. Not applied to production.
+- First release scope: color, logo, welcome headline, thank-you message, preview, locked state. Cover image, the remove-footer
+  key and button-style options exist in the API and player but their controls are deferred to a follow-up PR.
+- Tests: `src/lib/surveyTheme.test.ts`, `e2e/branding.test.mjs`. Contract: `docs/backend/API_CONTRACT.md`.
+
 ### Fixed (MCP: the KpnIdentity wrapper the tests expect is now committed, 2026-11-13)
 
 - `scripts/mcp/supabase-kpnidentity.sh` (the `kpnauth` server) was referenced by `.mcp.json` and tested by
