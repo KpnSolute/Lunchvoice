@@ -6,6 +6,15 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-13: 000053 live results by plan)
+
+- **Applied 000053** (SHA-256 `a6c0a67d…`) to production through the Management API as the file's own transaction, after
+  `test:pr`, 1765/1765 database checks and 53/53 related e2e. Review change before applying: elections never take the
+  live path. Pre-check: `lv.analytics_core` present, `analytics_core_waiting` absent, no `batch_no` column, 0 elections,
+  16 submissions. Verification: the waiting engine kept; `results.instant` on `creator_plus`, `creator_pro`, `team`;
+  `lv_campaign_responses_anon` for `authenticated` only; `lv.submissions.batch_no` not readable by API roles; every
+  existing anonymous submission backfilled with a batch; the analytics engine answers.
+
 ### Added (live results and individual responses by plan, 000053; not applied to production)
 
 - **Security (review 2026-11-13):** elections never take the live path (`lv.results_instant` is false for
