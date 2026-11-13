@@ -6,6 +6,12 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Changed (Logic panel explains where rules go, founder feedback 2026-11-13)
+
+- On the first question the Logic panel now says it is the first question and that rules go on later questions, instead
+  of a generic line that read as if logic was missing. When earlier questions exist but none can drive a rule, it says
+  to add a choice, yes/no or rating question above or move the question down.
+
 ### Operations (production, 2026-11-13: 000050 and 000051)
 
 - **Applied 000050** (SHA-256 `e44eddb1…`) **and 000051** (`2c5cfe51…`) to production (`qprfonxvthmaoxfixigk`) through
