@@ -6,6 +6,24 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (branding v2: modern panel, color picker, gradients, cosmetics, 000048)
+
+- The Branding panel is now one card with a live preview (right on desktop, on top on phones) and groups Colors, Banner,
+  Logo, Text and Style. Colors are two rounded swatches with a pencil badge (Primary and Accent) that open our own
+  accessible color picker (`src/ui/ColorPicker.tsx`, no dependency): saturation/value area and hue slider (keyboard operable),
+  hex field, `EyeDropper` where the browser has one, curated presets (every one readable on white), and recent colors
+  (this browser only). On phones the picker is a bottom sheet. It shows the contrast ratio and offers the nearest readable shade.
+- **Gradients**: a theme is Solid or Gradient (two colors, vertical/diagonal/horizontal, six curated presets), painted on the
+  welcome card and the thank-you screen; buttons and question screens stay solid, and the text color is picked against the
+  worst end of the gradient. Both colors must reach 4.5:1 on white (client and server).
+- **Cosmetics** (all optional): banner style (color/gradient, subtle pattern dots/grid/waves, or logo only), corner style
+  (rounded/pill), progress bar tint, soft glow on the welcome card (the one-time shine is off under `prefers-reduced-motion`).
+  The cover image, the Creator Pro/Team footer toggle and button styles deferred from #75 are included.
+- Migration `000048_v2_branding_gradients.sql` (additive columns with checks, extended `lv_campaign_branding_set` and
+  `lv_campaign_theme`; rollback `supabase/rollbacks/000048_v2_branding_gradients.down.sql`; tests
+  `supabase/tests/48_branding_gradients.sql`). All 000043 rules are kept. Not applied to production.
+- Survey-level customization only: `src/ui/tokens.css` is unchanged. Screenshots: `docs/v2/screenshots/branding/`.
+
 ### Operations (production, 2026-11-13: 000043 survey branding)
 
 - **Applied 000043 to production** (`qprfonxvthmaoxfixigk`) from commit `e8c0406` (file SHA-256 `a11dc233…`) through the

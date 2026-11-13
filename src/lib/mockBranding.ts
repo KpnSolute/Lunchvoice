@@ -1,7 +1,7 @@
 // DEV-ONLY stand-in for survey branding (000043): lv_campaign_branding_get/_set, lv_campaign_theme and the two storage
 // buckets. Mirrors the server rules closely enough to click through; the backend stays authoritative.
 import type { BrandingStorage } from "./surveyBrandingApi";
-import { brandingProblem, checkBrandColor, IMAGE_LIMITS, normalizeHex, type SurveyBranding } from "./surveyTheme";
+import { brandingProblem, checkBrandColor, DEFAULT_COSMETICS, IMAGE_LIMITS, normalizeHex, type PatternKey, type SurveyBranding } from "./surveyTheme";
 
 export interface BrandingCtx {
   /** The mock state object; branding rows and images are kept on it so a reset clears them too. */
@@ -33,6 +33,7 @@ export function brandingHandle(ctx: BrandingCtx, fn: string, a: Record<string, u
         color: b.follow_hub ? c.hubAccent ?? b.color : b.color, logo_path: b.logo_path, cover_path: b.cover_path,
         welcome_headline: b.welcome_headline, thank_you: b.thank_you, button_style: b.button_style,
         hide_footer: b.hide_footer && ctx.allowed(c.hub_id, "survey.remove_footer"),
+        style: b.style, color2: b.style === "gradient" ? b.color2 : null, gradient_angle: b.gradient_angle, banner_style: b.banner_style, cosmetics: b.cosmetics,
       },
     };
   }
@@ -57,7 +58,22 @@ export function brandingHandle(ctx: BrandingCtx, fn: string, a: Record<string, u
     follow_hub: Boolean(p.follow_hub), color: normalizeHex(p.color ?? null), logo_path: p.logo_path || null, cover_path: p.cover_path || null,
     welcome_headline: p.welcome_headline?.trim() || null, thank_you: p.thank_you?.trim() || null,
     button_style: p.button_style === "pill" ? "pill" : "rounded", hide_footer: Boolean(p.hide_footer), updated_at: new Date().toISOString(),
+    style: (p.style ?? "solid") as SurveyBranding["style"], color2: normalizeHex(p.color2 ?? null), gradient_angle: (p.gradient_angle ?? 135) as SurveyBranding["gradient_angle"],
+    banner_style: (p.banner_style ?? "fill") as SurveyBranding["banner_style"],
+    cosmetics: {
+      pattern: (p.cosmetics?.pattern ?? (p.banner_style === "pattern" ? "dots" : "none")) as PatternKey,
+      progress_tint: Boolean(p.cosmetics?.progress_tint ?? DEFAULT_COSMETICS.progress_tint), glow: Boolean(p.cosmetics?.glow ?? DEFAULT_COSMETICS.glow),
+    },
   };
+  if (!["solid", "gradient"].includes(b.style)) return err("lv_invalid_input", "The look is solid or gradient.");
+  if (![90, 135, 180].includes(b.gradient_angle)) return err("lv_invalid_input", "Pick a gradient direction from the list.");
+  if (!["fill", "pattern", "logo"].includes(b.banner_style)) return err("lv_invalid_input", "The banner is a fill, a pattern or logo only.");
+  if (!["none", "dots", "grid", "waves"].includes(b.cosmetics.pattern)) return err("lv_invalid_input", "Pick a pattern from the list.");
+  if (p.color2 && !b.color2) return err("lv_invalid_input", "Pick the second color as #RRGGBB.");
+  if (b.style === "gradient") {
+    if (!b.color2 || (!b.color && !b.follow_hub)) return err("lv_invalid_input", "A gradient needs two colors.");
+    if (!checkBrandColor(b.color2).ok) return err("lv_invalid_input", "The second color is too light for text on a gradient. Pick a darker shade (4.5:1 or more).");
+  } else b.color2 = null;
   if (p.color && !b.color) return err("lv_invalid_input", "Pick a color as #RRGGBB.");
   if (b.color && !checkBrandColor(b.color).ok) return err("lv_invalid_input", "That color is too light to read on white. Pick a darker shade (4.5:1 or more).");
   const bad = brandingProblem(b, c.hubKind === "community");

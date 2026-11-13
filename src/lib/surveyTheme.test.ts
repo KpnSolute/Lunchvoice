@@ -76,3 +76,67 @@ test("mock server: Hub color change does not move a copied color; follow_hub doe
   assert.equal(color("c"), "#1f6f5b");
   assert.equal(color("d"), "#7a1f1f");
 });
+
+import {
+  GRADIENT_PRESETS, gradientCss, heroContrast, hexToHsv, hsvToHex, loadRecent, onColors, PRESET_COLORS, pushRecent,
+} from "./surveyTheme";
+
+test("every curated color and gradient end is readable on white (4.5:1)", () => {
+  for (const p of PRESET_COLORS) assert.ok(checkBrandColor(p.hex).ok, `${p.name} ${p.hex}`);
+  for (const g of GRADIENT_PRESETS) {
+    assert.ok(checkBrandColor(g.from).ok && checkBrandColor(g.to).ok, g.key);
+    assert.ok(heroContrast(g.from, g.to) >= 4.5, `${g.key} hero text`);
+  }
+});
+
+test("text color on a gradient is judged against its worst end", () => {
+  assert.equal(onColors(["#0f766e", "#1d4ed8"]), WHITE);
+  assert.equal(onColors(["#fde68a", "#fbbf24"]), "#14110f");
+  // A light end and a dark end: no single text color reaches 4.5:1 on both, so the heroContrast guard reports it.
+  assert.ok(heroContrast("#fde68a", "#1d4ed8") < 4.5);
+  assert.ok(heroContrast("#4338ca", "#be123c") >= 4.5);
+});
+
+test("themeVars for a gradient: hero gradient, solid accent for buttons, readable on-color", () => {
+  const v = themeVars("#0f766e", { color2: "#1d4ed8", angle: 180 })!;
+  assert.equal(v["--pt-hero"], "linear-gradient(180deg, #0f766e, #1d4ed8)");
+  assert.equal(v["--pt-accent"], "#0f766e");
+  assert.ok(contrast("#0f766e", v["--pt-on"]!) >= 4.5 && contrast("#1d4ed8", v["--pt-on"]!) >= 4.5);
+  assert.equal(themeVars("#0f766e")!["--pt-hero"], "#0f766e");
+  assert.equal(gradientCss("#000000", "#111111", 90), "linear-gradient(90deg, #000000, #111111)");
+});
+
+test("gradient saves need two readable colors", () => {
+  const g = { ...EMPTY_BRANDING, style: "gradient" as const, color: "#0f766e" };
+  assert.match(brandingProblem(g, false)!, /two colors/);
+  assert.match(brandingProblem({ ...g, color2: "#fbbf24" }, false)!, /second color/);
+  assert.equal(brandingProblem({ ...g, color2: "#1d4ed8" }, false), null);
+});
+
+test("hsv round trip and recent colors (local only, newest first, capped)", () => {
+  for (const hex of ["#0f766e", "#be123c", "#ffffff", "#000000"]) assert.equal(hsvToHex(...(Object.values(hexToHsv(hex)) as [number, number, number])), hex);
+  const mem = new Map<string, string>();
+  const store = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v) };
+  for (let i = 0; i < 10; i++) pushRecent(`#00000${i}`, store);
+  pushRecent("#000005", store);
+  const r = loadRecent(store);
+  assert.equal(r.length, 8);
+  assert.equal(r[0], "#000005");
+  assert.equal(new Set(r).size, 8);
+  assert.deepEqual(loadRecent({ getItem: () => "not json" }), []);
+});
+
+test("mock server: gradient saves with direction and cosmetics, comes back in the theme", () => {
+  const paid = ctx({ branding: true });
+  const body = { style: "gradient", color: "#0f766e", color2: "#1d4ed8", gradient_angle: 180, banner_style: "pattern", cosmetics: { pattern: "grid", progress_tint: true, glow: true } };
+  assert.equal((brandingHandle(paid, "lv_campaign_branding_set", { p_campaign: "g", p_branding: body }, true) as { ok: boolean }).ok, true);
+  const th = (brandingHandle(paid, "lv_campaign_theme", { p_campaign: "g" }, true) as { theme: Record<string, unknown> }).theme;
+  assert.equal(th.style, "gradient");
+  assert.equal(th.color2, "#1d4ed8");
+  assert.deepEqual(th.cosmetics, { pattern: "grid", progress_tint: true, glow: true });
+  const bad = (b: object) => (brandingHandle(paid, "lv_campaign_branding_set", { p_campaign: "g", p_branding: b }, true) as { ok: boolean }).ok;
+  assert.equal(bad({ ...body, color2: "#fbbf24" }), false);
+  assert.equal(bad({ ...body, color2: null }), false);
+  assert.equal(bad({ ...body, gradient_angle: 45 }), false);
+  assert.equal(bad({ ...body, cosmetics: { pattern: "stripes" } }), false);
+});

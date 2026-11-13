@@ -1,0 +1,54 @@
+/* Survey color picker (src/ui/ColorPicker.tsx) and its Discord-style swatch entry. Tokens only, except the picker
+   gradients, which are the picker itself (hue spectrum, saturation/value) and not product colors. */
+.lv-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+.lv-swatch-field { display: flex; flex-direction: column; align-items: flex-start; gap: var(--lv-space-1); }
+.lv-swatch {
+  position: relative; width: 88px; height: 64px; border: 0; padding: 0; cursor: pointer;
+  border-radius: var(--lv-radius-card); box-shadow: var(--lv-card-shadow);
+  transition: transform var(--lv-dur-toggle) var(--lv-ease-out), box-shadow var(--lv-dur-toggle) var(--lv-ease-out);
+}
+.lv-swatch[data-empty='yes'] { background: repeating-conic-gradient(var(--lv-well) 0 25%, var(--lv-surface) 0 50%) 0 0 / 14px 14px; }
+.lv-swatch:hover:not(:disabled) { transform: translateY(-1px); }
+.lv-swatch:focus-visible { outline: 3px solid var(--lv-focus); outline-offset: 3px; }
+.lv-swatch:disabled { cursor: not-allowed; opacity: 0.5; }
+.lv-swatch-edit {
+  position: absolute; right: -6px; bottom: -6px; display: grid; place-items: center; width: 26px; height: 26px;
+  border-radius: var(--lv-radius-pill); background: var(--lv-surface); color: var(--lv-text); box-shadow: var(--lv-popover-shadow);
+}
+.lv-swatch-label { font: 600 14px/1.2 var(--lv-font-ui); }
+.lv-swatch-hex { font: 400 12px/1.2 var(--lv-font-mono); color: var(--lv-muted); }
+
+.lv-cp { display: flex; flex-direction: column; gap: var(--lv-space-3); min-width: 0; }
+.lv-cp-pop { width: min(320px, calc(100vw - 32px)); }
+.lv-cp-sv {
+  position: relative; height: 150px; border-radius: var(--lv-radius-field); cursor: crosshair; touch-action: none;
+  background-image: linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent);
+}
+.lv-cp-sv:focus-visible { outline: 3px solid var(--lv-focus); outline-offset: 2px; }
+.lv-cp-thumb {
+  position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: var(--lv-radius-pill); pointer-events: none;
+  border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.lv-cp-hue input[type='range'] {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 16px; border-radius: var(--lv-radius-pill); cursor: pointer; margin: 0;
+  background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+}
+.lv-cp-hue input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: var(--lv-radius-pill); background: #fff; border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.35); }
+.lv-cp-hue input[type='range']::-moz-range-thumb { width: 16px; height: 16px; border-radius: var(--lv-radius-pill); background: #fff; border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45); }
+.lv-cp-hue input[type='range']:focus-visible { outline: 3px solid var(--lv-focus); outline-offset: 3px; }
+.lv-cp-row { display: flex; align-items: center; gap: var(--lv-space-2); }
+.lv-cp-row input { min-width: 0; flex: 1; font-family: var(--lv-font-mono); }
+.lv-cp-chip { flex: none; width: 36px; height: 36px; border-radius: var(--lv-radius-control); box-shadow: var(--lv-card-shadow); }
+.lv-cp-group { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--lv-space-2); }
+.lv-cp-swatches { display: flex; flex-wrap: wrap; gap: var(--lv-space-2); }
+.lv-cp-swatch {
+  width: 32px; height: 32px; border: 0; padding: 0; cursor: pointer; border-radius: var(--lv-radius-pill); box-shadow: var(--lv-card-shadow);
+}
+.lv-cp-swatch[aria-pressed='true'] { outline: 3px solid var(--lv-focus); outline-offset: 2px; }
+.lv-cp-swatch:focus-visible { outline: 3px solid var(--lv-focus); outline-offset: 2px; }
+@media (max-width: 640px) {
+  .lv-cp-swatch { width: 40px; height: 40px; } /* 44px-class touch targets with the gap */
+  .lv-cp-sv { height: 180px; }
+}
+@media (prefers-reduced-motion: reduce) { .lv-swatch { transition: none; } }

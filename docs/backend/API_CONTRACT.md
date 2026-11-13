@@ -1166,3 +1166,13 @@ questions, answers or anonymity.
   `<campaign uuid>/<logo|cover>-<hex>.<png|jpg|webp>`. Write: Hub managers (owner of a personal space) with `survey.branding`;
   read: managers, or anyone for an image referenced by a published survey's active theme. The app loads images through
   the authenticated client as `blob:` URLs, so CSP needs no new origin.
+
+### Survey branding v2: gradients and cosmetics (000048)
+
+Additive to 000043; every rule above still holds (theme per survey, no Hub needed, `follow_hub` explicit, plan on save,
+lapse falls back, player visibility rules, table closed to API roles). New `SurveyBranding` / `theme` fields:
+
+- `style`: `solid` | `gradient` (default `solid`); `color2` (`#rrggbb`, kept only for a gradient); `gradient_angle`: `90` horizontal | `135` diagonal | `180` vertical.
+- `banner_style`: `fill` (the color or gradient) | `pattern` | `logo` (logo only, LunchVoice ink behind it).
+- `cosmetics`: `{ pattern: none|dots|grid|waves, progress_tint: bool, glow: bool }`. Corner style is the existing `button_style`.
+- Save rules: text on a gradient is white, so BOTH colors must reach 4.5:1 on white (`lv_invalid_input` otherwise); a gradient needs `color2` and a first color (or `follow_hub`); unknown angle, banner, pattern or style are refused; a solid theme drops `color2`.
