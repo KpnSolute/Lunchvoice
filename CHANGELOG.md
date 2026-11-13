@@ -6,6 +6,27 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Fixed (docs: Trends and Creator plans spec matches the founder's prices, 2026-11-13)
+
+- `docs/v2/TRENDS_AND_CREATOR_PLANS.md` said Creator $12 and Creator Pro $27 and marked Trends "Built". The founder's
+  decision is Creator Plus $5 and Creator Pro $15 (migration `000041`, families `creator_plus` and `creator_pro`), and
+  Trends are not built on any branch. The spec now says so, marks the Creator survey, question and Trend limits as
+  proposals (the Project Profile proposes different ones), and lists what `000041` does and does not include. The
+  matching Google Docs ("Project Profile - LunchVoice V2" and "Trends and Creator Plans") were corrected the same day.
+
+### Added (docs: what is V2.x and V3, founder direction 2026-11-12)
+
+- `docs/v3/ROADMAP.md`: every idea in the founder's Google Doc "LunchVoice — Innovation Concepts and Product Roadmap —
+  2026-11-11" (all four addenda) placed as V2, V2.x, V3 or V3 Enterprise, with the guardrails the doc sets, so V3 work
+  is never built into V2 or advertised as available. V2.x: Hub Pulse, community goals, recaps, missions, achievements,
+  expanded Discord, manual idea-to-Campaign, result cards. V3: Decision Engine and Outcome Intelligence (centrepiece),
+  live rooms, quests, Living Surveys, Feedback Passport, cross-community insights, the AI layer, Reddit/Slack/Teams.
+  V3 Enterprise: E1 to E8, with TwinLab prediction and federation deferred to V4.
+- `docs/v2/handoffs/drafts/hub_identity.draft.sql` and its rollback, moved from `wip/product-pages` (never run; the
+  handoff `2026-11-12-site-and-hub-identity-prompt.md` explains what is left) so that branch can be closed.
+- `docs/v2/TRENDS_AND_CREATOR_PLANS.md`: the Trends and Creator plans spec (founder answers 2026-11-12: Hub Trends now;
+  solo Creator $12 and Creator Pro $27), with each feature marked Built or Planned.
+
 ### Changed (survey creation and Campaign lists, founder assignment 2026-11-12, PR D)
 
 - **New Quick Survey opens on a short template list:** Blank and the first five templates, then "Show all N templates".
