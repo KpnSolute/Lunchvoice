@@ -6,6 +6,15 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-13: 000043 survey branding)
+
+- **Applied 000043 to production** (`qprfonxvthmaoxfixigk`) from commit `e8c0406` (file SHA-256 `a11dc233…`) through the
+  Management API in one transaction (the file's own `begin`/`commit` lines stripped), after `test:pr`, 147/147 e2e and
+  1389/1389 database checks. Founder authority: migrations may be applied once tests pass. Verification: RLS on
+  `lv.campaign_branding` with no API-role table access; `anon` may call only `lv_campaign_theme`; buckets
+  `survey-logos` (1 MB) and `survey-covers` (3 MB) private; 4 storage policies; history version corrected to `000043`.
+  Security advisor: no new finding types (definer functions and RLS-without-policy are the established `lv_api` pattern).
+
 ### Added (survey branding, paid, 000043)
 
 - **Security (review 2026-11-13):** the public theme (`lv_campaign_theme`) and branding image reads
