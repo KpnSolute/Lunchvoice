@@ -17,7 +17,7 @@ const edit = (page, fn, arg) => page.evaluate(([src, a]) => {
 
 test("results: summary cards, star distribution with average, values on bars, accessible table", async () => {
   const { page, go, errors } = await openPage(app, { seed: "team" });
-  await go(CLOSED_ANON);
+  await go(`${HUB}/campaigns/cmp-seed-1/results`); // identified: every cell is shown, so the average is too
   await page.getByTestId("summary-cards").waitFor();
   assert.equal(await page.getByTestId("kpi").count(), 3);
   await page.getByTestId("star-distribution").waitFor();
@@ -25,11 +25,11 @@ test("results: summary cards, star distribution with average, values on bars, ac
   const frames = page.getByTestId("question-chart");
   assert.equal(await frames.count(), 3);
   // every chart has a table for screen readers, hidden until asked for
-  assert.equal(await page.getByTestId("chart-table").count(), 3);
+  assert.equal(await page.getByTestId("question-chart").getByTestId("chart-table").count(), 3);
   const first = frames.first();
-  assert.equal(await first.getByTestId("chart-table").isVisible(), false);
+  assert.match(await first.getByTestId("chart-table").getAttribute("class"), /lv-sr-only/);
   await first.getByRole("button", { name: "Show data table" }).click();
-  assert.equal(await first.getByTestId("chart-table").isVisible(), true);
+  assert.doesNotMatch(await first.getByTestId("chart-table").getAttribute("class"), /lv-sr-only/);
   await first.getByRole("button", { name: "Show chart" }).click();
   // chart-type switcher
   await frames.nth(1).getByRole("radio", { name: "Columns" }).click();
@@ -101,7 +101,7 @@ test("Trend: a withheld run is a gap, and an over-limit space stays readable but
   await page.getByTestId("trend-chart").first().getByRole("button", { name: "Show data table" }).click();
   assert.match(await page.getByTestId("chart-table").first().innerText(), /Withheld/);
   // downgrade: the Hub plan ends, so the limit is 0 while one Trend exists
-  await edit(page, `for (const e of s.ents) e.ends_at = new Date(Date.now() - 86400000).toISOString();`);
+  await edit(page, `s.billing_launched_at = new Date(Date.now() - 40 * 86400000).toISOString(); for (const e of s.ents) e.ends_at = new Date(Date.now() - 86400000).toISOString();`);
   await go(`${HUB}/trends`);
   await page.getByTestId("trend-list").getByText("Route check-in").waitFor();
   assert.equal(await page.getByRole("button", { name: "Create Trend" }).count(), 0);

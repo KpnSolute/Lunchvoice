@@ -13,7 +13,6 @@ export function LvBarChart({ data, orientation = "bars", label }: { data: ChartD
   const released = data.filter((d) => !d.suppressed && d.n !== null);
   const withheld = data.length - released.length;
   const rows = [...released].sort((a, b) => (b.n ?? 0) - (a.n ?? 0));
-  const top = rows[0]?.n ?? 0;
   const horizontal = orientation === "bars";
   const height = horizontal ? Math.max(120, rows.length * 44 + 16) : 260;
   const animate = chartAnimates();
@@ -34,8 +33,8 @@ export function LvBarChart({ data, orientation = "bars", label }: { data: ChartD
               <YAxis type="number" hide domain={[0, "dataMax"]} />
             </>
           )}
-          <Bar dataKey="n" radius={horizontal ? [0, 6, 6, 0] : [6, 6, 0, 0]} isAnimationActive={animate} maxBarSize={32}>
-            {rows.map((r, i) => <Cell key={r.key} fill={i === 0 && rows.length > 1 && r.n === top ? CHART.accent : CHART.grey} />)}
+          <Bar dataKey="n" radius={horizontal ? [0, 6, 6, 0] : [6, 6, 0, 0]} isAnimationActive={animate} animationDuration={450} maxBarSize={32}>
+            {rows.map((r, i) => <Cell key={r.key} fill={i === 0 && rows.length > 1 && (r.n ?? 0) > (rows[1]?.n ?? 0) ? CHART.accent : CHART.grey} />)}
             <LabelList dataKey="n" position={horizontal ? "right" : "top"} fill={CHART.text} fontSize={13} fontFamily={NUMBER_FONT} fontWeight={700} />
           </Bar>
         </BarChart>

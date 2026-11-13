@@ -34,7 +34,7 @@ export function LvStarDistribution({ data, mean, label, stars = 5 }: { data: Cha
           <BarChart data={shown} margin={{ top: 20, right: 8, bottom: 4, left: 8 }} accessibilityLayer={false} barCategoryGap={12}>
             <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: CHART.greyLight }} tick={{ fill: CHART.text, fontSize: 13, fontFamily: UI_FONT }} interval={0} />
             <YAxis type="number" hide domain={[0, Math.max(1, peak)]} />
-            <Bar dataKey="n" radius={[6, 6, 0, 0]} isAnimationActive={animate} maxBarSize={44}>
+            <Bar dataKey="n" radius={[6, 6, 0, 0]} isAnimationActive={animate} animationDuration={450} maxBarSize={44}>
               {shown.map((r) => <Cell key={r.key} fill={r.n === peak && peak > 0 ? CHART.accent : CHART.grey} />)}
               <LabelList dataKey="n" position="top" fill={CHART.text} fontSize={13} fontFamily={NUMBER_FONT} fontWeight={700} />
             </Bar>
