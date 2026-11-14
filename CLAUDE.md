@@ -87,7 +87,8 @@ UI and API; the backend evaluates the active entitlement.
 
 1. Read both `AGENTS.md` and `CLAUDE.md`; stop if they differ.
 2. Read the canonical master spec and the newest entries in `CHANGELOG.md`
-   before changing code.
+   before changing code. Read `docs/v2/launch-roadmap/00_ROADMAP_4_WEEKS.md` and your spec in
+   `02_FEATURE_SPECS.md`; find your row in `TRACKER.md`.
 3. Inspect `git status` and preserve unrelated user changes.
 4. Read the relevant source, tests, migrations, and deployment configuration.
 5. Never use the retired Documents/Jop Corps checkout. Work only in this repo.
@@ -115,6 +116,44 @@ KpnRelay, Regional Overseer, Synthesis Drive, and local delegated agents.
   migrations, RLS, `lv_api`, identity, entitlements and the shared and backend
   docs (including this file). The UI owns the frontend and its docs. Coordinate
   contract changes through `docs/backend/API_CONTRACT.md`.
+
+## Work Tracking Protocol (every agent, every change, no exceptions)
+
+The founder follows progress and completeness from `CHANGELOG.md` and `docs/v2/launch-roadmap/TRACKER.md`. Both are
+written by **every** Codex, Claude, KpnRelay, Regional Overseer, Synthesis Drive and delegated agent, in the same commit
+as the work. Work without a changelog entry and a tracker update is not done and must not be merged, pushed or reported
+complete. Every prompt or handoff that starts an agent must include this section by reference.
+
+1. **Find your spec.** Work comes from a spec ID in `docs/v2/launch-roadmap/02_FEATURE_SPECS.md` (or an S-item in
+   `04_SECURITY_AND_OPERATIONS_HARDENING.md`, or a route in the UI upgrade ledger). Put the ID in the branch name, commit
+   message and changelog heading. If there is no ID, ask the governing agent to assign one before starting.
+2. **Write the changelog entry under `[Unreleased]`, newest first**, in this shape:
+
+   ```
+   ### <Added|Changed|Fixed|Security|Docs|Operations> (<spec IDs>: <short title>; <agent role>; <YYYY-MM-DD>)
+
+   - Status: planned | coded | tested | deployed | verified | UI-complete
+   - What changed: one to five lines in plain words (what a person can now do, not what files moved).
+   - Where: files, migrations (number and SHA-256 when applied), functions, hostnames, settings.
+   - Checks: each command run and its real result (counts, pass or fail). "Not run" is written as "Not run".
+   - Production: not touched | applied (how, when, verified how).
+   - Not done and blockers: everything specified that is missing, plus anything unverified.
+   - Next: the single next action and who owns it.
+   ```
+3. **Status is claimed only as far as the evidence goes.** The stages are `planned` (specified), `coded` (merged or on a branch),
+   `tested` (checks pass), `deployed` (running in production), `verified` (proven end to end with a real run), `UI-complete`
+   (the polished screen passed the week-4 acceptance). Never write a later stage because an earlier one is true. A
+   deployment or a passing unit test is not `verified`.
+4. **Update the tracker row** for the spec ID in `docs/v2/launch-roadmap/TRACKER.md` (Status, Evidence link to the changelog
+   heading, Last update date, Owner). One row per spec; never delete a row; a cut feature gets status `cut` and a reason.
+5. **Record the cut or the slip honestly.** A finished-or-hidden decision, a skipped test or a missed date is written in the
+   entry's "Not done and blockers". Nothing is described as shipped that is only specified.
+6. **Mid-task entries.** A change that spans more than a day gets an entry on the first day (`coded` or `planned`) and the
+   same entry is edited, not duplicated, as the status advances; add a dated line for each advance.
+7. **Handoffs and reports** to the governing agent quote the changelog heading and the tracker row, and list what is
+   ready, linked, blocked and the next command.
+8. **The governing agent audits.** Before any push to `main` or production apply, it checks that every changed file maps to
+   an entry and a tracker row, and rejects delegated work that does not.
 
 ## Standing Git Authority
 
@@ -275,7 +314,7 @@ passing `scripts/db-test-canonical.sh`, which needs Docker.
 - `npm run build`
 - Relevant focused/integration checks pass (`scripts/db-test-canonical.sh` for
   database work).
-- `CHANGELOG.md` describes the change.
+- `CHANGELOG.md` has an entry in the Work Tracking Protocol format and `TRACKER.md` shows the new status with its evidence.
 - `AGENTS.md` and `CLAUDE.md` are identical.
 - No v1 dependency, customer-specific hardcoding or secret is introduced, and no
   generated file is staged by accident.

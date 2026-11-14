@@ -362,7 +362,7 @@ for every new operation; no v1 reference; no customer name in code.
 - **Done when.** A run-over-run view across three runs renders with a changed-wording warning and a withheld run is
   shown as withheld, never zero.
 
-### C6. Hub health panel (Pulse Lite)
+### C6. Hub health panel (the Heartbeat and Voice parts of Pulse; built together with E10)
 
 - **Purpose.** An owner sees in ten seconds whether the community is alive and whether people are heard.
 - **Behavior.** On the Hub Overview: members (genuine, accepted), new members this week, active members this week
@@ -632,6 +632,50 @@ for every new operation; no v1 reference; no customer name in code.
 - **Tests.** No activity row carries an answer or an account for an anonymous Campaign; directory visibility matrix;
   hide-self; counts under 5 are withheld.
 - **Done when.** A new member sees the feed, the directory and a welcome in e2e.
+
+---
+
+### E10. Hub Pulse (launch version: Pulse Lite, P0)
+
+- **Purpose.** An owner knows in ten seconds if the community is alive and heard, and members feel the Hub's heartbeat. Small, regular
+  check-ins build the habit of answering; goals and recaps give the community something to move together.
+- **Who and access.** Every Hub plan (`pulse.enabled`). Starter: one pulse question chosen from five presets, up to 3 active goals.
+  Team: a custom pulse question and up to 3 rotating pulse questions, up to 10 active goals, role breakdown of the pulse (C4 rules)
+  and the weekly digest (C7). Founding Hubs have the Starter family. Campaign passes follow their family.
+- **Behavior.** Four parts under one **Pulse** card on the Hub Overview, mapped to the four pillars:
+  1. **Heartbeat (activity).** The C6 numbers: genuine members, new this week, active this week (answered, commented or voted), open reports.
+  2. **Voice (participation).** Participation rate of the last closed Campaign and **time to decision** (median days from a Campaign closing to
+     its linked decision being `decided`, C2). Rate rules unchanged (no rate at 100% or when the non-respondents are fewer than the cohort).
+  3. **Mood (the pulse check).** A one-question anonymous check-in sent on a schedule (weekly, every two weeks or monthly; default weekly,
+     Monday). Presets: "How are you feeling about {Hub} this week?" (five faces), "Do you feel heard in {Hub}?" (yes, somewhat, no),
+     "How likely are you to recommend {Hub}?" (0 to 10), "Is {Hub} helping you?" (yes, somewhat, no), "How is the mood this week?" (five faces).
+     It is built on D5: each run is an anonymous Campaign in a Hub Trend named "Pulse", created as a draft that **is auto-activated only
+     for Pulse** (the one exception to the D5 never-auto-activate rule, because the questions are fixed presets or manager-approved custom text) and closes
+     after 5 days. Members get one `campaign.new` notification (E3) and see a "Pulse" card on the Hub home with a single tap answer. The
+     mood score is the run's mean, shown only with 5 or more answers, with a trend arrow against the previous four runs. A Pulse run does not
+     count against the Hub's active Campaign limit or the Trend allowance (`pulse.*` is its own allowance).
+  4. **Impact (decisions).** Decisions published in the last 30 days and how many are `done` (C2).
+- **Community goals.** A manager sets a goal: **participation** ("50 people answer the Friday poll by 12-20"), **members** ("reach 100
+  members") or **decisions** ("close 3 decisions this month"). Members see a progress bar; reaching it shows a small celebration and can
+  create a news post (E5) in one click. Goals are never competitive between people and never punish; they count totals only. `goals.max_active`:
+  Starter 3, Team 10. A goal's progress for an anonymous Campaign uses counts at 5 or more only.
+- **Weekly recap draft.** Each Monday the system creates a **draft** news post in the Hub from counts only (answers last week, new members,
+  decisions made, pulse mood and trend, the result of any snapshot published that week, goals reached). A manager edits and publishes; it is
+  **never published automatically**. Team may also send it as the digest (C7).
+- **Visibility.** `hub.pulse_visibility`: `managers` (default), `members` or `public` (public needs a public Hub). Members who may see the
+  Pulse card never see who answered; withheld numbers show "not enough answers yet".
+- **Data.** `lv.hub_pulse_settings(hub_id, enabled, schedule, questions jsonb, visibility)`, `lv.hub_goals(id, hub_id, kind, target, due_at,
+  status, visibility, created_by)`, `lv.hub_recap_drafts(id, hub_id, week_start, body, status)`; Pulse runs are ordinary Campaigns flagged
+  `purpose = 'pulse'`; a security-invoker view `lv.hub_pulse(hub_id)` assembles the four parts with the withheld rules. Policy keys
+  `pulse.run_days` (5), `pulse.history_runs` (4). Keys in the plan map: `pulse.enabled`, `pulse.questions_max` (Starter 1, Team 3),
+  `goals.max_active` (3, 10), `recap.draft`.
+- **API.** `lv_pulse_get(p_hub)`, `lv_pulse_settings_set`, `lv_goal_create`, `lv_goal_update`, `lv_goal_list`, `lv_recap_draft_get`,
+  `lv_recap_draft_publish`.
+- **Privacy and security.** A Pulse answer is an anonymous answer under every existing rule; the mood score and goal progress pass through
+  the one engine; the weekly recap and any Discord post of Pulse contain only released numbers; a manager cannot see who answered.
+- **Tests.** Withheld under 5; schedule creates one run per period (time-travel); runs excluded from Campaign and Trend limits; auto-activation
+  limited to Pulse; goal progress arithmetic; recap contains no per-person data; visibility matrix; plan matrix.
+- **Done when.** A fixture Hub runs two Pulse runs, shows the mood trend and a goal reaching 100%, and produces a recap draft a manager publishes.
 
 ---
 

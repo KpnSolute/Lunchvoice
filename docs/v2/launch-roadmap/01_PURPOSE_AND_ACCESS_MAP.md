@@ -111,6 +111,7 @@ State: **Live** (in production and working), **Partial** (exists, not finished),
 | News, comments, reactions | The Hub talks to itself | Hub plans | Partial | E5 |
 | Reports, blocks, appeals | Safety that works | Free | Partial | E6 |
 | Discover | Be found | Team Hub at 700 genuine members | Live (gate), polish New | E8 |
+| Hub Pulse: heartbeat, voice, mood check, community goals, weekly recap draft | The community feels alive and heard; the owner sees health in ten seconds | Every Hub plan (Starter 1 question and 3 goals; Team 3 questions, 10 goals, role breakdown) | `pulse.enabled`, `pulse.questions_max`, `goals.max_active`, `recap.draft` | New | E10 |
 | Founding seats and waitlist | A fair, small start | Free | Live | |
 
 ### 3.6 Platform
@@ -168,6 +169,9 @@ Existing keys are untouched. All new keys ship with a rollback and a pgTAP test 
 | `discord.connect` | account link only | account link only | account link only | yes | yes | yes | yes | proposal ("server owners with Hub plans") |
 | `notifications.digest` | yes | yes | yes | yes | yes | yes | yes | free for everyone |
 | `hub.health` | n/a | n/a | n/a | basic | full | basic | full | proposal |
+| `pulse.enabled` | n/a | n/a | n/a | yes | yes | yes | yes | proposal |
+| `pulse.questions_max` | n/a | n/a | n/a | 1 | 3 | 1 | 3 | proposal |
+| `goals.max_active` | n/a | n/a | n/a | 3 | 10 | 3 | 10 | proposal |
 
 Starter Hub and Campaign Starter do not get live results (`AGENTS.md` approves them for Creator Plus, Creator Pro, Team
 Hub and Campaign Plus only). The backend agent reads `lv.plan_limits` on day 1 and reports the live values; it changes none

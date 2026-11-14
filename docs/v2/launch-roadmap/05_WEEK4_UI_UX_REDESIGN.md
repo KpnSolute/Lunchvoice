@@ -88,9 +88,9 @@ No new fonts, no new radii (rule kept), no invented numbers, testimonials or log
 | Sign-in and waitlist | `/signin`, `/waitlist` | Calm, confident, trust cues |
 | Decisions | Hub Decisions tab and decision page | New feature, designed once, to a high standard (the "GitHub" of community decisions) |
 
-**Tier B: inherit through tokens and the shadcn layer** (Account, Settings, Roles, Billing screens on `pay.`, Analytics tables,
-Admin, Integrations, Developers, legal pages). They get the new tokens, type scale, motion tokens and icons automatically; only
-spacing and empty states are checked. No bespoke work unless a defect is found.
+**Tier B: fixed through shared patterns and reviewed one by one** (Account, Settings, Roles, Billing screens on `pay.`, Analytics tables,
+Admin, Integrations, Developers, legal pages, and every other route in the ledger). They get the new tokens, type scale, motion tokens and icons, plus
+the shared patterns of section 12 (page header, stat grid, forms, states). Every one is reviewed by eye against the ledger; none ships unreviewed.
 
 ## 5. Landing storyboard (the interactive page)
 
@@ -195,6 +195,41 @@ else**: the design-system rule stands) and in `DESIGN_EXTENSIONS.md`:
 5. e2e suite green; the launch plan UI gate (8 routes, 3 themes, 3 widths) green.
 6. Founder's written approval of the landing, player, results and dashboard on Wed 12-09 and again on Fri 12-11.
 7. No "coming soon" next to a paid claim; no invented number, logo or testimonial anywhere.
+
+## 12. Upgrade what exists today (the founder's rule: no leftovers)
+
+The founder looked at the live creator screens on 2026-11-14 and does not want to see the same quality after four weeks. Two screens already
+show what "unfinished" means (F, from the founder's screenshots):
+
+- **Survey editor** (`/surveys/:id`): the six header actions (Preview, Share, Pause, Close, Archive, Results) wrap onto two uneven rows; the Title and
+  Description inputs are grey fills that read as disabled; a long stack of full-width cards with the live preview squeezed into a narrow column;
+  Branding feels like a settings form, not a design tool.
+- **My home** (`/me`): three stat tiles (black, amber, white) stack edge to edge with no gaps and read as one block; a heavy black "Create your Hub"
+  banner dominates even for a person who already owns a Hub; test content sits in the survey list; the page is narrower than the editor, so
+  widths jump between pages.
+
+**Therefore Tier B is not "inherit and hope".** The rules for week 4:
+
+1. **`UPGRADE_LEDGER.md` lists all 63 routes.** The Design agent audits each in week 1 (before captures at 390, 768 and 1280, light and dark, and a defect list). A route is
+   finished only when it is on the new look *completely* and has an after capture.
+2. **Shared patterns first (UI-5, Monday of week 4), then routes.** Build once, apply everywhere: a **page header** (title, status, one or two primary actions, an overflow menu for the
+   rest, never wrapping); a **stat grid** with real gutters and one hierarchy; **form fields** (filled, bordered and clearly editable, with visible focus); **section cards** with a
+   consistent rhythm; **two-column editors** with a sticky preview; one **container width** per page type; **empty, error, loading and locked states**.
+3. **Specific rebuilds** of what the screenshots show: the survey editor becomes a three-region studio (outline, canvas, live phone preview) with Branding as a design panel and a sticky preview;
+   My home becomes a dashboard (G6) with a plan card, usage meters and a "Create your Hub" prompt that appears only when the person has no Hub and a credit to use.
+4. **No route ships unreviewed.** The founder walks the ledger on Wed 12-09 and Fri 12-11; a route with open defects blocks G4 unless the founder moves it to V2.1 in writing.
+5. **Test content never appears in anything a person sees.** Seed and test data are filtered at the source (the founder's own `[TEST]` surveys are archived by the founder, not hidden by code).
+
+## 13. The 500-site design hunt
+
+`docs/frontend/design-research/SAAS_SITE_HUNT_PLAN.md`: 500 SaaS sites captured at phone and desktop width, scored on a 12-point rubric and tagged,
+synthesised into a **Pattern Atlas** and a shortlist of **40 patterns** for the founder to approve (Fri of week 2), then applied to the landing page and the screens inside the app. Patterns and
+principles only, never copy, assets or code. Credits for the capture are approved by the founder after a 25-site pilot. Components come from shadcn and similar MIT-licensed copy-in sources
+(section 6 of that plan); every addition passes the bundle and design checks.
+
+## 14. Tracking this week
+
+UI items are rows UI-1 to UI-8 in `TRACKER.md`. Every UI agent writes the changelog entry in the Work Tracking Protocol format, with before and after capture names for each ledger route it closes.
 
 ## 11. Risks and fallbacks
 

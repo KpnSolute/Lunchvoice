@@ -6,6 +6,26 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Docs (work tracking protocol, tracker, UI upgrade ledger, 500-site design hunt, Pulse; Governing; 2026-11-14)
+
+- Status: planned (specified; nothing built, nothing deployed, production untouched).
+- What changed: **every agent must now log its work.** `AGENTS.md` and `CLAUDE.md` (kept identical) gain a **Work Tracking Protocol**: each change
+  gets a changelog entry in a fixed format (status from `planned` to `UI-complete`, where, checks run, production state, not done, next) and an updated
+  row in the new `docs/v2/launch-roadmap/TRACKER.md` (58 spec rows, 56 security rows, 14 drills, 8 UI rows, all `planned`), so the founder can follow progress and
+  completeness. The startup steps and the Definition of Done now require both.
+- **Founder approved the roadmap defaults** (X-01 to X-17, "go with urs"): `create` and `pay` through Cloudflare rules, Stripe-hosted checkout and an unchanged webhook,
+  the election plan split, and the rest of `00_ROADMAP_4_WEEKS.md` section 10.
+- **Hub Pulse added to the launch** as spec E10 (heartbeat, voice, mood check, community goals, weekly recap draft; every Hub plan, Team richer), in the
+  social presence pillar, with C6 folded into it. It leaves the "not at launch" list.
+- **What exists today gets upgraded:** `docs/frontend/design-research/UPGRADE_LEDGER.md` lists all 63 routes with defects and before/after captures; the founder's two
+  screenshots (survey editor header wrapping, grey disabled-looking inputs, stat tiles stacked with no gaps) are recorded as defects; Tier B routes are now reviewed one by
+  one, not left to inherit tokens (`05_`, sections 12 to 14).
+- **500-site design hunt** planned in `docs/frontend/design-research/SAAS_SITE_HUNT_PLAN.md` (sample frame, capture method, 12-point rubric, Pattern Atlas, 40 chosen
+  patterns, shadcn and MIT copy-in component sources, patterns only, never copy). The capture credits need the founder's approval after a 25-site pilot.
+- Checks: `npm run check:brain` (brain files identical). Not run: `test:pr`, build (documentation only).
+- Not done and blockers: the hunt has not started (week 1 Monday); the tracker has no evidence yet by design.
+- Next: week 1 starts Mon 2026-11-16 with R1 (Backend) and the hunt list and pilot (Design).
+
 ### Docs (four-week launch roadmap and specs; founder direction 2026-11-14)
 
 - **`docs/v2/launch-roadmap/` (new, six files):** `00_ROADMAP_4_WEEKS.md` (weeks 1 to 3 backend and services, hard freeze

@@ -6,6 +6,8 @@ Order of authority is unchanged: `docs/v2/LAUNCH_PLAN.md`, the canonical master 
 `LAUNCH_PREP_PLAN_2026-11-13.md`, then this folder. This folder wins on **build order and scope** (it is newer); it
 never overrides a price, a privacy rule or an approved entitlement.
 
+Progress lives in `TRACKER.md` (one row per spec) and `CHANGELOG.md` (one entry per change).
+
 Read in this order: this file, `01_PURPOSE_AND_ACCESS_MAP.md` (why every feature exists and who gets it),
 `02_FEATURE_SPECS.md` (spec for spec), `03_PLATFORM_DOMAINS_AND_SERVICES.md` (`auth`, `create`, `pay`, Discord, Stripe),
 `04_SECURITY_AND_OPERATIONS_HARDENING.md`, `05_WEEK4_UI_UX_REDESIGN.md`.
@@ -43,9 +45,9 @@ until all four pass.
 
 | Pillar | The promise to a person | Features (spec IDs in `02_`) | Exit criterion at G3 (Fri 12-04) |
 | --- | --- | --- | --- |
-| **Analytics** (see, understand, decide, show impact) | "I can see what my community thinks, trust the numbers, act on them, and show people what changed." | C1 visibility, C2 Decisions, C3 shared results, C4 advanced analytics, C5 Trends, C6 Hub health, C7 digest, C8 embeds | A manager runs ask, answer, see, decide, show-impact with no developer help; the differencing and plan matrices pass |
+| **Analytics** (see, understand, decide, show impact) | "I can see what my community thinks, trust the numbers, act on them, and show people what changed." | C1 visibility, C2 Decisions, C3 shared results, C4 advanced analytics, C5 Trends, C6 Hub health (with E10 Pulse), C7 digest, C8 embeds | A manager runs ask, answer, see, decide, show-impact with no developer help; the differencing and plan matrices pass |
 | **Survey design** (ask well) | "Making a survey is fast, good-looking and correct, on a phone or a laptop, alone or with a helper." | Y1 studio, Y2 preview and test, Y3 templates and question bank, Y4 brand kit and themes, Y5 co-creator, D1 elections, D2 quiz, D3 question parity, D4 Live Session Lite, D5 recurring | The 21 kinds by 82 templates matrix is all green; a new account publishes its first survey in under 3 minutes; the 20-question branch fixture passes |
-| **Social presence** (belong) | "This is a place with people in it. I have a face, I get noticed, I am not spammed, and I am safe." | E1 profiles, E2 presence and Hub identity, E3 notifications, E4 points and shop, E5 comments and reactions, E6 reports and appeals, E7 onboarding, E8 Discover, E9 activity and directory | A new member joins, sees who is here, gets a welcome, a notification and a reward; a report reaches the right queue |
+| **Social presence** (belong) | "This is a place with people in it. I have a face, I get noticed, I am not spammed, and I am safe." | E1 profiles, E2 presence and Hub identity, E3 notifications, E4 points and shop, E5 comments and reactions, E6 reports and appeals, E7 onboarding, E8 Discover, E9 activity and directory, **E10 Hub Pulse** (heartbeat, voice, mood check, goals, weekly recap) | A new member joins, sees who is here, gets a welcome, a notification and a reward; a report reaches the right queue |
 | **Connectivity** (reach people, plug into tools) | "My survey reaches the people I mean, wherever they are, and my data reaches the tools I use." | F1 to F5 Discord, G1 API, G2 webhooks, N1 share kit, N2 invite by email, N3 recipes, C8 and N4 embeds, the `create` and `pay` hosts, A1 sign-in across hosts | A survey is shared by link, QR, code, email and Discord and arrives each time; a webhook and an API call work against a test Hub |
 
 **Foundation** (not a pillar, but every pillar stands on it): identity and sessions (A), money (B), release hygiene (R),
@@ -99,6 +101,9 @@ inside the existing design system, plain and correct, so the refresh re-skins wo
    passes, not that code exists.
 9. **Update the inventory in the same commit** as any service, secret or hostname change
    (`docs/ops/SERVICES_AND_DEPENDENCIES.md`), and `CHANGELOG.md` for every operation.
+10. **Track every change.** The Work Tracking Protocol in `AGENTS.md` and `CLAUDE.md` applies to every agent: a changelog entry in the
+    fixed format and an updated row in `TRACKER.md`, in the same commit, with status claimed only as far as the evidence goes. The
+    founder reads progress from those two files.
 
 ## 4. Priorities
 
@@ -160,7 +165,7 @@ Items name a spec in `02_FEATURE_SPECS.md`. Approvals needed are in **bold**.
 
 | Day | Backend | Edge | UI-functional | Design | QA and Security |
 | --- | --- | --- | --- | --- | --- |
-| Mon | R1 reconcile production-only migrations with `main`; rebuild from empty and diff against production schema; merge #72 and #74 | A3 DNS and rules: `auth` as a Worker Custom Domain; `create` and a temporary `pay-next` as proxied CNAMEs with Origin, URL Rewrite and Response Header rules (`03_` section 3). DNS records are covered by D-01; nameserver changes are not | Adopt reconciled `main`; fix any e2e drift | Kick-off: audit the live site at 375, 768, 1440; moodboard; one-page design principles for the founder | Baseline: Supabase advisors on both projects; `npm audit`; list every table without RLS (expect none); record in `docs/compliance/` |
+| Mon | R1 reconcile production-only migrations with `main`; rebuild from empty and diff against production schema; merge #72 and #74 (**Design starts the 500-site hunt: list and pilot, `docs/frontend/design-research/SAAS_SITE_HUNT_PLAN.md`**) | A3 DNS and rules: `auth` as a Worker Custom Domain; `create` and a temporary `pay-next` as proxied CNAMEs with Origin, URL Rewrite and Response Header rules (`03_` section 3). DNS records are covered by D-01; nameserver changes are not | Adopt reconciled `main`; fix any e2e drift | Kick-off: audit the live site at 375, 768, 1440; moodboard; one-page design principles for the founder | Baseline: Supabase advisors on both projects; `npm audit`; list every table without RLS (expect none); record in `docs/compliance/` |
 | Tue | C1 results visibility setting (migration, keys, notices, audit) | A1 `workers/auth-session` skeleton plus `session` function actions (`issue`, `refresh`, `revoke`, `revoke-all`) | C1 screens: the Results setting and respondent notice | Figma: landing, Hub card, creator dashboard frames | pgTAP matrix for C1 (plan by setting by anonymity by election) |
 | Wed | A1 device sessions migration (000049): families, rotation, reuse detection | A1 finish and deploy to its own hostname; run the Safari, Chrome and Firefox cookie checks | A2 hostname-aware routing (`hostMode`), Account "Devices" list and "Keep me signed in" | Figma: Player and results frames | Cookie verification report |
 | Thu | B1 person-scoped billing: intent, grant, renewal, cancel, downgrade fallbacks | A4 `pay` host: stage on `pay-next`, rehearse the rollback; **founder go-ahead to repoint `pay` from GoDaddy (the Stripe webhook URL is not changed)**. B8 armed billing release (tests) | B3 billing screen shows Creator plans, usage and the portal | Figma: studio and Hub console frames | S-series: Turnstile design, CSP diff |
@@ -200,6 +205,7 @@ Items name a spec in `02_FEATURE_SPECS.md`. Approvals needed are in **bold**.
 | N3 recipes | W3 Thu | QA |
 | N4 and C8 embeds (P1) | W3 Wed, needs the Render header go-ahead | Edge |
 | E9 activity and directory | W3 Tue to Wed | Backend, UI-functional |
+| E10 Hub Pulse | W2 Fri (data) to W3 Wed | Backend, UI-functional |
 
 The week-1 to week-3 day tables above show the heaviest items; the placement table adds these lanes in parallel. If a lane
 conflicts with the pillar balance rule (section 1a), the governing agent reassigns.
@@ -235,13 +241,15 @@ See `05_WEEK4_UI_UX_REDESIGN.md`. Backend changes are bug and security fixes onl
 
 These are V2.x or V3 (`docs/v3/ROADMAP.md` on PR #72). Nothing here may be built early or advertised.
 
-Multilingual surveys, Hub Pulse beyond the simple health panel in C6, community goals, missions and achievements beyond the badges in E2,
+Multilingual surveys, Pulse Pro (AI insight, custom scoring), competitive goals, missions and achievements beyond the badges in E2,
 quests, Living Surveys, the Decision Engine and outcome intelligence, AI summaries and theme detection, the full live
 room with player scoring, Reddit, Slack and Teams integrations, a respondent reward marketplace, white-label domains,
 SSO, TwinLab. Image uploads for avatars and Hub backgrounds come after launch (E1 ships colour-plus-emoji avatars, as
 the product direction already says).
 
-## 10. Defaults chosen for the founder (override any in one line)
+## 10. Defaults chosen for the founder
+
+**Approved by the founder on 2026-11-14 ("go with urs"): every default X-01 to X-17 below stands.** A later change is one line in this table.
 
 | ID | Question | Default |
 | --- | --- | --- |
@@ -286,7 +294,7 @@ the product direction already says).
 | N | Connectivity | N1 share kit, N2 invite by email, N3 recipes, N4 embeddable answer link |
 | C | Decide, share, analyse | C1 results visibility, C2 Decisions, C3 shared results, C4 advanced analytics, C5 Trends, C6 Hub health, C7 digest, C8 embeds |
 | D | Campaign modes | D1 elections, D2 quiz, D3 question-type parity, D4 Live Session Lite, D5 recurring, D7 participation receipt |
-| E | Community | E1 profiles, E2 Hub identity, E3 notifications, E4 points and shop, E5 comments and moderation, E6 reports and appeals, E7 onboarding, E8 Discover, E9 activity and directory |
+| E | Community | E1 profiles, E2 Hub identity, E3 notifications, E4 points and shop, E5 comments and moderation, E6 reports and appeals, E7 onboarding, E8 Discover, E9 activity and directory, E10 Hub Pulse |
 | F | Discord | F1 link, F2 server and roles, F3 decision posts, F4 onboarding, F5 limits |
 | G | Platform | G1 API, G2 webhooks, G3 export and deletion, G4 admin, G5 analytics, G6 creator dashboard |
 | K | The Kitchen | K1 |
