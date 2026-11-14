@@ -518,6 +518,9 @@ for every new operation; no v1 reference; no customer name in code.
   gains `nickname`, `avatar_color`. Display name changes are limited to 3 per day.
 - **Security.** Text goes through the existing profanity-safe validator and the markdown-lite renderer (no HTML); a reported
   profile is handled by E6.
+- **Rule found by the 2026-11-14 UI audit (HB1, P0, week 1).** No surface may show an email address as a name. Today the Hub Members list and the
+  Overview People card show a member's full email as their display name. The display-name resolver in the API falls back to "Member" plus a short id, never to the
+  email; a pgTAP test and an e2e test prove no email appears in any member list, Hub card, comment, news post, decision, leaderboard or Discord post.
 - **Done when.** Profile edit and Hub profile edit work on mobile; hover card never shows an email.
 
 ### E2. Hub identity: presence, topic tags, badges, Discord card

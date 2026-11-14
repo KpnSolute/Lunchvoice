@@ -46,6 +46,7 @@ commit and again on the release candidate.
 | S-19 | Clickjacking and framing | `frame-ancestors 'none'` everywhere except the one `/embed/*` path if C8 ships (Render path rule documented) | 3 | yes |
 | S-20 | Security headers verified live on all three hosts | `curl -sI` for CSP, HSTS (`includeSubDomains`, no `preload`), nosniff, Referrer-Policy, Permissions-Policy, X-Frame-Options; CSP hash for the theme script recomputed after any `index.html` change; CSP gains only: `auth.lunchvoice.com`, the PostHog host, `challenges.cloudflare.com` | 3 | yes |
 | S-21 | Subdomain hygiene | No dangling CNAME: after the `pay` cutover no record points at GoDaddy for a service we no longer use; every third-party CNAME is on a list with its owner | 3 | yes |
+| S-23 | No email address is ever shown as a name or to a person who should not see it (found live on the Hub Members list and Overview) | Resolver fix (E1) plus a test over every list, card, comment, news post, decision, leaderboard and Discord post; a grep over rendered pages in e2e for the `@` character in name positions | 1 | yes |
 | S-22 | A coordinated-disclosure door | `public/.well-known/security.txt` (contact `admin@lunchvoice.com`, expiry date within 12 months, policy link) and a short `/security` section on `/support`; response promise 3 business days. Founder confirms the mailbox | 3 | yes |
 
 ## 4. Identity and sessions

@@ -6,6 +6,23 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Docs (live UI audit for the design team; QA agent; 2026-11-14)
+
+- Status: verified (observed on the live site; nothing changed, submitted or deleted).
+- What changed: **`docs/frontend/design-research/UI_AUDIT_2026-11-14.md`** records about 70 defects with IDs, severity (P0, P1, P2), where each was seen and a direction, from a
+  signed-in desktop walk of the landing, pricing, templates, Discover, how-it-works, status, support, developers, waitlist, My home, Quick Surveys (list, new, editor, results),
+  Trends, Settings, Create, Reserve, the respondent player and the Kitchen Hub console (overview, campaigns, members, roles, builder, billing, analytics, settings), plus headless
+  Chrome at 390 and 768 px on eight public pages. `UPGRADE_LEDGER.md` now carries the defect IDs on 29 routes.
+- **Three P0 findings:** (1) a member's email address is shown as their name on the Hub Members list and Overview (HB1; added as a rule in spec E1 and as S-23, week 1);
+  (2) the respondent player's question screen is the plainest screen in the product (PL2); (3) Creator plan copy on `/pricing` still says "coming soon" for features that shipped (P1).
+- Also found: inconsistent page widths and navigation (G1, G2), stat tiles stacking edge to edge (G4), grey inputs that look disabled (G6), header actions wrapping in the editor (E1),
+  `/templates` is about 25,800 px tall at 390 px with about 80 small targets, and `/status` says "Status reporting isn't wired up yet". No horizontal overflow at 390 or 768 px on the
+  eight public pages checked.
+- Checks: browser walk (Claude in Chrome) and a headless Chrome script for the phone and tablet captures. Not run: dark and high-contrast themes, keyboard pass, signed-in phone and tablet,
+  Lighthouse (the DevTools emulator failed to start), admin, elections, Present mode, console errors.
+- Production: not touched. Not done: fixes (week 4, except HB1 in week 1).
+- Next: Design agent completes the untested screens in week 1 and builds the shared patterns for week 4.
+
 ### Docs (work tracking protocol, tracker, UI upgrade ledger, 500-site design hunt, Pulse; Governing; 2026-11-14)
 
 - Status: planned (specified; nothing built, nothing deployed, production untouched).
