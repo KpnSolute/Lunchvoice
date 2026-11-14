@@ -638,10 +638,15 @@ for every new operation; no v1 reference; no customer name in code.
 
 ---
 
-### E11. Usernames (@handles) chosen at sign-up
+### E11. Usernames and display names, the Discord way (chosen at sign-up)
 
-- **Purpose.** People are people, not emails or random ids. A short, unique name you picked yourself (`@kpn`, `@muttyman`) is how others mention, invite
-  and recognise you across Hubs and Discord. It also ends the class of bug where an email stands in for a name (audit HB1).
+- **Purpose.** People are people, not emails or random ids. Every account has **two names, as on Discord**: a **username** that is unique and is how others mention, invite
+  and find you (`@kpn`, `@muttyman`), and a **display name** you can set to anything friendly and change whenever you like (several people may share one). It also ends the class
+  of bug where an email stands in for a name (audit HB1).
+- **Two names, one rule each.** **Username**: unique across LunchVoice, lowercase, the stable handle people type after "@". **Display name**: what people see first; free text of
+  1 to 32 characters (letters in any language, digits, spaces, common punctuation, emoji), **not unique**, never contains "@" and never looks like an email, no staff or
+  system impersonation (the reserved-word list applies), profanity filter, at most 3 changes a day. If a person has not set a display name it shows their `@username`;
+  it is **never** initialised from an email. Hover cards, member lists and anywhere two people could be confused show both: **Kpn** `@kpn`.
 - **Who.** Every signed-in account. Free. Guests have no handle.
 - **Identity rule (unchanged and important).** A handle is a **display and lookup name only**. A person is still the verified `(issuer, subject)` pair at KpnIdentity;
   email is never a key; changing a handle changes nothing about who someone is or what they own. The sign-up step lives in **LunchVoice** (right after the sign-in
@@ -651,13 +656,14 @@ for every new operation; no v1 reference; no customer name in code.
 - **Reserved and blocked.** Platform words (`admin`, `staff`, `support`, `help`, `lunchvoice`, `kpnsolute`, `moderator`, `system`, `everyone`, `here`, `owner`, `official`
   and the like) in `lv.reserved_handles`; the existing profanity and impersonation filter; every top-level route name (so `/@name` can never clash). **No customer, Hub or
   person is reserved in code**: whoever claims `@kpn` first has it, so the founders claim theirs at the first prompt before the waitlist opens (a founder action, not code).
-- **Sign-up flow.** After the first sign-in, before anything else in the app, a screen "Choose your username": a live availability check as you type (debounced, rate limited),
-  three suggestions built from the display name and a number, a clear error for each rule, and a Continue button. It cannot be skipped (a person without a handle sees
-  "Member" in other people's views, which is why we ask once). **Existing accounts** see the same screen once at their next sign-in, prefilled with a suggestion.
+- **Sign-up flow.** After the first sign-in, before anything else in the app, one screen with two fields: **Username** (live availability check as you type, debounced and rate
+  limited, three suggestions, a clear error for each rule) and **Display name** (prefilled from the sign-in name when it is safe, never from an email, editable). A Continue
+  button. It cannot be skipped (a person without a username shows as "Member" in other people's views, which is why we ask once). **Existing accounts** see the same screen once
+  at their next sign-in with a suggested username; their current display name stays unless they change it.
 - **Changing it.** Allowed once every 30 days. The old handle is held for 14 days (nobody else can take it, and `/@old` redirects to the new one) to prevent impersonation, then released.
   Every change is recorded in `lv.handle_history`.
-- **Where it shows.** Next to the display name wherever a person is named (member lists, comments, news, decisions, leaderboard, hover cards, Discord role and link
-  messages, API member objects). **Never on an anonymous answer or in anything that could connect a person to an anonymous answer.** A Hub may choose to show nicknames
+- **Where it shows.** The display name first, with `@username` beside it where people could be confused or where a mention is possible (member lists, comments, news, decisions,
+  leaderboard, hover cards, Discord link messages, API member objects). **Never on an anonymous answer or in anything that could connect a person to an anonymous answer.** A Hub may choose to show nicknames
   (E1) instead of handles inside that Hub.
 - **Mentions and invites.** `@handle` in a comment, news post or decision creates a `mention` notification (E3); Hub and survey invites accept a handle; search by handle
   returns exact matches only unless the person leaves "Let people find me by username" on (default on; off means invites by handle fail with a neutral message).
@@ -671,7 +677,7 @@ for every new operation; no v1 reference; no customer name in code.
   decision and leaderboard objects gain `handle` beside `display_name`.
 - **Privacy and security.** The check endpoint returns only available or not (it cannot be used to list handles); exact-match lookup only; rate limits and the signed-in requirement
   stop enumeration; handle history is not readable by the API roles; nothing about a handle reveals an email, an identity subject or an anonymous answer.
-- **Tests.** pgTAP: format rules (length, characters, start, underscores, no "@"), case-insensitive uniqueness, reserved words, concurrent claim of the same handle (exactly one wins),
+- **Tests.** pgTAP: display names are not unique, cannot contain "@", cannot be an email, default to the username (never the email), change limit of 3 a day; username format rules (length, characters, start, underscores, no "@"), case-insensitive uniqueness, reserved words, concurrent claim of the same handle (exactly one wins),
   change interval, hold period and redirect, history, discoverability switch, no handle on any anonymous output; e2e: first sign-in forces the step, suggestions work, an existing account
   is prompted once, `/@name` resolves, mention notifies.
 - **Done when.** A new account cannot reach the app without a handle, an existing account is prompted once, two accounts cannot hold the same handle in any case, and no list in the

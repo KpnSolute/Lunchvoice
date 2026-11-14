@@ -6,7 +6,10 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
-### Docs (E11 usernames chosen at sign-up; Governing; 2026-11-14)
+### Docs (E11 usernames and display names, the Discord way; Governing; 2026-11-14)
+
+- **Revised same day (founder: "like in discord, every user is unique"):** every account has a **unique username** (`@kpn`) **and** a free, non-unique **display name** set at sign-up and changeable any
+  time (3 a day); the display name is never initialised from an email and never contains "@"; hover cards and member lists show both. The username rules below stand.
 
 - Status: planned (specified; nothing built, production untouched).
 - What changed: new spec **E11 Usernames (@handles)** in `docs/v2/launch-roadmap/02_FEATURE_SPECS.md`, so people become `@kpn` or `@muttyman`. A forced "Choose your username" step right

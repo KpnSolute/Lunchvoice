@@ -47,7 +47,7 @@ until all four pass.
 | --- | --- | --- | --- |
 | **Analytics** (see, understand, decide, show impact) | "I can see what my community thinks, trust the numbers, act on them, and show people what changed." | C1 visibility, C2 Decisions, C3 shared results, C4 advanced analytics, C5 Trends, C6 Hub health (with E10 Pulse), C7 digest, C8 embeds | A manager runs ask, answer, see, decide, show-impact with no developer help; the differencing and plan matrices pass |
 | **Survey design** (ask well) | "Making a survey is fast, good-looking and correct, on a phone or a laptop, alone or with a helper." | Y1 studio, Y2 preview and test, Y3 templates and question bank, Y4 brand kit and themes, Y5 co-creator, D1 elections, D2 quiz, D3 question parity, D4 Live Session Lite, D5 recurring | The 21 kinds by 82 templates matrix is all green; a new account publishes its first survey in under 3 minutes; the 20-question branch fixture passes |
-| **Social presence** (belong) | "This is a place with people in it. I have a face, I get noticed, I am not spammed, and I am safe." | E1 profiles, E2 presence and Hub identity, E3 notifications, E4 points and shop, E5 comments and reactions, E6 reports and appeals, E7 onboarding, E8 Discover, E9 activity and directory, **E10 Hub Pulse** (heartbeat, voice, mood check, goals, weekly recap), **E11 usernames (@handles) at sign-up** | A new member joins, sees who is here, gets a welcome, a notification and a reward; a report reaches the right queue |
+| **Social presence** (belong) | "This is a place with people in it. I have a face, I get noticed, I am not spammed, and I am safe." | E1 profiles, E2 presence and Hub identity, E3 notifications, E4 points and shop, E5 comments and reactions, E6 reports and appeals, E7 onboarding, E8 Discover, E9 activity and directory, **E10 Hub Pulse** (heartbeat, voice, mood check, goals, weekly recap), **E11 usernames and display names (the Discord way)** | A new member joins, sees who is here, gets a welcome, a notification and a reward; a report reaches the right queue |
 | **Connectivity** (reach people, plug into tools) | "My survey reaches the people I mean, wherever they are, and my data reaches the tools I use." | F1 to F5 Discord, G1 API, G2 webhooks, N1 share kit, N2 invite by email, N3 recipes, C8 and N4 embeds, the `create` and `pay` hosts, A1 sign-in across hosts | A survey is shared by link, QR, code, email and Discord and arrives each time; a webhook and an API call work against a test Hub |
 
 **Foundation** (not a pillar, but every pillar stands on it): identity and sessions (A), money (B), release hygiene (R),
@@ -206,7 +206,7 @@ Items name a spec in `02_FEATURE_SPECS.md`. Approvals needed are in **bold**.
 | N4 and C8 embeds (P1) | W3 Wed, needs the Render header go-ahead | Edge |
 | E9 activity and directory | W3 Tue to Wed | Backend, UI-functional |
 | E10 Hub Pulse | W2 Fri (data) to W3 Wed | Backend, UI-functional |
-| E11 usernames (@handles) | W1 Wed to Fri | Backend, UI-functional |
+| E11 usernames and display names | W1 Wed to Fri | Backend, UI-functional |
 
 The week-1 to week-3 day tables above show the heaviest items; the placement table adds these lanes in parallel. If a lane
 conflicts with the pillar balance rule (section 1a), the governing agent reassigns.
@@ -295,7 +295,7 @@ the product direction already says).
 | N | Connectivity | N1 share kit, N2 invite by email, N3 recipes, N4 embeddable answer link |
 | C | Decide, share, analyse | C1 results visibility, C2 Decisions, C3 shared results, C4 advanced analytics, C5 Trends, C6 Hub health, C7 digest, C8 embeds |
 | D | Campaign modes | D1 elections, D2 quiz, D3 question-type parity, D4 Live Session Lite, D5 recurring, D7 participation receipt |
-| E | Community | E1 profiles, E2 Hub identity, E3 notifications, E4 points and shop, E5 comments and moderation, E6 reports and appeals, E7 onboarding, E8 Discover, E9 activity and directory, E10 Hub Pulse, E11 usernames |
+| E | Community | E1 profiles, E2 Hub identity, E3 notifications, E4 points and shop, E5 comments and moderation, E6 reports and appeals, E7 onboarding, E8 Discover, E9 activity and directory, E10 Hub Pulse, E11 usernames and display names |
 | F | Discord | F1 link, F2 server and roles, F3 decision posts, F4 onboarding, F5 limits |
 | G | Platform | G1 API, G2 webhooks, G3 export and deletion, G4 admin, G5 analytics, G6 creator dashboard |
 | K | The Kitchen | K1 |

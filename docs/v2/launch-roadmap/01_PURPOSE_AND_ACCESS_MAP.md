@@ -105,7 +105,7 @@ State: **Live** (in production and working), **Partial** (exists, not finished),
 | --- | --- | --- | --- | --- |
 | Hubs, roles (3 / 6), pages (3 / 10) | A home with structure and authority that is delegated safely | Starter / Team | Live | |
 | Profiles and Hub nicknames | Be a person, not a number; keep a different face in each Hub | Free | Partial | E1 |
-| Usernames (@handles) chosen at sign-up, `/@handle` profile, mentions and invites by handle | Be known by a name you picked; be mentionable and findable; never an email | Free | New | E11 |
+| Unique username (`@kpn`) plus a free display name, both chosen at sign-up; `/@username` profile, mentions and invites | Be known by a name you picked and show whatever name you like, like Discord; never an email | Free | New | E11 |
 | Presence, topic tags, badges, Discord card on Hub | See who is here and what the Hub is about | Hub plans | Draft SQL | E2 |
 | Notifications and preferences | Not missing what matters; never spammed | Free | New | E3 |
 | Points, shop, leaderboard | Fun and recognition that cannot expose an anonymous answer | Hub plans | Partial | E4 |
