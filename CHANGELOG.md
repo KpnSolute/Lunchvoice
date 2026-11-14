@@ -6,6 +6,19 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-14: HB1 display-name data fix applied; founder "yes"; S-23; Backend)
+
+- Status: verified (data fix applied and checked; the permanent username feature E11 is still planned).
+- What changed: the data fix `scripts/data-fixes/2026-11-12_p3_display_names.sql` was applied to production (Lunchvoice `qprfonxvthmaoxfixigk`) on the founder's explicit approval, as one
+  atomic block through the `lunchvoice` MCP (the file's `psql` step 2 translated to a `DO` block with the same guard: it aborts unless exactly 2 rows change). Two accounts that had an email as their name
+  now show `muttyman` and `mmdwell`; two cached identity names were cleared; the check `accounts_display_name_no_email` is now validated, so an "@" name can never be stored again.
+  The old values (the emails) are not recoverable from the database.
+- Where: `lv.accounts`, `lv.account_identities`, constraint `accounts_display_name_no_email`; audit row `account.display_name_fixed` (reason `p3-2026-11-12`, accounts 2).
+- Checks: before: 2 accounts and 2 identity rows with "@", constraint not validated. After: 0 and 0, constraint validated, audit rows 1, the two new names as previewed. Live: `/kitchen/members` shows no
+  email-shaped text and lists the member as `muttyman`.
+- Not done: E11 (unique usernames plus display names) so the class of bug cannot return through another path; the grep-style e2e over name positions (S-23 test) is not written yet.
+- Next: Backend builds E11 on Mon 11-16 week 1.
+
 ### Docs (E11 usernames and display names, the Discord way; Governing; 2026-11-14)
 
 - **Revised same day (founder: "like in discord, every user is unique"):** every account has a **unique username** (`@kpn`) **and** a free, non-unique **display name** set at sign-up and changeable any
