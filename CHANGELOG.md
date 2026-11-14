@@ -6,6 +6,17 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Docs (ADR proposed: LunchVoice leaves KpnIdentity and runs its own sign-in; founder suggestion; A7; Governing; 2026-11-14)
+
+- Status: planned (proposal only; nothing changed in production, KpnIdentity, Discord or the brain files).
+- What changed: new `docs/v2/launch-roadmap/ADR_LUNCHVOICE_OWN_SIGN_IN.md` for the founder's idea to break away from KpnIdentity so Discord sign-in uses the LunchVoice bot application. Recommendation: break away
+  at launch with LunchVoice's own Supabase Auth (Google, Discord, email), a two-day spike first (go or no-go Wed 2026-11-18), a dual-issuer transition for existing accounts and option A (stay, Discord through a "KpnSolute"
+  application) as the fallback. Tracker row A7 added. **The Thursday 11-19 step "add the `create` and `pay` callbacks in KpnIdentity" is on hold** until the founder decides (the `pay` repoint and the Worker secret stay).
+- Read-only findings (F): the Lunchvoice project's own Auth has Google and Discord off, email on, confirmation required, no custom SMTP, minimum password length 6, no captcha, no session limits; **KpnIdentity has
+  `mailer_autoconfirm` on, so it accepts unverified email addresses** (a finding for the KpnSolute side, recorded here, not changed), Google on, one `compute.kpnsolute.com` callback allowed.
+- Not done and blockers: needs the founder's confirmation of option B, of X-19 (verified-email linking) and of losing the shared KpnSolute account for LunchVoice users.
+- Next: on confirmation, run the spike Mon 11-16 and amend A6, A1, F1, S-33 and the identity documents.
+
 ### Docs (Discord added as a sign-in provider at launch; founder "yes we can add discord too"; A6, X-18; Governing; 2026-11-14)
 
 - Status: planned (approved and specified; KpnIdentity and Discord unchanged).

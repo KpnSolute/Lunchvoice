@@ -18,6 +18,7 @@ Last full refresh: 2026-11-14 (all rows `planned`). Weeks: 1 = 11-16, 2 = 11-23,
 | A4 | Foundation | `pay` cutover from GoDaddy with rollback (03_ section 5) | P0 | 1 | Edge | planned | | |
 | A5 | Foundation | Turnstile on guest and sign-up paths | P0 | 3 | Edge | planned | | |
 | A6 | Foundation | Sign-in and sign-up screens (KpnAuth front door, themed for LunchVoice) | P0 | 1-4 | Design + Edge + UI-refresh | planned | | |
+| A7 | Foundation | Own sign-in for LunchVoice (Supabase Auth in the Lunchvoice project; ADR proposed, spike first) | P0 | 1-2 | Backend + Edge + UI-functional | planned (awaiting founder confirmation) | `ADR_LUNCHVOICE_OWN_SIGN_IN.md` | 2026-11-14 |
 | B1 | Foundation | Creator Plus and Creator Pro purchases (person-scoped) | P0 | 1 | Backend + Edge | planned | | |
 | B2 | Foundation | Prove billing with a real purchase | P0 | 1 | Backend + Edge | planned | | |
 | B3 | Foundation | Billing screens | P0 | 1 | Backend + Edge | planned | | |
