@@ -16,6 +16,7 @@ import { Input } from "@/components/shadcn/input";
 import { Badge } from "@/components/shadcn/badge";
 import { Separator } from "@/components/shadcn/separator";
 import { AccountDiscord } from "./Integrations"; // track D: api + discord
+import { SignInMethods } from "./SignInMethods";
 import {
   EmptyState,
   Eyebrow,
@@ -538,8 +539,10 @@ export function Settings() {
             </Field>
             <div className="ui-row"><Button type="submit" variant="ink" disabled={saving || !current.trim()}>{saving ? "Saving…" : "Save name"}</Button></div>
           </form>
-          <p className="ui-help lv-m0">You sign in through KpnIdentity. LunchVoice keeps your verified sign-in, never your email as an identity key.</p>
+          <p className="ui-help lv-m0">LunchVoice keeps your verified sign-in, never your email, as the key to your account.</p>
         </Card>
+
+        <SignInMethods />
 
         {/* ---- track D: api + discord ---- */}
         <AccountDiscord />

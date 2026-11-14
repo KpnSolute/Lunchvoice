@@ -35,10 +35,23 @@ export interface AuthClientLike {
     resetPasswordForEmail(email: string, options: { redirectTo: string }): Promise<{ data: unknown; error: AuthErrorLike | null }>;
     exchangeCodeForSession(code: string): Promise<{ data: unknown; error: AuthErrorLike | null }>;
     updateUser(attributes: { password: string }): Promise<{ data: unknown; error: AuthErrorLike | null }>;
+    /** A8: the sign-in methods on the signed-in Auth user. */
+    getUserIdentities(): Promise<{ data: { identities: AuthIdentityLike[] } | null; error: AuthErrorLike | null }>;
+    linkIdentity(args: { provider: OwnProvider; options: { redirectTo: string; skipBrowserRedirect: boolean; scopes?: string } }): Promise<{ data: { url?: string | null } | null; error: AuthErrorLike | null }>;
+    unlinkIdentity(identity: AuthIdentityLike): Promise<{ data: unknown; error: AuthErrorLike | null }>;
     refreshSession(): Promise<{ data: { session: { access_token: string } | null } | null; error: AuthErrorLike | null }>;
     /** Always called with scope "local": ending this device's session must never sign the person out elsewhere. */
     signOut(options?: { scope: "local" | "global" | "others" }): Promise<{ error: AuthErrorLike | null }>;
   };
+}
+
+export interface AuthIdentityLike {
+  identity_id: string;
+  id: string;
+  user_id: string;
+  provider: string;
+  created_at?: string;
+  identity_data?: Record<string, unknown>;
 }
 
 export interface AuthErrorLike {
@@ -216,4 +229,54 @@ export async function completeOwnCallback(client: AuthClientLike, config: OwnAut
     /* corrupt pending record: go to the default */
   }
   return { session, returnTo };
+}
+
+
+/* ------------------------------------------------------------------ A8: sign-in methods on one account */
+
+export interface SignInMethod {
+  /** "google", "discord" or "email" (email and password). */
+  provider: string;
+  identity: AuthIdentityLike;
+  addedAt: string | null;
+}
+
+const KNOWN_METHODS = ["google", "discord", "email"];
+
+/** The methods on this account, oldest first. Providers we do not offer are left out of the list but still count as methods. */
+export async function listMethods(client: AuthClientLike): Promise<{ methods: SignInMethod[]; total: number }> {
+  const { data, error } = await client.auth.getUserIdentities();
+  if (error || !data) throw new OwnSignInError(friendlyError(error, "Could not load your sign-in methods."));
+  const all = data.identities ?? [];
+  const methods = all
+    .filter((i) => KNOWN_METHODS.includes(i.provider))
+    .map((i) => ({ provider: i.provider, identity: i, addedAt: i.created_at ?? null }))
+    .sort((a, b) => String(a.addedAt).localeCompare(String(b.addedAt)));
+  return { methods, total: all.length };
+}
+
+/** Add Google or Discord to the account you are signed in to. Returns the provider URL to navigate to. */
+export async function startLink(client: AuthClientLike, config: OwnAuthConfig, provider: OwnProvider, returnTo: string, storage: Storage = sessionStorage): Promise<string> {
+  remember(returnTo, storage);
+  const { data, error } = await client.auth.linkIdentity({
+    provider,
+    options: { redirectTo: redirectUrl(config), skipBrowserRedirect: true, scopes: provider === "discord" ? "identify email" : undefined },
+  });
+  if (error || !data?.url) throw new OwnSignInError(friendlyError(error, "That method could not be added. Try again."));
+  return data.url;
+}
+
+/** Remove one method. Refused here, before asking the server, when it is the only one. */
+export async function removeMethod(client: AuthClientLike, method: SignInMethod, total: number): Promise<void> {
+  if (total <= 1) throw new OwnSignInError("This is your only way to sign in, so it cannot be removed. Add another one first.");
+  const { error } = await client.auth.unlinkIdentity(method.identity);
+  if (error) throw new OwnSignInError(friendlyError(error, "That method could not be removed. Try again."));
+}
+
+/** Add a password to an account that signs in with Google or Discord. The project's own policy is the authority. */
+export async function addPassword(client: AuthClientLike, password: string): Promise<void> {
+  const bad = passwordProblem(password);
+  if (bad) throw new OwnSignInError(bad);
+  const { error } = await client.auth.updateUser({ password });
+  if (error) throw new OwnSignInError(friendlyError(error, "The password could not be saved. Try again."));
 }

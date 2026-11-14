@@ -6,6 +6,16 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (A8 sign-in methods on one account; A9 verified; Edge-less UI-functional; 2026-11-14)
+
+- Status: coded and tested (type check, build, brain check, 17 `lvAuth` tests); **not yet verified in the browser**. A9 is now verified: the founder linked the empty `evlut.xo` account to Kpn on production (one account "Miah", handle `kpnworld`, KpnIdentity and own issuer both attached).
+- What changed: Account settings has **Sign-in methods** (list, add Google or Discord with Supabase `linkIdentity`, add a password, remove one; the last cannot be removed). Supabase manual linking is on (`security_manual_linking_enabled` = true, applied through the Management API). The header menu shows the account's own display name, no longer the name Discord or Google sent. The Discord card and the profile note no longer say Discord "is never how you sign in". The link intent is single use, lasts 10 minutes and counts only for the session that started it (security review finding 2).
+- Where: `src/lib/lvAuth.ts` (`listMethods`, `startLink`, `removeMethod`, `addPassword`), `src/identity/IdentityProvider.tsx`, `src/pages/SignInMethods.tsx`, `src/pages/Account.tsx`, `src/pages/Public.tsx`, `src/pages/Integrations.tsx`, `src/lib/lvAuth.test.ts`.
+- Checks: `npx tsc --noEmit` clean; `npm run build` ok; `npm run check:brain` ok; `lvAuth` tests 17 of 17 pass. Browser run: Not run.
+- Production: Auth setting changed (manual linking on). No migration. Frontend not yet deployed.
+- Not done and blockers: removal and linking do not yet ask for a fresh sign-in within 10 minutes (spec A8 security line); security review finding 1 (server-side same-verified-email check inside `lv.link_identities`, plus a visible notice to both accounts) needs migration 000059 and the owner's approval to apply; a sign-in with Discord that shares a verified email already merged into the founder's Auth user (one Auth user, two identities); Discord with a different email has not been tested.
+- Next: founder tries Add Discord / Add Google on `/settings` after the deploy; backend owner writes 000059.
+
 ### Added (A9 link an existing account found by email: database, server and screens; migration 000058 applied; `session` v18 deployed; Backend, Edge and UI-functional; 2026-11-14)
 
 - Status: deployed; **not yet verified end to end with the founder's real accounts**.

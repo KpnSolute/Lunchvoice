@@ -2,6 +2,7 @@ import { LvMark } from "../components/LvMark";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
+import { useLv } from "../lib/useLv";
 import { OwnSignInScreen } from "./OwnSignIn";
 import { usernameChecked } from "../lib/usernameGate";
 import { MadeBy } from "../components/MakerMark";
@@ -92,20 +93,23 @@ function Brand() {
 }
 
 function AccountMenu() {
-  const { session, signOut } = useIdentity();
+  const { session, signOut, api } = useIdentity();
   const nav = useNavigate();
+  // The name shown is the account's own display name, never the name a provider such as Discord sent.
+  const ctx = useLv(() => api.myContext(), [api, session?.sub]);
   if (!session) return null;
+  const shown = ctx.data?.display_name || "Account";
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="secondary" size="md" aria-label={`Account menu for ${session.name}`}>
-          <span className="lv-avatar-dot" aria-hidden="true">{session.name.slice(0, 1).toUpperCase()}</span>
-          <span className="lv-hide-sm">{session.name}</span>
+        <Button variant="secondary" size="md" aria-label={`Account menu for ${shown}`}>
+          <span className="lv-avatar-dot" aria-hidden="true">{shown.slice(0, 1).toUpperCase()}</span>
+          <span className="lv-hide-sm">{shown}</span>
           <Icon name="chevron" size={14} />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Signed in as {session.name}</DropdownMenuLabel>
+        <DropdownMenuLabel>Signed in as {shown}</DropdownMenuLabel>
         <DropdownMenuItem onSelect={() => nav("/me")}>My home</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => nav("/surveys")}>Quick Surveys</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => nav("/settings")}>Account settings</DropdownMenuItem>

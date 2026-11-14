@@ -7,8 +7,8 @@ import { completeLinkSignIn, completeSignIn as finishRedirect, readConfig, start
 import { createClient } from "@supabase/supabase-js";
 import { usernameChecked } from "../lib/usernameGate";
 import {
-  acceptRecoveryCode, completeOwnCallback, exchangeSession, readOwnAuthConfig, sendPasswordReset, setNewPassword, signInWithEmail, signUpWithEmail, startOAuth,
-  type AuthClientLike, type OwnAuthConfig, type OwnProvider,
+  acceptRecoveryCode, addPassword, completeOwnCallback, exchangeSession, listMethods, readOwnAuthConfig, removeMethod, sendPasswordReset, setNewPassword, signInWithEmail, signUpWithEmail, startLink, startOAuth,
+  type AuthClientLike, type OwnAuthConfig, type OwnProvider, type SignInMethod,
 } from "../lib/lvAuth";
 
 /** LunchVoice's own sign-in (A7). Present only when the build sets VITE_LV_AUTH=1. */
@@ -27,6 +27,11 @@ export interface OwnAuthApi {
   recover: (search: string) => Promise<void>;
   /** Set the new password during recovery; on success the person is signed in. */
   newPassword: (password: string) => Promise<void>;
+  /** A8: the methods on this account, add Google or Discord, add a password, remove one (never the last). */
+  methods: () => Promise<{ methods: SignInMethod[]; total: number }>;
+  addMethod: (provider: OwnProvider, returnTo?: string) => Promise<void>;
+  addPasswordMethod: (password: string) => Promise<void>;
+  removeMethod: (method: SignInMethod, total: number) => Promise<void>;
 }
 
 // The identity key is (issuer, subject) and it is derived server-side from a
@@ -183,6 +188,10 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
         const next = await exchangeSession(client(), config);
         persist({ token: next.token, name: next.name, expiresAt: next.expiresAt, source: "own", sub: next.sub });
       },
+      methods: () => listMethods(client()),
+      addMethod: async (provider, returnTo) => { window.location.assign(await startLink(client(), config, provider, returnTo ?? "/settings")); },
+      addPasswordMethod: (password) => addPassword(client(), password),
+      removeMethod: (method, total) => removeMethod(client(), method, total),
     };
   }, [persist]);
 
@@ -197,21 +206,24 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
         ? (name) => persist({ token: "simulated", name: name || "Dana" })
         : () => {},
       signIn: async (returnTo) => {
+        try { sessionStorage.removeItem("lv.link.pending"); } catch { /* storage unavailable */ }
         if (!kpnConfig) throw new Error("KpnIdentity is not configured for this build.");
         window.location.assign(await startSignIn(kpnConfig, returnTo ?? "/me"));
       },
       linkExisting: kpnConfig && session && session.source === "own"
         ? async (returnTo) => {
             if (!kpnConfig || !session) return;
-            try { sessionStorage.setItem("lv.link.pending", JSON.stringify({ newSession: session.token })); } catch { throw new Error("Your browser blocked what linking needs. Try another browser."); }
+            try { sessionStorage.setItem("lv.link.pending", JSON.stringify({ newSession: session.token, sub: session.sub, at: Date.now() })); } catch { throw new Error("Your browser blocked what linking needs. Try another browser."); }
             window.location.assign(await startSignIn(kpnConfig, returnTo ?? "/signin/username"));
           }
         : null,
       completeSignIn: async (search) => {
         if (!kpnConfig) throw new Error("KpnIdentity is not configured for this build.");
         // A9: a sign-in started to prove an existing account links it to the new sign-in instead of replacing the session.
-        let pendingLink: { newSession?: string } | null = null;
+        // The intent is single use, lasts 10 minutes, and only counts for the same signed-in session that started it (security review 2026-11-14).
+        let pendingLink: { newSession?: string; sub?: string; at?: number } | null = null;
         try { pendingLink = JSON.parse(sessionStorage.getItem("lv.link.pending") ?? "null"); sessionStorage.removeItem("lv.link.pending"); } catch { pendingLink = null; }
+        if (pendingLink && (!session || session.source !== "own" || pendingLink.sub !== session.sub || typeof pendingLink.at !== "number" || Date.now() - pendingLink.at > 10 * 60 * 1000)) pendingLink = null;
         if (pendingLink?.newSession) {
           const { returnTo } = await completeLinkSignIn(kpnConfig, search, pendingLink.newSession);
           // The new sign-in now opens the old account: get a fresh session for it.
@@ -229,6 +241,7 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
         return returnTo;
       },
       signOut: () => {
+        try { sessionStorage.removeItem("lv.link.pending"); } catch { /* storage unavailable */ }
         persist(null);
         // A7: also end the Auth session on this device only, so its refresh token cannot renew anything.
         dropOwnAuth();

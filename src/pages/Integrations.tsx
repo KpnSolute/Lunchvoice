@@ -339,7 +339,7 @@ export function AccountDiscord() {
       {me.loading && !me.data ? <LoadingRows rows={1} /> : link ? (
         <div className="lv-stack-8">
           <p className="lv-m0">Linked to <strong>@{link.discord_username ?? "Discord user"}</strong> since {new Date(link.linked_at).toLocaleDateString()}.</p>
-          <p className="ui-help lv-m0">{link.role_facts_consent ? "Servers you verify in may give you roles based on the facts their rules ask about." : "Servers cannot use LunchVoice facts for your roles."} Your Discord account is a linked handle, never how you sign in.</p>
+          <p className="ui-help lv-m0">{link.role_facts_consent ? "Servers you verify in may give you roles based on the facts their rules ask about." : "Servers cannot use LunchVoice facts for your roles."} This links your Discord account for roles; to sign in with Discord, add it under Sign-in methods.</p>
           <div className="ui-row">
             <ConfirmAction
               trigger={<Button variant="secondary">Unlink Discord</Button>}

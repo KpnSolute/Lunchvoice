@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { acceptRecoveryCode, completeOwnCallback, emailProblem, setNewPassword, exchangeSession, friendlyError, passwordProblem, readOwnAuthConfig, sendPasswordReset, signInWithEmail, signUpWithEmail, startOAuth, OwnSignInError, type AuthClientLike, type OwnAuthConfig } from "./lvAuth.ts";
+import { acceptRecoveryCode, completeOwnCallback, emailProblem, setNewPassword, exchangeSession, friendlyError, passwordProblem, readOwnAuthConfig, sendPasswordReset, signInWithEmail, signUpWithEmail, startOAuth, addPassword, listMethods, removeMethod, startLink, OwnSignInError, type AuthClientLike, type OwnAuthConfig } from "./lvAuth.ts";
 
 const config: OwnAuthConfig = { supabaseUrl: "https://ref.supabase.co", anonKey: "sb_publishable_x", sessionUrl: "https://ref.supabase.co/functions/v1/session", origin: "https://lunchvoice.com", email: true };
 
@@ -27,6 +27,12 @@ function fakeClient(overrides: Partial<AuthClientLike["auth"]> = {}) {
       updateUser: rec("update", { data: {}, error: null }) as never,
       refreshSession: rec("refresh", { data: { session: { access_token: "access.token.value" } }, error: null }) as never,
       signOut: rec("signout", { error: null }) as never,
+      getUserIdentities: rec("identities", { data: { identities: [
+        { identity_id: "i2", id: "u", user_id: "u", provider: "discord", created_at: "2026-11-14T17:55:00Z" },
+        { identity_id: "i1", id: "u", user_id: "u", provider: "google", created_at: "2026-11-14T10:00:00Z" },
+      ] }, error: null }) as never,
+      linkIdentity: rec("link", { data: { url: "https://ref.supabase.co/auth/v1/authorize?provider=discord" }, error: null }) as never,
+      unlinkIdentity: rec("unlink", { data: {}, error: null }) as never,
       ...overrides,
     },
   };
@@ -197,4 +203,26 @@ test("A7: the callback refuses provider errors, a missing code, a bad code, and 
   const corrupt = memoryStorage();
   corrupt.setItem("lv.own.pending", "{not json");
   assert.equal((await completeOwnCallback(client, config, "?own=1&code=ok", corrupt, okFetch(jwt({ sub: "user-1" })))).returnTo, "/me");
+});
+
+test("A8: lists methods oldest first, adds one through linkIdentity, and never removes the last", async () => {
+  const { client, calls } = fakeClient();
+  const { methods, total } = await listMethods(client);
+  assert.deepEqual(methods.map((m) => m.provider), ["google", "discord"]);
+  assert.equal(total, 2);
+  const url = await startLink(client, config, "discord", "/settings", memoryStorage());
+  assert.match(url, /provider=discord/);
+  assert.equal(calls.some((c) => c.fn === "link"), true);
+  await removeMethod(client, methods[1]!, total);
+  assert.equal(calls.some((c) => c.fn === "unlink"), true);
+  await assert.rejects(() => removeMethod(client, methods[0]!, 1), OwnSignInError);
+  assert.equal(calls.filter((c) => c.fn === "unlink").length, 1);
+});
+
+test("A8: a short password is refused before any call, a good one is saved", async () => {
+  const { client, calls } = fakeClient();
+  await assert.rejects(() => addPassword(client, "short"), OwnSignInError);
+  assert.equal(calls.some((c) => c.fn === "update"), false);
+  await addPassword(client, "a-long-enough-pass-1");
+  assert.equal(calls.some((c) => c.fn === "update"), true);
 });
