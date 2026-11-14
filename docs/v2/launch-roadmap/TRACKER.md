@@ -18,7 +18,7 @@ Last full refresh: 2026-11-14 (all rows `planned`). Weeks: 1 = 11-16, 2 = 11-23,
 | A4 | Foundation | `pay` cutover from GoDaddy with rollback (03_ section 5) | P0 | 1 | Edge | planned | | |
 | A5 | Foundation | Turnstile on guest and sign-up paths | P0 | 3 | Edge | planned | | |
 | A6 | Foundation | Sign-in and sign-up screens (built in this repository on LunchVoice's own sign-in) | P0 | 1-4 | Design + UI-functional + UI-refresh | coded (functional screens: Google, Discord, email, sign-up, forgot and reset; behind `VITE_LV_AUTH`; unstyled for week 4) | CHANGELOG "A7 own sign-in: code behind a flag" (2026-11-14) | 2026-11-14 |
-| A7 | Foundation | Own sign-in for LunchVoice (Supabase Auth in the Lunchvoice project; ADR proposed, spike first) | P0 | 1-2 | Backend + Edge + UI-functional | coded (session function path, browser module and functional screens behind `VITE_LV_AUTH`; unit and function tests pass; not deployed, no provider enabled, spike not run) | CHANGELOG "A7 own sign-in: code behind a flag" (2026-11-14) | 2026-11-14 |
+| A7 | Foundation | Own sign-in for LunchVoice (Supabase Auth in the Lunchvoice project; ADR proposed, spike first) | P0 | 1-2 | Backend + Edge + UI-functional | deployed (server side: Auth settings, `session` v16, `LV_OWN_AUTH`, trusted issuer); screens off until Google, Discord and SMTP credentials are entered; not verified end to end | CHANGELOG "own sign-in switched on server side" (2026-11-14) | 2026-11-14 |
 | B1 | Foundation | Creator Plus and Creator Pro purchases (person-scoped) | P0 | 1 | Backend + Edge | planned | | |
 | B2 | Foundation | Prove billing with a real purchase | P0 | 1 | Backend + Edge | planned | | |
 | B3 | Foundation | Billing screens | P0 | 1 | Backend + Edge | planned | | |

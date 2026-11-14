@@ -36,7 +36,8 @@ function Legal() {
   );
 }
 
-export function OwnSignInScreen({ own, from, ended }: { own: OwnAuthApi; from: string; ended: boolean }) {
+/** `legacy` starts the original KpnIdentity sign-in, so accounts created before the move stay reachable until they are linked (ADR section 4). */
+export function OwnSignInScreen({ own, from, ended, legacy }: { own: OwnAuthApi; from: string; ended: boolean; legacy?: () => void }) {
   const nav = useNavigate();
   const [mode, setMode] = useState<Mode>(() => {
     const q = new URLSearchParams(window.location.search);
@@ -163,6 +164,11 @@ export function OwnSignInScreen({ own, from, ended }: { own: OwnAuthApi; from: s
         )}
         {mode === "signin" && <p className="ui-muted lv-signin-sub">Sign in to LunchVoice.</p>}
         {body}
+        {legacy && mode === "signin" && (
+          <p className="ui-help lv-m0">
+            Had a LunchVoice account before? <Button type="button" variant="quiet" size="md" onClick={legacy}>Use your existing KpnSolute sign-in</Button>
+          </p>
+        )}
         <Button asChild variant="quiet" size="md" className="lv-signin-join">
           <Link to="/join">Have a join code? Answer without signing in</Link>
         </Button>

@@ -293,7 +293,7 @@ export function SignIn() {
   const from = safeReturnTo((location.state as { from?: string } | null)?.from);
   if (session) return <Navigate to={from} replace />;
   // A7: LunchVoice's own sign-in (Google, Discord, email) replaces the KpnIdentity hand-off when the build enables it.
-  if (own) return <OwnSignInScreen own={own} from={from} ended={ended} />;
+  if (own) return <OwnSignInScreen own={own} from={from} ended={ended} legacy={issuerConfigured ? () => { void signIn(from); } : undefined} />;
   return (
     <div className="lv-narrow">
       <Card className="lv-signin">

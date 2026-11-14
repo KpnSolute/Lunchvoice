@@ -6,6 +6,22 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-14: own sign-in switched on server side; founder "turn on lv auth now"; A7; Backend and Edge)
+
+- Status: deployed (server side) and partly verified. **The sign-in screens are still off (`VITE_LV_AUTH` not set on Render) because Google, Discord and email sending are not configured yet.** Existing sign-in through KpnIdentity is unchanged and still works.
+- Applied to the Lunchvoice project (`qprfonxvthmaoxfixigk`), each verified by reading it back:
+  1. **Auth settings** (Management API; the project's Auth had 0 users): site URL `https://lunchvoice.com`; redirect allow-list `https://lunchvoice.com/**`, `https://create.lunchvoice.com/**`, `https://pay.lunchvoice.com/**`;
+     minimum password length 12; leaked-password protection on; session time-box 720 hours (30 days; the API unit is hours); email confirmation stays required.
+  2. **`session` Edge Function deployed (version 16)** from this repository with `supabase functions deploy session --use-api --no-verify-jwt`. Checked: the KpnIdentity path answers as before (400 on an empty body); the own path
+     answered 503 before the secret and **401 `lv_invalid_token` for a bogus token after it**, so it is live and fails closed.
+  3. **Function secret `LV_OWN_AUTH=1`** set (name only here).
+  4. **`identity.trusted_issuers` policy** now lists both issuers (KpnIdentity and `https://qprfonxvthmaoxfixigk.supabase.co/auth/v1`); audit row `policy.trusted_issuer_added` (reason `a7-2026-11-14`).
+- Code in this commit: the own sign-in screen gains **"Use your existing KpnSolute sign-in"** so accounts created before the move stay reachable until they are linked.
+- Checks: type check clean; function and unit tests as in the A7 entry; the provider authorize endpoints answer 400 for Google and Discord (not enabled yet).
+- Not done and blockers: **Google and Discord client IDs and secrets and the Resend SMTP credential are not entered yet** (config reads `external_google_enabled` false, `external_discord_enabled` false, no SMTP host); until they are, turning the screens on would show
+  buttons that fail and email sign-up that cannot send its confirmation. After they are: set `VITE_LV_AUTH=1` on Render and redeploy, smoke test, link the founder's accounts (`lv_identity_link` is not built; a founder-run script can attach the new identity to the old account), enable the bot check, remove nothing else.
+- Next: the founder enters the credentials; then Edge flips the flag on Render and runs the smoke test.
+
 ### Security (automated review of the A7 commit: identity confusion in session renewal; Backend; 2026-11-14)
 
 - Status: tested (unit tests, type check; not deployed, the feature is off by default).
