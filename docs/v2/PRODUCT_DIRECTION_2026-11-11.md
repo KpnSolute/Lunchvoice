@@ -123,7 +123,7 @@ Newest last. The full inventory is `docs/ops/SERVICES_AND_DEPENDENCIES.md`; the 
 - **2026-11-13, payment site** (founder): `pay.lunchvoice.com` becomes the payment site (Stripe), replacing the old
   GoDaddy-era site; a Cloudflare Worker, no Render domain.
 - **2026-11-13, how the site deploys:** a Render static site, not Docker. `render.yaml` is not connected (Render has no
-  Blueprint), so production routing and headers are changed through the Render API; today they lag the file (the template
-  gallery is not indexable). Fix planned for the build week. Details in `SERVICES_AND_DEPENDENCIES.md` section 2a.
+  Blueprint), so production routing and headers are changed through the Render API. They lagged the file (the template
+  gallery was not indexable); fixed 2026-11-13 and recorded with a rollback in `docs/ops/RENDER_SETTINGS.md`.
 - **Optional, undecided:** make the apex a proxied CNAME to Render ("O2O") so zone Workers run in front of the whole
   site (true HTTP 404, per-Hub share images, edge headers). A DNS change; decide after launch unless needed sooner.

@@ -21,9 +21,9 @@ export function templatePages(templates: { slug: string; name: string; blurb: st
       return { path: `/templates/${catSlug(c)}`, title: `${c} survey templates`, description: `${inCat.length} ready-made ${c.toLowerCase()} survey templates. Preview every question, then use one and change anything you like.`, h1: `${c} survey templates`, body: inCat.map((t) => `${t.name}: ${t.blurb}`).join(" "), changefreq: "monthly", priority: 0.6 };
     }),
     ...templates.map((t) => ({
-      path: `/templates/${t.slug}`, title: `${t.name} survey template`,
+      path: `/templates/${t.slug}`, title: `${/ survey$/i.test(t.name) ? t.name : `${t.name} survey`} template`,
       description: `${t.blurb} ${t.questions.length} ${noun(t.questions.length)}, ${t.anonymity === "identified" ? "identified" : "anonymous"}. ${PLAN_LINE[t.plan]} Preview it, then edit anything.`,
-      h1: `${t.name} survey template`, body: `${t.intro} Questions: ${t.questions.map((q) => q.prompt).join(" ")}`, changefreq: "monthly", priority: 0.5,
+      h1: `${/ survey$/i.test(t.name) ? t.name : `${t.name} survey`} template`, body: `${t.intro} Questions: ${t.questions.map((q) => q.prompt).join(" ")}`, changefreq: "monthly", priority: 0.5,
     })),
   ];
 }

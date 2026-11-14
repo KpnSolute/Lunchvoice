@@ -83,9 +83,9 @@ export function templatePages(templates) {
     }),
     ...templates.map((t) => ({
       path: `/templates/${t.slug}`,
-      title: `${t.name} survey template`,
+      title: `${/ survey$/i.test(t.name) ? t.name : `${t.name} survey`} template`,
       description: `${t.blurb} ${t.questions.length} ${noun(t.questions.length)}, ${t.anonymity === "identified" ? "identified" : "anonymous"}. ${PLAN_LINE[t.plan]} Preview it, then edit anything.`,
-      h1: `${t.name} survey template`,
+      h1: `${/ survey$/i.test(t.name) ? t.name : `${t.name} survey`} template`,
       body: `${t.intro} Questions: ${t.questions.map((q) => q.prompt).join(" ")}`,
       changefreq: "monthly",
       priority: 0.5,

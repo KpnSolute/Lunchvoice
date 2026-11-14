@@ -31,7 +31,7 @@ Stripe, Resend and Discord talk to Supabase Edge Functions (checkout / billing-w
 | Service | What it does for LunchVoice | Identifier (non-secret) | Where to find it | Status |
 | --- | --- | --- | --- | --- |
 | **GitHub** | Source of truth, pull requests, CI (`pr-checks`, `version-release`: tags every `main` commit `X.X.X`) | `KpnSolute/Lunchvoice` | Composio toolkit `github` (three connections, all the same GitHub user; use the default). External: github.com | Verified 2026-11-13 |
-| **Render** | Hosts the website as a **static site** (free to host: Render's pricing page says "Deploy websites for free, forever"). Auto-deploys on every push to `main` once checks pass. Custom domains on it: `lunchvoice.com` and `www.lunchvoice.com` (redirects to the apex), both verified, **nothing else** | dashboard name **Lunchvoice**, service `srv-d92o4cmrnols73fkioa0`, default URL `interact-3npi.onrender.com` (`render.yaml` still says `lunch-line-survey`) | Composio toolkit `render` (active; it read the service and its domains today). The workspace is shared with the `kpnsolute-*`, `KpnCompute`, `MJCC-*` and other services. The Render MCP needs a workspace chosen first; pick it with the owner. External: dashboard.render.com | Verified 2026-11-13. **No Render Blueprint exists** (read through the API), so `render.yaml` is not connected: the live service holds its own 29 rewrites and 5 header rules, an older copy of the file's. Its build command is `npm install; npm run build` (section 2a) |
+| **Render** | Hosts the website as a **static site** (free to host: Render's pricing page says "Deploy websites for free, forever"). Auto-deploys on every push to `main` once checks pass. Custom domains on it: `lunchvoice.com` and `www.lunchvoice.com` (redirects to the apex), both verified, **nothing else** | dashboard name **Lunchvoice**, service `srv-d92o4cmrnols73fkioa0`, default URL `interact-3npi.onrender.com` (`render.yaml` still says `lunch-line-survey`) | Composio toolkit `render` (active; it read the service and its domains today). The workspace is shared with the `kpnsolute-*`, `KpnCompute`, `MJCC-*` and other services. The Render MCP needs a workspace chosen first; pick it with the owner. External: dashboard.render.com | Verified 2026-11-13. **No Render Blueprint exists** (read through the API), so `render.yaml` is not connected: the live service holds its own 31 rewrites and 8 header rules (headers match the file since the 2026-11-13 fix; settings, change log and rollback in `RENDER_SETTINGS.md`). Its build command is `npm install; npm run build` (section 2a) |
 | **Supabase: Lunchvoice** | The whole backend: Postgres (`lv` private schema, `lv_api` the only exposed one), RLS, Storage, 7 Edge Functions. This is the MJCCv2 project and the only deployment target | project ref `qprfonxvthmaoxfixigk` | Composio toolkit `supabase`, alias **Lunchvoice**. MCP server `lunchvoice` (`.mcp.json`, token in gitignored `.mcp.env`). External: supabase.com/dashboard | Verified 2026-11-13 |
 | **Supabase: KpnIdentity** | Shared KpnSolute sign-in (one account across LunchVoice, Aftercard, KpnCompute). Not this repo's deploy target | project ref `axzwdbizblfkspduqilj`, issuer `https://auth.kpnsolute.com` | Composio toolkit `supabase`, alias **KpnIdentity**. MCP server `kpnauth`. External: supabase.com/dashboard | Connection verified; settings B1 to B6 Confirm |
 | **KpnAuth** (sign-in screen) | The branded front door people see when signing in | `auth.kpnsolute.com` | Separate repository (not this one). Hosting target Confirm | Confirm |
@@ -119,7 +119,7 @@ read the zone, see section 2):
 | Composio | By plan | Confirm the plan | none |
 | Domain registration | Yearly | Confirm the registrar | none |
 
-**What production actually serves** (read live and through Render's API, 2026-11-13). Render has **no Blueprint**, so
+**What production served before the 2026-11-13 fix** (read live and through Render's API). Render has **no Blueprint**, so
 `render.yaml` is not connected and every edit to it since the first setup never reached production. The Render service
 holds its own settings: 5 header rules, all on `/*` (CSP, HSTS without `includeSubDomains`, X-Frame-Options,
 Referrer-Policy, Permissions-Policy) and 29 rewrites (home, 10 core pages, 10 use cases, 7 product pages, then
@@ -134,13 +134,16 @@ Referrer-Policy, Permissions-Policy) and 29 rewrites (home, 10 core pages, 10 us
 3. Any new CSP origin, such as the sign-in Worker `https://auth.lunchvoice.com`, must be added in Render's header
    rules. Editing `render.yaml` does nothing.
 
-**The fix** (free, through the Render API in Composio; it changes Render settings, so it waits for the founder's
-go-ahead): replace the header rules (`RENDER_UPDATE_HEADERS`) and add the missing rewrites ahead of `/*`, preferably two
-placeholder rules (`/templates/:slug` and `/use-cases/:slug` to their `index.html`) instead of about 95 individual
-rules; confirm that Render accepts the placeholder form on one rule before relying on it. Cloudflare Cache Rules and the
-HSTS setting are **not** the fix: the zone's rules may not run in front of Render while the apex is a proxied A record
-(the `hub-card` README found the same for Workers). Longer term, a small script applies the repository's headers and
-rewrites through the API and `render.yaml` is retired, or routing moves to Cloudflare after the O2O change.
+**Fixed 2026-11-13 on the founder's go-ahead** (through the Render API in Composio): two rewrites ahead of `/*`
+(`/templates` and the placeholder `/templates/:slug`, which Render accepts and which covers all 95 gallery pages) and a
+replacement header set of 8 rules (HSTS with `includeSubDomains`, `X-Content-Type-Options`, the `/assets/*` long cache and
+the `/version.json` no-store rule, the rest unchanged). Verified live: the gallery, category and template pages return
+their own titles, every other page and the app-shell fallback are unchanged, and the six security headers match the file
+byte for byte. What production holds now, the change log and the rollback are in `docs/ops/RENDER_SETTINGS.md`.
+Cloudflare Cache Rules and the HSTS setting were **not** the fix: zone rules may not run in front of Render while the apex
+is a proxied A record (the `hub-card` README found the same for Workers). Still open: a script that applies the
+repository's headers and rewrites through the API so the two cannot drift again, then retiring `render.yaml`; any new
+prerendered page outside `/templates` needs its own rewrite.
 
 ## 3. Supabase Edge Functions (deployed, Verified 2026-11-13)
 

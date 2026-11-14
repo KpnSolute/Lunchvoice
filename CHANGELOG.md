@@ -6,6 +6,26 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-13: Render rewrites and headers; founder go-ahead)
+
+- **Applied the Render fix** through the Render API (Composio): two rewrites ahead of the catch-all (`/templates` and the
+  placeholder `/templates/:slug`, rule ids `rdr-dbru9l8n74is738ap2s0` and `rdr-dbru9don74is738aoar0`) and a replacement
+  header set of 8 rules. The placeholder form was tested alone on live pages first. **Before:** 29 rewrites, none for
+  `/templates`, so the gallery and all 95 of its pages (the gallery, 12 categories, 82 templates) served the generic app
+  shell with the title "LunchVoice"; 5 header rules, HSTS without `includeSubDomains`, no asset or `version.json` cache
+  rules. **After:** 31 rewrites with `/*` still last; 8 headers: the 5 existing unchanged except HSTS
+  (`max-age=31536000; includeSubDomains`), plus `X-Content-Type-Options: nosniff`, `/assets/*` `public, max-age=31536000,
+  immutable` and `/version.json` `no-store`. **Verified live:** the gallery, category pages and template pages return their
+  own titles; `/`, `/pricing`, `/products/hubs`, `/use-cases/*`, `/how-it-works` unchanged; `/c/ABC123`, `/surveys/new` and
+  unknown paths still get the app shell; all six security headers match `render.yaml` byte for byte; `/version.json` answers
+  `no-store`, the hashed bundle `immutable`. Rollback and the full settings: new `docs/ops/RENDER_SETTINGS.md`.
+- **SEO titles:** five template names already end in "survey", so their titles and headings read "Parent survey survey
+  template". The title and heading now drop the repeated word, in both `src/ui/Seo.tsx` (runtime) and
+  `scripts/seo-prerender.mjs` (prerender), which a test keeps equal.
+- Docs updated: services log (2a and the Render row), the launch plan (prep item 6 done), the roadmap, `render.yaml`'s banner
+  and the brain files (edited together, pointer to `RENDER_SETTINGS.md`). Cloudflare Cache Rules and HSTS were never the
+  fix and stay closed.
+
 ### Changed (Creator Trends allowance: Plus 5, Pro 10; migration 000054, NOT applied to production)
 - Founder decision 2026-11-13: Creator Plus allows 5 Trends, Creator Pro 10. Production still holds Plus 3 / Pro 10 from 000044 (provisional). `000054_v2_creator_trends_allowance` changes only the Plus value and the notes; rollback in `supabase/rollbacks/`. Test 44, the dev mock and the API contract follow. `AGENTS.md` and `CLAUDE.md` record the allowance. Waiting for approval to apply to production (Trends are not purchasable yet, so no customer is affected).
 - **Applied to production 2026-11-13** on the founder's "apply" (Lunchvoice `qprfonxvthmaoxfixigk`), as one transaction through Composio. Verified: `trends.max` is free 0, creator_plus 5, creator_pro 10, starter 3, team 5; migration history ends at 000054.

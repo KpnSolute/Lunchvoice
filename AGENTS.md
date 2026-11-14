@@ -38,7 +38,8 @@ Dining is one customer use case, not the product.
   (auth, create, pay) through Cloudflare; see section 2a of that inventory.
   The site deploys as a Render static site, not Docker, and `render.yaml` is not
   connected to Render (no Blueprint): production routing and headers live in the
-  Render service, so change them through the Render API, not by editing the file.
+  Render service, so change them through the Render API, not by editing the file
+  (current settings and rollback: docs/ops/RENDER_SETTINGS.md).
 - Supabase refs: Lunchvoice `qprfonxvthmaoxfixigk`, KpnIdentity
   `axzwdbizblfkspduqilj`. Production is not mutated without the approvals below.
 - GitHub: `KpnSolute/Lunchvoice`. Local frontend: `npm run dev`.

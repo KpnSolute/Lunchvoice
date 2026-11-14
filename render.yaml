@@ -1,9 +1,9 @@
 # NOT CONNECTED TO RENDER (checked 2026-11-13). No Render Blueprint exists, so nothing reads this file and editing it
 # changes nothing in production. The live site's rewrites, headers and build settings are stored in the Render service
-# itself (dashboard name "Lunchvoice"). On 2026-11-13 it held 29 rewrites and 5 header rules, an older copy of the
-# entries below; later edits here (HSTS include-subdomains, the /assets and /version.json cache rules, the template
-# pages) never reached production. The build's SEO check and its tests still parse this file, so it stays until the
-# routing is made real. Details and the fix: docs/ops/SERVICES_AND_DEPENDENCIES.md section 2a.
+# itself (dashboard name "Lunchvoice") and are changed through the Render API. On 2026-11-13 the service's headers were
+# synced to the ones below by hand, and the template pages got two placeholder rewrites where this file lists every
+# page; the current settings, the change log and the rollback are in docs/ops/RENDER_SETTINGS.md. The build's SEO check
+# and its tests still parse this file, so it stays until applying it to Render is scripted.
 services:
   - type: web
     runtime: static
