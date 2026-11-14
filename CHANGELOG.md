@@ -6,6 +6,18 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-14: email sending for sign-up and password reset; founder "yes, do it"; A7; Edge)
+
+- Status: deployed and verified (delivery); email sign-in in the browser not yet tested end to end.
+- What was done (founder approved creating the key through Composio): a Resend **sending-only API key** named "LunchVoice Supabase Auth", restricted to the verified `lunchvoice.com` domain, was created through Composio and set as the SMTP password in the
+  Lunchvoice Supabase Auth settings (host `smtp.resend.com`, port 465, user `resend`, sender `LunchVoice <no-reply@lunchvoice.com>`). The key value went from the tool result straight into the settings call; it is **not written to any file or to this changelog**, but it did pass through the
+  agent session, so rotate it if you want (Resend, API Keys). Auth email rate limit raised from 2 to 30 an hour.
+- Verified: a test sign-up for `admin+authtest@lunchvoice.com` sent the confirmation; Resend lists "Confirm your email address" from `LunchVoice <no-reply@lunchvoice.com>` as **delivered**. The test auth user was deleted afterwards (auth users: 0).
+- Render: `VITE_LV_AUTH_EMAIL=1` and a redeploy; verified `/signin?own=1` now shows the email form (still beta only; everyone else sees the old card).
+- Not done: the Supabase email templates are the defaults (plain "Confirm your email address"); the bot check (Turnstile) is off, so enable it before `VITE_LV_AUTH=1` for everyone; a real Google, Discord and email sign-in by the founder; linking the founder's old accounts; publishing the Google consent screen
+  after the support-email swap.
+- Next: the founder tests at `/signin?own=1`; Edge then links the accounts and brands the email templates.
+
 ### Operations (production, 2026-11-14: own sign-in in beta on the live site; Discord provider verified; A7; Edge)
 
 - Status: deployed and verified up to the provider redirects; a full sign-in is not yet tested; email sending not configured.
