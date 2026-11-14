@@ -95,7 +95,7 @@ Last full refresh: 2026-11-14 (all rows `planned`). Weeks: 1 = 11-16, 2 = 11-23,
 | S-19 | Clickjacking and framing | QA and Security | planned | | |
 | S-20 | Security headers verified live on all three hosts | QA and Security | planned | | |
 | S-21 | Subdomain hygiene | QA and Security | planned | | |
-| S-23 | No email address is ever shown as a name or to a person who should not see it (found live on the Hub Members list and Overview) | QA and Security | planned | | |
+| S-23 | No email address is ever shown as a name or to a person who should not see it (found live on the Hub Members list and Overview) | QA and Security | blocked | CHANGELOG "HB1 root cause" (2026-11-14): data fix preview ready, needs founder approval to apply (2 rows) | 2026-11-14 |
 | S-22 | A coordinated-disclosure door | QA and Security | planned | | |
 | S-30 | 30-day device sessions are rotating, single-use and revocable | QA and Security | planned | | |
 | S-31 | Step-up for dangerous actions | QA and Security | planned | | |

@@ -6,6 +6,20 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Security (HB1 root cause: an email shown as a member's name; S-23, E1; Backend; 2026-11-14)
+
+- Status: tested in preview only; blocked on the founder's approval to apply the data fix. Production not changed.
+- What was found (read-only queries on production, Lunchvoice `qprfonxvthmaoxfixigk`): the **code is already fixed**. Migration `000040_v2_display_name_never_email` is applied and
+  `lv.safe_display_name` exists; new accounts can never get an "@" name. But **2 old accounts and 2 cached identity rows still hold an email as the display name**, and the check
+  constraint `accounts_display_name_no_email` is **not validated** (`convalidated = false`). The data fix `scripts/data-fixes/2026-11-12_p3_display_names.sql` was never run, which is why the
+  Kitchen's Members list and Overview show an address. `lv_member_list` returns names only (its source says "never email").
+- Preview of the fix (addresses masked): account `8caf07c7…` (`m***@y***.com`) becomes `muttyman`; account `abd556f3…` (`m***@g***.com`) becomes `mmdwell`. Nothing is deleted; membership, roles,
+  responses and audit history are untouched; the two old values (which are the emails) are overwritten and cannot be restored from the database afterwards.
+- Checks: read-only SELECTs only. Not run: the apply, the post-apply verification, the Members page re-check.
+- Not done and blockers: **the founder's approval of this exact file** (the data fix is "not a migration" and needs the owner's explicit approval per its header and the production runbook).
+  After approval: run the file's step 2 as one transaction with `expected = 2`, validate the constraint, verify no "@" names remain, re-load `/kitchen/members`, and mark S-23 `verified`.
+- Next: apply on the founder's yes (Backend, minutes).
+
 ### Docs (live UI audit for the design team; QA agent; 2026-11-14)
 
 - Status: verified (observed on the live site; nothing changed, submitted or deleted).
