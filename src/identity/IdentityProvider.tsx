@@ -32,6 +32,10 @@ export interface OwnAuthApi {
 interface Session {
   token: string;
   name: string;
+  /** A7: set only for sessions from LunchVoice's own sign-in; only these are ever renewed from the Auth refresh token. */
+  source?: "own";
+  /** A7: the session's subject. A renewal that returns a different subject ends the session instead of replacing it. */
+  sub?: string;
   /** Epoch ms. Sessions are short; after this the person signs in again. */
   expiresAt?: number;
 }
@@ -66,6 +70,11 @@ function getOwnClient(config: OwnAuthConfig): AuthClientLike {
   return ownClient;
 }
 
+/** Ends the Auth session on this device only (scope "local"): its refresh token can no longer renew anything, and other devices stay signed in. */
+function dropOwnAuth() {
+  if (ownConfig) void getOwnClient(ownConfig).auth.signOut({ scope: "local" }).catch(() => undefined);
+}
+
 function load(): Session | null {
   try {
     const raw = localStorage.getItem(STORE);
@@ -98,6 +107,7 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
   // say so, and leave a flag for the sign-in page. Idempotent: several calls can fail at once.
   const endSession = useCallback(() => {
     persist(null);
+    dropOwnAuth();
     try { sessionStorage.setItem(SESSION_ENDED_FLAG, "1"); } catch { /* the toast still tells them */ }
     toast.warning("Your session ended, so you've been signed out. Sign in again to carry on.", { id: "session-ended", duration: 12_000 });
   }, [persist]);
@@ -123,15 +133,21 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
   // (the device stays signed in for the Auth project's session time-box). A failed renewal leaves the normal expiry in place.
   useEffect(() => {
     const expiresAt = session?.expiresAt;
-    if (!ownConfig || !expiresAt || session?.token === "simulated") return;
+    // Only sessions that came from our own sign-in are renewed; a KpnIdentity or simulated session is never replaced by whatever
+    // Auth session the browser may still hold (identity confusion during the transition).
+    if (!ownConfig || !expiresAt || session?.source !== "own" || !session.sub) return;
     const delay = Math.max(expiresAt - Date.now() - 120_000, 5_000);
     const timer = window.setTimeout(() => {
       exchangeSession(getOwnClient(ownConfig), ownConfig)
-        .then((next) => persist({ token: next.token, name: next.name || session?.name || "You", expiresAt: next.expiresAt }))
+        .then((next) => {
+          // The renewed session must be the same person; anything else ends the session rather than swapping identities.
+          if (next.sub !== session.sub) { endSession(); return; }
+          persist({ token: next.token, name: next.name || session.name || "You", expiresAt: next.expiresAt, source: "own", sub: next.sub });
+        })
         .catch(() => { /* the session simply ends at its expiry */ });
     }, Math.min(delay, 2_000_000_000));
     return () => window.clearTimeout(timer);
-  }, [session, persist]);
+  }, [session, persist, endSession]);
 
   const own = useMemo<OwnAuthApi | null>(() => {
     const config = ownConfig;
@@ -142,20 +158,20 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
       password: async (email, password) => {
         await signInWithEmail(client(), email, password);
         const next = await exchangeSession(client(), config);
-        persist({ token: next.token, name: next.name, expiresAt: next.expiresAt });
+        persist({ token: next.token, name: next.name, expiresAt: next.expiresAt, source: "own", sub: next.sub });
       },
       signUp: (email, password, returnTo) => signUpWithEmail(client(), config, email, password, returnTo ?? "/me"),
       reset: (email) => sendPasswordReset(client(), config, email),
       complete: async (search) => {
         const { session: next, returnTo } = await completeOwnCallback(client(), config, search);
-        persist({ token: next.token, name: next.name, expiresAt: next.expiresAt });
+        persist({ token: next.token, name: next.name, expiresAt: next.expiresAt, source: "own", sub: next.sub });
         return returnTo;
       },
       recover: (search) => acceptRecoveryCode(client(), search),
       newPassword: async (password) => {
         await setNewPassword(client(), password);
         const next = await exchangeSession(client(), config);
-        persist({ token: next.token, name: next.name, expiresAt: next.expiresAt });
+        persist({ token: next.token, name: next.name, expiresAt: next.expiresAt, source: "own", sub: next.sub });
       },
     };
   }, [persist]);
@@ -177,13 +193,15 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
       completeSignIn: async (search) => {
         if (!kpnConfig) throw new Error("KpnIdentity is not configured for this build.");
         const { session: next, returnTo } = await finishRedirect(kpnConfig, search);
+        // A KpnIdentity session must not coexist with an Auth session for someone else on this device.
+        dropOwnAuth();
         persist(next);
         return returnTo;
       },
       signOut: () => {
         persist(null);
-        // A7: also end the Auth session on this device so the refresh token cannot renew it.
-        if (ownConfig) void getOwnClient(ownConfig).auth.signOut().catch(() => undefined);
+        // A7: also end the Auth session on this device only, so its refresh token cannot renew anything.
+        dropOwnAuth();
       },
     };
   }, [session, persist, endSession, own]);

@@ -6,6 +6,16 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Security (automated review of the A7 commit: identity confusion in session renewal; Backend; 2026-11-14)
+
+- Status: tested (unit tests, type check; not deployed, the feature is off by default).
+- Finding (MEDIUM, valid): the auto-renewal added in 94d67bf ran for any session, so during the KpnIdentity transition a leftover Auth session in the browser could replace a different identity's session. Also, signing out used
+  Supabase's default global scope, which would have signed the person out on every device.
+- Fix: a session now records `source: "own"` and its `sub`; only own sessions renew; a renewal that returns a different `sub` ends the session instead of replacing it; the session returned by the exchange must carry a subject (refused
+  otherwise); ending a session, signing out and finishing a KpnIdentity sign-in call `signOut({ scope: "local" })` so the Auth refresh token on this device cannot renew anything and other devices stay signed in.
+- Checks: `src/lib/lvAuth.test.ts` 14 of 14 (new: a session without a subject is refused; the subject is returned); `tsc --noEmit` clean; full `npm run test:pr` re-run below.
+- Not done: an e2e that mixes a KpnIdentity session with a lingering Auth session (needs a live Auth project, part of the spike).
+
 ### Added (A7 own sign-in: code behind a flag; A6 functional screens; Backend, Edge and UI-functional; 2026-11-14)
 
 - Status: coded and tested locally. **Not deployed. No Auth provider is enabled. The two-day spike has not run. Production, KpnIdentity and Discord are untouched.**

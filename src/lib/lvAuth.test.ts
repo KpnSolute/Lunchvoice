@@ -135,13 +135,19 @@ test("A7: the reset link needs a code, trades it, and the new password follows t
 
 test("A7: the exchange forces a fresh token, posts it with kind supabase and returns a session whose name is never an email", async () => {
   const { client, calls } = fakeClient();
-  const s = await exchangeSession(client, config, okFetch(jwt({ name: "Pat", email: "pat@example.com" })));
+  const s = await exchangeSession(client, config, okFetch(jwt({ sub: "user-1", name: "Pat", email: "pat@example.com" })));
   assert.equal(calls[0]!.fn, "refresh");
   assert.deepEqual(lastBody, { kind: "supabase", accessToken: "access.token.value" });
   assert.equal(s.name, "Pat");
+  assert.equal(s.sub, "user-1");
   assert.ok(s.expiresAt > Date.now());
-  assert.equal((await exchangeSession(client, config, okFetch(jwt({ name: "pat@example.com" })))).name, "You");
-  assert.equal((await exchangeSession(client, config, okFetch(jwt({})))).name, "You");
+  assert.equal((await exchangeSession(client, config, okFetch(jwt({ sub: "user-1", name: "pat@example.com" })))).name, "You");
+  assert.equal((await exchangeSession(client, config, okFetch(jwt({ sub: "user-1" })))).name, "You");
+});
+
+test("A7: a session without a subject is refused, so a renewal can always be matched to the same person", async () => {
+  const { client } = fakeClient();
+  await assert.rejects(exchangeSession(client, config, okFetch(jwt({ name: "Pat" }))), /could not start your session/);
 });
 
 test("A7: the exchange fails with a clear message when refresh fails or the server refuses", async () => {
@@ -158,7 +164,7 @@ test("A7: the callback exchanges the code, then the session, and returns where t
   const { client, calls } = fakeClient();
   const storage = memoryStorage();
   storage.setItem("lv.own.pending", JSON.stringify({ returnTo: "/surveys" }));
-  const done = await completeOwnCallback(client, config, "?own=1&code=abc123", storage, okFetch(jwt({ name: "Pat" })));
+  const done = await completeOwnCallback(client, config, "?own=1&code=abc123", storage, okFetch(jwt({ sub: "user-1", name: "Pat" })));
   assert.equal(done.returnTo, "/surveys");
   assert.equal(done.session.name, "Pat");
   assert.deepEqual(calls.map((c) => c.fn), ["code", "refresh"]);
@@ -173,9 +179,9 @@ test("A7: the callback refuses provider errors, a missing code, a bad code, and 
   await assert.rejects(completeOwnCallback(badCode.client, config, "?own=1&code=x", memoryStorage()), /expired/);
   const storage = memoryStorage();
   storage.setItem("lv.own.pending", JSON.stringify({ returnTo: "//evil.example" }));
-  const done = await completeOwnCallback(client, config, "?own=1&code=ok", storage, okFetch(jwt({ name: "Pat" })));
+  const done = await completeOwnCallback(client, config, "?own=1&code=ok", storage, okFetch(jwt({ sub: "user-1", name: "Pat" })));
   assert.equal(done.returnTo, "/me");
   const corrupt = memoryStorage();
   corrupt.setItem("lv.own.pending", "{not json");
-  assert.equal((await completeOwnCallback(client, config, "?own=1&code=ok", corrupt, okFetch(jwt({})))).returnTo, "/me");
+  assert.equal((await completeOwnCallback(client, config, "?own=1&code=ok", corrupt, okFetch(jwt({ sub: "user-1" })))).returnTo, "/me");
 });

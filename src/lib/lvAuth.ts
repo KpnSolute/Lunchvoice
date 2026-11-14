@@ -20,6 +20,8 @@ export interface OwnSession {
   token: string;
   name: string;
   expiresAt: number;
+  /** The LunchVoice session's subject (the Auth user id). A renewal must return the same one. */
+  sub: string;
 }
 
 /** The slice of the supabase-js auth client this module uses. Tests pass a fake. */
@@ -32,7 +34,8 @@ export interface AuthClientLike {
     exchangeCodeForSession(code: string): Promise<{ data: unknown; error: AuthErrorLike | null }>;
     updateUser(attributes: { password: string }): Promise<{ data: unknown; error: AuthErrorLike | null }>;
     refreshSession(): Promise<{ data: { session: { access_token: string } | null } | null; error: AuthErrorLike | null }>;
-    signOut(): Promise<{ error: AuthErrorLike | null }>;
+    /** Always called with scope "local": ending this device's session must never sign the person out elsewhere. */
+    signOut(options?: { scope: "local" | "global" | "others" }): Promise<{ error: AuthErrorLike | null }>;
   };
 }
 
@@ -146,9 +149,9 @@ export async function setNewPassword(client: AuthClientLike, password: string): 
   if (error) throw new OwnSignInError(friendlyError(error, "We could not change the password. Ask for a new reset link."));
 }
 
-function claimsOf(token: string): { name?: string; email?: string } {
+function claimsOf(token: string): { name?: string; email?: string; sub?: string } {
   try {
-    return JSON.parse(atob(token.split(".")[1]!.replace(/-/g, "+").replace(/_/g, "/"))) as { name?: string; email?: string };
+    return JSON.parse(atob(token.split(".")[1]!.replace(/-/g, "+").replace(/_/g, "/"))) as { name?: string; email?: string; sub?: string };
   } catch {
     return {};
   }
@@ -169,7 +172,8 @@ export async function exchangeSession(client: AuthClientLike, config: OwnAuthCon
   const claims = claimsOf(body.session);
   // The name never falls back to an email (audit HB1): a missing name shows as "You".
   const named = claims.name && !claims.name.includes("@") ? claims.name : "You";
-  return { token: body.session, name: named, expiresAt: Date.now() + (body.expiresIn ?? 3600) * 1000 };
+  if (!claims.sub) throw new OwnSignInError("LunchVoice could not start your session.");
+  return { token: body.session, name: named, expiresAt: Date.now() + (body.expiresIn ?? 3600) * 1000, sub: claims.sub };
 }
 
 /** /auth/callback?own=1&code=...: finish a Google or Discord sign-in, or an email confirmation link. */
