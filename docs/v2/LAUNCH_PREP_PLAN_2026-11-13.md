@@ -7,6 +7,7 @@ Order of authority is unchanged: `LAUNCH_PLAN.md`, the master spec, `PRODUCT_DIR
 **Launch and billing open on 2026-12-12 17:12 UTC (founder, set in the admin portal, confirmed 2026-11-14)**; this
 supersedes the 2026-11-21 feature-complete and 2026-12-01 launch dates in `BUILD_PLAN_2026-11-21.md`. The build runs
 just under four weeks from 2026-11-16. The service inventory is `docs/ops/SERVICES_AND_DEPENDENCIES.md`.
+**Build order, scope and specs for 2026-11-16 to 2026-12-12 now live in `docs/v2/launch-roadmap/` (start at `00_ROADMAP_4_WEEKS.md`); where section 5 below differs, the roadmap wins.**
 
 ## 1. Decisions logged today
 

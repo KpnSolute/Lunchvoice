@@ -6,6 +6,26 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Docs (four-week launch roadmap and specs; founder direction 2026-11-14)
+
+- **`docs/v2/launch-roadmap/` (new, six files):** `00_ROADMAP_4_WEEKS.md` (weeks 1 to 3 backend and services, hard freeze
+  Fri 2026-12-04, week 4 UI refresh, launch Sat 2026-12-12 17:12 UTC; the 23-item half-built inventory; agent roster; day by
+  day plan; founder actions with dates; defaults X-01 to X-17), `01_PURPOSE_AND_ACCESS_MAP.md` (why every feature and service
+  exists, who gets it on which plan, entitlement keys, competitor benchmark), `02_FEATURE_SPECS.md` (spec for spec: release
+  hygiene, 30-day sign-in, hostname-aware app, Turnstile, Creator purchases, billing proof, armed billing release, creator-
+  controlled results, Decisions and "You said, we did", shared results snapshots, advanced analytics, elections, quiz, Live
+  Session Lite, notifications, profiles, points, moderation, Discord, API, export, creator dashboard, the Kitchen),
+  `03_PLATFORM_DOMAINS_AND_SERVICES.md` (`create`, `pay`, `auth`; Cloudflare rules instead of Render domains; `pay` cutover and
+  rollback; email and DNS hygiene), `04_SECURITY_AND_OPERATIONS_HARDENING.md` (S-series and 14 try-out drills) and
+  `05_WEEK4_UI_UX_REDESIGN.md` (direction, token proposals T-1 to T-7, landing storyboard, tiers, acceptance).
+- **Decisions recorded as defaults, founder may override (`00_` section 10):** `create` and `pay` are served from the same build
+  by Cloudflare rules (no Render domain), not a redirect; Stripe-hosted Checkout, webhook unchanged; billing never opens or
+  charges unless explicitly armed; Discover stays at `/discover`; status and help stay as paths.
+- **Found while writing:** `pay.lunchvoice.com` is still a proxied CNAME to GoDaddy (`paylinks.commerce.godaddy.com`);
+  `create` and `auth` have no DNS; Creator plan copy still says "coming soon" for features that shipped (000044, 000047); the
+  DMARC report address belongs to GoDaddy's aggregator; no job opens billing at the launch date (by design, now specified as B8).
+- Nothing was built, deployed or changed in production by this entry.
+
 ### Operations (production, 2026-11-14: Creator prices, launch date, MCP check)
 
 - **Correction:** the founder re-connected Cloudflare in Composio; `cloudflare_api_key` now lists all three zones with DNS edit rights, so the invalid-token blocker for `pay` and `create` is cleared. Both Composio Supabase accounts (Lunchvoice, KpnIdentity) list the right projects.
