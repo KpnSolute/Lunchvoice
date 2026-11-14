@@ -6,6 +6,17 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-14: own sign-in in beta on the live site; Discord provider verified; A7; Edge)
+
+- Status: deployed and verified up to the provider redirects; a full sign-in is not yet tested; email sending not configured.
+- Discord: enabled in the Lunchvoice Supabase project; read-only check: `external_discord_enabled` true, client id and secret set (values not read), and `GET /auth/v1/authorize?provider=discord` answers 302 to `discord.com/api/oauth2/authorize`. Google was verified earlier the same way.
+- Render (service `srv-d92o4cmrnols73fkioa0`, through Composio): set `VITE_LV_AUTH=beta` and `VITE_LV_AUTH_EMAIL=0` (build-time public flags, not secrets) and redeployed.
+- Verified on the live site with headless Chrome: `https://lunchvoice.com/signin?own=1` shows the new screen (Welcome back, Continue with Google, Continue with Discord, legal links, "Use your existing KpnSolute sign-in", join code; email forms hidden);
+  a fresh browser on `/signin` still sees the old one-button card, so **no other visitor is affected**. Capture: `docs/frontend/design-research/captures/signin-own-beta.png` (local, ignored).
+- Not done: an actual Google and Discord sign-in (the founder tests it; for Google the founder's address must be a test user in Google Auth Platform, Audience); Resend SMTP (needs a sending key; the founder has Resend in Composio and was asked
+  to confirm creating it); publishing the Google consent screen (blocked on the support-email swap); linking the founder's old accounts; `VITE_LV_AUTH=1` for everyone.
+- Next: the founder signs in at `/signin?own=1` with Google then Discord; Edge fixes what breaks, then sets up Resend and links the accounts.
+
 ### Added (A7 beta switch and email toggle; Backend and UI-functional; 2026-11-14)
 
 - Status: tested (unit 15 of 15 for the module, type check, build); not deployed until pushed.
