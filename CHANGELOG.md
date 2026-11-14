@@ -6,6 +6,21 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (E11 usernames: migration 000055 applied to production; the username step for every account; link-by-email lookup; A8 and A9 specified; Backend and UI-functional; 2026-11-14)
+
+- Status: **deployed** (migration applied and verified in production; front end pushed, Render deploys it); the end-to-end username step on the live site is not yet verified by a real sign-in; links (A9) and sign-in methods (A8) are specified, not built.
+- Founder asks (2026-11-14): new people who sign up with Google or Discord must pick a **username** instead of inheriting the provider's name; sign-in methods are ways to log in to one account; an existing account is **found by email**, asked about, and linked after confirming its password.
+- **Migration `000055_v2_usernames`** (SHA-256 `cafbfc58…` for the first version applied; applied to Lunchvoice `qprfonxvthmaoxfixigk` through the Management API as one transaction, history row `000055`): `lv.accounts.handle` (unique, lowercase, `^[a-z][a-z0-9_]{2,19}$`, no `__`, never an `@`),
+  30 reserved platform words, `lv.handle_history` (an old name is held 14 days), a once-in-30-days change interval (the first claim is free), a 30 checks a minute limit, RPCs `lv_handle_get`, `lv_handle_check` (available or not, plus suggestions) and `lv_handle_set` (race-safe),
+  **`lv.account_identities` indexed on `lower(email)`** and `lv_link_candidates` (a hint with the display name and username of an existing account that shares the person's verified email; never an email or an id). Rollback: `supabase/rollbacks/000055_v2_usernames.down.sql`.
+  Verified in production after applying: column present, 4 RPCs, 30 reserved words, both indexes, latest history version `000055`.
+- Front end: `/signin/username` (new `Welcome` page: unique username with a live check and suggestions, optional display name; **empty display name means the username is shown, never the Google or Discord name**) and a gate in `RequireSignIn` that sends any signed-in account without a username there once
+  (existing accounts are prompted too; a failed lookup lets the person through). `lvApi` gains `handleGet`, `handleCheck`, `handleSet`, `linkCandidates`; the dev mock gives simulated people a username so existing e2e runs are unchanged.
+- Specs added (`02_FEATURE_SPECS.md`): **A8** sign-in methods on one account (link Google, Discord, email; remove but never the last) and **A9** link an existing account found by email, confirmed by signing in to it (both proofs, new account must be empty, audited). Week-4 scope now includes every auth screen (`05_` section 11a).
+- Checks: database suite from empty **1810 of 1810**, rollback rehearsal passes (45 new checks in `55_usernames.sql`); `tsc` clean; `npm run test:pr` exit 0.
+- Not done and blockers: A8 and A9 builds; the Turnstile bot check; a real sign-up through the beta page; the founder's old accounts are not linked yet; username shown in member lists, mentions and profile pages (E11 later parts).
+- Next: Edge enables manual linking and builds A8; Backend and Edge build `lv_identity_link` for A9; Turnstile.
+
 ### Operations (production, 2026-11-14: email sending for sign-up and password reset; founder "yes, do it"; A7; Edge)
 
 - Status: deployed and verified (delivery); email sign-in in the browser not yet tested end to end.

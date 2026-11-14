@@ -1,0 +1,20 @@
+-- Rollback of 000055: usernames go away. Display names, accounts and identities are untouched.
+begin;
+drop function if exists lv_api.lv_link_candidates();
+drop function if exists lv.api_link_candidates();
+drop index if exists lv.account_identities_email_idx;
+drop function if exists lv_api.lv_handle_set(text);
+drop function if exists lv_api.lv_handle_check(text);
+drop function if exists lv_api.lv_handle_get();
+drop function if exists lv.api_handle_set(text);
+drop function if exists lv.api_handle_check(text);
+drop function if exists lv.api_handle_get();
+drop function if exists lv.handle_problem(text, uuid);
+drop table if exists lv.handle_check_log;
+drop table if exists lv.handle_history;
+drop table if exists lv.reserved_handles;
+drop index if exists lv.accounts_handle_key;
+alter table lv.accounts drop constraint if exists accounts_handle_format;
+alter table lv.accounts drop column if exists handle_changed_at, drop column if exists handle;
+delete from lv.policy where key in ('handle.change_days', 'handle.hold_days', 'handle.checks_per_minute');
+commit;

@@ -347,10 +347,33 @@ export function SignIn() {
   );
 }
 
+/** One username check per session token. An account without a username is sent to /signin/username once (spec E11). */
+const usernameChecked = new Map<string, "ok" | "needs">();
+function useUsernameGate(): "loading" | "ok" | "needs" {
+  const { session, api } = useIdentity();
+  const token = session?.token ?? "";
+  const [state, setState] = useState<"loading" | "ok" | "needs">(() => (token ? usernameChecked.get(token) ?? "loading" : "ok"));
+  useEffect(() => {
+    if (!token) { setState("ok"); return; }
+    const known = usernameChecked.get(token);
+    if (known) { setState(known); return; }
+    let live = true;
+    api.handleGet()
+      .then((r) => { if (!r.ok) { if (live) setState("ok"); return; } const v = r.handle ? "ok" : "needs"; usernameChecked.set(token, v); if (live) setState(v); })
+      .catch(() => { if (live) setState("ok"); }); // fail open: a failed lookup never locks someone out
+    return () => { live = false; };
+  }, [token, api]);
+  return state;
+}
+
 export function RequireSignIn({ children }: { children: ReactNode }) {
   const { session } = useIdentity();
   const location = useLocation();
+  const gate = useUsernameGate();
   if (!session) return <Navigate to="/signin" state={{ from: location.pathname + location.search }} replace />;
+  if (location.pathname === "/signin/username") return <>{children}</>;
+  if (gate === "loading") return null;
+  if (gate === "needs") return <Navigate to="/signin/username" state={{ from: location.pathname + location.search }} replace />;
   return <>{children}</>;
 }
 

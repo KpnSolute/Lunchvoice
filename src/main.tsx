@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { IdentityProvider } from "./identity/IdentityProvider";
 import { AuthCallback, RequireSignIn, Shell, SignIn } from "./pages/Public";
+import { Welcome } from "./pages/Welcome";
 import { Landing } from "./pages/Landing";
 import { About, Beta, Discover, Guidelines, HowItWorks, NotFoundPage, Privacy, Status, Support, Terms, UseCases } from "./pages/Marketing";
 import { UseCasePage } from "./pages/UseCasePage";
@@ -77,6 +78,7 @@ createRoot(document.getElementById("root")!).render(
             {/* auth and account */}
             <Route path="signin" element={<SignIn />} />
             <Route path="auth/callback" element={<AuthCallback />} />
+            <Route path="signin/username" element={<RequireSignIn><Welcome /></RequireSignIn>} />
             <Route path="join" element={<Join />} />
             <Route path="j/:code" element={<RedeemInvite />} />
             <Route path="h/:slug" element={<HubShareRedirect />} />

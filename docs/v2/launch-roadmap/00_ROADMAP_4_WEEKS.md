@@ -207,7 +207,9 @@ Items name a spec in `02_FEATURE_SPECS.md`. Approvals needed are in **bold**.
 | E9 activity and directory | W3 Tue to Wed | Backend, UI-functional |
 | E10 Hub Pulse | W2 Fri (data) to W3 Wed | Backend, UI-functional |
 | E11 usernames and display names | W1 Wed to Fri | Backend, UI-functional |
-| A6 sign-in and sign-up screens | Design W1 to W2, build W3 (KpnAuth Worker), `/signin` entry W4 | Design, Edge, UI-refresh |
+| A6 sign-in and sign-up screens | Functional now (beta); the restyle of every auth screen is in week 4 (`05_` section 11a) | Design, UI-functional, UI-refresh |
+| A8 sign-in methods on one account | W1 to W2 | UI-functional, Edge |
+| A9 link an existing account by email | W1 to W2 | Backend, Edge, UI-functional |
 
 The week-1 to week-3 day tables above show the heaviest items; the placement table adds these lanes in parallel. If a lane
 conflicts with the pillar balance rule (section 1a), the governing agent reassigns.
@@ -293,7 +295,7 @@ the product direction already says).
 | Letter | Area | Specs (in `02_FEATURE_SPECS.md`) |
 | --- | --- | --- |
 | R | Release hygiene | R1 |
-| A | Identity and the edge | A1 30-day sign-in, A2 hostname-aware app, A5 Turnstile, A6 sign-in and sign-up screens (A3 and A4 are in `03_`) |
+| A | Identity and the edge | A1 30-day sign-in, A2 hostname-aware app, A5 Turnstile, A6 sign-in and sign-up screens, A7 own sign-in, A8 sign-in methods, A9 link by email (A3 and A4 are in `03_`) |
 | B | Money | B1 Creator purchases, B2 real-purchase proof, B3 billing screens, B4 Campaign passes, B5 name reservation, B6 money emails, B7 entitlement edge cases, B8 armed billing release |
 | Y | Survey design | Y1 to Y5 |
 | N | Connectivity | N1 share kit, N2 invite by email, N3 recipes, N4 embeddable answer link |

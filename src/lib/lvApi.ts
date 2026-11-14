@@ -513,6 +513,13 @@ export function createLvApi(transport: LvTransport) {
     profileUpdate: (displayName: string) =>
       call<{ account: { account_id: string; display_name: string | null } }>("lv_profile_update", { p_display_name: displayName }),
     accountDelete: (confirm: string) => call<object>("lv_account_delete", { p_confirm: confirm }),
+    /* ---- usernames (E11, 000055) ---- */
+    handleGet: () => call<{ handle: string | null; display_name: string | null; can_change_at: string | null }>("lv_handle_get"),
+    handleCheck: (handle: string) =>
+      call<{ available: boolean; handle?: string; reason?: "length" | "format" | "reserved" | "taken" | "held"; suggestions?: string[] }>("lv_handle_check", { p_handle: handle }),
+    handleSet: (handle: string) => call<{ handle: string }>("lv_handle_set", { p_handle: handle }),
+    /** A hint only: existing accounts that share the person's verified email (display name and username, never an email). */
+    linkCandidates: () => call<{ candidates: { display_name: string; handle: string | null; created_at: string }[] }>("lv_link_candidates"),
 
     /* ---- hubs ---- */
     hubCreate: (slug: string, name: string) => call<{ hub_id: string; slug: string }>("lv_hub_create", { p_slug: slug, p_name: name }),

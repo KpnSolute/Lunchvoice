@@ -196,6 +196,19 @@ else**: the design-system rule stands) and in `DESIGN_EXTENSIONS.md`:
 6. Founder's written approval of the landing, player, results and dashboard on Wed 12-09 and again on Fri 12-11.
 7. No "coming soon" next to a paid claim; no invented number, logo or testimonial anywhere.
 
+## 11a. The auth screens are part of week 4 (founder, 2026-11-14)
+
+Every screen a person meets while signing in, signing up and managing how they sign in is a **Tier A** surface and is redesigned in week 4 with the new tokens, motion and the 500-site Atlas patterns:
+
+- `/signin` (Google, Discord, email, forgot password, reset, check-your-inbox), the sign-up states and the legacy-account link;
+- `/signin/username` (the one-time username and display-name step) and the **link prompt** that offers to link an existing account (spec A9);
+- Account settings **Sign-in methods** (spec A8) and the account-link confirmations;
+- the **emails** Supabase sends (confirm, reset, magic) restyled to the brand with the real support address;
+- the Google consent screen and the Discord application page (logo, name, descriptions) set from the brand kit;
+- error, loading and locked states of all of the above, 390 and 1440 px, three themes, keyboard and screen reader.
+
+They are functional before week 4 (built behind the beta switch) so week 4 restyles working screens.
+
 ## 12. Upgrade what exists today (the founder's rule: no leftovers)
 
 The founder looked at the live creator screens on 2026-11-14 and does not want to see the same quality after four weeks. Two screens already

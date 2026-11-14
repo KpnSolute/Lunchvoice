@@ -19,6 +19,8 @@ Last full refresh: 2026-11-14 (all rows `planned`). Weeks: 1 = 11-16, 2 = 11-23,
 | A5 | Foundation | Turnstile on guest and sign-up paths | P0 | 3 | Edge | planned | | |
 | A6 | Foundation | Sign-in and sign-up screens (built in this repository on LunchVoice's own sign-in) | P0 | 1-4 | Design + UI-functional + UI-refresh | coded (functional screens: Google, Discord, email, sign-up, forgot and reset; behind `VITE_LV_AUTH`; unstyled for week 4) | CHANGELOG "A7 own sign-in: code behind a flag" (2026-11-14) | 2026-11-14 |
 | A7 | Foundation | Own sign-in for LunchVoice (Supabase Auth in the Lunchvoice project; ADR proposed, spike first) | P0 | 1-2 | Backend + Edge + UI-functional | deployed (server side: Auth settings, `session` v16, `LV_OWN_AUTH`, trusted issuer); screens off until Google, Discord and SMTP credentials are entered; not verified end to end | CHANGELOG "own sign-in switched on server side" (2026-11-14) | 2026-11-14 |
+| A8 | Foundation | Sign-in methods on one account (link Google, Discord, email) | P0 | 1-2 | UI-functional + Edge | planned | | |
+| A9 | Foundation | Link an existing account found by email, confirmed with its password | P0 | 1-2 | Backend + Edge + UI-functional | planned (email index and `lv_link_candidates` applied in production with 000055) | CHANGELOG "E11 usernames" (2026-11-14) | 2026-11-14 |
 | B1 | Foundation | Creator Plus and Creator Pro purchases (person-scoped) | P0 | 1 | Backend + Edge | planned | | |
 | B2 | Foundation | Prove billing with a real purchase | P0 | 1 | Backend + Edge | planned | | |
 | B3 | Foundation | Billing screens | P0 | 1 | Backend + Edge | planned | | |
@@ -51,7 +53,7 @@ Last full refresh: 2026-11-14 (all rows `planned`). Weeks: 1 = 11-16, 2 = 11-23,
 | E8 | Social presence | Discover finish | P0 | 3 | Backend | planned | | |
 | E9 | Social presence | Hub activity and member directory | P0 | 3 | Backend | planned | | |
 | E10 | Social presence | Hub Pulse (launch version: Pulse Lite, P0) | P0 | 3 | Backend | planned | | |
-| E11 | Social presence | Usernames and display names, the Discord way, chosen at sign-up | P0 | 1 | Backend + UI-functional | planned | | |
+| E11 | Social presence | Usernames and display names, the Discord way, chosen at sign-up | P0 | 1 | Backend + UI-functional | deployed (000055 applied; username step live; not verified by a real sign-in; mentions and profile pages not built) | CHANGELOG "E11 usernames: migration 000055 applied" (2026-11-14) | 2026-11-14 |
 | F1 | Connectivity | Link a Discord account | P0 | 3 | Edge | planned | | |
 | F2 | Connectivity | Connect a server to a Hub and role rules | P0 | 3 | Edge | planned | | |
 | F3 | Connectivity | Decision posts and results cards in Discord | P0 | 3 | Edge | planned | | |

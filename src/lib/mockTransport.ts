@@ -512,6 +512,26 @@ function handle(s: State, fn: string, a: Record<string, unknown>, authed: boolea
       for (const h of s.hubs) for (const m of h.members) if (m.account_id === "mock-account") m.display_name = name;
       return { ok: true, account: { account_id: "mock-account", display_name: name } };
     }
+    /* ---------------- usernames (000055) ---------------- */
+    case "lv_handle_get": {
+      const me = s.me as { handle?: string | null };
+      return { ok: true, handle: me.handle === undefined ? "mock_user" : me.handle, display_name: s.me.display_name, can_change_at: null };
+    }
+    case "lv_handle_check": {
+      const h = String(a.p_handle ?? "").trim().toLowerCase();
+      const reserved = ["admin", "staff", "support", "lunchvoice", "kpnsolute", "moderator", "system", "owner"];
+      const reason = h.length < 3 || h.length > 20 ? "length" : !/^[a-z][a-z0-9_]{2,19}$/.test(h) || h.includes("__") ? "format" : reserved.includes(h) ? "reserved" : h === "taken" ? "taken" : null;
+      return reason ? { ok: true, available: false, reason, suggestions: [`${h.replace(/[^a-z0-9_]/g, "").slice(0, 14) || "member"}42`] } : { ok: true, available: true, handle: h };
+    }
+    case "lv_handle_set": {
+      const h = String(a.p_handle ?? "").trim().toLowerCase();
+      if (!/^[a-z][a-z0-9_]{2,19}$/.test(h) || h.includes("__")) return err("lv_invalid_input", "Use lowercase letters, numbers and underscores, starting with a letter.");
+      if (h === "taken") return err("lv_conflict", "That username is taken.");
+      (s.me as { handle?: string | null }).handle = h;
+      return { ok: true, handle: h };
+    }
+    case "lv_link_candidates":
+      return { ok: true, candidates: [] };
     case "lv_account_delete": {
       if (a.p_confirm !== "DELETE") return err("lv_confirmation_mismatch", "Type DELETE to confirm");
       if (s.hubs.some((h) => h.kind === "community" && owns(h))) return err("lv_owner_protected", "Transfer or delete the Hubs you own first");

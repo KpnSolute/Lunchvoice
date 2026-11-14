@@ -160,6 +160,29 @@ for every new operation; no v1 reference; no customer name in code.
 
 ---
 
+### A8. Sign-in methods on one account (Google, Discord and email are ways to log in, not separate users)
+
+- **Purpose.** Founder, 2026-11-14: "my Discord shouldn't be a separate user; it should be a way I log in... they sign up through Google or Discord, that's their initial sign-in method, and they can add more."
+- **Behavior.** Account settings gets **Sign-in methods**: the methods on this account (Google, Discord, Email and password) with when each was added; **Link Google**, **Link Discord** (Supabase `linkIdentity` while signed in, so the new method joins the
+  account you are already in) and **Add email and password** (adds an email and a 12-character password, confirmed by email); **Remove** a method, refused when it is the last one. The method used to sign up is simply the first. Signing in with any linked method
+  opens the same account. Requires the Auth project's manual linking switch (`security_manual_linking_enabled`).
+- **Same email at different providers.** Supabase merges sign-ins that share an email the providers have both **verified** (ADR X-19); an unverified email never merges. The settings screen says so in plain words. Different emails need an explicit link from here.
+- **Security.** Linking and removing a method ask for a fresh sign-in first (`lv_reauth_required` style, 10 minutes); removal is audited; the provider's name never becomes the display name.
+- **Tests.** Unit tests with a fake auth client (list, link, add password, remove, refuse the last); e2e on the live beta screens; the spike checks the same-email behaviour for Google plus Discord.
+- **Done when.** A person who signed up with Google links Discord and signs in with either, landing in the same account, and cannot remove their only method.
+- **Week and owner.** Week 1 to 2, UI-functional with Edge; the screens are restyled in week 4.
+
+### A9. Link an existing account found by email, after confirming it is yours
+
+- **Purpose.** Founder, 2026-11-14: when someone signs in with a new method and an account with their email already exists, ask whether to link it, and confirm with that account's password, instead of creating a second account.
+- **Behavior.** After a new sign-in, `lv_link_candidates` looks for existing accounts that share the person's **verified** email (an indexed lookup on the lowercased identity email, migration 000055). It returns a hint only: the display name and username, never an email or an id.
+  If there is one, a prompt appears: "We found an account for this email: Kpn (@kpn). Link this sign-in to it?" **Yes** starts a proof: the person signs in to the **existing** account the way it was created (for an email account, its password; for the original KpnSolute sign-in,
+  its password page; for a Google account, Google). The server verifies **both** proofs, and links only if the new account is empty (no Hubs, memberships, surveys, responses or entitlements); the new identity is re-pointed to the old account, the empty account is removed, and the
+  link is audited. **No** keeps them separate. Nothing links automatically from LunchVoice's side.
+- **Data and API.** The email index and `lv_link_candidates` are live (000055). Still to build: `lv_identity_link` (a service-role path in the `session` function that takes the new LunchVoice session and the old identity's fresh proof), the prompt screen, the legacy KpnIdentity proof round trip, and tests (both proofs required; non-empty new account refused; replay refused).
+- **Done when.** The founder's old account is found by email after a Google or Discord sign-in, confirmed with its password, and the Kitchen is reachable from the new sign-in.
+- **Week and owner.** Week 1 to 2 (Backend and Edge); this is also how existing accounts move off KpnIdentity before it is retired.
+
 ### A7. LunchVoice's own sign-in (leaving KpnIdentity), spike then build
 
 - **Purpose.** Discord on the LunchVoice bot application, the login screens in our repository, native email confirmation, captcha and password rules, and no dependency on a repository we cannot find.
@@ -721,8 +744,8 @@ for every new operation; no v1 reference; no customer name in code.
   of bug where an email stands in for a name (audit HB1).
 - **Two names, one rule each.** **Username**: unique across LunchVoice, lowercase, the stable handle people type after "@". **Display name**: what people see first; free text of
   1 to 32 characters (letters in any language, digits, spaces, common punctuation, emoji), **not unique**, never contains "@" and never looks like an email, no staff or
-  system impersonation (the reserved-word list applies), profanity filter, at most 3 changes a day. If a person has not set a display name it shows their `@username`;
-  it is **never** initialised from an email. Hover cards, member lists and anywhere two people could be confused show both: **Kpn** `@kpn`.
+  system impersonation (the reserved-word list applies), profanity filter, at most 3 changes a day. If a person leaves it empty it shows their `@username`;
+  it is **never** initialised from an email **or from the Google or Discord name** (founder, 2026-11-14). Hover cards, member lists and anywhere two people could be confused show both: **Kpn** `@kpn`.
 - **Who.** Every signed-in account. Free. Guests have no handle.
 - **Identity rule (unchanged and important).** A handle is a **display and lookup name only**. A person is still the verified `(issuer, subject)` pair at KpnIdentity;
   email is never a key; changing a handle changes nothing about who someone is or what they own. The sign-up step lives in **LunchVoice** (right after the sign-in

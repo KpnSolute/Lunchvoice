@@ -163,6 +163,14 @@
       "milestone": "M1"
     },
     {
+      "path": "/signin/username",
+      "name": "Choose your username (once, after the first sign-in)",
+      "layout": "L2",
+      "shell": "none",
+      "access": "signed-in",
+      "milestone": "M1"
+    },
+    {
       "path": "/auth/callback",
       "name": "Sign-in callback",
       "layout": "L2",
