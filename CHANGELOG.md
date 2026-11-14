@@ -8,6 +8,8 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ### Operations (production, 2026-11-14: Creator prices, launch date, MCP check)
 
+- **Correction:** the founder re-connected Cloudflare in Composio; `cloudflare_api_key` now lists all three zones with DNS edit rights, so the invalid-token blocker for `pay` and `create` is cleared. Both Composio Supabase accounts (Lunchvoice, KpnIdentity) list the right projects.
+
 - **Added Creator Plus and Creator Pro to `billing.stripe_prices`** (`lv.policy`, audit action `billing.prices_added`; 8 of 9
   products mapped). The plans stay `purchasable=false`: purchases still need a person-scoped checkout, an account-scoped
   entitlement grant in the webhook, renewal/cancel, and an entry in `lv_billing_config`. Planned for the build week.

@@ -267,10 +267,10 @@ Where to find any of them: npmjs.com. Versions are exactly what `package.json` s
 | --- | --- | --- |
 | `lunchvoice` (Supabase) | Works | Project `qprfonxvthmaoxfixigk` |
 | `kpnauth` (Supabase) | Works | Project `axzwdbizblfkspduqilj` |
-| Cloudflare Workers | Works (lists 9 Workers incl. `lunchvoice-hub-card`) | Marked deprecated; use Composio for DNS (token issue stands) |
+| Cloudflare Workers | Works (lists 9 Workers incl. `lunchvoice-hub-card`) | Direct MCP is marked deprecated. Composio `cloudflare_api_key` was re-connected 2026-11-14 and lists all 3 zones (incl. `lunchvoice.com`, edit permissions), so DNS work is unblocked |
 | Context7 | Works | Library docs |
 | Stripe MCP | Works, wrong account | Shows "Papercliped Connect"; LunchVoice's Stripe is reached through Composio |
 | Resend MCP | Works, wrong account | Domains `mail.papercliped.co`, `support.kpnsolute.com` |
-| Hosted Supabase MCP | Works, wrong account | One inactive unrelated project |
+| Hosted Supabase MCP | Works, a third Supabase login | One inactive unrelated project. LunchVoice and KpnIdentity are the two Composio `supabase` accounts (`supabase_grower-barrow`, `supabase_awaken-siculi`), both verified 2026-11-14 |
 | Render MCP | Unauthorized | Use Composio `render` toolkit |
 | `plugin:supabase:supabase`, `supabase-kpnidentity` | Need `/mcp` sign-in | Founder action |
