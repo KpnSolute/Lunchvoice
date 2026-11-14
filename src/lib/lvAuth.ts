@@ -14,6 +14,8 @@ export interface OwnAuthConfig {
   sessionUrl: string;
   /** Origin used to build redirect URLs (https://lunchvoice.com, https://create.lunchvoice.com, ...). */
   origin: string;
+  /** False hides email sign-up, sign-in and password reset (VITE_LV_AUTH_EMAIL=0) until the project can send mail. */
+  email: boolean;
 }
 
 export interface OwnSession {
@@ -51,13 +53,33 @@ const PENDING = "lv.own.pending";
 /** Matches the Auth project setting (spec A6, ADR section 4): at least 12 characters. */
 export const MIN_PASSWORD = 12;
 
-/** Null unless the build enables it (VITE_LV_AUTH=1) and the public project settings exist. */
-export function readOwnAuthConfig(env: Record<string, string | undefined>, origin: string): OwnAuthConfig | null {
-  if (env.VITE_LV_AUTH !== "1") return null;
+/**
+ * Null unless the build enables it and the public project settings exist.
+ * VITE_LV_AUTH=1 turns it on for everyone. VITE_LV_AUTH=beta turns it on only for a browser that opened /signin?own=1
+ * (remembered in localStorage as lv.own=1), so the founder can test on the live site while everyone else keeps the
+ * existing sign-in. VITE_LV_AUTH_EMAIL=0 hides the email forms (no mail provider yet).
+ */
+export function readOwnAuthConfig(
+  env: Record<string, string | undefined>,
+  origin: string,
+  search = "",
+  storage?: Pick<Storage, "getItem" | "setItem">,
+): OwnAuthConfig | null {
+  const mode = env.VITE_LV_AUTH;
+  if (mode === "beta") {
+    let enabled = false;
+    try {
+      if (new URLSearchParams(search).get("own") === "1") storage?.setItem("lv.own", "1");
+      enabled = storage?.getItem("lv.own") === "1";
+    } catch { /* storage unavailable: the beta stays off */ }
+    if (!enabled) return null;
+  } else if (mode !== "1") {
+    return null;
+  }
   const supabaseUrl = env.VITE_SUPABASE_URL?.replace(/\/+$/, "");
   const anonKey = env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !anonKey) return null;
-  return { supabaseUrl, anonKey, sessionUrl: `${supabaseUrl}/functions/v1/session`, origin };
+  return { supabaseUrl, anonKey, sessionUrl: `${supabaseUrl}/functions/v1/session`, origin, email: env.VITE_LV_AUTH_EMAIL !== "0" };
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;

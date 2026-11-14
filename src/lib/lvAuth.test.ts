@@ -2,7 +2,7 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { acceptRecoveryCode, completeOwnCallback, emailProblem, setNewPassword, exchangeSession, friendlyError, passwordProblem, readOwnAuthConfig, sendPasswordReset, signInWithEmail, signUpWithEmail, startOAuth, OwnSignInError, type AuthClientLike, type OwnAuthConfig } from "./lvAuth.ts";
 
-const config: OwnAuthConfig = { supabaseUrl: "https://ref.supabase.co", anonKey: "sb_publishable_x", sessionUrl: "https://ref.supabase.co/functions/v1/session", origin: "https://lunchvoice.com" };
+const config: OwnAuthConfig = { supabaseUrl: "https://ref.supabase.co", anonKey: "sb_publishable_x", sessionUrl: "https://ref.supabase.co/functions/v1/session", origin: "https://lunchvoice.com", email: true };
 
 function memoryStorage(): Storage {
   const m = new Map<string, string>();
@@ -48,6 +48,19 @@ test("A7: own sign-in is off unless the build sets VITE_LV_AUTH=1 and the projec
   const on = readOwnAuthConfig({ ...env, VITE_LV_AUTH: "1" }, "https://lunchvoice.com");
   assert.equal(on?.sessionUrl, "https://ref.supabase.co/functions/v1/session");
   assert.equal(on?.origin, "https://lunchvoice.com");
+});
+
+test("A7: beta mode is on only for a browser that opened /signin?own=1, and the email forms can be hidden", () => {
+  const env = { VITE_LV_AUTH: "beta", VITE_SUPABASE_URL: "https://ref.supabase.co", VITE_SUPABASE_PUBLISHABLE_KEY: "k" };
+  const store = new Map<string, string>();
+  const storage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) };
+  assert.equal(readOwnAuthConfig(env, "https://lunchvoice.com", "", storage), null);
+  assert.equal(readOwnAuthConfig(env, "https://lunchvoice.com", "?own=0", storage), null);
+  assert.ok(readOwnAuthConfig(env, "https://lunchvoice.com", "?own=1", storage));
+  assert.ok(readOwnAuthConfig(env, "https://lunchvoice.com", "", storage), "remembered for the next page load");
+  assert.equal(readOwnAuthConfig(env, "https://lunchvoice.com", "?own=1", undefined), null, "no storage, no beta");
+  assert.equal(readOwnAuthConfig({ ...env, VITE_LV_AUTH: "1" }, "https://lunchvoice.com")?.email, true);
+  assert.equal(readOwnAuthConfig({ ...env, VITE_LV_AUTH: "1", VITE_LV_AUTH_EMAIL: "0" }, "https://lunchvoice.com")?.email, false);
 });
 
 test("A7: email and password hints", () => {

@@ -6,6 +6,14 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (A7 beta switch and email toggle; Backend and UI-functional; 2026-11-14)
+
+- Status: tested (unit 15 of 15 for the module, type check, build); not deployed until pushed.
+- What changed: `VITE_LV_AUTH=beta` turns LunchVoice's own sign-in on **only for a browser that opened `/signin?own=1`** (remembered in `localStorage` as `lv.own`), so the founder can test Google and Discord on the live site while everyone else keeps
+  the existing KpnIdentity sign-in. `VITE_LV_AUTH_EMAIL=0` hides email sign-up, sign-in and password reset (no mail provider yet), leaving Google, Discord and the legacy link. `VITE_LV_AUTH=1` still turns everything on for everyone.
+- Why: Google is still in Testing mode (only listed test users can sign in; publishing waits for the support-email swap) and Resend is not configured, so a public switch would show failing options.
+- Not done: Render variables (set next), Resend SMTP, publishing the consent screen, linking the founder's accounts.
+
 ### Operations (2026-11-14: Google sign-in enabled and verified; Discord redirect added; A7; Edge)
 
 - Status: Google verified at the endpoint level; Discord half done.

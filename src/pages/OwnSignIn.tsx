@@ -102,6 +102,7 @@ export function OwnSignInScreen({ own, from, ended, legacy }: { own: OwnAuthApi;
     );
   } else {
     const showProviders = mode === "signin" || mode === "signup";
+    const emailOn = own.emailEnabled;
     const missing = (mode !== "new-password" && !email) || (mode !== "forgot" && !password);
     body = (
       <form onSubmit={submit} noValidate className="lv-stack">
@@ -113,15 +114,15 @@ export function OwnSignInScreen({ own, from, ended, legacy }: { own: OwnAuthApi;
             <Button type="button" variant="secondary" size="lg" block disabled={busy !== null} onClick={() => void provider("discord")}>
               <DiscordMark /> {busy === "discord" ? "Opening Discord…" : "Continue with Discord"}
             </Button>
-            <p className="ui-help lv-m0" role="separator" aria-label="or">or</p>
+            {emailOn && <p className="ui-help lv-m0" role="separator" aria-label="or">or</p>}
           </>
         )}
-        {mode !== "new-password" && (
+        {emailOn && mode !== "new-password" && (
           <Field label="Email" htmlFor="own-email">
             <Input id="own-email" type="email" inputMode="email" autoComplete="username" autoCapitalize="none" spellCheck={false} value={email} onChange={(e) => setEmail(e.target.value)} required />
           </Field>
         )}
-        {mode !== "forgot" && (
+        {emailOn && mode !== "forgot" && (
           <Field label={mode === "new-password" ? "New password" : "Password"} htmlFor="own-password" help={mode !== "signin" ? `At least ${MIN_PASSWORD} characters.` : undefined}>
             <div className="lv-row">
               <Input id="own-password" type={show ? "text" : "password"} autoComplete={mode === "signin" ? "current-password" : "new-password"} value={password} onChange={(e) => setPassword(e.target.value)} required />
@@ -129,19 +130,19 @@ export function OwnSignInScreen({ own, from, ended, legacy }: { own: OwnAuthApi;
             </div>
           </Field>
         )}
-        {mode === "signin" && (
+        {emailOn && mode === "signin" && (
           <Button type="button" variant="quiet" size="md" onClick={() => { setMode("forgot"); setError(null); }}>Forgot password?</Button>
         )}
-        {mode === "signup" && (
+        {emailOn && mode === "signup" && (
           <label className="lv-row">
             <input type="checkbox" checked={adult} onChange={(e) => setAdult(e.target.checked)} /> <span>I am 13 or older</span>
           </label>
         )}
         {error && <Notice tone="error">{error}</Notice>}
-        <Button type="submit" variant="ink" size="lg" block disabled={busy !== null || missing}>
+        {emailOn && <Button type="submit" variant="ink" size="lg" block disabled={busy !== null || missing}>
           {busy ? "One moment…" : mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : mode === "forgot" ? "Send reset link" : "Save password and sign in"}
-        </Button>
-        {mode === "signin" && (
+        </Button>}
+        {emailOn && mode === "signin" && (
           <p className="ui-help lv-m0">
             New to LunchVoice? <Button type="button" variant="quiet" size="md" onClick={() => { setMode("signup"); setError(null); }}>Create an account</Button>
           </p>

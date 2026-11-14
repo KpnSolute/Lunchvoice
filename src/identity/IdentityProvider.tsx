@@ -12,6 +12,8 @@ import {
 
 /** LunchVoice's own sign-in (A7). Present only when the build sets VITE_LV_AUTH=1. */
 export interface OwnAuthApi {
+  /** False while the project cannot send email: the screen then offers only Google and Discord. */
+  emailEnabled: boolean;
   /** Redirect to Google or Discord. Resolves only if the redirect could not start. */
   oauth: (provider: OwnProvider, returnTo?: string) => Promise<void>;
   /** Email and password; on success the person is signed in. */
@@ -60,7 +62,11 @@ const Ctx = createContext<Identity | null>(null);
 const issuer = import.meta.env.VITE_KPNIDENTITY_ISSUER;
 const kpnConfig = typeof window === "undefined" ? null : readConfig(import.meta.env as Record<string, string | undefined>, window.location.origin);
 
-const ownConfig: OwnAuthConfig | null = typeof window === "undefined" ? null : readOwnAuthConfig(import.meta.env as Record<string, string | undefined>, window.location.origin);
+const ownConfig: OwnAuthConfig | null = typeof window === "undefined" ? null : (() => {
+  let storage: Storage | undefined;
+  try { storage = window.localStorage; } catch { /* blocked */ }
+  return readOwnAuthConfig(import.meta.env as Record<string, string | undefined>, window.location.origin, window.location.search, storage);
+})();
 let ownClient: AuthClientLike | null = null;
 /** One Auth client per page. PKCE; the redirect is handled by completeOwnCallback, not by the library. */
 function getOwnClient(config: OwnAuthConfig): AuthClientLike {
@@ -154,6 +160,7 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
     if (!config) return null;
     const client = () => getOwnClient(config);
     return {
+      emailEnabled: config.email,
       oauth: async (provider, returnTo) => { window.location.assign(await startOAuth(client(), config, provider, returnTo ?? "/me")); },
       password: async (email, password) => {
         await signInWithEmail(client(), email, password);
