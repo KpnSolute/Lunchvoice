@@ -4,8 +4,9 @@ This week is **planning and prep**. Next week (starting 2026-11-16) is **buildin
 builds anything; it records the decisions, the designs and the order of work so the build week starts running.
 
 Order of authority is unchanged: `LAUNCH_PLAN.md`, the master spec, `PRODUCT_DIRECTION_2026-11-11.md`, then this file.
-`BUILD_PLAN_2026-11-21.md` still records feature-complete on 2026-11-21 and public launch on 2026-12-01; founder to
-confirm those dates still hold (question Q7 below). The service inventory is `docs/ops/SERVICES_AND_DEPENDENCIES.md`.
+**Launch and billing open on 2026-12-12 17:12 UTC (founder, set in the admin portal, confirmed 2026-11-14)**; this
+supersedes the 2026-11-21 feature-complete and 2026-12-01 launch dates in `BUILD_PLAN_2026-11-21.md`. The build runs
+just under four weeks from 2026-11-16. The service inventory is `docs/ops/SERVICES_AND_DEPENDENCIES.md`.
 
 ## 1. Decisions logged today
 
@@ -185,7 +186,7 @@ header control. It is a DNS change, so it waits for a decision after launch unle
 | 1 to 2 | 30-day sign-in (section 3): Worker, `session` function actions, device sessions, Account devices, CSP | 000049, `session` deploy, Worker | Verification list, secret go-ahead |
 | 2 | Routing: apply the Render header and rewrite fixes (services log section 2a), the `create` redirect, the `pay` Worker and site. Render API and Cloudflare; no new Render domains | Render settings, Cloudflare | Go-ahead for Render settings; founder action 8 |
 | 2 | PostHog: seven events, no ids or answers, route-pattern rewriting, CSP, staff dashboard reads | none | Founder action 1 |
-| 2 to 3 | Billing end to end: one purchase, webhook, entitlement, refund. Add the Creator Plus and Creator Pro prices to the database policy (`billing.stripe_prices` has 6 of 9 today) and make them purchasable (account-scoped); software tax code | function deploys, a policy update | Founder action 2, keys (credential go-ahead) |
+| 2 to 3 | Billing end to end: one purchase, webhook, entitlement, refund. Creator Plus and Creator Pro prices are in `billing.stripe_prices` (added 2026-11-14, 8 of 9 mapped). Still to build: person-scoped checkout intent, account-scoped entitlement grant in the webhook, renewal and cancel, add both to `lv_billing_config`, then set `purchasable=true`; software tax code | function deploys, a migration | Founder act
 | 3 | KpnAuth: the phone sign-in screen, headers, forgot password, product named on every screen (K1 to K10) | KpnAuth repo | Founder action 6 |
 | 3 to 4 | KpnIdentity settings B1 to B6 through Composio, one approval each | settings | Founder action 5 |
 | 4 | Reconcile production-only migrations with `main` (prep item 1) | none on production | Prep item 1 |
@@ -206,7 +207,7 @@ resources need an explicit go-ahead.
 | Q4 | Creator Trend counts (Plus 3, Pro 10) are provisional in the plan map | Keep 3 and 10 for launch, revisit with usage |
 | Q5 | Image-choice pictures: the site's policy blocks outside image hosts | Store them in a private Supabase bucket like logos (no new service) |
 | Q6 | Officer election template is an anonymous invite-only secret ballot (the brief listed it as identified) | Keep anonymous |
-| Q7 | Do feature-complete 2026-11-21 and public launch 2026-12-01 still hold? Production policy `billing.launched_at` is already set to 2026-12-12T17:12Z (billing opens then) | Confirm which date is the launch, then make the three match |
+| Q7 | ~~Do feature-complete 2026-11-21 and public launch 2026-12-01 still hold?~~ | **Answered 2026-11-14:** launch and billing open 2026-12-12 17:12 UTC (admin portal; matches production `billing.launched_at`). Older dates are superseded |
 | Q8 | Quiz: show each respondent their score after submitting? Build trivia timing and a leaderboard? | Score yes, trivia timing after launch |
 | Q9 | After sign-in a visitor's survey is published automatically (today) or left as a draft | Leave as a draft |
 | Q10 | Charts use the Hub's colour inside a Hub and amber elsewhere | Keep |

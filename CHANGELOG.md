@@ -6,6 +6,18 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (production, 2026-11-14: Creator prices, launch date, MCP check)
+
+- **Added Creator Plus and Creator Pro to `billing.stripe_prices`** (`lv.policy`, audit action `billing.prices_added`; 8 of 9
+  products mapped). The plans stay `purchasable=false`: purchases still need a person-scoped checkout, an account-scoped
+  entitlement grant in the webhook, renewal/cancel, and an entry in `lv_billing_config`. Planned for the build week.
+- **Launch and billing date confirmed as 2026-12-12 17:12 UTC** (founder, admin portal). `BUILD_PLAN_2026-11-21.md` and
+  `LAUNCH_PREP_PLAN_2026-11-13.md` now say the older 2026-11-21 and 2026-12-01 dates are superseded.
+- **Direct MCP check (2026-11-14):** `lunchvoice` and `kpnauth` Supabase, Cloudflare Workers, Context7, Resend, Stripe and the
+  hosted Supabase MCP answer. Render MCP is unauthorized. The Stripe, Resend and hosted Supabase MCPs are linked to other
+  accounts (Papercliped Connect; mail.papercliped.co and support.kpnsolute.com; an inactive unrelated project), so
+  LunchVoice's Stripe and Render work stays on Composio. `plugin:supabase:supabase` and `supabase-kpnidentity` need `/mcp` auth.
+
 ### Operations (production, 2026-11-13: Render rewrites and headers; founder go-ahead)
 
 - **Applied the Render fix** through the Render API (Composio): two rewrites ahead of the catch-all (`/templates` and the

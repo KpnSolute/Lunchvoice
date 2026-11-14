@@ -54,3 +54,5 @@ Nothing here changes settled pricing, entitlements, privacy rules, lifecycle or 
   per-Campaign timing.
 - C-02 Hub points are optional per Hub (off by default), have no cash value, and Shop orders are fulfilled manually by
   the Hub.
+
+> **Dates superseded (2026-11-14):** launch and billing open on 2026-12-12 17:12 UTC, set by the founder in the admin portal. The 2026-11-21 freeze and 2026-12-01 launch above no longer apply. See `LAUNCH_PREP_PLAN_2026-11-13.md`.

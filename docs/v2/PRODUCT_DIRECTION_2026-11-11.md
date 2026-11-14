@@ -125,5 +125,6 @@ Newest last. The full inventory is `docs/ops/SERVICES_AND_DEPENDENCIES.md`; the 
 - **2026-11-13, how the site deploys:** a Render static site, not Docker. `render.yaml` is not connected (Render has no
   Blueprint), so production routing and headers are changed through the Render API. They lagged the file (the template
   gallery was not indexable); fixed 2026-11-13 and recorded with a rollback in `docs/ops/RENDER_SETTINGS.md`.
+- **2026-11-14, launch date and Creator prices** (founder): launch and billing open 2026-12-12 17:12 UTC (admin portal). Creator Plus and Pro Stripe prices were added to the database price list; the plans stay `purchasable=false` until the person-scoped purchase path is built.
 - **Optional, undecided:** make the apex a proxied CNAME to Render ("O2O") so zone Workers run in front of the whole
   site (true HTTP 404, per-Hub share images, edge headers). A DNS change; decide after launch unless needed sooner.

@@ -37,7 +37,7 @@ Stripe, Resend and Discord talk to Supabase Edge Functions (checkout / billing-w
 | **KpnAuth** (sign-in screen) | The branded front door people see when signing in | `auth.kpnsolute.com` | Separate repository (not this one). Hosting target Confirm | Confirm |
 | **Cloudflare** | DNS for `lunchvoice.com`; the `lunchvoice-hub-card` Worker; planned home for every other edge need (see section 6) | Worker `lunchvoice-hub-card` (deployed, last changed 2026-11-12), custom domain `hub.lunchvoice.com` | Composio toolkit `cloudflare_api_key` shows **active but its token is rejected for zone and DNS calls** (error 9109 on 2026-11-13): reconnect it before any DNS work. Workers are readable and deployable through this session's Cloudflare MCP (works; marked deprecated in favour of the full Cloudflare API server). `cloudflare_mcp` and `cloudflare_browser_rendering` are also connected. External: dash.cloudflare.com | Workers verified 2026-11-13; DNS records, plan and HSTS setting Confirm (read DNS from outside in section 2a) |
 | **Resend** | Transactional email only (waitlist, Hub created, invites, reservation, orders). Domains `lunchvoice.com` and `kpnsolute.com` are verified, sending enabled, open and click tracking off | domains above | Composio toolkit `resend` (the account is shared with other KpnSolute products). External: resend.com | Domains verified 2026-11-13; `RESEND_API_KEY` set in Supabase? Confirm |
-| **Stripe** | Checkout Sessions, Customer Portal, webhooks, Stripe Tax. Billing fails closed until keys are set (`lv_billing_unavailable`) | Stripe account whose dashboard name is **Lunchvoice** | Composio toolkit `stripe` has three accounts (**Lunchvoice**, Aftercard, Papercliped Connect): LunchVoice must always use the one named Lunchvoice. External: dashboard.stripe.com | Verified 2026-11-13 (read-only): **live mode**; 7 products and 9 prices at the founder's amounts; a live webhook to `billing-webhook` (6 events); Customer Portal configured; Stripe Tax active but its default product tax code is "general tangible goods" (set a software code). Function secrets Confirm |
+| **Stripe** | Checkout Sessions, Customer Portal, webhooks, Stripe Tax. Billing fails closed until keys are set (`lv_billing_unavailable`) | Stripe account whose dashboard name is **Lunchvoice** | Composio toolkit `stripe` has three accounts (**Lunchvoice**, Aftercard, Papercliped Connect): LunchVoice must always use the one named Lunchvoice. External: dashboard.stripe.com | Verified 2026-11-13 (read-only): **live mode**; 7 products and 9 prices at the founder's amounts; a live webhook to `billing-webhook` (6 events); Customer Portal configured; Stripe Tax active but its default product tax code is "general tangible goods" (set a software code). Function secrets Confirm. Database price list maps 8 of 9 prices (Creator Plus and Pro added 2026-11-14); Creator plans stay `purchasable=false` until the person-scoped purchase path is built |
 | **Discord** | The LunchVoice bot: `/lunchvoice` commands, campaign posting. First-class pairing ("Discord is for discussion. LunchVoice is for deciding.") | application and guild IDs in function secrets | **Not in Composio.** External: discord.com/developers (bot avatar and banner are uploaded there by hand) | Function deployed; secrets and portal Confirm |
 | **Google Cloud (OAuth app)** | The "Continue with Google" sign-in that KpnIdentity uses. The app is still to be renamed "KpnSolute" | OAuth client under the KpnSolute Google project | **Not in Composio.** External: console.cloud.google.com | Confirm |
 | **Domain registrar** | Owns the `lunchvoice.com` registration; nameservers point at Cloudflare | none in the repo | External only | Confirm which registrar |
@@ -260,3 +260,17 @@ Where to find any of them: npmjs.com. Versions are exactly what `package.json` s
 5. The Google OAuth app rename and whether KpnIdentity settings B1 to B6 are applied.
 6. Where KpnAuth is hosted and who deploys it.
 7. PostHog account (and Sentry, Turnstile, uptime) when you want them.
+
+## 10. Direct MCP connections (checked 2026-11-14)
+
+| MCP | Result | Note |
+| --- | --- | --- |
+| `lunchvoice` (Supabase) | Works | Project `qprfonxvthmaoxfixigk` |
+| `kpnauth` (Supabase) | Works | Project `axzwdbizblfkspduqilj` |
+| Cloudflare Workers | Works (lists 9 Workers incl. `lunchvoice-hub-card`) | Marked deprecated; use Composio for DNS (token issue stands) |
+| Context7 | Works | Library docs |
+| Stripe MCP | Works, wrong account | Shows "Papercliped Connect"; LunchVoice's Stripe is reached through Composio |
+| Resend MCP | Works, wrong account | Domains `mail.papercliped.co`, `support.kpnsolute.com` |
+| Hosted Supabase MCP | Works, wrong account | One inactive unrelated project |
+| Render MCP | Unauthorized | Use Composio `render` toolkit |
+| `plugin:supabase:supabase`, `supabase-kpnidentity` | Need `/mcp` sign-in | Founder action |
