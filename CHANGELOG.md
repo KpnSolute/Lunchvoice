@@ -6,6 +6,17 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Security (automated review of the 000055 commit: link-candidate trust and the username hold bypass; migration 000056 applied to production; Backend; 2026-11-14)
+
+- Status: deployed and verified (database suite and production read-back).
+- Finding 1 (MEDIUM, valid): the link-candidate lookup trusted the matched account's email without checking that it was verified, and a verified flag could outlive a changed email. Fix in **`000056_v2_usernames_hardening`**: `lv_link_candidates` now needs a verified email on **both** accounts;
+  a trigger clears `email_verified_at` whenever an identity's email changes, so "verified" always refers to the email stored now (the next verified sign-in sets it again). The lookup only ever returned a hint (display name and username), and linking still needs proof of both sign-ins (A9).
+- Finding 2 (MEDIUM, valid): `lv.handle_history.account_id` cascade-deleted its rows with the account, and a deleted account's own username was never held, so deleting an account freed its name at once for impersonation. Fix: history rows are kept (`account_id` becomes null on delete), a no-owner
+  row holds the name for **everyone**, and a trigger on `lv.accounts` holds the deleted account's username for `handle.hold_days` (14).
+- Applied to production (Management API, one transaction, history row `000056`, SHA-256 `5afefcd8…`); read back: both triggers present, `handle_history.account_id` nullable with `ON DELETE SET NULL`, latest version `000056`. Rollback `supabase/rollbacks/000056_v2_usernames_hardening.down.sql`.
+- Checks: database suite from empty **1820 of 1820** (10 new checks in `56_usernames_hardening.sql`), rollback rehearsal passes.
+- Not done: the same review's wider suggestion to clear `email_verified_at` inside `ensure_account` itself was not taken (that function is replaced in several migrations, including ones only on production); the trigger covers the same case at the table.
+
 ### Added (E11 usernames: migration 000055 applied to production; the username step for every account; link-by-email lookup; A8 and A9 specified; Backend and UI-functional; 2026-11-14)
 
 - Status: **deployed** (migration applied and verified in production; front end pushed, Render deploys it); the end-to-end username step on the live site is not yet verified by a real sign-in; links (A9) and sign-in methods (A8) are specified, not built.
