@@ -1,0 +1,221 @@
+{
+  "note": "One entry per audience page (/for/<slug>, later also join.lunchvoice.com/<slug>). Add an entry and rebuild to add an industry. Examples are generic scenarios, never a named customer. Plans use only the canonical ladder; no price here is new.",
+  "industries": [
+    {
+      "slug": "foodservice",
+      "icon": "fork",
+      "name": "Food service",
+      "line": "Cafeterias, dining halls, cafes and kitchens that want the people they feed to help decide what is served.",
+      "title": "Surveys for food service: menu votes and meal ratings",
+      "description": "Let diners vote on the menu, rate meals and send honest feedback without being identified. For cafeterias, dining halls, cafes and food programs. Start free.",
+      "h1": "Let the people you feed help decide what is on the menu",
+      "lede": "Diners only say what they really think when nobody can trace it back to them. Ask which meals to keep, rate this week's menu and collect ideas, then read results that never name anyone.",
+      "problems": [
+        "Comment cards and review sites tell you who was angry, not what most people want.",
+        "Staff and students hold back when the manager can see who said it.",
+        "Menu changes are guessed, then argued about."
+      ],
+      "outcomes": [
+        "A weekly menu vote that takes a minute to answer.",
+        "Meal ratings you can compare week to week.",
+        "A standing group of regulars who feel heard, not surveyed."
+      ],
+      "examples": [
+        "Which two dishes should we bring back next month?",
+        "Rate this week's menu from 1 to 5, and tell us why.",
+        "Should the dining hall open earlier on Fridays?"
+      ],
+      "useCases": [
+        "menu-and-dining-feedback",
+        "customer-feedback-questionnaire",
+        "community-suggestion-box"
+      ],
+      "plan": {
+        "start": "Start with a free Quick Survey: a menu vote or meal rating takes minutes to set up.",
+        "grow": "When you want a standing group of regulars, a Starter Hub is $13 a month. A time-limited menu test can run as a Campaign Starter: $19 for the first two weeks.",
+        "scale": "Several kitchens or sites: a Team Hub is $29 a month."
+      },
+      "caveat": "LunchVoice collects opinions and votes. It does not take orders or payments for food."
+    },
+    {
+      "slug": "social",
+      "icon": "voice",
+      "name": "Social and gaming communities",
+      "line": "Discord servers, fan groups, creators and clubs that need to decide things together.",
+      "title": "Surveys and votes for Discord and online communities",
+      "description": "Run polls, votes and elections for your Discord server or online community, with privacy-safe results. Discord is where a community talks; LunchVoice is where it decides.",
+      "h1": "Discord is where your community talks. LunchVoice is where it decides.",
+      "lede": "Polls get buried in chat and nobody trusts a show of emoji. Run a proper vote, a role election or an event poll, share one link in your server, and see results that stay fair and private.",
+      "problems": [
+        "Polls scroll away and the same loud voices win.",
+        "You cannot tell who voted twice or who is not a real member.",
+        "Big decisions (rules, roles, events) deserve more than a reaction count."
+      ],
+      "outcomes": [
+        "One link in the server, one fair vote per member.",
+        "Elections for moderators, captains or event plans.",
+        "A Hub page that outlives any single chat thread."
+      ],
+      "examples": [
+        "Which night should the weekly event run?",
+        "Vote for next season's moderators.",
+        "Should we add a new channel for strategy talk?"
+      ],
+      "useCases": [
+        "club-and-committee-votes",
+        "group-scheduling-poll",
+        "community-suggestion-box"
+      ],
+      "plan": {
+        "start": "Start with a free Quick Survey and share the link in your server.",
+        "grow": "A Starter Hub is $13 a month: three custom roles and three custom pages for your community.",
+        "scale": "A Team Hub is $29 a month: more roles, deeper role targeting and richer analytics."
+      },
+      "caveat": null
+    },
+    {
+      "slug": "corporate",
+      "icon": "shield-check",
+      "name": "Teams and workplaces",
+      "line": "Pulse checks, town-hall questions and idea boxes where employees can be honest.",
+      "title": "Anonymous surveys for teams and workplaces",
+      "description": "Run anonymous team pulse checks, employee surveys and idea boxes with privacy-safe results that protect small groups. Start free.",
+      "h1": "Honest feedback from your team, with no names attached",
+      "lede": "People tell the truth when they are sure it cannot be traced. Run a weekly pulse, an employee survey or an anonymous idea box, and read totals that never expose a person.",
+      "problems": [
+        "Engagement surveys are slow, expensive and easy to second-guess.",
+        "People soften answers when they fear being identified.",
+        "Small teams make anonymity weak, and many tools hide that."
+      ],
+      "outcomes": [
+        "A one-minute weekly pulse that people actually answer.",
+        "Results that withhold any group too small to stay anonymous.",
+        "An idea box that surfaces what the team wants fixed."
+      ],
+      "examples": [
+        "How was this week, from 1 to 5?",
+        "What is one thing that slowed you down?",
+        "What should we ask leadership at the next town hall?"
+      ],
+      "useCases": [
+        "anonymous-employee-survey",
+        "weekly-team-pulse-survey",
+        "meeting-and-workshop-feedback"
+      ],
+      "plan": {
+        "start": "Start with a free Quick Survey for a first pulse or team question.",
+        "grow": "Creator Plus is $5 a month and shows live results; Creator Pro is $15 a month.",
+        "scale": "A Team Hub is $29 a month, for ongoing programs, advanced targeting and analytics."
+      },
+      "caveat": "A very small group cannot be fully anonymous. LunchVoice withholds those results instead of showing them as zero."
+    },
+    {
+      "slug": "education",
+      "icon": "sprout",
+      "name": "Education",
+      "line": "Course feedback, class votes and student councils for teachers, programs and student groups.",
+      "title": "Surveys for teachers, programs and student groups",
+      "description": "Collect honest course feedback, run class votes and student council elections with privacy-safe results. Start free.",
+      "h1": "Course feedback and class votes students can answer honestly",
+      "lede": "Students and trainees tell you more when answers are private. Run course feedback, a class vote or a student council election, and see what the group thinks without exposing anyone.",
+      "problems": [
+        "End-of-term forms arrive too late to change anything.",
+        "Students hesitate to criticise when they think it is traceable.",
+        "Class decisions get settled by whoever speaks first."
+      ],
+      "outcomes": [
+        "Quick mid-course check-ins while there is still time to adjust.",
+        "Fair votes and elections for councils and clubs.",
+        "Suggestion boxes that give quieter voices a way in."
+      ],
+      "examples": [
+        "What is one thing that would help you learn more?",
+        "Vote for this term's student council.",
+        "Which workshop topic should we run next?"
+      ],
+      "useCases": [
+        "meeting-and-workshop-feedback",
+        "club-and-committee-votes",
+        "community-suggestion-box"
+      ],
+      "plan": {
+        "start": "Start with a free Quick Survey for course feedback or a class vote.",
+        "grow": "A Starter Hub is $13 a month for a standing group, such as a program or student organization.",
+        "scale": "A Team Hub is $29 a month for larger programs with several groups."
+      },
+      "caveat": "Check your institution's rules on student data before you collect answers, especially from anyone under 18."
+    },
+    {
+      "slug": "associations",
+      "icon": "roster",
+      "name": "Associations and clubs",
+      "line": "Neighbourhood groups, tenant associations, unions and clubs that hold votes and elections.",
+      "title": "Votes and elections for associations, clubs and member groups",
+      "description": "Run member votes, elections and questionnaires for associations, clubs and neighbourhood groups, with one fair response per member. Start free.",
+      "h1": "Run member votes and elections everyone can trust",
+      "lede": "A member group is only as strong as its decisions. Collect member views, run a board election and settle questions with one fair response per member and a clear result.",
+      "problems": [
+        "Paper ballots and email replies are slow and hard to count.",
+        "Members doubt results they cannot check.",
+        "Only the most vocal members take part."
+      ],
+      "outcomes": [
+        "A single link for the whole membership.",
+        "Elections and votes with one response per eligible member.",
+        "A record of past decisions in one Hub."
+      ],
+      "examples": [
+        "Vote for the new committee chair.",
+        "Should we raise dues next year?",
+        "Which date works for the annual meeting?"
+      ],
+      "useCases": [
+        "club-and-committee-votes",
+        "member-questionnaire",
+        "group-scheduling-poll"
+      ],
+      "plan": {
+        "start": "Start with a free Quick Survey for a member question or a date poll.",
+        "grow": "A Starter Hub is $13 a month for a standing membership.",
+        "scale": "A Team Hub is $29 a month for larger groups and deeper reporting."
+      },
+      "caveat": "A LunchVoice election is not automatically legally binding. Follow your own bylaws and local rules."
+    },
+    {
+      "slug": "events",
+      "icon": "clock",
+      "name": "Events",
+      "line": "Conferences, camps, festivals and workshops that need quick, honest feedback and short-run campaigns.",
+      "title": "Surveys for events, workshops and conferences",
+      "description": "Collect event feedback, run attendee votes and time-limited campaigns for conferences, camps, festivals and workshops. Start free.",
+      "h1": "Hear from your attendees while the event is still fresh",
+      "lede": "Ask for feedback in the room, vote on the next session and wrap up with a short survey. Run a time-limited campaign around the event, then keep the results.",
+      "problems": [
+        "Feedback forms are sent too late and almost nobody answers.",
+        "You cannot see what worked until the event is over.",
+        "You need something for a few weeks, not a year."
+      ],
+      "outcomes": [
+        "A QR code or link attendees can answer in under a minute.",
+        "Live votes on the next session or the next event.",
+        "A short campaign that ends when your event does."
+      ],
+      "examples": [
+        "Rate today's session from 1 to 5.",
+        "Which topic should we run next?",
+        "What should we change for next year?"
+      ],
+      "useCases": [
+        "event-feedback-form",
+        "meeting-and-workshop-feedback",
+        "group-scheduling-poll"
+      ],
+      "plan": {
+        "start": "Start with a free Quick Survey for post-event feedback.",
+        "grow": "A time-limited Campaign Starter is $19 for the first two weeks, then $13 for each extra week.",
+        "scale": "Campaign Plus is $39 for the first two weeks, then $19 for each extra week, for bigger events."
+      },
+      "caveat": null
+    }
+  ]
+}

@@ -6,6 +6,16 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Docs (M1, M2: audience pages, the `join` marketing site and plans per audience; Marketing planning; 2026-11-14)
+
+- Status: planned. Nothing built. A first code draft was started and removed on the founder's instruction ("dont build it, just put it in for today in our roadmap").
+- What changed: the roadmap now has a Marketing area. M1 specifies `join.lunchvoice.com` as a chooser plus one page per audience (food service, social, corporate, education, and proposed associations and events), each with one Start free button, with the main landing's Use cases link pointing to it. M2 lists the founder decisions on plans per audience (no new price or plan name is approved).
+- Where: `docs/v2/launch-roadmap/02_FEATURE_SPECS.md` (M1, M2), `TRACKER.md` (rows M1, M2), `00_ROADMAP_4_WEEKS.md` (spec index, schedule rows, founder action Wed 11-25), `docs/v2/launch-roadmap/drafts/audience-pages.draft.json` (draft copy, not live).
+- Checks: Not run (documents only).
+- Production: not touched.
+- Not done and blockers: no pages, no `join` host, no DNS; the Cloudflare token for DNS edits is still rejected (see `docs/ops/SERVICES_AND_DEPENDENCIES.md`); the audience list and plan decisions need the founder.
+- Next: founder approves or edits the audience list and M2 decisions by Wed 11-25; Edge and UI-functional build in week 3.
+
 ### Added (A8 sign-in methods on one account; A9 verified; Edge-less UI-functional; 2026-11-14)
 
 - Status: coded and tested (type check, build, brain check, 17 `lvAuth` tests); **not yet verified in the browser**. A9 is now verified: the founder linked the empty `evlut.xo` account to Kpn on production (one account "Miah", handle `kpnworld`, KpnIdentity and own issuer both attached).

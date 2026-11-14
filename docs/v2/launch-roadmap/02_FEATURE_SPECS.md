@@ -1060,3 +1060,47 @@ community, without making either depend on the other and without exposing an ano
   no special-case in code; the Kitchen counts against its own plan limits (it has Team by recorded grant F-14, which stays data).
 - **Done when.** A visitor can open the Kitchen, answer the poll, join the Discord, and later see "You said, we did" for
   the poll's decision.
+
+### M1. Audience pages and the `join` marketing site
+
+- **Purpose.** Founder, 2026-11-14: one front door for marketing where an owner picks what they run and lands on a page that
+  shows what they can achieve with LunchVoice. It is for marketing, not for joining a Hub.
+- **Behavior.** `join.lunchvoice.com` is a chooser ("What do you run?") plus one page per audience: `/foodservice`, `/social`,
+  `/corporate`, `/education`, and `/associations` and `/events` (proposed). Each page shows the audience's problem, what they can
+  achieve, three example questions, three ready-made templates (existing use cases in `useCases.json`), the plan that fits
+  (see M2) and one **Start free** button that carries the segment (`?from=foodservice`) into the normal sign-in and create flow.
+  The main landing's "Use cases" link goes to `join.lunchvoice.com`. Adding an audience is one entry in a config file plus a deploy.
+- **Where it lives.** The pages are built in the app repository as static, search-readable pages from one JSON file
+  (the same pattern as `useCases.json`; the SEO build step writes the HTML and the sitemap). The `join` host is a Cloudflare
+  Redirect Rule or a Worker on a Custom Domain that serves those pages: **no new Render domain** (lowest-cost rule) and logged in
+  `docs/ops/SERVICES_AND_DEPENDENCIES.md`. Until the host exists the pages are reachable at `lunchvoice.com/for/<slug>`.
+- **Draft copy.** Written and reviewed once: `drafts/audience-pages.draft.json` in this folder (headline, problems, outcomes,
+  examples, templates, plan lines, caveat per audience). It is draft text, not live.
+- **Rules.** Examples are generic scenarios, never a named customer, and nothing in code special-cases anyone; no price on any
+  page is new (the canonical ladder only); a page makes no promise the product does not keep (Food service: no orders or
+  payments; Education: check institutional rules on student data; Associations: an election is not automatically legally
+  binding; Corporate: very small groups are withheld, never shown as zero).
+- **Tracking.** Aggregate counts of Start clicks and signups per segment only; no personal data; part of G5 (cookieless analytics).
+- **Needs from the founder.** The Cloudflare API token reconnected (DNS edit for `lunchvoice.com`, Workers edit), as already
+  needed for `create` and `pay`; a yes on the audience list; a yes on the Render header and rewrite change for the new `/for/` pages.
+- **Done when.** A visitor on the landing page clicks Use cases, picks an industry, reads its page and reaches the create flow
+  with the segment recorded; each page has a title, description, canonical URL and a sitemap entry.
+- **Week and owner.** Copy review week 2 (founder, with Marketing); build week 3 (Edge for the host and Worker, UI-functional for
+  the pages); polish in week 4. Status when written: planned, nothing built.
+
+### M2. Plans and packaging per audience
+
+- **Purpose.** Founder, 2026-11-14: the main LunchVoice site and each audience need different solutions, so the plan an
+  audience sees should match how they use the product.
+- **Behavior (proposal, nothing approved).** The pages show the existing ladder in a start, grow, scale order per audience,
+  using only approved prices (Free Quick Survey, Creator Plus $5, Creator Pro $15, Starter Hub $13, Team Hub $29, Campaign
+  Starter $19 then $13 a week, Campaign Plus $39 then $19 a week). Examples: Food service starts free and grows to a Starter Hub,
+  with Campaign Starter for a menu test; Events lead with Campaign Starter and Plus; Corporate leads with Creator Plus and Pro
+  before a Team Hub; Social leads with the Starter Hub and role features.
+- **Decisions for the founder (not made).** Whether any audience gets its own named plan or bundle, any new price, any discount
+  for schools or non-profits, and any multi-site pricing for Food service chains. Until decided, no audience page shows a new
+  price or a plan name that is not in the canonical map.
+- **Rule.** The backend evaluates the active entitlement; the pages describe plans and never encode plan behavior separately.
+- **Done when.** The founder has approved, changed or rejected each decision above, and the audience pages match the approved plans.
+- **Week and owner.** Decision in week 2 (founder); applied with M1 in week 3.
+

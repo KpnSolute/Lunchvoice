@@ -69,6 +69,8 @@ Last full refresh: 2026-11-14 (all rows `planned`). Weeks: 1 = 11-16, 2 = 11-23,
 | N2 | Connectivity | Invite by email | P0 | 3 | Edge + Backend | planned | | |
 | N3 | Connectivity | Integration recipes (documentation, not new code) | P0 | 3 | Edge + Backend | planned | | |
 | N4 | Connectivity | Embed an answer link (P1, with C8) | P1 | 3 | Edge + Backend | planned | | |
+| M1 | Marketing | Audience pages and the `join` marketing site | P0 | 2-3 | Edge + UI-functional | planned | Specified 2026-11-14; draft copy in `drafts/audience-pages.draft.json`; nothing built | 2026-11-14 |
+| M2 | Marketing | Plans and packaging per audience (founder decisions) | P1 | 2 | Founder + Backend | planned | Specified 2026-11-14; no decision yet | 2026-11-14 |
 | R1 | Foundation | Reconcile production with `main` (Mon 11-16) | P0 | 1 | Backend | planned | | |
 | Y1 | Survey design | Creator studio, finished | P0 | 1-2 | Backend + UI-functional | planned | | |
 | Y2 | Survey design | Preview and test before publish | P0 | 2 | Backend + UI-functional | planned | | |
