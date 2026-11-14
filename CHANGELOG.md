@@ -6,6 +6,18 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (Google Cloud, 2026-11-14: OAuth client for LunchVoice sign-in created; founder request; A7; Edge)
+
+- Status: partly done (client created in Google; not yet entered in Supabase; app still in Testing).
+- What was done in the founder's Google Cloud project **LunchVoice** (id `lunchvoice`, through the founder's signed-in Chrome, on the founder's request): Google Auth Platform configured (app name LunchVoice, audience External, contact
+  email `admin@lunchvoice.com`); **Web application client "LunchVoice sign-in"** created with the single authorised redirect URI `https://qprfonxvthmaoxfixigk.supabase.co/auth/v1/callback`. The client secret is shown once by Google and was
+  **not copied or stored by the agent**; the founder pastes the Client ID and secret into the Supabase Google provider.
+- Support email: Google only offers the signed-in Google account's own address (or a Google Group the account manages), so the personal Gmail address is set as the support email **for now (founder: "swap before publishing")**.
+  It is visible on the consent screen once the app is published. **Do not publish the consent screen before the support email is swapped** to an address on lunchvoice.com (needs a Google account or Group for `admin@lunchvoice.com`).
+- Found: the Chrome profile's Supabase login belongs to a different organisation ("Main KpnWorld Suit") and cannot open the Lunchvoice project ("You do not have access to this project"), so the provider page must be opened with the account that owns it.
+- Not done: Branding (privacy and terms links, authorised domain `lunchvoice.com`), publishing to production (blocked on the support-email swap), Discord, Resend SMTP, the Render flag.
+- Next: founder pastes the Google Client ID and secret into Supabase (Authentication, Sign In / Providers, Google); then Edge continues with Branding.
+
 ### Operations (production, 2026-11-14: own sign-in switched on server side; founder "turn on lv auth now"; A7; Backend and Edge)
 
 - Status: deployed (server side) and partly verified. **The sign-in screens are still off (`VITE_LV_AUTH` not set on Render) because Google, Discord and email sending are not configured yet.** Existing sign-in through KpnIdentity is unchanged and still works.
