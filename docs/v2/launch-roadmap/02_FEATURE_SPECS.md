@@ -1076,6 +1076,11 @@ community, without making either depend on the other and without exposing an ano
   `docs/ops/SERVICES_AND_DEPENDENCIES.md`. Until the host exists the pages are reachable at `lunchvoice.com/for/<slug>`.
 - **Draft copy.** Written and reviewed once: `drafts/audience-pages.draft.json` in this folder (headline, problems, outcomes,
   examples, templates, plan lines, caveat per audience). It is draft text, not live.
+- **SEO keywords.** Each page and the chooser carries a plan of at least 50 keywords (`drafts/audience-seo-keywords.md`): one main
+  keyword in the title, H1 and first paragraph, the rest in headings, the FAQ, example questions and template cards, written
+  naturally. No `meta keywords` tag (Google ignores it) and no keyword stuffing. Indexing comes from the build (static HTML,
+  sitemap, canonical URL, internal links, unique text); keywords help ranking. Keywords are replaced with real search data once
+  Google Search Console is live. A check fails the build if a page's list has fewer than 50.
 - **Rules.** Examples are generic scenarios, never a named customer, and nothing in code special-cases anyone; no price on any
   page is new (the canonical ladder only); a page makes no promise the product does not keep (Food service: no orders or
   payments; Education: check institutional rules on student data; Associations: an election is not automatically legally

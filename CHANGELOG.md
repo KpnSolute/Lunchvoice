@@ -14,6 +14,7 @@ categories and the repository's decimal `X.X.X` release policy.
 - Checks: Not run (documents only).
 - Production: not touched.
 - Not done and blockers: no pages, no `join` host, no DNS; the Cloudflare token for DNS edits is still rejected (see `docs/ops/SERVICES_AND_DEPENDENCIES.md`); the audience list and plan decisions need the founder.
+- SEO plan added the same day: `docs/v2/launch-roadmap/drafts/audience-seo-keywords.md` lists 55 candidate keywords for each of the six audience pages and the chooser (385 in all), with the rule that they are used in natural text, not stuffed. Not live; keywords are checked against real search data after launch.
 - Next: founder approves or edits the audience list and M2 decisions by Wed 11-25; Edge and UI-functional build in week 3.
 
 ### Added (A8 sign-in methods on one account; A9 verified; Edge-less UI-functional; 2026-11-14)
