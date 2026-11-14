@@ -207,6 +207,7 @@ Items name a spec in `02_FEATURE_SPECS.md`. Approvals needed are in **bold**.
 | E9 activity and directory | W3 Tue to Wed | Backend, UI-functional |
 | E10 Hub Pulse | W2 Fri (data) to W3 Wed | Backend, UI-functional |
 | E11 usernames and display names | W1 Wed to Fri | Backend, UI-functional |
+| A6 sign-in and sign-up screens | Design W1 to W2, build W3 (KpnAuth Worker), `/signin` entry W4 | Design, Edge, UI-refresh |
 
 The week-1 to week-3 day tables above show the heaviest items; the placement table adds these lanes in parallel. If a lane
 conflicts with the pillar balance rule (section 1a), the governing agent reassigns.
@@ -229,6 +230,7 @@ See `05_WEEK4_UI_UX_REDESIGN.md`. Backend changes are bug and security fixes onl
 | By | Action | Unblocks |
 | --- | --- | --- |
 | Sun 11-15 | Answer, or accept, the defaults in section 10 (silence means "go with yours") | Week 1 start |
+| Mon 11-16 | Tell us where KpnAuth's source and deploys live (`auth.kpnsolute.com` is a Cloudflare Worker; its repository is not in the KpnSolute GitHub organisation) and approve the providers in X-18 | A6 |
 | Mon 11-16 | Supabase is on **Pro** with daily backups and PITR off (read 2026-11-14). Decide PITR: recommended **keep off for launch**, prove the daily backup with the restore drill (DR-01), revisit with paying customers | Backups |
 | Mon 11-23 | Name the legal operator and approve counsel's review plan; approve KpnIdentity settings B1 to B6 one by one | Legal, account security |
 | Wed 11-18 | Set a software tax code on the Stripe products; confirm `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are set in Supabase | B2 |
@@ -271,6 +273,7 @@ the product direction already says).
 | X-15 | Stripe webhook endpoint | Unchanged (Supabase function URL); no proxy through `pay` |
 | X-16 | Launch does not auto-charge anyone | Billing opens only if armed (B8); people buy by choice; Founding grants end by policy |
 | X-17 | `status`, `help`, `developers`, `api`, `discovery` hostnames | Not created at launch (paths instead); reserved so no Hub can take them |
+| X-18 | Sign-in providers | Launch: Google and email with password. Discord is P1 with the founder's yes; Apple, Microsoft, Clever and SSO are not at launch (`02_` A6) |
 
 ## 11. Risks
 
@@ -289,7 +292,7 @@ the product direction already says).
 | Letter | Area | Specs (in `02_FEATURE_SPECS.md`) |
 | --- | --- | --- |
 | R | Release hygiene | R1 |
-| A | Identity and the edge | A1 30-day sign-in, A2 hostname-aware app, A5 Turnstile (A3 and A4 are in `03_`) |
+| A | Identity and the edge | A1 30-day sign-in, A2 hostname-aware app, A5 Turnstile, A6 sign-in and sign-up screens (A3 and A4 are in `03_`) |
 | B | Money | B1 Creator purchases, B2 real-purchase proof, B3 billing screens, B4 Campaign passes, B5 name reservation, B6 money emails, B7 entitlement edge cases, B8 armed billing release |
 | Y | Survey design | Y1 to Y5 |
 | N | Connectivity | N1 share kit, N2 invite by email, N3 recipes, N4 embeddable answer link |

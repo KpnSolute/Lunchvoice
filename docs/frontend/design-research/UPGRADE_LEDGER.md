@@ -31,7 +31,7 @@ empty and error states, container widths) **and** reviewed by eye; nothing ships
 | `/discover` | Discover | public | public | A | Audit 2026-11-14 (live, desktop; `UI_AUDIT_2026-11-14.md`): D1. | audited (desktop) | | |
 | `/waitlist` | Founding waitlist (seats, join, admitted / waitlisted) | public | public | A | Audit 2026-11-14 (live, desktop; `UI_AUDIT_2026-11-14.md`): none seen (works); G1. | audited (desktop) | | |
 | `/whitelist` | Redirect to /waitlist (link already shared) | public | public | B | to audit in week 1 | planned | | |
-| `/signin` | Sign in | none | public | A | Audit 2026-11-14 (live, desktop; `UI_AUDIT_2026-11-14.md`): none seen (clean at 390, MB3). | audited (desktop) | | |
+| `/signin` | Sign in | none | public | A | Audit 2026-11-14 (live, desktop; `UI_AUDIT_2026-11-14.md`): SI1 to SI4 (generic KpnAuth screen and an extra step; see spec A6); clean at 390 (MB3). | audited (desktop) | | |
 | `/auth/callback` | Sign-in callback | none | public | B | to audit in week 1 | planned | | |
 | `/join` | Join with code | none | public | B | to audit in week 1 | planned | | |
 | `/h/:slug` | Hub share link | none | public | B | to audit in week 1 | planned | | |

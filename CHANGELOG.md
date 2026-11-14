@@ -6,6 +6,18 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Docs (A6 sign-in and sign-up screens like real products; Governing; 2026-11-14)
+
+- Status: planned (specified; nothing built, KpnAuth and production untouched).
+- What changed: new spec **A6** (`docs/v2/launch-roadmap/02_FEATURE_SPECS.md`) for a sign-in and sign-up experience in the style of Kahoot, GoDaddy and Supabase (patterns only): provider buttons, email and
+  password with show-password and forgot-password, "having trouble" help, sign-up with confirmation and age check, legal links, a trust line, a two-panel desktop layout and a mobile layout.
+  **Finding (F):** the real credential screen at `auth.kpnsolute.com` is a generic "KpnSolute Auth" page with no LunchVoice branding, no show-password, no forgot-password and no legal links, reached after LunchVoice's
+  own one-button `/signin` step (defects SI1 to SI4 in the UI audit). Decision: keep credentials in KpnAuth (LunchVoice never handles a password) and give KpnAuth a per-client theme; LunchVoice's `/signin`
+  becomes the entry card with Google, email and the keep-me-signed-in checkbox (feeds A1). Default X-18: launch with Google and email; Discord is P1 with the founder's yes; Apple, Microsoft, Clever and SSO are not at launch.
+- Where it is tracked: `TRACKER.md` row A6 (Design weeks 1 to 2, Edge week 3, `/signin` entry week 4); the UI upgrade ledger row `/signin`.
+- Not done and blockers: nothing built. **Founder: tell us where KpnAuth's source and deploys live** (the host is a Cloudflare Worker custom domain; no repository for it is in the KpnSolute GitHub organisation) and approve X-18.
+- Next: Design starts the frames in week 1; Edge starts the KpnAuth theme work in week 3 once the source location is known.
+
 ### Operations (founder approvals and backup facts; S-60, A1, A4; Governing; 2026-11-14)
 
 - Status: planned (approvals recorded; nothing changed in production, DNS, Stripe or KpnIdentity).

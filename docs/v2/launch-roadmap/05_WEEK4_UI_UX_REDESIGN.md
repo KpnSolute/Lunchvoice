@@ -85,7 +85,7 @@ No new fonts, no new radii (rule kept), no invented numbers, testimonials or log
 | Results and Present | `/campaigns/:id/results`, `/surveys/:id/results` | Data palette, animated reveal, withheld bubbles, Present mode as a stage |
 | Creator dashboard | `create.lunchvoice.com/` | Plan card, usage meters, library cards, empty states that teach |
 | Hub page and Hub card | `/:hub`, Discover cards | **Restyle only** (structure unchanged): colours, avatars, presence, motion |
-| Sign-in and waitlist | `/signin`, `/waitlist` | Calm, confident, trust cues |
+| Sign-in and waitlist | `/signin`, `/waitlist` | `/signin` becomes the entry card (provider buttons, remember checkbox, legal line) and matches the themed KpnAuth screens built in week 3 (`02_` A6); `/waitlist` calm and confident |
 | Decisions | Hub Decisions tab and decision page | New feature, designed once, to a high standard (the "GitHub" of community decisions) |
 
 **Tier B: fixed through shared patterns and reviewed one by one** (Account, Settings, Roles, Billing screens on `pay.`, Analytics tables,

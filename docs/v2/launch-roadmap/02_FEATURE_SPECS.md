@@ -107,6 +107,49 @@ for every new operation; no v1 reference; no customer name in code.
 
 ---
 
+### A6. Sign-in and sign-up the way real products do it (KpnAuth front door, themed for LunchVoice)
+
+- **Purpose.** The first thing a new person meets must look like a real company and feel safe: one clear form, familiar options, no surprises. Today it does not.
+- **What exists today (F, seen live 2026-11-14).** Two screens. (1) LunchVoice's own `/signin`: a branded card with one black "Continue to sign in" button and a join-code link. (2) The real
+  credential screen at `auth.kpnsolute.com`: a generic "KpnSolute Auth" page in a system font with a blue Sign in button, Email and Password fields, "Continue with Google" and "Create a
+  KpnSolute account". It does not say LunchVoice, has no show-password, no forgot-password link, no keep-me-signed-in, no terms or privacy links and no LunchVoice styling, so the person
+  feels they were sent to another company. (A: `auth.kpnsolute.com` is a Cloudflare Worker custom domain, F: its DNS record is Worker-owned; its source repository is not in the KpnSolute GitHub
+  organisation's list, so the founder must say where it lives.)
+- **Reference patterns studied (patterns only, never copied):** Kahoot (a row of provider buttons, a separate SSO button, "Username or email", a disabled primary button until the form is valid, a
+  quiet legal line), GoDaddy (a "Keep me signed in on this device" checkbox, a legal box above the form, "Use email", find your username or password), Supabase (stacked full-width provider buttons, a
+  clean divider, "Forgot password?" beside the password label, a legal line at the foot). The common shape: brand at the top, providers first, then email and password, then trouble and sign-up links.
+- **Where it lives (decision).** The credential screens stay in **KpnAuth**, because they serve every KpnSolute product and LunchVoice must never handle a password (the identity contract; the
+  2026-11-13 handoff). KpnAuth gains a **per-client theme** chosen by the OAuth `client_id`: product name, logo, colours, fonts, tagline, legal links, provider order. LunchVoice's theme is the
+  LunchVoice identity (amber, ink, bone, Bricolage and Geist). Other products keep theirs; a regression test signs in to every client.
+- **KpnAuth sign-in screen (desktop, 900 px and wider).** Two panels. Left, the brand panel: ink background, the LV mark, the headline "Make every voice count.", and a small looping demo of a poll
+  filling in (reduced-motion safe). Right, the form card: the LV mark and **"Welcome back"** with "Sign in to LunchVoice" under it; **Continue with Google** (stacked, full width); (P1, see X-18) **Continue with
+  Discord**; the divider **or**; **Email**; **Password** with a **Show** toggle and **Forgot password?** beside the label; a **Sign in** primary button, disabled until both fields have content (with a visible reason
+  on hover or focus, never silently grey); **Having trouble signing in?** (forgot password, resend the confirmation email, contact support); **New to LunchVoice? Create an account**; the legal line
+  ("By continuing you agree to the LunchVoice Terms and Privacy Policy, and to KpnSolute's, which runs sign-in", real links); and a quiet trust line ("Your password stays with KpnSolute and is never shared with
+  LunchVoice"). Under 900 px: one column, the brand strip on top, 16 px inputs (no phone zoom), 48 px targets, the email keyboard on the email field.
+- **Sign-up screen.** Email; password (12 characters or more, a strength meter, the leaked-password check, KpnIdentity setting B4); "I am 13 or older" (S-72); the legal line with required acceptance;
+  invisible Turnstile (A5); **Create account**; or **Continue with Google**. The email must be confirmed (B1) with a clear "Check your inbox" screen, a resend button and a wrong-address link. After
+  confirmation the person lands in LunchVoice at the **E11 step** (username and display name).
+- **LunchVoice's own `/signin` becomes the entry, not a second form.** One card: LV mark, "Sign in to LunchVoice", **Continue with Google** and **Continue with email** (each starts the OAuth flow with a
+  provider hint so a Google person never sees a KpnAuth screen and an email person lands directly on the themed form), the **Keep me signed in on this device** checkbox (default on; it sets the A1
+  30-day choice before the redirect, because it cannot ride through KpnAuth), "Have a join code? Answer without signing in", and the same legal line. Goal: Google in two screens, email in three.
+- **Errors and security.** Neutral messages that do not reveal whether an account exists ("Email or password is incorrect"); a rate limit and a short lockout after repeated failures with a Turnstile
+  challenge; password managers and paste always allowed; correct `autocomplete` attributes; PKCE, exact redirect URIs and `state` unchanged; no password, token or email in any URL or log; passkeys are V2.x.
+- **Accessibility.** Visible labels, errors announced to screen readers and tied to fields, logical focus order, 4.5:1 contrast in all three themes, no reliance on colour.
+- **Providers (default X-18).** Launch: **Google** and **email and password**. P1 with the founder's yes: **Discord** (free, fits a community product: it becomes an upstream login at KpnIdentity that
+  yields a KpnIdentity account, so LunchVoice's identity stays `(issuer, subject)` and email stays a contact attribute; it must collect a verified email at first use and can pre-link F1). Not at
+  launch: **Apple** (needs the paid Apple Developer Program, A: current fee) and **Microsoft** (free, but an app registration and verification), **Clever** (education), **SSO** (enterprise, V3).
+- **Data and config.** A theme record per client in KpnAuth's configuration (name, logo, colours, fonts, tagline, legal links, provider order, support address); KpnIdentity provider settings for any new
+  provider (a founder-approved setting, one at a time).
+- **Tests.** e2e: sign in with Google and with email on the LunchVoice theme; wrong password message; forgot password end to end; sign-up with confirmation; lockout and Turnstile; the "keep me signed
+  in" choice reaches A1; another product's client still shows its own theme; 390 px and 1440 px; keyboard only; screen-reader labels.
+- **Done when.** A person who starts at LunchVoice sees LunchVoice's name, logo and colours on every screen until they are back in the app; the form has show-password, forgot-password, trouble link, sign-up
+  link and legal links; the generic "KpnSolute Auth" screen is never shown to a LunchVoice user; no other product's sign-in regressed.
+- **Week and owner.** Design: frames for sign-in, sign-up, forgot password, confirm email, trouble and error states in weeks 1 to 2. Edge (KpnAuth Worker): build week 3 (the K1 to K10 items in the prep plan).
+  UI-refresh: LunchVoice's `/signin` entry and the shared tokens in week 4. Needs the founder to say where KpnAuth's source and deploys live (founder action, Mon 11-16).
+
+---
+
 ## B. Money
 
 ### B1. Creator Plus and Creator Pro purchases (person-scoped)

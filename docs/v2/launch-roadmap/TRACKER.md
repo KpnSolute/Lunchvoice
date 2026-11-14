@@ -17,6 +17,7 @@ Last full refresh: 2026-11-14 (all rows `planned`). Weeks: 1 = 11-16, 2 = 11-23,
 | A3 | Foundation | Hostnames and Cloudflare rules for `auth`, `create`, `pay-next` (03_ sections 3 to 6) | P0 | 1 | Edge | planned | | |
 | A4 | Foundation | `pay` cutover from GoDaddy with rollback (03_ section 5) | P0 | 1 | Edge | planned | | |
 | A5 | Foundation | Turnstile on guest and sign-up paths | P0 | 3 | Edge | planned | | |
+| A6 | Foundation | Sign-in and sign-up screens (KpnAuth front door, themed for LunchVoice) | P0 | 1-4 | Design + Edge + UI-refresh | planned | | |
 | B1 | Foundation | Creator Plus and Creator Pro purchases (person-scoped) | P0 | 1 | Backend + Edge | planned | | |
 | B2 | Foundation | Prove billing with a real purchase | P0 | 1 | Backend + Edge | planned | | |
 | B3 | Foundation | Billing screens | P0 | 1 | Backend + Edge | planned | | |
