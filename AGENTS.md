@@ -19,9 +19,12 @@ Dining is one customer use case, not the product.
   role, page, Campaign, slug, route or fixture). A customer creates `lioncafe`
   through the same public `lv_hub_create` flow as any other free slug. No code
   path may say "if MJCC" or "if LionCafe".
-- Identity: Google, then KpnIdentity (`auth.kpnsolute.com`), then LunchVoice.
-  A person is the verified `(issuer, subject)` pair; email is never an identity
-  key. LunchVoice owns authorization, memberships, roles and entitlements.
+- Identity (amended 2026-11-14, founder; `docs/v2/launch-roadmap/ADR_LUNCHVOICE_OWN_SIGN_IN.md`): LunchVoice runs
+  its own sign-in (Supabase Auth in the Lunchvoice project: Google, Discord through the LunchVoice bot
+  application, and email). KpnIdentity (`auth.kpnsolute.com`) stays an accepted second issuer for existing accounts
+  during a transition. A person is the verified `(issuer, subject)` pair; email is never an identity key; accounts
+  are never merged by an unverified email or across different emails. LunchVoice owns authorization, memberships,
+  roles and entitlements.
 - Canonical spec: `docs/v2/LunchVoice_v2_CANONICAL_MASTER_SPEC_2026-10-25.md`.
   Read it before implementing anything. The founder direction of 2026-11-07
   (Quick Surveys, whitelist launch) and the launch definition of done live in
