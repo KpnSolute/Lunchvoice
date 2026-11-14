@@ -6,6 +6,16 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (2026-11-14: Google sign-in enabled and verified; Discord redirect added; A7; Edge)
+
+- Status: Google verified at the endpoint level; Discord half done.
+- Google: the founder pasted the Client ID and secret and switched on "Enable Sign in with Google" in the Lunchvoice Supabase project. Verified read-only: `external_google_enabled` true, client id and secret set (values not read), and
+  `GET /auth/v1/authorize?provider=google` now answers 302 to `accounts.google.com` requesting scopes `email` and `profile` only. Not verified: a full sign-in (the consent screen is in Testing mode, so test users must be added in Google
+  Auth Platform, Audience; publishing waits for the support-email swap).
+- Discord (LunchVoice bot application, id in the founder's Developer Portal): the redirect URI `https://qprfonxvthmaoxfixigk.supabase.co/auth/v1/callback` was added under OAuth2, Redirects and saved (the page showed it persisted).
+  The Client Secret was not viewed or copied by the agent. Still to do by the founder: copy the application's Client ID and Client Secret (Reset Secret if needed) into Supabase, Sign In / Providers, Discord, enable and save.
+- Not done: Discord provider enabled, Resend SMTP, the bot check, `VITE_LV_AUTH` on Render, linking the founder's accounts, Google Branding and publishing.
+
 ### Operations (Google Cloud, 2026-11-14: OAuth client for LunchVoice sign-in created; founder request; A7; Edge)
 
 - Status: partly done (client created in Google; not yet entered in Supabase; app still in Testing).
