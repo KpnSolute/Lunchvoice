@@ -6,6 +6,15 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Security (privacy: held usernames are swept; migration 000057 applied to production; founder question "why are you keeping deleted accounts"; Backend; 2026-11-14)
+
+- Status: deployed and verified (database suite and production read-back).
+- Answer: deleting an account keeps **no account data**. For `handle.hold_days` (14) only the **username text and an expiry** stay, with `account_id` null, so nobody can take the name to impersonate the person. The gap found while answering: nothing deleted those rows after the hold.
+- Fix: **`000057_v2_handle_history_sweep`** adds `lv.handle_history_sweep()` (deletes rows whose hold ended more than a day ago) and runs it after every insert into the history; a daily cron job **`lv-handle-history-sweep`** (03:23) was scheduled in production like the other jobs (cron entries are not in migrations).
+  Applied through the Management API as one transaction (history row `000057`, SHA-256 `2ec0e185…`). Read back: both functions, the trigger, the cron schedule `23 3 * * *`, latest version `000057`, history rows 0.
+- Checks: database suite from empty **1828 of 1828** (8 new in `57_handle_history_sweep.sql`: expired rows swept, live holds kept, a deleted account leaves a held name with no link to a person and the account row is gone, the name is free after the hold); rollback rehearsal passes.
+- Not done: the account-deletion screen's copy does not yet say that the username is held for 14 days; add it to the delete-account text and the privacy policy (S-73).
+
 ### Security (automated review of the 000055 commit: link-candidate trust and the username hold bypass; migration 000056 applied to production; Backend; 2026-11-14)
 
 - Status: deployed and verified (database suite and production read-back).
