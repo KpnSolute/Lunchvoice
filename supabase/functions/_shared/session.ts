@@ -211,6 +211,24 @@ export async function verifyIdToken(idToken: string, nonce: string, config: Sess
 }
 
 /**
+ * A9: verify a LunchVoice session token that THIS function issued (ES256 with our own key). Used by the link path to learn which
+ * new sign-in is asking to be linked, without trusting the browser's claim. Returns the identity pair the session carries.
+ */
+export async function verifyLunchVoiceSession(token: string, config: SessionConfig): Promise<{ iss: string; sub: string }> {
+  const { d: _private, ...publicJwk } = config.sessionKey as JsonWebKeyWithKid & { d?: string };
+  try {
+    const key = await importJWK(publicJwk, "ES256");
+    const { payload } = await jwtVerify(token, key, { audience: "authenticated", algorithms: ["ES256"], clockTolerance: 30 });
+    if (payload.session_kind !== "lunchvoice" || typeof payload.iss !== "string" || typeof payload.sub !== "string" || !UUID.test(payload.sub)) {
+      throw new Error("not a LunchVoice session");
+    }
+    return { iss: payload.iss, sub: payload.sub.toLowerCase() };
+  } catch {
+    throw new SessionError("lv_invalid_token", "The new sign-in could not be verified.");
+  }
+}
+
+/**
  * Issue the LunchVoice session. Claims keep the KpnIdentity (issuer, subject)
  * pair, which lv.caller_identity() checks against identity.trusted_issuers, and
  * carry only the cacheable profile attributes. Role and audience are the ones

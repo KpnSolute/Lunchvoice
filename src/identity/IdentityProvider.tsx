@@ -3,8 +3,9 @@ import { toast } from "sonner";
 import type { LvApi } from "../lib/lvApi";
 import { createApi, usingMock } from "../lib/transport";
 import { SESSION_ENDED_FLAG } from "../lib/authFailure";
-import { completeSignIn as finishRedirect, readConfig, startSignIn } from "../lib/kpnIdentity";
+import { completeLinkSignIn, completeSignIn as finishRedirect, readConfig, startSignIn } from "../lib/kpnIdentity";
 import { createClient } from "@supabase/supabase-js";
+import { usernameChecked } from "../lib/usernameGate";
 import {
   acceptRecoveryCode, completeOwnCallback, exchangeSession, readOwnAuthConfig, sendPasswordReset, setNewPassword, signInWithEmail, signUpWithEmail, startOAuth,
   type AuthClientLike, type OwnAuthConfig, type OwnProvider,
@@ -55,6 +56,8 @@ interface Identity {
   signOut: () => void;
   /** LunchVoice's own sign-in (Google, Discord, email). Null unless enabled for this build. */
   own: OwnAuthApi | null;
+  /** A9: prove an existing KpnIdentity account and link the current sign-in to it. Null when KpnIdentity is not configured here. */
+  linkExisting: ((returnTo?: string) => Promise<void>) | null;
 }
 
 const STORE = "lv.session";
@@ -197,8 +200,28 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
         if (!kpnConfig) throw new Error("KpnIdentity is not configured for this build.");
         window.location.assign(await startSignIn(kpnConfig, returnTo ?? "/me"));
       },
+      linkExisting: kpnConfig && session && session.source === "own"
+        ? async (returnTo) => {
+            if (!kpnConfig || !session) return;
+            try { sessionStorage.setItem("lv.link.pending", JSON.stringify({ newSession: session.token })); } catch { throw new Error("Your browser blocked what linking needs. Try another browser."); }
+            window.location.assign(await startSignIn(kpnConfig, returnTo ?? "/signin/username"));
+          }
+        : null,
       completeSignIn: async (search) => {
         if (!kpnConfig) throw new Error("KpnIdentity is not configured for this build.");
+        // A9: a sign-in started to prove an existing account links it to the new sign-in instead of replacing the session.
+        let pendingLink: { newSession?: string } | null = null;
+        try { pendingLink = JSON.parse(sessionStorage.getItem("lv.link.pending") ?? "null"); sessionStorage.removeItem("lv.link.pending"); } catch { pendingLink = null; }
+        if (pendingLink?.newSession) {
+          const { returnTo } = await completeLinkSignIn(kpnConfig, search, pendingLink.newSession);
+          // The new sign-in now opens the old account: get a fresh session for it.
+          if (ownConfig) {
+            const next = await exchangeSession(getOwnClient(ownConfig), ownConfig);
+            persist({ token: next.token, name: next.name, expiresAt: next.expiresAt, source: "own", sub: next.sub });
+          }
+          usernameChecked.clear();
+          return returnTo;
+        }
         const { session: next, returnTo } = await finishRedirect(kpnConfig, search);
         // A KpnIdentity session must not coexist with an Auth session for someone else on this device.
         dropOwnAuth();

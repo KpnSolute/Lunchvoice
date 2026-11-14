@@ -19,7 +19,7 @@ const REASON: Record<string, string> = {
 };
 
 export function Welcome() {
-  const { api, session } = useIdentity();
+  const { api, session, linkExisting } = useIdentity();
   const nav = useNavigate();
   const location = useLocation();
   const from = safeReturnTo((location.state as { from?: string } | null)?.from);
@@ -31,11 +31,19 @@ export function Welcome() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [found, setFound] = useState<{ display_name: string; handle: string | null } | null>(null);
+  const [declined, setDeclined] = useState(false);
   const seq = useRef(0);
 
   useEffect(() => {
     api.handleGet().then((r) => setExisting(r.ok ? r.handle : null)).catch(() => setExisting(null));
   }, [api]);
+
+  // A9: an existing account that shares this person's verified email is offered for linking (a hint only).
+  useEffect(() => {
+    if (!linkExisting) return;
+    api.linkCandidates().then((r) => { if (r.ok && r.candidates.length > 0) setFound(r.candidates[0]!); }).catch(() => undefined);
+  }, [api, linkExisting]);
 
   // Live availability check, debounced. Only the newest answer counts.
   useEffect(() => {
@@ -80,6 +88,21 @@ export function Welcome() {
     <div className="lv-narrow">
       <Card className="lv-signin">
         <LvMark size={44} />
+        {found && linkExisting && !declined && (
+          <div className="lv-stack">
+            <h1 className="lv-signin-title">Is this your account?</h1>
+            <p className="ui-muted lv-signin-sub">
+              We found a LunchVoice account for your email: <strong>{found.display_name}</strong>{found.handle ? <> (@{found.handle})</> : null}.
+              Link this sign-in to it and you keep everything you have there. To make sure it is yours, you will sign in to that account once.
+            </p>
+            {error && <Notice tone="error">{error}</Notice>}
+            <Button type="button" variant="ink" size="lg" block disabled={busy} onClick={() => { setBusy(true); setError(null); linkExisting(from).catch((e: unknown) => { setBusy(false); setError(e instanceof Error ? e.message : "Linking could not start."); }); }}>
+              {busy ? "Opening sign-in…" : "Yes, link it"}
+            </Button>
+            <Button type="button" variant="quiet" size="md" onClick={() => setDeclined(true)}>No, create a new account</Button>
+          </div>
+        )}
+        {(!found || !linkExisting || declined) && (<>
         <h1 className="lv-signin-title">Choose your username</h1>
         <p className="ui-muted lv-signin-sub">This is how people find and mention you on LunchVoice. Your username is unique. Your display name can be anything and you can change it any time.</p>
         <form onSubmit={submit} noValidate className="lv-stack">
@@ -107,6 +130,7 @@ export function Welcome() {
             {busy ? "Saving…" : "Continue"}
           </Button>
         </form>
+        </>)}
       </Card>
     </div>
   );

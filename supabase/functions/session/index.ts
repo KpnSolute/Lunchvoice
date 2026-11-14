@@ -6,7 +6,7 @@
 // billing webhook. Until 000018 is applied (undefined function), or without a database URL, the function falls back
 // to an in-memory record per instance, so deploying it before the migration never breaks sign-in.
 import postgres from "postgres";
-import { configFromEnv, issueSession, memoryReplayGuard, SessionError, verifyIdToken, verifySupabaseToken, type ReplayGuard, type SessionConfig } from "../_shared/session.ts";
+import { configFromEnv, issueSession, memoryReplayGuard, SessionError, verifyIdToken, verifyLunchVoiceSession, verifySupabaseToken, type ReplayGuard, type SessionConfig } from "../_shared/session.ts";
 
 const allowedOrigins = (Deno.env.get("LV_ALLOWED_ORIGINS") ?? "https://lunchvoice.com,https://www.lunchvoice.com")
   .split(",").map((v) => v.trim()).filter(Boolean);
@@ -57,7 +57,32 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return reply(405, { ok: false, error: { code: "lv_method", message: "Use POST." } }, origin);
   try {
     cached ??= { ...configFromEnv((name) => Deno.env.get(name)), replayGuard };
-    const body = await req.json().catch(() => ({})) as { idToken?: unknown; nonce?: unknown; accessToken?: unknown; kind?: unknown };
+    const body = await req.json().catch(() => ({})) as { idToken?: unknown; nonce?: unknown; accessToken?: unknown; kind?: unknown; newSession?: unknown; oldAccessToken?: unknown };
+    if (body.kind === "link") {
+      // A9: link a new sign-in to an existing account. BOTH proofs are verified here: the new LunchVoice session (ours, signed) and a
+      // fresh sign-in to the old account (a KpnIdentity ID token with its nonce, or an access token from our own Auth).
+      if (typeof body.newSession !== "string") {
+        return reply(400, { ok: false, error: { code: "lv_invalid_token", message: "newSession is required." } }, origin);
+      }
+      const fresh = await verifyLunchVoiceSession(body.newSession, cached);
+      let old;
+      if (typeof body.oldAccessToken === "string") old = await verifySupabaseToken(body.oldAccessToken, cached);
+      else if (typeof body.idToken === "string" && typeof body.nonce === "string") old = await verifyIdToken(body.idToken, body.nonce, cached);
+      else return reply(400, { ok: false, error: { code: "lv_invalid_token", message: "A sign-in to the existing account is required." } }, origin);
+      if (String(old.iss) === fresh.iss && String(old.sub).toLowerCase() === fresh.sub) {
+        return reply(400, { ok: false, error: { code: "lv_invalid_input", message: "That is the same sign-in. Choose the account you used before." } }, origin);
+      }
+      const dbUrl = Deno.env.get("SUPABASE_DB_URL");
+      if (!dbUrl) return reply(503, { ok: false, error: { code: "lv_not_configured", message: "Linking is not available on this server." } }, origin);
+      sql ??= postgres(dbUrl, { max: 1, prepare: false, idle_timeout: 20 });
+      const rows = await sql.begin(async (tx) => {
+        await tx.unsafe("set local role service_role");
+        return await tx`select lv.link_identities(${fresh.iss}, ${fresh.sub}, ${String(old.iss)}, ${String(old.sub).toLowerCase()}) as result`;
+      });
+      const result = rows[0]?.result as { ok?: boolean; error?: { code?: string; message?: string } } | undefined;
+      if (!result?.ok) return reply(409, { ok: false, error: result?.error ?? { code: "lv_conflict", message: "These sign-ins could not be linked." } }, origin);
+      return reply(200, { ok: true, linked: true }, origin);
+    }
     let identity;
     if (body.kind === "supabase") {
       // A7: LunchVoice's own sign-in. Off unless LV_OWN_AUTH is set (verifySupabaseToken answers lv_not_configured).

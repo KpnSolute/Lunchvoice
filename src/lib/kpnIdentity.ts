@@ -143,3 +143,39 @@ export async function completeSignIn(
     returnTo: safeReturnTo(pending.returnTo),
   };
 }
+
+/**
+ * A9: finish a KpnIdentity sign-in that was started to PROVE an existing account, and link the new sign-in to it. The ID token is
+ * not turned into a session here: the `session` function verifies it together with the new LunchVoice session and links them.
+ */
+export async function completeLinkSignIn(
+  config: KpnIdentityConfig,
+  search: string,
+  newSession: string,
+  storage: Storage = sessionStorage,
+  fetcher: typeof fetch = fetch,
+): Promise<{ returnTo: string }> {
+  const params = new URLSearchParams(search);
+  const raw = storage.getItem(PENDING);
+  storage.removeItem(PENDING);
+  if (params.get("error")) throw new SignInError(params.get("error_description") ?? "Sign-in was cancelled.");
+  if (!raw) throw new SignInError("This sign-in has expired. Start again.");
+  const pending = JSON.parse(raw) as PendingSignIn;
+  const code = params.get("code");
+  if (!code || params.get("state") !== pending.state) throw new SignInError("This sign-in could not be verified. Start again.");
+  const tokenResponse = await fetcher(config.tokenUrl, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ grant_type: "authorization_code", code, redirect_uri: config.redirectUri, client_id: config.clientId, code_verifier: pending.verifier }),
+  });
+  const tokens = (await tokenResponse.json().catch(() => ({}))) as { id_token?: string };
+  if (!tokenResponse.ok || !tokens.id_token) throw new SignInError("Your existing sign-in did not complete.");
+  const res = await fetcher(config.sessionUrl, {
+    method: "POST",
+    headers: { "content-type": "application/json", apikey: config.anonKey },
+    body: JSON.stringify({ kind: "link", newSession, idToken: tokens.id_token, nonce: pending.nonce }),
+  });
+  const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: { message?: string } };
+  if (!res.ok || !body.ok) throw new SignInError(body.error?.message ?? "These sign-ins could not be linked.");
+  return { returnTo: safeReturnTo(pending.returnTo) };
+}

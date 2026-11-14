@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
 import { OwnSignInScreen } from "./OwnSignIn";
+import { usernameChecked } from "../lib/usernameGate";
 import { MadeBy } from "../components/MakerMark";
 import { Icon, type IconName } from "../components/Icon";
 import { PRODUCTS } from "../config/products";
@@ -348,7 +349,7 @@ export function SignIn() {
 }
 
 /** One username check per session token. An account without a username is sent to /signin/username once (spec E11). */
-const usernameChecked = new Map<string, "ok" | "needs">();
+
 function useUsernameGate(): "loading" | "ok" | "needs" {
   const { session, api } = useIdentity();
   const token = session?.token ?? "";

@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
-import { authorizeUrl, codeChallenge, completeSignIn, readConfig, safeReturnTo, SignInError, startSignIn } from "./kpnIdentity";
+import { authorizeUrl, codeChallenge, completeLinkSignIn, completeSignIn, readConfig, safeReturnTo, SignInError, startSignIn } from "./kpnIdentity";
 
 class MemoryStorage implements Storage {
   private m = new Map<string, string>();
@@ -97,4 +97,36 @@ test("LC-14: a tampered pending return path is re-checked at the callback", asyn
       : new Response(JSON.stringify({ ok: true, session: `h.${payload}.s`, expiresIn: 3600 }), { status: 200 })) as never;
   const result = await completeSignIn(config, `?code=abc&state=${url.searchParams.get("state")}`, storage, fetcher);
   assert.equal(result.returnTo, "/me");
+});
+
+test("A9: a link callback sends BOTH the new session and the old sign-in's ID token to the session function, never turning it into a session", async () => {
+  const storage = new MemoryStorage();
+  await startSignIn(config, "/signin/username", storage);
+  const pending = JSON.parse(storage.getItem("lv.signin.pending")!);
+  const calls: { url: string; body: string }[] = [];
+  const fetcher = (async (url: string, init?: { body?: unknown }) => {
+    calls.push({ url, body: String(init?.body ?? "") });
+    if (url === config.tokenUrl) return new Response(JSON.stringify({ id_token: "old.id.token" }), { status: 200 });
+    return new Response(JSON.stringify({ ok: true, linked: true }), { status: 200 });
+  }) as unknown as typeof fetch;
+  const done = await completeLinkSignIn(config, `?code=c1&state=${pending.state}`, "new.lv.session", storage, fetcher);
+  assert.equal(done.returnTo, "/signin/username");
+  const link = JSON.parse(calls.at(-1)!.body);
+  assert.deepEqual(link, { kind: "link", newSession: "new.lv.session", idToken: "old.id.token", nonce: pending.nonce });
+  assert.equal(calls.at(-1)!.url, config.sessionUrl);
+  assert.equal(storage.getItem("lv.signin.pending"), null);
+});
+
+test("A9: a link callback fails clearly on a wrong state, a cancelled sign-in, and a refused link", async () => {
+  const storage = new MemoryStorage();
+  await startSignIn(config, "/me", storage);
+  await assert.rejects(completeLinkSignIn(config, "?code=c&state=wrong", "s", storage), SignInError);
+  assert.equal(storage.getItem("lv.signin.pending"), null);
+  await assert.rejects(completeLinkSignIn(config, "?error=access_denied&error_description=No", "s", storage), /cancelled|No/);
+  await startSignIn(config, "/me", storage);
+  const pending = JSON.parse(storage.getItem("lv.signin.pending")!);
+  const refusing = (async (url: string) => url === config.tokenUrl
+    ? new Response(JSON.stringify({ id_token: "t" }), { status: 200 })
+    : new Response(JSON.stringify({ ok: false, error: { message: "This new sign-in already has its own data." } }), { status: 409 })) as unknown as typeof fetch;
+  await assert.rejects(completeLinkSignIn(config, `?code=c&state=${pending.state}`, "s", storage, refusing), /already has its own data/);
 });

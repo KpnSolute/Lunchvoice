@@ -6,6 +6,18 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (A9 link an existing account found by email: database, server and screens; migration 000058 applied; `session` v18 deployed; Backend, Edge and UI-functional; 2026-11-14)
+
+- Status: deployed; **not yet verified end to end with the founder's real accounts**.
+- Founder ask: when someone signs in with a new method and an account with their email exists, **find it, ask, and link after they confirm it is theirs**, so it is not a second user.
+- Database, **migration `000058_v2_identity_link`** (SHA-256 `a02ab097…`, applied to Lunchvoice through the Management API, history row `000058`): `lv.link_identities(new_issuer, new_subject, old_issuer, old_subject)` moves the new identity onto the old account and removes the empty account the new sign-in had created.
+  **Service role only** (read back in production: `authenticated` and `anon` cannot run it). The new account must be **empty**, checked against every foreign key that points at `lv.accounts` (so a future table cannot be forgotten); the old account keeps everything; if the old account had no username it takes the new one; locks in a fixed order; audited as `account.identity_linked`; linking twice is a no-op. Rollback `supabase/rollbacks/000058_v2_identity_link.down.sql`.
+- Server, **`session` Edge Function v18**: a `kind: "link"` path verifies BOTH proofs, the **new LunchVoice session** (a token this function signed, verified with its own key) and a **fresh sign-in to the old account** (a KpnIdentity ID token with its nonce, or an access token from our own Auth), refuses the same identity twice, and only then calls the database function. Checked live: missing, forged and malformed bodies are refused (400 or 401); the normal sign-in path is unchanged.
+- Screens: `/signin/username` first asks "Is this your account?" when `lv_link_candidates` finds one (display name and username only). **Yes** sends the person through the existing KpnSolute sign-in (its own password page) as the proof, links, and returns with a new session for the old account; **No** creates a new account. Uses the pending-link record in `sessionStorage`; the username cache is cleared after a link.
+- Checks: database suite from empty **1844 of 1844** (16 new in `58_identity_link.sql`), rollback rehearsal passes; function tests 100 of 100 (2 new); unit tests 171 of 171 (2 new for the link callback); `tsc` clean; `npm run test:pr` exit 0.
+- Not done and blockers: a real run with the founder's accounts (sign in at `/signin?own=1`, accept the prompt, confirm at the KpnSolute page); proof through an old **own-Auth** account (the `oldAccessToken` path exists in the function but has no screen); A8 (link and remove sign-in methods in settings); the prompt only appears for accounts created in this flow (`source: own`).
+- Next: the founder signs in at `/signin?own=1` with Google or Discord; if their old email matches, the prompt appears.
+
 ### Security (privacy: held usernames are swept; migration 000057 applied to production; founder question "why are you keeping deleted accounts"; Backend; 2026-11-14)
 
 - Status: deployed and verified (database suite and production read-back).

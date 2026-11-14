@@ -2,7 +2,7 @@ import { strict as assert } from "node:assert";
 import { randomUUID } from "node:crypto";
 import { test } from "node:test";
 import { createLocalJWKSet, decodeJwt, exportJWK, generateKeyPair, SignJWT, type JWK } from "jose";
-import { configFromEnv, issueSession, memoryReplayGuard, ownAuthFromEnv, replayKey, SessionError, verifyIdToken, verifySupabaseToken, type JsonWebKeyWithKid, type ReplayGuard, type SessionConfig } from "./session.ts";
+import { configFromEnv, issueSession, memoryReplayGuard, ownAuthFromEnv, replayKey, SessionError, verifyIdToken, verifyLunchVoiceSession, verifySupabaseToken, type JsonWebKeyWithKid, type ReplayGuard, type SessionConfig } from "./session.ts";
 
 const ISSUER = "https://kpnidentity.example.supabase.co/auth/v1";
 const CLIENT = "lunchvoice-web";
@@ -247,4 +247,43 @@ test("A7: configFromEnv accepts own-auth-only configuration, and still needs the
   assert.deepEqual(config.issuers, []);
   await rejects(verifyIdToken("a.b.c", NONCE, config), "lv_not_configured");
   assert.throws(() => configFromEnv((n) => (n === "LV_SESSION_PRIVATE_JWK" ? undefined : env[n])), (e: unknown) => e instanceof SessionError && e.code === "lv_not_configured");
+});
+
+/* ---- A9: the link path verifies the new LunchVoice session that this function issued ---- */
+
+test("A9: a session this function issued is verified and yields its (issuer, subject)", async () => {
+  const { config, sign } = await setup();
+  const sub = randomUUID().toUpperCase();
+  const identity = await verifyIdToken(await sign({}, { sub }), NONCE, config);
+  const { token } = await issueSession(identity, config);
+  const who = await verifyLunchVoiceSession(token, config);
+  assert.equal(who.iss, ISSUER);
+  assert.equal(who.sub, sub.toLowerCase());
+});
+
+test("A9: a forged, foreign, expired or wrongly shaped session is refused", async () => {
+  const { config, sign } = await setup();
+  const { token } = await issueSession(await verifyIdToken(await sign({}), NONCE, config), config);
+  // Signed by another key.
+  const other = await generateKeyPair("ES256");
+  const forged = await new SignJWT({ role: "authenticated", session_kind: "lunchvoice" })
+    .setProtectedHeader({ alg: "ES256", kid: "lv-1" }).setIssuer(ISSUER).setSubject(randomUUID()).setAudience("authenticated")
+    .setIssuedAt().setExpirationTime("1h").sign(other.privateKey);
+  await rejects(verifyLunchVoiceSession(forged, config), "lv_invalid_token");
+  // An ID token from the identity provider is not a LunchVoice session.
+  await rejects(verifyLunchVoiceSession(await sign({}), config), "lv_invalid_token");
+  // Missing session kind.
+  const lv = await generateKeyPair("ES256", { extractable: true });
+  const cfg = { ...config, sessionKey: { ...(await exportJWK(lv.privateKey)), kid: "lv-2" } as JsonWebKeyWithKid };
+  const plain = await new SignJWT({ role: "authenticated" })
+    .setProtectedHeader({ alg: "ES256", kid: "lv-2" }).setIssuer(ISSUER).setSubject(randomUUID()).setAudience("authenticated")
+    .setIssuedAt().setExpirationTime("1h").sign(lv.privateKey);
+  await rejects(verifyLunchVoiceSession(plain, cfg), "lv_invalid_token");
+  // Expired.
+  const old = Math.floor(Date.now() / 1000) - 7200;
+  const expired = await new SignJWT({ role: "authenticated", session_kind: "lunchvoice" })
+    .setProtectedHeader({ alg: "ES256", kid: "lv-2" }).setIssuer(ISSUER).setSubject(randomUUID()).setAudience("authenticated")
+    .setIssuedAt(old).setExpirationTime(old + 3600).sign(lv.privateKey);
+  await rejects(verifyLunchVoiceSession(expired, cfg), "lv_invalid_token");
+  assert.ok(token);
 });
