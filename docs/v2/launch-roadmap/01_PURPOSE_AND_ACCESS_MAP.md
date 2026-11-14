@@ -6,6 +6,12 @@ Prices are the founder's and are not changed here. Plan behavior is evaluated by
 **approved** is a founder decision already in the brain files or the launch plan; a cell marked **proposal** is this
 roadmap's recommendation and waits for the founder (default X-11 in `00_`).
 
+## 0. The four pillars
+
+Every row in section 3 belongs to one of four pillars (full table and exit criteria in `00_ROADMAP_4_WEEKS.md` section 1a):
+**Analytics** (3.3 and 3.4), **Survey design** (3.1 and 3.7), **Social presence** (3.2 and 3.5), **Connectivity** (3.6 and 3.8).
+
+
 ## 1. Who the product is for
 
 | Person | What they want | What LunchVoice gives them | Pays |
@@ -119,6 +125,26 @@ State: **Live** (in production and working), **Partial** (exists, not finished),
 | API and webhooks | Connect LunchVoice to your tools | Team Hub | Live, docs polish | G1, G2 |
 | Account export and deletion | Control over your data | Free | Partial (deletion live, export New) | G3 |
 | Admin console | Staff can run billing, reports and servers | Staff | Live | G4 |
+
+### 3.7 Survey design (additions)
+
+| Feature | Purpose | Access | Key | State | Spec |
+| --- | --- | --- | --- | --- | --- |
+| Finished studio (autosave, undo, drag, mobile) | Making a survey is quick and forgiving | Free | | Partial | Y1 |
+| Preview as respondent, test mode, publish checklist | Nobody publishes a broken survey | Free | | Partial (readiness lib) | Y2 |
+| Personal and Hub templates, question bank | Reuse your best work | Free 3, Plus 20, Pro 100; Hub plans share | `templates.max_personal`, `templates.max_hub` | New | Y3 |
+| Brand kit | Looks like you, in one click, on every survey | Creator Plus, Starter Hub and up | `survey.branding` | Partial | Y4 |
+| Co-creator | Solo does not mean alone | Creator Pro (one); Hub managers by role | `cocreator.max` | New (P1) | Y5 |
+
+### 3.8 Connectivity (additions)
+
+| Feature | Purpose | Access | Key | State | Spec |
+| --- | --- | --- | --- | --- | --- |
+| Share kit (link, code, QR, messages, preview cards) | The survey reaches people where they are | Free (logo on QR: Creator Plus) | | Partial | N1 |
+| Invite by email | Reach people outside Hubs and Discord, respectfully | Free 20, Plus and Starter 200, Pro and Team 1,000 | `invites.email_max` | Partial (invites exist, email is New) | N2 |
+| Integration recipes | Send results to the tools you use | Team (API) | | New (docs) | N3 |
+| Embed an answer link | Put the survey on your own site | Free for link surveys | | New (P1) | N4 |
+| Activity feed and directory | A Hub feels alive and findable | Hub plans | `hub.directory_visibility` | New | E9 |
 
 ## 4. Entitlement keys this roadmap adds or changes
 

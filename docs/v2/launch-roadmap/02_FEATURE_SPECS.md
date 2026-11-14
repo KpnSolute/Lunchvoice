@@ -617,6 +617,24 @@ for every new operation; no v1 reference; no customer name in code.
 
 ---
 
+### E9. Hub activity and member directory
+
+- **Purpose.** A Hub feels alive, and members can find each other, without exposing anyone's answers.
+- **Behavior.** **Activity feed** on the Hub home: counted events such as "New Campaign: Friday lunch", "Decision: Friday lunch is
+  tacos", "3 new members", "The Kitchen reached 100 members" (optional auto-news, off by default). Answer activity appears
+  only as a count and only at 5 or more ("12 people have answered"), never who; for anonymous Campaigns it follows the
+  same rule as results. **Member directory**: name or nickname, roles, joined date, online dot; visibility is the owner's
+  setting `hub.directory_visibility` (`managers`, `members` default, `public`); search by name and filter by role; a member
+  can hide themselves from the directory (they still appear to managers). **Welcome**: an optional pinned welcome post and
+  a one-time welcome notification for each new member (E3).
+- **Data.** `lv.hub_activity(id, hub_id, kind, ref, created_at)` written only by server functions with ids and short titles;
+  retention 90 days.
+- **Tests.** No activity row carries an answer or an account for an anonymous Campaign; directory visibility matrix;
+  hide-self; counts under 5 are withheld.
+- **Done when.** A new member sees the feed, the directory and a welcome in e2e.
+
+---
+
 ## F. Discord, the place of conversation
 
 **Principle.** Discord is for talking; LunchVoice is for deciding. Everything below makes the two feel like one thing for a
@@ -730,6 +748,109 @@ community, without making either depend on the other and without exposing an ano
   teach (first survey, first Hub). Nothing is rearranged by plan.
 - **Done when.** The same dashboard renders for Free, Creator Plus, Creator Pro, Starter, Team, a Campaign pass holder and a
   person with no Hub, with only the plan card, meters and locks differing.
+
+---
+
+## Y. Survey design (the "ask well" pillar)
+
+### Y1. Creator studio, finished
+
+- **Purpose.** Making a good survey is quick, forgiving and works on a phone.
+- **Behavior.** Question rail, canvas and properties panel (built) finished to the functional bar: **autosave** with a visible state
+  (saving, saved, offline, retrying, conflict) and a conflict dialog when two tabs or two people edit; **undo and redo** (the
+  last 50 steps in a session); drag to reorder with a keyboard alternative; duplicate question; move to section;
+  bulk-select delete; paste many choices at once; keyboard shortcuts with a help sheet; **mobile editing** that keeps all three
+  functions (rail, canvas, properties) as a stacked layout; locked controls show the plan that opens them. Questions cannot
+  change after activation (`lv_locked`, unchanged), but copy, theme and closing time can.
+- **Done when.** The Starter Studio and Creator Studio journeys pass real authenticated Playwright runs on desktop and phone
+  for each plan and role (handoff Gate C).
+
+### Y2. Preview and test before publish
+
+- **Behavior.** **Preview as a respondent** in a phone frame and a desktop frame with the real player and the creator's theme;
+  a **test mode** that lets the creator submit test answers that carry `is_test = true`, are excluded from every analytic and
+  count, and are purged after 24 hours; a **publish checklist** (the `readiness` library): title, at least one question,
+  no logic loops, anonymity and the respondent notice shown, results setting chosen, a close time or an explicit "no close
+  time", an eligible audience, a share method. Blocking items stop activation; warnings do not.
+- **Security.** Test answers never enter snapshots or exports; a test flag cannot be set by a respondent.
+- **Done when.** A creator tests, sees test answers separate, and the real count starts at zero.
+
+### Y3. Personal templates, Hub templates and the question bank
+
+- **Behavior.** **Save as template** from any survey (questions, logic, theme, settings; never answers). Personal templates:
+  Free 3, Creator Plus 20, Creator Pro 100. Hub templates shared with everyone who can create in that Hub (Hub plans, up to 50;
+  Team 200). A **question bank**: any saved question can be reused (copy, not link). Templates carry a plan tier check so a
+  Free account cannot save a Pro-only question kind into a template and use it free. The public 82 templates stay
+  read-only.
+- **Data.** `lv.user_templates`, `lv.hub_templates`; limits `templates.max_personal`, `templates.max_hub` in the plan map
+  (proposal; X-11).
+- **Done when.** Save, reuse, share in a Hub, and the tier check, in pgTAP and e2e.
+
+### Y4. Brand kit and themes
+
+- **Behavior.** Survey themes are independent of Hubs (founder rule; a survey does not have to take its Hub's branding). A person
+  (Creator Plus and up, and Starter Hub and up for Hub managers) can save a **brand kit** (logo, colours, gradient, cover,
+  welcome and thank-you text) and apply it to any survey in one click; changing the kit does not change already-published
+  surveys unless the creator chooses "update all". Contrast guard: text over the chosen colours must reach 4.5:1 or the
+  editor shows the fix. Live preview in the player. Platform chrome never takes a theme (the Hub and survey colours
+  frame the player only).
+- **Data.** `lv.brand_kits` (account or Hub scope).
+- **Done when.** A kit applies to three surveys and "update all" is audited.
+
+### Y5. Co-creator
+
+- **Behavior.** A survey owner may add **one co-creator** (Creator Pro: one; Hub managers by role have the access already) who can
+  edit questions and settings and read results, but not billing, delete or change ownership. Added by account, accepted by
+  the invitee, revocable, audited. Over-limit after a downgrade: the co-creator keeps read access, loses edit.
+- **Cut line.** P1: if not passing review by Wed 12-02, drop from the Creator Pro list.
+- **Done when.** An accepted co-creator edits a draft; a non-accepted one cannot see it.
+
+---
+
+## N. Connectivity (reach people and tools)
+
+### N1. Share kit
+
+- **Purpose.** A survey reaches the people it is for in the place they already are.
+- **Behavior.** One **Share** panel on every survey, Campaign, decision and published snapshot: copy link; six-character join
+  code; QR (PNG and SVG download, with the LunchVoice mark off by default and a creator logo option on Creator Plus and up);
+  one-tap messages for Discord, email, SMS and a plain post, each pre-written in the creator's words and ending with the
+  link; **link preview cards** for `/s/`, `/c/` and decisions made by the existing share-preview Worker pattern
+  (`lunchvoice-hub-card`) extended with a survey and decision card (title, creator colour, question count, closing time; never
+  answers or counts below 5). The Cloudflare usage log records the extension.
+- **Security.** Cards never include answer data or private Hub content; a private survey's card shows only "A private
+  survey on LunchVoice".
+- **Done when.** Each share route renders a correct preview in the common unfurlers (agent checks with the vendors' own
+  debuggers where available, otherwise by reading the tags).
+
+### N2. Invite by email
+
+- **Purpose.** Reach people who are not in a Hub or Discord.
+- **Behavior.** A creator pastes or imports (CSV, one column) up to **20 addresses (Free), 200 (Creator Plus and Starter), 1,000 (Creator
+  Pro and Team)** per survey; the creator attests they may contact them (a required checkbox, stored). Each recipient gets
+  an email with a unique invite token (the existing Campaign invite mechanism: sign-in required, eligibility for that one
+  Campaign only, anonymous answers still unlinked from the token's account). Rules: a global **suppression list** (unsubscribes,
+  bounces, complaints, S-62) is always honoured; every email carries "Why am I getting this?" and a one-click opt-out; a daily
+  cap per sender (policy `invites.email_daily_cap`, default 200) protects deliverability and the Resend allowance; reports
+  of abuse suspend the sender's email invites pending staff review.
+- **Data.** Reuses `lv.campaign_invites` plus `lv.email_suppressions`.
+- **Tests.** Suppression honoured; cap; attestation required; token cannot be redeemed twice by different accounts when
+  `max_uses=1`; anonymous answer not linkable to the token.
+- **Done when.** An invitee receives, signs in, answers, and cannot be traced to the answer by the creator.
+
+### N3. Integration recipes (documentation, not new code)
+
+- **Behavior.** `/developers` gains short, tested recipes for connecting results to common tools using only the API and webhooks:
+  results to a spreadsheet through an automation service, a Discord message on `results.published`, an email on
+  `decision.published`. Each recipe is run once by the QA agent before it is published. No new integration is built or
+  advertised beyond Discord, the API and webhooks; the Slack, Teams and Reddit integrations are V3.
+
+### N4. Embed an answer link (P1, with C8)
+
+- **Behavior.** A creator may embed a survey in another website as an iframe at `lunchvoice.com/embed/s/:token` for **link
+  surveys only** (not invite-only, not identified surveys that need sign-in, not elections). The page uses the C8 path
+  header rule (`frame-ancestors *` for `/embed/*` only). Guest answering and Turnstile apply; results are never shown in the
+  embed. If the Render rule is not approved, N4 and C8 both ship without external embedding.
 
 ---
 

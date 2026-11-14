@@ -35,8 +35,29 @@ The product loop, which every week of this plan serves:
 4. **Decide** (a Hub records the decision, who made it and why).
 5. **Show the impact** ("You said, we did": the decision and its result are shared back to the members who answered).
 
-Steps 1 to 3 exist. **Steps 4 and 5 are the new centre of the product and the biggest build of this plan** (features C2
-and C3). They are what no survey tool has and what makes a Hub worth paying for.
+## 1a. The four pillars (what LunchVoice is, and what each must be at launch)
+
+LunchVoice stands on **four pillars of equal weight**, over one foundation. No pillar is "the centre"; a launch that
+is strong in one and thin in another fails. Each pillar has an exit criterion at G3, and the gate is not passed
+until all four pass.
+
+| Pillar | The promise to a person | Features (spec IDs in `02_`) | Exit criterion at G3 (Fri 12-04) |
+| --- | --- | --- | --- |
+| **Analytics** (see, understand, decide, show impact) | "I can see what my community thinks, trust the numbers, act on them, and show people what changed." | C1 visibility, C2 Decisions, C3 shared results, C4 advanced analytics, C5 Trends, C6 Hub health, C7 digest, C8 embeds | A manager runs ask, answer, see, decide, show-impact with no developer help; the differencing and plan matrices pass |
+| **Survey design** (ask well) | "Making a survey is fast, good-looking and correct, on a phone or a laptop, alone or with a helper." | Y1 studio, Y2 preview and test, Y3 templates and question bank, Y4 brand kit and themes, Y5 co-creator, D1 elections, D2 quiz, D3 question parity, D4 Live Session Lite, D5 recurring | The 21 kinds by 82 templates matrix is all green; a new account publishes its first survey in under 3 minutes; the 20-question branch fixture passes |
+| **Social presence** (belong) | "This is a place with people in it. I have a face, I get noticed, I am not spammed, and I am safe." | E1 profiles, E2 presence and Hub identity, E3 notifications, E4 points and shop, E5 comments and reactions, E6 reports and appeals, E7 onboarding, E8 Discover, E9 activity and directory | A new member joins, sees who is here, gets a welcome, a notification and a reward; a report reaches the right queue |
+| **Connectivity** (reach people, plug into tools) | "My survey reaches the people I mean, wherever they are, and my data reaches the tools I use." | F1 to F5 Discord, G1 API, G2 webhooks, N1 share kit, N2 invite by email, N3 recipes, C8 and N4 embeds, the `create` and `pay` hosts, A1 sign-in across hosts | A survey is shared by link, QR, code, email and Discord and arrives each time; a webhook and an API call work against a test Hub |
+
+**Foundation** (not a pillar, but every pillar stands on it): identity and sessions (A), money (B), release hygiene (R),
+security and operations (`04_`), the privacy engine. Foundation work is weeks 1 and 3; pillar work is weeks 1 to 3 in
+parallel lanes, so no pillar waits for another.
+
+**The loop** every pillar serves: Ask (survey design, connectivity) → Answer (social presence, connectivity) → See and
+Decide and Show impact (analytics). Decisions and "You said, we did" are one important feature inside the analytics
+pillar, not the identity of the product.
+
+**Lane balance rule.** At every daily standup the governing agent checks that each pillar has work in flight. If one pillar has
+had no merged work for two working days, it gets the next free agent before any new P1 starts.
 
 ## 2. Shape of the four weeks
 
@@ -165,6 +186,24 @@ Items name a spec in `02_FEATURE_SPECS.md`. Approvals needed are in **bold**.
 | Thu | Hardening fixes only; load test of the submit path | Turnstile, PostHog, Sentry wired; uptime monitor | Hide or remove cut features; update copy lists | | Pen-test pass 2; secrets scan; incident drill |
 | Fri | **Freeze.** Final production applies approved; backend tag | Final function deploys | e2e green | Deliver token package | **Gate G3** report |
 
+### Placement of the pillar specs that were added after the first draft
+
+| Spec | Week and day | Agent |
+| --- | --- | --- |
+| Y1 studio finish | W1 Wed to W2 Tue | UI-functional (with Backend for conflict handling) |
+| Y2 preview, test mode, checklist | W2 Mon to Wed | Backend (test flag), UI-functional |
+| Y3 templates and question bank | W2 Wed to Fri | Backend, UI-functional |
+| Y4 brand kit | W2 Thu to W3 Mon | Backend, UI-functional |
+| Y5 co-creator (P1) | W3 Tue to Wed | Backend, UI-functional |
+| N1 share kit and preview cards | W3 Mon to Wed | Edge (Worker), UI-functional |
+| N2 invite by email | W3 Mon to Wed | Backend, Edge |
+| N3 recipes | W3 Thu | QA |
+| N4 and C8 embeds (P1) | W3 Wed, needs the Render header go-ahead | Edge |
+| E9 activity and directory | W3 Tue to Wed | Backend, UI-functional |
+
+The week-1 to week-3 day tables above show the heaviest items; the placement table adds these lanes in parallel. If a lane
+conflicts with the pillar balance rule (section 1a), the governing agent reassigns.
+
 ### Week 4: UI and UX refresh (12-07 to 12-11), then launch
 
 See `05_WEEK4_UI_UX_REDESIGN.md`. Backend changes are bug and security fixes only.
@@ -196,7 +235,7 @@ See `05_WEEK4_UI_UX_REDESIGN.md`. Backend changes are bug and security fixes onl
 
 These are V2.x or V3 (`docs/v3/ROADMAP.md` on PR #72). Nothing here may be built early or advertised.
 
-Hub Pulse beyond the simple health panel in C6, community goals, missions and achievements beyond the badges in E2,
+Multilingual surveys, Hub Pulse beyond the simple health panel in C6, community goals, missions and achievements beyond the badges in E2,
 quests, Living Surveys, the Decision Engine and outcome intelligence, AI summaries and theme detection, the full live
 room with player scoring, Reddit, Slack and Teams integrations, a respondent reward marketplace, white-label domains,
 SSO, TwinLab. Image uploads for avatars and Hub backgrounds come after launch (E1 ships colour-plus-emoji avatars, as
@@ -243,9 +282,11 @@ the product direction already says).
 | R | Release hygiene | R1 |
 | A | Identity and the edge | A1 30-day sign-in, A2 hostname-aware app, A5 Turnstile (A3 and A4 are in `03_`) |
 | B | Money | B1 Creator purchases, B2 real-purchase proof, B3 billing screens, B4 Campaign passes, B5 name reservation, B6 money emails, B7 entitlement edge cases, B8 armed billing release |
+| Y | Survey design | Y1 to Y5 |
+| N | Connectivity | N1 share kit, N2 invite by email, N3 recipes, N4 embeddable answer link |
 | C | Decide, share, analyse | C1 results visibility, C2 Decisions, C3 shared results, C4 advanced analytics, C5 Trends, C6 Hub health, C7 digest, C8 embeds |
 | D | Campaign modes | D1 elections, D2 quiz, D3 question-type parity, D4 Live Session Lite, D5 recurring, D7 participation receipt |
-| E | Community | E1 profiles, E2 Hub identity, E3 notifications, E4 points and shop, E5 comments and moderation, E6 reports and appeals, E7 onboarding, E8 Discover |
+| E | Community | E1 profiles, E2 Hub identity, E3 notifications, E4 points and shop, E5 comments and moderation, E6 reports and appeals, E7 onboarding, E8 Discover, E9 activity and directory |
 | F | Discord | F1 link, F2 server and roles, F3 decision posts, F4 onboarding, F5 limits |
 | G | Platform | G1 API, G2 webhooks, G3 export and deletion, G4 admin, G5 analytics, G6 creator dashboard |
 | K | The Kitchen | K1 |

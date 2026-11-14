@@ -24,6 +24,9 @@ categories and the repository's decimal `X.X.X` release policy.
 - **Found while writing:** `pay.lunchvoice.com` is still a proxied CNAME to GoDaddy (`paylinks.commerce.godaddy.com`);
   `create` and `auth` have no DNS; Creator plan copy still says "coming soon" for features that shipped (000044, 000047); the
   DMARC report address belongs to GoDaddy's aggregator; no job opens billing at the launch date (by design, now specified as B8).
+- **Revised the same day (founder: "that's only one centre"):** the roadmap now stands on four equal pillars (analytics, survey
+  design, social presence, connectivity) over one foundation, with an exit criterion per pillar at G3 and a lane-balance rule.
+  Added specs Y1 to Y5 (survey design), N1 to N4 (connectivity) and E9 (activity and directory), and a placement table.
 - Nothing was built, deployed or changed in production by this entry.
 
 ### Operations (production, 2026-11-14: Creator prices, launch date, MCP check)
