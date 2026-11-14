@@ -6,6 +6,16 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Docs (E11 usernames chosen at sign-up; Governing; 2026-11-14)
+
+- Status: planned (specified; nothing built, production untouched).
+- What changed: new spec **E11 Usernames (@handles)** in `docs/v2/launch-roadmap/02_FEATURE_SPECS.md`, so people become `@kpn` or `@muttyman`. A forced "Choose your username" step right
+  after first sign-in (existing accounts prompted once), 3 to 20 lowercase ASCII characters, unique case-insensitively, reserved platform words, change once every 30 days with a 14-day hold on
+  the old name, `/@handle` profile pages, mentions and invites by handle, never shown on anonymous answers, never an email. The handle is a display and lookup name only; identity stays
+  `(issuer, subject)` at KpnIdentity, and the step lives in LunchVoice, not in KpnAuth. Added to the pillar table, the spec index, the purpose map and `TRACKER.md` (row E11, P0, week 1).
+- Not done and blockers: nothing built. Founder action: claim `@kpn` and `@muttyman` first at the prompt before the waitlist opens (no names are reserved in code).
+- Next: Backend starts E11 Wednesday of week 1 (Mon 11-16 start), beside the HB1 data fix.
+
 ### Security (HB1 root cause: an email shown as a member's name; S-23, E1; Backend; 2026-11-14)
 
 - Status: tested in preview only; blocked on the founder's approval to apply the data fix. Production not changed.

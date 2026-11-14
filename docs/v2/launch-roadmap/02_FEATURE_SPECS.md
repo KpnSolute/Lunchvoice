@@ -638,6 +638,48 @@ for every new operation; no v1 reference; no customer name in code.
 
 ---
 
+### E11. Usernames (@handles) chosen at sign-up
+
+- **Purpose.** People are people, not emails or random ids. A short, unique name you picked yourself (`@kpn`, `@muttyman`) is how others mention, invite
+  and recognise you across Hubs and Discord. It also ends the class of bug where an email stands in for a name (audit HB1).
+- **Who.** Every signed-in account. Free. Guests have no handle.
+- **Identity rule (unchanged and important).** A handle is a **display and lookup name only**. A person is still the verified `(issuer, subject)` pair at KpnIdentity;
+  email is never a key; changing a handle changes nothing about who someone is or what they own. The sign-up step lives in **LunchVoice** (right after the sign-in
+  callback), **not** in KpnAuth or KpnIdentity, because KpnIdentity is shared by other KpnSolute products and a handle is LunchVoice's.
+- **Format.** 3 to 20 characters; lowercase `a-z`, digits and underscore only (ASCII, so look-alike letters cannot impersonate); must start with a letter; no consecutive
+  underscores; case-insensitive and unique. Shown with a leading "@" in the interface, stored without it. **Never contains "@" or looks like an email.**
+- **Reserved and blocked.** Platform words (`admin`, `staff`, `support`, `help`, `lunchvoice`, `kpnsolute`, `moderator`, `system`, `everyone`, `here`, `owner`, `official`
+  and the like) in `lv.reserved_handles`; the existing profanity and impersonation filter; every top-level route name (so `/@name` can never clash). **No customer, Hub or
+  person is reserved in code**: whoever claims `@kpn` first has it, so the founders claim theirs at the first prompt before the waitlist opens (a founder action, not code).
+- **Sign-up flow.** After the first sign-in, before anything else in the app, a screen "Choose your username": a live availability check as you type (debounced, rate limited),
+  three suggestions built from the display name and a number, a clear error for each rule, and a Continue button. It cannot be skipped (a person without a handle sees
+  "Member" in other people's views, which is why we ask once). **Existing accounts** see the same screen once at their next sign-in, prefilled with a suggestion.
+- **Changing it.** Allowed once every 30 days. The old handle is held for 14 days (nobody else can take it, and `/@old` redirects to the new one) to prevent impersonation, then released.
+  Every change is recorded in `lv.handle_history`.
+- **Where it shows.** Next to the display name wherever a person is named (member lists, comments, news, decisions, leaderboard, hover cards, Discord role and link
+  messages, API member objects). **Never on an anonymous answer or in anything that could connect a person to an anonymous answer.** A Hub may choose to show nicknames
+  (E1) instead of handles inside that Hub.
+- **Mentions and invites.** `@handle` in a comment, news post or decision creates a `mention` notification (E3); Hub and survey invites accept a handle; search by handle
+  returns exact matches only unless the person leaves "Let people find me by username" on (default on; off means invites by handle fail with a neutral message).
+- **Profile page.** `lunchvoice.com/@handle` shows display name, avatar, bio, and the Hubs the person chose to show (E1 `show_hubs`). The route is `/@:handle`; Hub slugs cannot contain "@",
+  so it can never collide. The page is `noindex`.
+- **Data.** `lv.accounts.handle citext unique` (null until claimed), `handle_changed_at`; `lv.handle_history(handle, account_id, taken_at, released_at, held_until)`;
+  `lv.reserved_handles(handle)`; a check `lv.valid_handle(text)` used by the constraint and the RPC; a unique partial index on lower(handle). Policy `handle.change_days` (30),
+  `handle.hold_days` (14).
+- **API.** `lv_handle_check(p_handle)` returns `{available, reason?, suggestions[]}` (signed-in users only, rate limited to 30 a minute per account);
+  `lv_handle_set(p_handle)` (atomic claim, race-safe, enforces the change interval); `lv_profile_by_handle(p_handle)`; `lv_my_context()` gains `handle`; member, comment, news,
+  decision and leaderboard objects gain `handle` beside `display_name`.
+- **Privacy and security.** The check endpoint returns only available or not (it cannot be used to list handles); exact-match lookup only; rate limits and the signed-in requirement
+  stop enumeration; handle history is not readable by the API roles; nothing about a handle reveals an email, an identity subject or an anonymous answer.
+- **Tests.** pgTAP: format rules (length, characters, start, underscores, no "@"), case-insensitive uniqueness, reserved words, concurrent claim of the same handle (exactly one wins),
+  change interval, hold period and redirect, history, discoverability switch, no handle on any anonymous output; e2e: first sign-in forces the step, suggestions work, an existing account
+  is prompted once, `/@name` resolves, mention notifies.
+- **Done when.** A new account cannot reach the app without a handle, an existing account is prompted once, two accounts cannot hold the same handle in any case, and no list in the
+  product can show an email in a name position.
+- **Week and owner.** Week 1 (Backend Wed to Fri, UI-functional Thu to Fri); depends on nothing; sits beside the HB1 data fix.
+
+---
+
 ### E10. Hub Pulse (launch version: Pulse Lite, P0)
 
 - **Purpose.** An owner knows in ten seconds if the community is alive and heard, and members feel the Hub's heartbeat. Small, regular

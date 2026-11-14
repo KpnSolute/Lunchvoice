@@ -49,6 +49,7 @@ Last full refresh: 2026-11-14 (all rows `planned`). Weeks: 1 = 11-16, 2 = 11-23,
 | E8 | Social presence | Discover finish | P0 | 3 | Backend | planned | | |
 | E9 | Social presence | Hub activity and member directory | P0 | 3 | Backend | planned | | |
 | E10 | Social presence | Hub Pulse (launch version: Pulse Lite, P0) | P0 | 3 | Backend | planned | | |
+| E11 | Social presence | Usernames (@handles) chosen at sign-up | P0 | 1 | Backend + UI-functional | planned | | |
 | F1 | Connectivity | Link a Discord account | P0 | 3 | Edge | planned | | |
 | F2 | Connectivity | Connect a server to a Hub and role rules | P0 | 3 | Edge | planned | | |
 | F3 | Connectivity | Decision posts and results cards in Discord | P0 | 3 | Edge | planned | | |
