@@ -15,6 +15,7 @@ categories and the repository's decimal `X.X.X` release policy.
 - Production: not touched.
 - Not done and blockers: no pages, no `join` host, no DNS; the Cloudflare token for DNS edits is still rejected (see `docs/ops/SERVICES_AND_DEPENDENCIES.md`); the audience list and plan decisions need the founder.
 - SEO plan added the same day: `docs/v2/launch-roadmap/drafts/audience-seo-keywords.md` lists 55 candidate keywords for each of the six audience pages and the chooser (385 in all), with the rule that they are used in natural text, not stuffed. Not live; keywords are checked against real search data after launch.
+- Search visibility added the same day (M3): `drafts/usecase-seo-keywords.md` lists 50 keywords for each of the ten existing use-case pages (led by "dining survey"), and M3 covers sitemaps, one canonical address per page, the Search Console Domain property, a weekly search-analytics report and build checks. The corporate page's main keyword changed to "employee survey software" so it does not compete with the anonymous employee survey use case. Not built; no property or sitemap was changed.
 - Next: founder approves or edits the audience list and M2 decisions by Wed 11-25; Edge and UI-functional build in week 3.
 
 ### Added (A8 sign-in methods on one account; A9 verified; Edge-less UI-functional; 2026-11-14)

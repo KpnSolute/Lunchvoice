@@ -191,7 +191,7 @@ after launch, a keyword tool before it) and trimmed to what we can honestly rank
 54. link Discord to LunchVoice
 55. free poll tool for community
 
-## /corporate (main keyword: "anonymous employee survey")
+## /corporate (main keyword: "employee survey software")
 
 1. anonymous employee survey
 2. employee feedback survey

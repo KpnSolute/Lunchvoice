@@ -1109,3 +1109,39 @@ community, without making either depend on the other and without exposing an ano
 - **Done when.** The founder has approved, changed or rejected each decision above, and the audience pages match the approved plans.
 - **Week and owner.** Decision in week 2 (founder); applied with M1 in week 3.
 
+### M3. Search visibility: sitemaps, Search Console, search analytics and keywords for the use-case and audience pages
+
+- **Purpose.** Founder, 2026-11-14: do for the `join` site, every audience page and every use-case page (dining surveys and
+  the rest) what the main site already has: keywords, a sitemap, Google Search Console and search analytics.
+- **Keywords.** At least 50 per page: `drafts/audience-seo-keywords.md` (chooser and six audience pages) and
+  `drafts/usecase-seo-keywords.md` (the ten existing use-case pages, led by "dining survey"). Every page has a **unique main
+  keyword**; secondary terms may overlap but the best-fit page owns each one. Used naturally in title, H1, first paragraph,
+  headings, FAQ, sample questions and image text. No `meta keywords` tag, no stuffing.
+- **Sitemaps.** The existing SEO build step (`scripts/seo-prerender.mjs`) already writes `sitemap.xml` for the main site, including
+  every `/use-cases/<slug>`. M3 extends it: the chooser and audience pages are added with their canonical URLs, and the `join` host
+  serves its own `sitemap.xml` and `robots.txt` (the robots file points to its sitemap). Each sitemap lists only indexable pages.
+- **Canonical URL.** Once `join.lunchvoice.com` is live it is the canonical address for the chooser and audience pages, and
+  `lunchvoice.com/for/<slug>` returns a permanent redirect to it, so Google sees one page and not two copies. Until the host exists,
+  `lunchvoice.com/for/<slug>` is canonical. Use-case pages stay on `lunchvoice.com/use-cases/<slug>` and link to their audience page.
+- **Search Console.** One **Domain** property for `lunchvoice.com` already covers every subdomain, including `join`
+  (verification is one DNS TXT record; the ops inventory lists the property as "Confirm", so the founder checks it exists). Submit
+  both sitemaps, then use URL inspection to request indexing for the chooser and each new page. Import into Bing Webmaster Tools.
+- **Search analytics.** A weekly report per page from Search Console (impressions, clicks, click-through rate, average position,
+  indexed or not, top queries) through the connected `google_search_console` toolkit, stored under `docs/ops/seo/` with the date.
+  Each month the bottom 20 keywords on a page are replaced by real queries the page already appears for. Aggregate counts of
+  Start clicks and signups per segment come from cookieless analytics (G5) and an optional `utm_campaign=<segment>` on links we
+  post; no personal data and no per-visitor tracking (legal text still pending).
+- **Structured data and links.** Breadcrumb and Organization data on every public page; FAQ markup where a page has a visible FAQ.
+  Internal links run landing, then the chooser, then the audience page, then its use-case pages, then templates, and back.
+- **Checks (a build fails if any is wrong).** Fewer than 50 keywords in a list; a repeated main keyword; a page without title,
+  description, canonical URL or sitemap entry; a title over 60 characters or a description over 160; a redirect or rewrite
+  destination without a built file (the existing check).
+- **Rules.** Keywords never promise what the product does not do; competitor names appear only in plain "alternative to" phrases
+  and the copy stays factual about them; no customer is named.
+- **Needs from the founder.** Confirm or create the Search Console Domain property; the Cloudflare token for the `join` host
+  (shared with M1); a yes on the Render redirect for `/for/` once `join` is live.
+- **Done when.** Every page in both keyword files is in a sitemap, shows as indexed in Search Console within two weeks of launch, and
+  the first weekly report exists.
+- **Week and owner.** Build week 3 with M1 (Edge, UI-functional); first report the Monday after launch (Marketing and QA). Status
+  when written: planned, nothing built.
+

@@ -203,6 +203,7 @@ Items name a spec in `02_FEATURE_SPECS.md`. Approvals needed are in **bold**.
 | N1 share kit and preview cards | W3 Mon to Wed | Edge (Worker), UI-functional |
 | M1 audience pages and the `join` site: copy review W2, build W3 | W2 Fri (copy), W3 Tue to Thu (build) | Founder and Marketing (copy), Edge (host), UI-functional (pages) |
 | M2 plans per audience (decisions) | W2 Wed | Founder |
+| M3 search visibility (keywords, sitemaps, Search Console, weekly report) | W3 Tue to Thu (with M1); first report the Monday after launch | Edge, UI-functional, Marketing |
 | N2 invite by email | W3 Mon to Wed | Backend, Edge |
 | N3 recipes | W3 Thu | QA |
 | N4 and C8 embeds (P1) | W3 Wed, needs the Render header go-ahead | Edge |
@@ -236,7 +237,7 @@ See `05_WEEK4_UI_UX_REDESIGN.md`. Backend changes are bug and security fixes onl
 | Sun 11-15 | Answer, or accept, the defaults in section 10 (silence means "go with yours") | Week 1 start |
 | Mon 11-16 | Tell us where KpnAuth's source and deploys live (`auth.kpnsolute.com` is a Cloudflare Worker; its repository is not in the KpnSolute GitHub organisation) and approve the providers in X-18 | A6 |
 | Mon 11-16 | Supabase is on **Pro** with daily backups and PITR off (read 2026-11-14). Decide PITR: recommended **keep off for launch**, prove the daily backup with the restore drill (DR-01), revisit with paying customers | Backups |
-| Wed 11-25 | Approve or change the audience list and the plan decisions in M1 and M2 (draft copy in `drafts/audience-pages.draft.json`); reconnect the Cloudflare token if not done for `create` and `pay` | M1 `join` site |
+| Wed 11-25 | Approve or change the audience list and the plan decisions in M1 and M2 (draft copy in `drafts/audience-pages.draft.json`); reconnect the Cloudflare token if not done for `create` and `pay`; confirm the Search Console Domain property exists | M1 `join` site, M3 |
 | Mon 11-23 | Name the legal operator and approve counsel's review plan; approve KpnIdentity settings B1 to B6 one by one | Legal, account security |
 | Wed 11-18 | Set a software tax code on the Stripe products; confirm `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are set in Supabase | B2 |
 | Thu 11-19 | **Approved 2026-11-14 ("go ahead"); executes Thursday after the `pay-next` staging checks pass.** repoint `pay.lunchvoice.com` from GoDaddy (the Stripe webhook URL stays as it is), generate the shared Worker secret, add the `create` and `pay` callback URLs in KpnIdentity | A4, A1 |
@@ -302,7 +303,7 @@ the product direction already says).
 | B | Money | B1 Creator purchases, B2 real-purchase proof, B3 billing screens, B4 Campaign passes, B5 name reservation, B6 money emails, B7 entitlement edge cases, B8 armed billing release |
 | Y | Survey design | Y1 to Y5 |
 | N | Connectivity | N1 share kit, N2 invite by email, N3 recipes, N4 embeddable answer link |
-| M | Marketing | M1 audience pages and the `join` site, M2 plans per audience |
+| M | Marketing | M1 audience pages and the `join` site, M2 plans per audience, M3 search visibility (keywords, sitemaps, Search Console, analytics) |
 | C | Decide, share, analyse | C1 results visibility, C2 Decisions, C3 shared results, C4 advanced analytics, C5 Trends, C6 Hub health, C7 digest, C8 embeds |
 | D | Campaign modes | D1 elections, D2 quiz, D3 question-type parity, D4 Live Session Lite, D5 recurring, D7 participation receipt |
 | E | Community | E1 profiles, E2 Hub identity, E3 notifications, E4 points and shop, E5 comments and moderation, E6 reports and appeals, E7 onboarding, E8 Discover, E9 activity and directory, E10 Hub Pulse, E11 usernames and display names |
