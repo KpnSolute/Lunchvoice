@@ -107,7 +107,12 @@ for every new operation; no v1 reference; no customer name in code.
 
 ---
 
-### A6. Sign-in and sign-up the way real products do it (KpnAuth front door, themed for LunchVoice)
+### A6. Sign-in and sign-up the way real products do it (built in this repository on LunchVoice's own sign-in)
+
+- **Amended 2026-11-14 (ADR accepted, A7).** The screens below are now built **in this repository**, not in KpnAuth: LunchVoice signs people in with its own Supabase Auth (Google, Discord through the **LunchVoice bot
+  application**, email), so there is no per-client theme work in KpnAuth and no "where does KpnAuth live" blocker. The layout, elements, copy rules, errors and accessibility below stand; where the text says
+  KpnAuth, read "the LunchVoice sign-in screens"; where it says Discord is an upstream login at KpnIdentity through a "KpnSolute" application, read "Discord through the LunchVoice bot application on LunchVoice's own
+  Auth". Week: Design weeks 1 to 2; build week 1 Thu to week 2 Wed (UI-functional with Backend) once the A7 spike passes.
 
 - **Purpose.** The first thing a new person meets must look like a real company and feel safe: one clear form, familiar options, no surprises. Today it does not.
 - **What exists today (F, seen live 2026-11-14).** Two screens. (1) LunchVoice's own `/signin`: a branded card with one black "Continue to sign in" button and a join-code link. (2) The real
@@ -152,6 +157,29 @@ for every new operation; no v1 reference; no customer name in code.
   link and legal links; the generic "KpnSolute Auth" screen is never shown to a LunchVoice user; no other product's sign-in regressed.
 - **Week and owner.** Design: frames for sign-in, sign-up, forgot password, confirm email, trouble and error states in weeks 1 to 2. Edge (KpnAuth Worker): build week 3 (the K1 to K10 items in the prep plan).
   UI-refresh: LunchVoice's `/signin` entry and the shared tokens in week 4. Needs the founder to say where KpnAuth's source and deploys live (founder action, Mon 11-16).
+
+---
+
+### A7. LunchVoice's own sign-in (leaving KpnIdentity), spike then build
+
+- **Purpose.** Discord on the LunchVoice bot application, the login screens in our repository, native email confirmation, captcha and password rules, and no dependency on a repository we cannot find.
+- **Decision record.** `ADR_LUNCHVOICE_OWN_SIGN_IN.md` (accepted 2026-11-14). Identity stays `(issuer, subject)`; the new issuer is `https://qprfonxvthmaoxfixigk.supabase.co/auth/v1`.
+- **Backend path.** The SPA signs in with `supabase-js` (`signInWithOAuth` for Google and Discord, `signInWithPassword`, `signUp`, `resetPasswordForEmail`), forces a token refresh, and posts the fresh access token to the
+  `session` function with `kind: "supabase"`. The function **verifies the token by asking Supabase Auth (`GET /auth/v1/user` with the token)**, which checks signature, expiry and session revocation and returns the user, the
+  verified-email state and the linked identities (so the Discord user id is available server-side for F1). It then applies the existing rules (maximum age 600 s by `iat`, single use by `sha256(iss|sub|session_id|iat)`), and issues the
+  LunchVoice session exactly as today. The KpnIdentity path (`idToken` and `nonce`) keeps working for existing accounts. The own issuer is added to the `identity.trusted_issuers` policy (a production data change, applied after the spike with the founder's yes).
+- **Existing accounts.** `lv_identity_link(p_old_id_token, p_nonce)`: signed in with the new identity and holding a fresh KpnIdentity ID token, the person links the new identity to the **old** account. Allowed only when the new account is
+  empty (no Hubs, memberships, surveys, responses); the new identity is re-pointed to the old account, the empty account is removed, and the link is audited. KpnIdentity stays accepted for 90 days after launch, then the issuer is retired for LunchVoice.
+  The founder's own accounts are linked this way at their first sign-in.
+- **Linking rule (X-19).** Two sign-ins with the same email become one person only if the issuer verified that email for both; unverified emails never link and different emails never link without an explicit link with proof of both.
+  The spike proves how Supabase behaves (automatic linking for Google plus Discord with the same verified email, an unverified Discord email, two different emails).
+- **Auth settings (founder approves each; secrets entered by the founder in the dashboard, never in chat):** site URL; redirect allow-list for `lunchvoice.com`, `create.`, `pay.` (and `pay-next` while staging); Google and Discord providers;
+  email confirmation on; minimum password 12 and leaked-password protection; Resend SMTP; Turnstile captcha; session time-box 30 days; refresh-token rotation on.
+- **Rollout safety.** A build flag `VITE_LV_AUTH` (off by default) selects the new screens; with it off nothing changes. The production switch happens only after the spike, the settings and the founder's yes, and can be reverted by turning the flag off.
+- **Tests.** Function tests: valid token, wrong issuer, expired, revoked session, unverified email, replay, too old, a response without a user, the Auth service down (fails closed). pgTAP: same `(issuer, subject)` never makes two accounts; two issuers make two
+  accounts unless linked; the link requires proof of both and an empty new account. e2e: Google, Discord and email sign-in and sign-up, forgot password, the E11 step, the link flow, 390 and 1440 px.
+- **Done when.** The spike passes (go on Wed 11-18), the settings are applied and verified, a new account signs in with Google, Discord and email on LunchVoice's own screens, the founder's accounts are linked, and the generic KpnAuth screen is no longer shown to LunchVoice users.
+- **Week and owner.** Spike Mon 11-16 to Tue 11-17 (Backend and Edge); go or no-go Wed 11-18; build to Wed 11-25; Backend, Edge, UI-functional.
 
 ---
 

@@ -2,6 +2,7 @@ import { LvMark } from "../components/LvMark";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useIdentity } from "../identity/IdentityProvider";
+import { OwnSignInScreen } from "./OwnSignIn";
 import { MadeBy } from "../components/MakerMark";
 import { Icon, type IconName } from "../components/Icon";
 import { PRODUCTS } from "../config/products";
@@ -278,7 +279,7 @@ function Footer() {
 /* ------------------------------------------------------------------ /signin */
 
 export function SignIn() {
-  const { session, issuerConfigured, canSimulate, signInSimulated, signIn } = useIdentity();
+  const { session, issuerConfigured, canSimulate, signInSimulated, signIn, own } = useIdentity();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState("Dana Reyes");
@@ -291,6 +292,8 @@ export function SignIn() {
   // LC-14: history state is caller-controlled; only safe same-site paths are followed.
   const from = safeReturnTo((location.state as { from?: string } | null)?.from);
   if (session) return <Navigate to={from} replace />;
+  // A7: LunchVoice's own sign-in (Google, Discord, email) replaces the KpnIdentity hand-off when the build enables it.
+  if (own) return <OwnSignInScreen own={own} from={from} ended={ended} />;
   return (
     <div className="lv-narrow">
       <Card className="lv-signin">
@@ -353,17 +356,19 @@ export function RequireSignIn({ children }: { children: ReactNode }) {
 
 /** /auth/callback: finishes the KpnIdentity redirect, then returns the person where they were going. */
 export function AuthCallback() {
-  const { completeSignIn } = useIdentity();
+  const { completeSignIn, own } = useIdentity();
   const nav = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    completeSignIn(window.location.search)
+    // A7: ?own=1 marks a return from LunchVoice's own sign-in (provider redirect or email confirmation link).
+    const finish = own && new URLSearchParams(window.location.search).get("own") === "1" ? own.complete : completeSignIn;
+    finish(window.location.search)
       .then((to) => nav(safeReturnTo(to), { replace: true }))
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "Sign-in failed."));
-  }, [completeSignIn, nav]);
+  }, [completeSignIn, own, nav]);
   return (
     <div className="lv-narrow">
       <Card className="lv-signin">

@@ -1,6 +1,6 @@
 # ADR: LunchVoice runs its own sign-in and leaves KpnIdentity (proposed 2026-11-14)
 
-**Status: proposed, waiting for the founder's confirmation (section 9).** Raised by the founder on 2026-11-14: "break away from KpnID for LunchVoice because only LunchVoice will use Discord, and
+**Status: ACCEPTED by the founder on 2026-11-14 ("yes and today lets work on auth"): option B, X-19 (verified-email linking only) and the loss of the shared KpnSolute account for LunchVoice users. The two-day spike still gates production changes (section 7).** Raised by the founder on 2026-11-14: "break away from KpnID for LunchVoice because only LunchVoice will use Discord, and
 that should be the LunchVoice bot app." If accepted this supersedes the identity decision in the canonical master spec (sign-in is Google, then KpnIdentity, then LunchVoice), `IDENTITY_CONTRACT.md`,
 the "Identity" bullet in `AGENTS.md` and `CLAUDE.md`, and the Thursday 11-19 step "add the `create` and `pay` callbacks in KpnIdentity". Until it is accepted, nothing in production, KpnIdentity or the
 brain files changes.

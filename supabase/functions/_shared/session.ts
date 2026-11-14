@@ -5,7 +5,7 @@
 // before anything else, uses asymmetric keys only, and fails closed when the
 // environment is not configured. LunchVoice then issues its own short session:
 // the KpnIdentity token never becomes a product credential.
-import { createRemoteJWKSet, importJWK, jwtVerify, SignJWT, type JWTPayload, type JWTVerifyGetKey } from "jose";
+import { createRemoteJWKSet, decodeJwt, importJWK, jwtVerify, SignJWT, type JWTPayload, type JWTVerifyGetKey } from "jose";
 
 export interface SessionConfig {
   /** Allow-listed KpnIdentity issuers. Empty means nobody can sign in. */
@@ -22,6 +22,23 @@ export interface SessionConfig {
   maxTokenAgeSeconds?: number;
   /** LC-13: single-use store; every ID token is exchanged at most once. Default: an in-memory store (per instance). */
   replayGuard?: ReplayGuard;
+  /**
+   * A7 (ADR_LUNCHVOICE_OWN_SIGN_IN): LunchVoice's own Supabase Auth as a second trusted issuer. Off unless
+   * LV_OWN_AUTH is set. Access tokens are verified by asking the issuer (GET /auth/v1/user), which checks the
+   * signature, expiry and session revocation and returns the verified-email state.
+   */
+  ownAuth?: OwnAuthConfig;
+}
+
+export interface OwnAuthConfig {
+  /** Exactly the `iss` of the project's access tokens, e.g. https://<ref>.supabase.co/auth/v1 */
+  issuer: string;
+  /** The Auth user endpoint, e.g. https://<ref>.supabase.co/auth/v1/user */
+  userUrl: string;
+  /** The project's publishable key (public by design), sent as `apikey`. */
+  apikey: string;
+  /** Injectable for tests. */
+  fetch?: typeof fetch;
 }
 
 /** LC-13: records an exchanged ID token. `consume` resolves true the first time a key is seen, false on a replay. */
@@ -47,7 +64,9 @@ const defaultGuard = memoryReplayGuard();
 
 /** The replay key: SHA-256 over issuer, subject and the token's jti (or its nonce). No token or profile data. */
 export async function replayKey(payload: JWTPayload): Promise<string> {
-  const id = typeof payload.jti === "string" && payload.jti ? `jti:${payload.jti}` : `nonce:${String(payload.nonce ?? "")}`;
+  // A7: Supabase Auth access tokens carry no jti or nonce; a token is unique per (session_id, iat).
+  const sid = typeof payload.session_id === "string" && payload.session_id ? `sid:${payload.session_id}:${String(payload.iat ?? "")}` : "";
+  const id = typeof payload.jti === "string" && payload.jti ? `jti:${payload.jti}` : sid || `nonce:${String(payload.nonce ?? "")}`;
   const data = new TextEncoder().encode(`${payload.iss}|${payload.sub}|${id}`);
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", data));
   return Array.from(digest, (b) => b.toString(16).padStart(2, "0")).join("");
@@ -71,7 +90,9 @@ export function configFromEnv(get: (name: string) => string | undefined): Sessio
   const clientId = get("KPNIDENTITY_CLIENT_ID")?.trim();
   const jwksUrl = get("KPNIDENTITY_JWKS_URL")?.trim();
   const rawKey = get("LV_SESSION_PRIVATE_JWK");
-  if (!issuers.length || !clientId || !jwksUrl || !rawKey) {
+  const ownAuth = ownAuthFromEnv(get);
+  const legacy = Boolean(issuers.length && clientId && jwksUrl);
+  if ((!legacy && !ownAuth) || !rawKey) {
     throw new SessionError("lv_not_configured", "Sign-in is not configured on this server.");
   }
   let sessionKey: JsonWebKeyWithKid;
@@ -83,8 +104,78 @@ export function configFromEnv(get: (name: string) => string | undefined): Sessio
   if (sessionKey.kty !== "EC" || sessionKey.crv !== "P-256" || !sessionKey.d || !sessionKey.kid) {
     throw new SessionError("lv_not_configured", "The session signing key must be a private P-256 JWK with a kid.");
   }
-  if (!jwksUrl.startsWith("https://")) throw new SessionError("lv_not_configured", "The KpnIdentity JWKS URL must use https.");
-  return { issuers, clientId, jwks: createRemoteJWKSet(new URL(jwksUrl), { cacheMaxAge: 10 * 60 * 1000 }), sessionKey };
+  if (legacy && !jwksUrl!.startsWith("https://")) throw new SessionError("lv_not_configured", "The KpnIdentity JWKS URL must use https.");
+  const jwks = legacy
+    ? createRemoteJWKSet(new URL(jwksUrl!), { cacheMaxAge: 10 * 60 * 1000 })
+    : (async () => { throw new SessionError("lv_invalid_token", "KpnIdentity sign-in is not enabled."); }) as unknown as JWTVerifyGetKey;
+  return { issuers: legacy ? issuers : [], clientId: legacy ? clientId! : "", jwks, sessionKey, ...(ownAuth ? { ownAuth } : {}) };
+}
+
+/** A7: read LunchVoice's own Auth settings. Off (undefined) unless LV_OWN_AUTH is "1" or "true". */
+export function ownAuthFromEnv(get: (name: string) => string | undefined): OwnAuthConfig | undefined {
+  const on = (get("LV_OWN_AUTH") ?? "").trim().toLowerCase();
+  if (on !== "1" && on !== "true") return undefined;
+  const base = (get("SUPABASE_URL") ?? "").trim().replace(/\/+$/, "");
+  const apikey = (get("LV_PUBLISHABLE_KEY") ?? get("SUPABASE_PUBLISHABLE_KEY") ?? "").trim();
+  if (!base.startsWith("https://") || !apikey) {
+    throw new SessionError("lv_not_configured", "LunchVoice sign-in needs SUPABASE_URL and a publishable key.");
+  }
+  return { issuer: `${base}/auth/v1`, userUrl: `${base}/auth/v1/user`, apikey };
+}
+
+/**
+ * A7: verify an access token minted by LunchVoice's own Supabase Auth. The token's claims are read only to pre-check
+ * issuer, audience, age and shape; the decision is the issuer's own answer to GET /auth/v1/user, which verifies the
+ * signature, the expiry and that the session has not been revoked, and returns the verified-email state.
+ * Single use per token (LC-13) and a maximum age by `iat`, so the browser forces a refresh before each exchange.
+ */
+export async function verifySupabaseToken(accessToken: string, config: SessionConfig): Promise<JWTPayload & { sub: string }> {
+  const own = config.ownAuth;
+  if (!own) throw new SessionError("lv_not_configured", "LunchVoice sign-in is not enabled on this server.");
+  let claims: JWTPayload & { session_id?: unknown };
+  try {
+    claims = decodeJwt(accessToken);
+  } catch {
+    throw new SessionError("lv_invalid_token", "The sign-in could not be verified.");
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const aud = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
+  if (claims.iss !== own.issuer || !aud.includes("authenticated")) throw new SessionError("lv_invalid_token", "The sign-in could not be verified.");
+  if (typeof claims.sub !== "string" || !UUID.test(claims.sub)) throw new SessionError("lv_invalid_token", "The sign-in did not carry a valid account id.");
+  if (typeof claims.session_id !== "string" || !claims.session_id) throw new SessionError("lv_invalid_token", "The sign-in did not carry a session.");
+  if (typeof claims.exp !== "number" || claims.exp + 30 < now) throw new SessionError("lv_invalid_token", "The sign-in could not be verified.");
+  const maxAge = config.maxTokenAgeSeconds ?? 600;
+  if (typeof claims.iat !== "number" || now - claims.iat > maxAge + 30) throw new SessionError("lv_invalid_token", "This sign-in is too old. Start again.");
+  let user: { id?: unknown; email?: unknown; email_confirmed_at?: unknown; confirmed_at?: unknown; user_metadata?: Record<string, unknown> | null };
+  try {
+    const res = await (own.fetch ?? fetch)(own.userUrl, { headers: { authorization: `Bearer ${accessToken}`, apikey: own.apikey } });
+    if (!res.ok) throw new Error(String(res.status));
+    user = await res.json();
+  } catch {
+    // Fail closed: if the issuer cannot confirm the token, nobody signs in.
+    throw new SessionError("lv_invalid_token", "The sign-in could not be verified.");
+  }
+  if (typeof user.id !== "string" || user.id.toLowerCase() !== claims.sub.toLowerCase()) {
+    throw new SessionError("lv_invalid_token", "The sign-in could not be verified.");
+  }
+  const meta = user.user_metadata ?? {};
+  const text = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
+  const identity = {
+    iss: own.issuer,
+    sub: claims.sub,
+    iat: claims.iat,
+    exp: claims.exp,
+    session_id: claims.session_id,
+    email: text(user.email),
+    // The email counts as verified only when the issuer says it confirmed it (X-19: never link or trust an unverified email).
+    email_verified: Boolean(user.email_confirmed_at ?? user.confirmed_at),
+    name: text(meta.full_name) ?? text(meta.name) ?? text(meta.user_name),
+    picture: text(meta.avatar_url) ?? text(meta.picture),
+  } as JWTPayload & { sub: string };
+  const expires = new Date(1000 * (claims.exp + 60));
+  const fresh = await (config.replayGuard ?? defaultGuard).consume(await replayKey(identity), expires);
+  if (!fresh) throw new SessionError("lv_invalid_token", "This sign-in was already used. Start again.");
+  return identity;
 }
 
 /** Verify a KpnIdentity ID token. Signature, issuer allow-list, audience, expiry, UUID subject and nonce. */

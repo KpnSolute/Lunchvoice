@@ -1,5 +1,12 @@
 # Identity contract: KpnIdentity → LunchVoice
 
+> **Amendment 2026-11-14 (founder decision, `docs/v2/launch-roadmap/ADR_LUNCHVOICE_OWN_SIGN_IN.md`).** LunchVoice now also runs its own sign-in: Supabase Auth in the Lunchvoice
+> project (Google, Discord through the LunchVoice bot application, email) is a **second trusted issuer** next to KpnIdentity. Everything below still holds with that issuer added: the identity is the
+> verified `(issuer, subject)` pair, email is never a key, LunchVoice verifies tokens before anything else and issues its own short session. Changes: (1) the "Direction of authority" rows for
+> authentication, recovery and issuer identity are owned by **Supabase Auth in the Lunchvoice project** for that issuer; (2) **linking rule (X-19):** two sign-ins become one person only when the
+> issuer verified the same email for both, never by an unverified email and never across different emails; otherwise a person links accounts on purpose with proof of both; (3) KpnIdentity remains
+> accepted for existing accounts for 90 days after launch, then the issuer is retired for LunchVoice. Sections below that name KpnIdentity describe the original issuer and stay as the record.
+
 Version **1.0**, 2026-10-25. Authority for everything that crosses the boundary
 between the KpnIdentity platform and LunchVoice v2.
 

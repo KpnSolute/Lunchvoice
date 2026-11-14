@@ -6,6 +6,25 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Added (A7 own sign-in: code behind a flag; A6 functional screens; Backend, Edge and UI-functional; 2026-11-14)
+
+- Status: coded and tested locally. **Not deployed. No Auth provider is enabled. The two-day spike has not run. Production, KpnIdentity and Discord are untouched.**
+- What changed: the code for LunchVoice's own sign-in (ADR accepted today), all off by default.
+  - **`session` Edge Function** (`supabase/functions/_shared/session.ts`, `session/index.ts`): a second path, `{ kind: "supabase", accessToken }`, for access tokens from the Lunchvoice project's own Supabase Auth. It
+    pre-checks issuer, audience, age (600 s) and shape, then asks the issuer (`GET /auth/v1/user`) to confirm the token, takes the verified-email state from the issuer (an unconfirmed email is never marked verified,
+    X-19), keeps the single-use replay guard (key `sha256(iss|sub|session_id|iat)`), and issues the same LunchVoice session as before. Fails closed if the issuer cannot confirm. Enabled only when
+    `LV_OWN_AUTH` is set; the KpnIdentity path is unchanged and `configFromEnv` now also accepts an own-auth-only setup.
+  - **Browser module** `src/lib/lvAuth.ts` and `IdentityProvider` (`own` API): Google and Discord (PKCE, Discord scopes `identify email`), email sign-in and sign-up (12-character hint, neutral errors that never say whether an
+    account exists), password reset and set-new-password, the exchange (forces a fresh token first), the `/auth/callback?own=1` finish, auto-renewal of the LunchVoice session two minutes before it ends using the Auth refresh token, and
+    sign-out of both sessions. A returned name is never an email (audit HB1). Enabled only when the build sets `VITE_LV_AUTH=1`.
+  - **Screens** `src/pages/OwnSignIn.tsx` used by `/signin` when enabled: Continue with Google and Discord, email and password with Show, forgot password, create account with an "I am 13 or older" check, check-inbox and reset
+    states, legal links, join-code link. Functional, unstyled for the week-4 redesign.
+- Checks: `npm run test:functions` 98 of 98 pass (8 new for the Supabase path); `src/lib/lvAuth.test.ts` 13 of 13; `npm run test:unit` 167 of 167; `tsc --noEmit` clean; `npm run build` passes; `check:design`, `check:routes` pass. **`npm run test:pr` passes (exit 0)**: brain, names, routes, design, brand, scripts 48 of 48, unit 167 of 167, workers 6 of 6, functions 98 of 98, build and bundle checks. Not run: the database suite (no migration changed) and e2e against a live Auth project.
+- Not done and blockers: the spike (Google, Discord and email on a branch or scratch project; verified-email linking behaviour; a 30-day session across `lunchvoice.com` and `create.`); the `identity.trusted_issuers` policy still lists only KpnIdentity (adding the own issuer is a
+  production data change after the spike); `lv_identity_link` and its pgTAP tests; the "keep me signed in on this device" choice (A1); the Auth project settings (providers, 12-character passwords, SMTP, captcha, session time-box); the founder's
+  Google, Discord and Resend actions; the Discord account link (F1); E11 username step; the design pass.
+- Next: Mon 11-16 the spike on a branch or scratch project; the founder enters provider secrets in the Supabase dashboard.
+
 ### Docs (ADR proposed: LunchVoice leaves KpnIdentity and runs its own sign-in; founder suggestion; A7; Governing; 2026-11-14)
 
 - Status: planned (proposal only; nothing changed in production, KpnIdentity, Discord or the brain files).

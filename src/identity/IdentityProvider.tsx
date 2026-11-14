@@ -4,6 +4,27 @@ import type { LvApi } from "../lib/lvApi";
 import { createApi, usingMock } from "../lib/transport";
 import { SESSION_ENDED_FLAG } from "../lib/authFailure";
 import { completeSignIn as finishRedirect, readConfig, startSignIn } from "../lib/kpnIdentity";
+import { createClient } from "@supabase/supabase-js";
+import {
+  acceptRecoveryCode, completeOwnCallback, exchangeSession, readOwnAuthConfig, sendPasswordReset, setNewPassword, signInWithEmail, signUpWithEmail, startOAuth,
+  type AuthClientLike, type OwnAuthConfig, type OwnProvider,
+} from "../lib/lvAuth";
+
+/** LunchVoice's own sign-in (A7). Present only when the build sets VITE_LV_AUTH=1. */
+export interface OwnAuthApi {
+  /** Redirect to Google or Discord. Resolves only if the redirect could not start. */
+  oauth: (provider: OwnProvider, returnTo?: string) => Promise<void>;
+  /** Email and password; on success the person is signed in. */
+  password: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, returnTo?: string) => Promise<{ confirmationNeeded: boolean }>;
+  reset: (email: string) => Promise<void>;
+  /** Finish /auth/callback?own=1 (provider redirect or email confirmation link); returns where to go next. */
+  complete: (search: string) => Promise<string>;
+  /** The reset link (/signin?reset=1&code=...): start a short recovery session. */
+  recover: (search: string) => Promise<void>;
+  /** Set the new password during recovery; on success the person is signed in. */
+  newPassword: (password: string) => Promise<void>;
+}
 
 // The identity key is (issuer, subject) and it is derived server-side from a
 // verified KpnIdentity token; the browser only holds the token. Until the
@@ -26,12 +47,24 @@ interface Identity {
   /** Finish the KpnIdentity redirect on /auth/callback; returns where to go next. */
   completeSignIn: (search: string) => Promise<string>;
   signOut: () => void;
+  /** LunchVoice's own sign-in (Google, Discord, email). Null unless enabled for this build. */
+  own: OwnAuthApi | null;
 }
 
 const STORE = "lv.session";
 const Ctx = createContext<Identity | null>(null);
 const issuer = import.meta.env.VITE_KPNIDENTITY_ISSUER;
 const kpnConfig = typeof window === "undefined" ? null : readConfig(import.meta.env as Record<string, string | undefined>, window.location.origin);
+
+const ownConfig: OwnAuthConfig | null = typeof window === "undefined" ? null : readOwnAuthConfig(import.meta.env as Record<string, string | undefined>, window.location.origin);
+let ownClient: AuthClientLike | null = null;
+/** One Auth client per page. PKCE; the redirect is handled by completeOwnCallback, not by the library. */
+function getOwnClient(config: OwnAuthConfig): AuthClientLike {
+  ownClient ??= createClient(config.supabaseUrl, config.anonKey, {
+    auth: { flowType: "pkce", detectSessionInUrl: false, persistSession: true, autoRefreshToken: true, storageKey: "lv.auth" },
+  }) as unknown as AuthClientLike;
+  return ownClient;
+}
 
 function load(): Session | null {
   try {
@@ -86,8 +119,50 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
     };
   }, [session, endSession]);
 
+  // A7: with our own sign-in, a session renews itself a couple of minutes before it ends, using the Auth refresh token
+  // (the device stays signed in for the Auth project's session time-box). A failed renewal leaves the normal expiry in place.
+  useEffect(() => {
+    const expiresAt = session?.expiresAt;
+    if (!ownConfig || !expiresAt || session?.token === "simulated") return;
+    const delay = Math.max(expiresAt - Date.now() - 120_000, 5_000);
+    const timer = window.setTimeout(() => {
+      exchangeSession(getOwnClient(ownConfig), ownConfig)
+        .then((next) => persist({ token: next.token, name: next.name || session?.name || "You", expiresAt: next.expiresAt }))
+        .catch(() => { /* the session simply ends at its expiry */ });
+    }, Math.min(delay, 2_000_000_000));
+    return () => window.clearTimeout(timer);
+  }, [session, persist]);
+
+  const own = useMemo<OwnAuthApi | null>(() => {
+    const config = ownConfig;
+    if (!config) return null;
+    const client = () => getOwnClient(config);
+    return {
+      oauth: async (provider, returnTo) => { window.location.assign(await startOAuth(client(), config, provider, returnTo ?? "/me")); },
+      password: async (email, password) => {
+        await signInWithEmail(client(), email, password);
+        const next = await exchangeSession(client(), config);
+        persist({ token: next.token, name: next.name, expiresAt: next.expiresAt });
+      },
+      signUp: (email, password, returnTo) => signUpWithEmail(client(), config, email, password, returnTo ?? "/me"),
+      reset: (email) => sendPasswordReset(client(), config, email),
+      complete: async (search) => {
+        const { session: next, returnTo } = await completeOwnCallback(client(), config, search);
+        persist({ token: next.token, name: next.name, expiresAt: next.expiresAt });
+        return returnTo;
+      },
+      recover: (search) => acceptRecoveryCode(client(), search),
+      newPassword: async (password) => {
+        await setNewPassword(client(), password);
+        const next = await exchangeSession(client(), config);
+        persist({ token: next.token, name: next.name, expiresAt: next.expiresAt });
+      },
+    };
+  }, [persist]);
+
   const value = useMemo<Identity>(() => {
     return {
+      own,
       session,
       api: createApi(() => session?.token ?? null, session?.name, endSession),
       issuerConfigured: Boolean(issuer && kpnConfig),
@@ -105,9 +180,13 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
         persist(next);
         return returnTo;
       },
-      signOut: () => persist(null),
+      signOut: () => {
+        persist(null);
+        // A7: also end the Auth session on this device so the refresh token cannot renew it.
+        if (ownConfig) void getOwnClient(ownConfig).auth.signOut().catch(() => undefined);
+      },
     };
-  }, [session, persist, endSession]);
+  }, [session, persist, endSession, own]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

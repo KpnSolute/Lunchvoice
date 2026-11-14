@@ -273,7 +273,8 @@ the product direction already says).
 | X-15 | Stripe webhook endpoint | Unchanged (Supabase function URL); no proxy through `pay` |
 | X-16 | Launch does not auto-charge anyone | Billing opens only if armed (B8); people buy by choice; Founding grants end by policy |
 | X-17 | `status`, `help`, `developers`, `api`, `discovery` hostnames | Not created at launch (paths instead); reserved so no Hub can take them |
-| X-18 | Sign-in providers | **Approved 2026-11-14:** Google, Discord and email with password at launch. Apple, Microsoft, Clever and SSO are not at launch (`02_` A6) |
+| X-18 | Sign-in providers | **Approved 2026-11-14:** Google, Discord (the LunchVoice bot application) and email with password at launch. Apple, Microsoft, Clever and SSO are not at launch (`02_` A6) |
+| X-19 | Sign-in linking | **Approved 2026-11-14:** LunchVoice leaves KpnIdentity for its own sign-in (ADR accepted); sign-ins link only on the same issuer-verified email, never otherwise; the shared KpnSolute account is lost for LunchVoice users; KpnIdentity stays accepted for 90 days for existing accounts |
 
 ## 11. Risks
 

@@ -6,7 +6,7 @@
 // billing webhook. Until 000018 is applied (undefined function), or without a database URL, the function falls back
 // to an in-memory record per instance, so deploying it before the migration never breaks sign-in.
 import postgres from "postgres";
-import { configFromEnv, issueSession, memoryReplayGuard, SessionError, verifyIdToken, type ReplayGuard, type SessionConfig } from "../_shared/session.ts";
+import { configFromEnv, issueSession, memoryReplayGuard, SessionError, verifyIdToken, verifySupabaseToken, type ReplayGuard, type SessionConfig } from "../_shared/session.ts";
 
 const allowedOrigins = (Deno.env.get("LV_ALLOWED_ORIGINS") ?? "https://lunchvoice.com,https://www.lunchvoice.com")
   .split(",").map((v) => v.trim()).filter(Boolean);
@@ -57,11 +57,20 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return reply(405, { ok: false, error: { code: "lv_method", message: "Use POST." } }, origin);
   try {
     cached ??= { ...configFromEnv((name) => Deno.env.get(name)), replayGuard };
-    const body = await req.json().catch(() => ({})) as { idToken?: unknown; nonce?: unknown };
-    if (typeof body.idToken !== "string" || typeof body.nonce !== "string") {
-      return reply(400, { ok: false, error: { code: "lv_invalid_token", message: "idToken and nonce are required." } }, origin);
+    const body = await req.json().catch(() => ({})) as { idToken?: unknown; nonce?: unknown; accessToken?: unknown; kind?: unknown };
+    let identity;
+    if (body.kind === "supabase") {
+      // A7: LunchVoice's own sign-in. Off unless LV_OWN_AUTH is set (verifySupabaseToken answers lv_not_configured).
+      if (typeof body.accessToken !== "string") {
+        return reply(400, { ok: false, error: { code: "lv_invalid_token", message: "accessToken is required." } }, origin);
+      }
+      identity = await verifySupabaseToken(body.accessToken, cached);
+    } else {
+      if (typeof body.idToken !== "string" || typeof body.nonce !== "string") {
+        return reply(400, { ok: false, error: { code: "lv_invalid_token", message: "idToken and nonce are required." } }, origin);
+      }
+      identity = await verifyIdToken(body.idToken, body.nonce, cached);
     }
-    const identity = await verifyIdToken(body.idToken, body.nonce, cached);
     const session = await issueSession(identity, cached);
     return reply(200, { ok: true, session: session.token, expiresIn: session.expiresIn }, origin);
   } catch (error) {
