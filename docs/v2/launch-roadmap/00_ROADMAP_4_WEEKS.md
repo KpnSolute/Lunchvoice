@@ -229,10 +229,10 @@ See `05_WEEK4_UI_UX_REDESIGN.md`. Backend changes are bug and security fixes onl
 | By | Action | Unblocks |
 | --- | --- | --- |
 | Sun 11-15 | Answer, or accept, the defaults in section 10 (silence means "go with yours") | Week 1 start |
-| Mon 11-16 | Confirm the Supabase plan and whether to pay for point-in-time recovery (J: yes if the plan allows; cost in `04_`) | Backups |
+| Mon 11-16 | Supabase is on **Pro** with daily backups and PITR off (read 2026-11-14). Decide PITR: recommended **keep off for launch**, prove the daily backup with the restore drill (DR-01), revisit with paying customers | Backups |
 | Mon 11-23 | Name the legal operator and approve counsel's review plan; approve KpnIdentity settings B1 to B6 one by one | Legal, account security |
 | Wed 11-18 | Set a software tax code on the Stripe products; confirm `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are set in Supabase | B2 |
-| Thu 11-19 | **Go-ahead**: repoint `pay.lunchvoice.com` from GoDaddy (the Stripe webhook URL stays as it is), generate the shared Worker secret, add the `create` and `pay` callback URLs in KpnIdentity | A4, A1 |
+| Thu 11-19 | **Approved 2026-11-14 ("go ahead"); executes Thursday after the `pay-next` staging checks pass.** repoint `pay.lunchvoice.com` from GoDaddy (the Stripe webhook URL stays as it is), generate the shared Worker secret, add the `create` and `pay` callback URLs in KpnIdentity | A4, A1 |
 | Fri 11-20 | Perform the live $13 test purchase with a 100% coupon and refund it, with the agent watching | G1 |
 | Mon 11-30 | Create the Discord OAuth client secret; confirm the `DISCORD_*` secrets; invite the bot to the Kitchen's server | F1 to F4 |
 | Wed 12-02 | Approve design tokens v4 and the landing storyboard | Week 4 |

@@ -6,6 +6,21 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Operations (founder approvals and backup facts; S-60, A1, A4; Governing; 2026-11-14)
+
+- Status: planned (approvals recorded; nothing changed in production, DNS, Stripe or KpnIdentity).
+- **Founder approved ("go ahead", 2026-11-14)** the Thursday 11-19 steps of week 1: repoint `pay.lunchvoice.com` from GoDaddy, generate the shared auth Worker secret, and add the `create` and `pay`
+  callbacks in KpnIdentity. They are **queued for Thu 11-19, not done today**, because their prerequisites do not exist yet: the `pay` app and its return URLs (A2, B3), the `pay-next` staging host
+  with a rehearsed rollback (A4), and the Worker that would use the secret (A1). Repointing `pay` today would take down the existing GoDaddy pay site with nothing behind it (the 2026-11-13 handoff
+  forbids that). The KpnIdentity OAuth client "LunchVoice" currently allows exactly one redirect, `https://lunchvoice.com/auth/callback`; Thursday adds the two new callbacks (exact URLs) and
+  re-tests sign-in on all three hosts.
+- **Supabase facts read today (read-only, Management API with the gitignored token):** the Lunchvoice project is on the **Pro plan** with **daily physical backups** (8 completed, newest
+  2026-11-14 10:50 UTC, WAL-G on) and **point-in-time recovery off**. Access: yes, through the `lunchvoice` and `kpnauth` MCP servers and Composio (alias Lunchvoice, KpnIdentity); the backups call
+  needs the project token in `.mcp.env`.
+- Recommendation for S-60 (founder decides): keep PITR off for launch (it is a recurring paid add-on; A: confirm current price in the dashboard), run the restore drill DR-01 in week 3 to prove
+  the daily backup works, and revisit PITR when paying customers exist. Loss window with daily backups is up to about 24 hours.
+- Next: Thu 11-19 execute A4 and A1 after the `pay-next` staging checks pass; Mon 11-16 founder answers the PITR question.
+
 ### Operations (production, 2026-11-14: HB1 display-name data fix applied; founder "yes"; S-23; Backend)
 
 - Status: verified (data fix applied and checked; the permanent username feature E11 is still planned).
