@@ -6,6 +6,16 @@ categories and the repository's decimal `X.X.X` release policy.
 
 ## [Unreleased]
 
+### Docs (Discord added as a sign-in provider at launch; founder "yes we can add discord too"; A6, X-18; Governing; 2026-11-14)
+
+- Status: planned (approved and specified; KpnIdentity and Discord unchanged).
+- What changed: **Discord is now a launch sign-in provider** next to Google and email (spec A6, default X-18 updated). Rules recorded: a separate Discord application named "KpnSolute" for sign-in (not the LunchVoice bot
+  application); scopes `identify` and `email` only; a verified email is required; **no account merging by email** (KpnIdentity's automatic identity-linking must be checked and turned off or constrained, because Supabase links
+  same-email identities by default); one-click "Link my Discord to LunchVoice" for people who signed in with Discord (F1).
+- Founder actions added (Mon 11-30): create the "KpnSolute" Discord application and enter its client ID and secret in KpnIdentity's Discord provider yourself; approve the provider setting.
+- Not done and blockers: nothing built; A: how KpnIdentity records a Discord-verified email and whether the token carries the Discord id are to be confirmed in testing.
+- Next: Design adds the Discord button to the A6 frames in week 1; Edge configures and tests the provider in week 3.
+
 ### Docs (A6 sign-in and sign-up screens like real products; Governing; 2026-11-14)
 
 - Status: planned (specified; nothing built, KpnAuth and production untouched).

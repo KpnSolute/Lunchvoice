@@ -122,8 +122,8 @@ for every new operation; no v1 reference; no customer name in code.
   2026-11-13 handoff). KpnAuth gains a **per-client theme** chosen by the OAuth `client_id`: product name, logo, colours, fonts, tagline, legal links, provider order. LunchVoice's theme is the
   LunchVoice identity (amber, ink, bone, Bricolage and Geist). Other products keep theirs; a regression test signs in to every client.
 - **KpnAuth sign-in screen (desktop, 900 px and wider).** Two panels. Left, the brand panel: ink background, the LV mark, the headline "Make every voice count.", and a small looping demo of a poll
-  filling in (reduced-motion safe). Right, the form card: the LV mark and **"Welcome back"** with "Sign in to LunchVoice" under it; **Continue with Google** (stacked, full width); (P1, see X-18) **Continue with
-  Discord**; the divider **or**; **Email**; **Password** with a **Show** toggle and **Forgot password?** beside the label; a **Sign in** primary button, disabled until both fields have content (with a visible reason
+  filling in (reduced-motion safe). Right, the form card: the LV mark and **"Welcome back"** with "Sign in to LunchVoice" under it; **Continue with Google** (stacked, full width); **Continue with
+  Discord** (approved 2026-11-14, X-18); the divider **or**; **Email**; **Password** with a **Show** toggle and **Forgot password?** beside the label; a **Sign in** primary button, disabled until both fields have content (with a visible reason
   on hover or focus, never silently grey); **Having trouble signing in?** (forgot password, resend the confirmation email, contact support); **New to LunchVoice? Create an account**; the legal line
   ("By continuing you agree to the LunchVoice Terms and Privacy Policy, and to KpnSolute's, which runs sign-in", real links); and a quiet trust line ("Your password stays with KpnSolute and is never shared with
   LunchVoice"). Under 900 px: one column, the brand strip on top, 16 px inputs (no phone zoom), 48 px targets, the email keyboard on the email field.
@@ -136,8 +136,13 @@ for every new operation; no v1 reference; no customer name in code.
 - **Errors and security.** Neutral messages that do not reveal whether an account exists ("Email or password is incorrect"); a rate limit and a short lockout after repeated failures with a Turnstile
   challenge; password managers and paste always allowed; correct `autocomplete` attributes; PKCE, exact redirect URIs and `state` unchanged; no password, token or email in any URL or log; passkeys are V2.x.
 - **Accessibility.** Visible labels, errors announced to screen readers and tied to fields, logical focus order, 4.5:1 contrast in all three themes, no reliance on colour.
-- **Providers (default X-18).** Launch: **Google** and **email and password**. P1 with the founder's yes: **Discord** (free, fits a community product: it becomes an upstream login at KpnIdentity that
-  yields a KpnIdentity account, so LunchVoice's identity stays `(issuer, subject)` and email stays a contact attribute; it must collect a verified email at first use and can pre-link F1). Not at
+- **Providers (X-18, approved by the founder 2026-11-14).** Launch: **Google**, **Discord** and **email and password**. Discord is an upstream login at KpnIdentity (Supabase's Discord provider) that
+  yields a KpnIdentity account, so LunchVoice's identity stays `(issuer, subject)` and email stays a contact attribute. Rules for it: (1) use a **separate Discord application named "KpnSolute"** for sign-in (the consent
+  screen shows that name; KpnIdentity also serves other products), not the LunchVoice bot application; its redirect URI is KpnIdentity's auth callback; (2) request only `identify` and `email`; (3) the email must be
+  **verified** (Discord reports a verified flag; A: confirm how KpnIdentity records it, B1), otherwise the person is asked to confirm one before continuing; (4) **never merge accounts by email**: check
+  KpnIdentity's automatic identity-linking setting (Supabase links same-email identities by default, which would contradict the identity contract) and turn it off or constrain it before launch; a person who wants
+  Google and Discord on one account links them on purpose from Account settings; (5) a person who signed in with Discord gets a one-click "Link my Discord to LunchVoice" confirmation (F1) with no second OAuth round trip when
+  the token carries the Discord id (A: confirm), otherwise F1's normal flow. Not at
   launch: **Apple** (needs the paid Apple Developer Program, A: current fee) and **Microsoft** (free, but an app registration and verification), **Clever** (education), **SSO** (enterprise, V3).
 - **Data and config.** A theme record per client in KpnAuth's configuration (name, logo, colours, fonts, tagline, legal links, provider order, support address); KpnIdentity provider settings for any new
   provider (a founder-approved setting, one at a time).

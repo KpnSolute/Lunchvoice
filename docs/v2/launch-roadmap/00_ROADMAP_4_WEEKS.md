@@ -236,7 +236,7 @@ See `05_WEEK4_UI_UX_REDESIGN.md`. Backend changes are bug and security fixes onl
 | Wed 11-18 | Set a software tax code on the Stripe products; confirm `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are set in Supabase | B2 |
 | Thu 11-19 | **Approved 2026-11-14 ("go ahead"); executes Thursday after the `pay-next` staging checks pass.** repoint `pay.lunchvoice.com` from GoDaddy (the Stripe webhook URL stays as it is), generate the shared Worker secret, add the `create` and `pay` callback URLs in KpnIdentity | A4, A1 |
 | Fri 11-20 | Perform the live $13 test purchase with a 100% coupon and refund it, with the agent watching | G1 |
-| Mon 11-30 | Create the Discord OAuth client secret; confirm the `DISCORD_*` secrets; invite the bot to the Kitchen's server | F1 to F4 |
+| Mon 11-30 | Create the **"KpnSolute" Discord application for sign-in** (client ID and secret go into KpnIdentity's Discord provider in the Supabase dashboard yourself, never into chat) and approve the KpnIdentity provider setting; create the Discord OAuth client secret; confirm the `DISCORD_*` secrets; invite the bot to the Kitchen's server | F1 to F4 |
 | Wed 12-02 | Approve design tokens v4 and the landing storyboard | Week 4 |
 | Fri 12-11 | Go or no-go; if go, **arm the billing release** (B8, typed `ARM RELEASE`) so billing opens at 17:12 UTC on 12-12; if not armed, billing stays closed and nobody is charged | Launch |
 
@@ -273,7 +273,7 @@ the product direction already says).
 | X-15 | Stripe webhook endpoint | Unchanged (Supabase function URL); no proxy through `pay` |
 | X-16 | Launch does not auto-charge anyone | Billing opens only if armed (B8); people buy by choice; Founding grants end by policy |
 | X-17 | `status`, `help`, `developers`, `api`, `discovery` hostnames | Not created at launch (paths instead); reserved so no Hub can take them |
-| X-18 | Sign-in providers | Launch: Google and email with password. Discord is P1 with the founder's yes; Apple, Microsoft, Clever and SSO are not at launch (`02_` A6) |
+| X-18 | Sign-in providers | **Approved 2026-11-14:** Google, Discord and email with password at launch. Apple, Microsoft, Clever and SSO are not at launch (`02_` A6) |
 
 ## 11. Risks
 
